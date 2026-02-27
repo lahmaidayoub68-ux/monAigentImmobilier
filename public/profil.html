@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiGENT - Profil & Compte</title>
+
+    <link rel="stylesheet" href="accueil.css" />
+
+    <!-- Leaflet CSS (LOCAL – compatible CSP) -->
+    <link rel="stylesheet" href="/leaflet/leaflet.css" />
+
+    <!-- ===== MENU LATÉRAL & PROFIL (STYLE ISOLÉ) ===== -->
+    <style>
+      /* ===== BOUTON MENU FLOTTANT ===== */
+      .menu-toggle {
+        position: fixed;
+        top: 90px;
+        left: 20px;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: #ffffff;
+        color: #000000;
+        font-size: 26px;
+        cursor: pointer;
+        border: none;
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+      }
+
+      .menu-toggle:hover {
+        background: #f2f2f2;
+      }
+
+      /* ===== SIDEBAR ===== */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 260px;
+        height: 100vh;
+        background: #000;
+        color: #fff;
+        transform: translateX(-100%);
+        transition: transform 0.35s ease;
+        z-index: 2000;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .sidebar .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 22px;
+        cursor: pointer;
+      }
+
+      .sidebar h2 {
+        margin-top: 40px;
+        margin-bottom: 30px;
+        font-size: 20px;
+      }
+
+      .sidebar ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .sidebar ul li {
+        margin-bottom: 20px;
+      }
+
+      .sidebar ul li a {
+        color: #fff;
+        text-decoration: none;
+        font-size: 16px;
+      }
+
+      .sidebar ul li a:hover {
+        text-decoration: underline;
+      }
+
+      /* ===== OVERLAY ===== */
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1500;
+        display: none;
+      }
+
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      /* ===== CONTENU PROFIL ===== */
+      .profil-container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+
+      /* ===== AVATAR AVEC IMAGE ===== */
+      .avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: block;
+        margin: 0 auto 20px auto;
+        background-color: #ccc; /* couleur de fallback */
+        background-image: url("images/user-avatar.jpg");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
+
+      .section-title {
+        font-weight: bold;
+        font-style: italic;
+        border-bottom: 2px solid #000;
+        padding-bottom: 5px;
+        margin-top: 30px;
+        margin-bottom: 20px;
+        font-size: 18px;
+      }
+
+      .info-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px 0;
+      }
+
+      .info-list li {
+        margin-bottom: 12px;
+        font-size: 16px;
+      }
+
+      .info-list li span.label {
+        font-weight: bold;
+        display: inline-block;
+        width: 180px;
+      }
+
+      .action-btn {
+        margin-top: 10px;
+        padding: 8px 16px;
+        font-size: 15px;
+        cursor: pointer;
+        border-radius: 5px;
+        border: none;
+        background-color: #000;
+        color: #fff;
+        transition: background 0.2s ease;
+      }
+
+      .action-btn:hover {
+        background-color: #333;
+      }
+
+      /* ===== TITRE LOGO AVEC GRADIENT ANIMÉ ===== */
+      .logo-text {
+        font-size: 28px;
+        font-weight: 700;
+
+        background: linear-gradient(270deg, #659cef, #d194ed, #8fbafc);
+        background-size: 400% 400%;
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        animation: gradientBG 30s ease infinite;
+      }
+
+      @keyframes gradientBG {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .menu-links {
+        list-style: none;
+        padding: 0;
+      }
+
+      .menu-bottom {
+        margin-top: auto;
+        padding: 20px;
+      }
+
+      .home-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: inherit;
+        transition:
+          transform 0.3s ease,
+          opacity 0.3s ease;
+      }
+
+      /* --- Animation porte --- */
+      .home-link svg {
+        transition: transform 0.4s ease;
+        transform-origin: left center; /* charnière côté gauche */
+      }
+
+      /* --- Animation flèche (3e path du SVG) --- */
+      .home-link svg path:last-child {
+        transition: transform 0.3s ease;
+      }
+
+      /* --- Hover --- */
+      .home-link:hover {
+        transform: translateX(4px);
+      }
+
+      .home-link:hover svg {
+        transform: rotateY(-20deg); /* ouverture légère */
+      }
+
+      .home-link:hover svg path:last-child {
+        transform: translateX(-3px); /* flèche qui rentre un peu plus */
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ===== BOUTON MENU FLOTTANT ===== -->
+    <button class="menu-toggle" id="openSidebar">☰</button>
+
+    <!-- ===== SIDEBAR ===== -->
+    <nav id="sidebar" class="sidebar">
+      <span class="close-btn" id="closeSidebar">&times;</span>
+      <h2>Menu</h2>
+
+      <!-- Liens principaux -->
+      <ul class="menu-links">
+        <li><a href="profil.html">Profil & Compte</a></li>
+        <li><a href="messagerie.html">Messagerie</a></li>
+        <li><a href="favoris.html">Profils favoris</a></li>
+        <li><a href="statistiques.html">Statistiques</a></li>
+      </ul>
+
+      <!-- Retour accueil placé tout en bas -->
+      <div class="menu-bottom">
+        <a href="accueil.html" class="home-link">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <!-- Porte -->
+            <path d="M3 21h18"></path>
+            <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"></path>
+            <!-- Flèche qui rentre -->
+            <path d="M12 11l-3 3 3 3"></path>
+          </svg>
+          <span><i>Retour à l'accueil</i></span>
+        </a>
+      </div>
+    </nav>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+    <!-- HEADER -->
+    <header class="top-banner">
+      <div class="logo-container">
+        <img
+          src="images/logo.png"
+          alt="Logo AiGENT Immobilier"
+          class="logo-img"
+        />
+        <h1 class="logo-text" id="animated-title">Mon AiGENT Immobilier</h1>
+      </div>
+
+      <button id="btn-logout" class="btn-secondary hidden">
+        Se déconnecter
+      </button>
+    </header>
+
+    <!-- CONTENU PROFIL -->
+    <main class="profil-container" aria-label="Profil utilisateur">
+      <!-- AVATAR -->
+      <div class="avatar" aria-label="Avatar utilisateur"></div>
+
+      <!-- MES INFORMATIONS PERSONNELLES -->
+      <div class="section-title">Mes informations personnelles</div>
+      <ul class="info-list">
+        <li>
+          <span class="label">Pseudo :</span>
+          <span id="profile-username">Utilisateur123</span>
+        </li>
+        <li>
+          <span class="label">Mot de passe :</span>
+          <span id="profile-password">••••••••</span>
+        </li>
+        <li>
+          <span class="label">Email :</span>
+          <span id="profile-email">email@exemple.com</span>
+        </li>
+        <li>
+          <span class="label">Profil :</span>
+          <span id="profile-role">Acheteur</span>
+        </li>
+      </ul>
+
+      <!-- =========================
+   SÉCURITÉ DU COMPTE + POPUP MDP
+========================= -->
+      <style>
+        /* ===== SECTION SÉCURITÉ ===== */
+        .section-title {
+          font-size: 20px;
+          font-weight: bold;
+          margin-bottom: 15px;
+        }
+
+        .info-list {
+          list-style: none;
+          padding: 0;
+        }
+
+        .info-list li {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 14px;
+        }
+
+        .label {
+          font-weight: 500;
+        }
+
+        /* Bouton principal (Changer mot de passe) */
+        .change-password-btn {
+          padding: 8px 18px;
+          border-radius: 22px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          border: none;
+
+          background: linear-gradient(90deg, #5b8def, #e8a2b8);
+          color: #fff;
+
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+          transition: all 0.25s ease;
+        }
+
+        .change-password-btn:hover {
+          background: linear-gradient(90deg, #4f83e6, #d98aa8);
+          transform: translateY(-2px);
+        }
+
+        /* ===== OVERLAY ===== */
+        .password-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.55);
+          backdrop-filter: blur(8px);
+          display: none;
+          align-items: center;
+          justify-content: center;
+          z-index: 6000;
+        }
+
+        .password-overlay.active {
+          display: flex;
+        }
+        /* ===== MODAL PREMIUM ===== */
+        .password-modal {
+          width: 60%;
+          max-width: 750px;
+          background: #ffffff;
+          border-radius: 20px;
+          box-shadow: 0 50px 120px rgba(0, 0, 0, 0.55);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          animation: popupFade 0.25s ease;
+        }
+
+        /* ===== HEADER NOIR ===== */
+        .password-header {
+          background: #000;
+          padding: 22px 30px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .password-header h2 {
+          color: #fff;
+          margin: 0;
+          font-size: 20px;
+          font-weight: 700;
+          font-style: italic;
+          letter-spacing: 0.5px;
+        }
+
+        /* ===== CROIX PREMIUM ===== */
+        .password-close {
+          background: rgba(255, 255, 255, 0.12);
+          border: none;
+          color: #fff;
+          font-size: 20px;
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .password-close:hover {
+          background: #dbeeff;
+          color: #5b8def;
+          box-shadow: 0 0 12px rgba(91, 141, 239, 0.6);
+          transform: scale(1.1) rotate(90deg);
+        }
+
+        /* ===== BODY ===== */
+        .password-body {
+          padding: 35px 40px;
+          background: linear-gradient(180deg, #ffffff, #f9f9ff);
+        }
+
+        /* ===== INPUTS ===== */
+        .password-fields {
+          display: flex;
+          flex-direction: column;
+          gap: 22px;
+        }
+
+        .password-fields input {
+          padding: 15px 18px;
+          border-radius: 14px;
+          border: 1px solid #e3e3e3;
+          font-size: 15px;
+          transition: all 0.25s ease;
+        }
+
+        .password-fields input:focus {
+          outline: none;
+          border-color: #5b8def;
+          box-shadow: 0 0 0 4px rgba(91, 141, 239, 0.15);
+          transform: scale(1.02);
+        }
+
+        /* ===== FOOTER ===== */
+        .password-footer {
+          padding: 20px 40px 30px 40px;
+          display: flex;
+          justify-content: flex-end;
+          background: #fff;
+          border-top: 1px solid #eee;
+        }
+
+        .password-footer button {
+          padding: 12px 32px;
+          border-radius: 24px;
+          border: none;
+          font-weight: bold;
+          cursor: pointer;
+          background: linear-gradient(90deg, #5b8def, #e8a2b8);
+          color: #fff;
+          transition: all 0.3s ease;
+        }
+
+        .password-footer button:hover {
+          background: linear-gradient(90deg, #4f83e6, #d98aa8);
+          transform: translateY(-3px);
+          box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
+        }
+      </style>
+
+      <!-- ===== SÉCURITÉ DU COMPTE ===== -->
+      <div class="section-title">Sécurité du compte</div>
+
+      <ul class="info-list">
+        <li>
+          <span class="label">Changer le mot de passe :</span>
+          <button id="openPasswordModal" class="change-password-btn">
+            Modifier
+          </button>
+        </li>
+
+        <li>
+          <span class="label">Dernière connexion :</span>
+          <span id="profile-last-login">2026-01-29 10:35</span>
+        </li>
+
+        <li>
+          <button id="btnDeconnexion" class="change-password-btn">
+            Se déconnecter
+          </button>
+        </li>
+      </ul>
+
+      <!-- ===== POPUP CHANGEMENT MDP ===== -->
+      <div id="passwordOverlay" class="password-overlay">
+        <div class="password-modal">
+          <div class="password-header">Changer le mot de passe</div>
+
+          <div class="password-fields">
+            <input
+              id="currentPassword"
+              type="password"
+              placeholder="Mot de passe actuel"
+            />
+            <input
+              id="newPassword"
+              type="password"
+              placeholder="Nouveau mot de passe"
+            />
+            <input
+              id="confirmPassword"
+              type="password"
+              placeholder="Confirmer le nouveau mot de passe"
+            />
+          </div>
+
+          <div class="password-footer">
+            <button id="btnChangePassword">Valider</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIONS IMPORTANTES -->
+      <div class="section-title">Actions importantes</div>
+      <ul class="info-list">
+        <li><button class="action-btn">Supprimer le compte</button></li>
+        <li><button class="action-btn">Contacter le support</button></li>
+      </ul>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bottom-banner">
+      <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
+    </footer>
+
+    <!-- Leaflet JS -->
+    <script src="/leaflet/leaflet.js" defer></script>
+
+    <!-- JS EXTERNE PROFIL -->
+    <script src="/profil.js" defer></script>
+  </body>
+</html>

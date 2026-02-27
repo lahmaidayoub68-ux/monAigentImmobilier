@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiGENT - Compatibilité des Matchs</title>
+
+    <link rel="stylesheet" href="accueil.css" />
+
+    <style>
+      /* ===== BOUTON MENU FLOTTANT ===== */
+      .menu-toggle {
+        position: fixed;
+        top: 90px;
+        left: 20px;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: #ffffff;
+        color: #000000;
+        font-size: 26px;
+        cursor: pointer;
+        border: none;
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+      }
+
+      .menu-toggle:hover {
+        background: #f2f2f2;
+      }
+
+      /* ===== SIDEBAR ===== */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 260px;
+        height: 100vh;
+        background: #000;
+        color: #fff;
+        transform: translateX(-100%);
+        transition: transform 0.35s ease;
+        z-index: 2000;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .sidebar .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 22px;
+        cursor: pointer;
+      }
+
+      .sidebar h2 {
+        margin-top: 40px;
+        margin-bottom: 30px;
+        font-size: 20px;
+      }
+
+      .sidebar ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .sidebar ul li {
+        margin-bottom: 20px;
+      }
+
+      .sidebar ul li a {
+        color: #fff;
+        text-decoration: none;
+        font-size: 16px;
+      }
+
+      .sidebar ul li a:hover {
+        text-decoration: underline;
+      }
+
+      /* ===== OVERLAY ===== */
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1500;
+        display: none;
+      }
+
+      .sidebar-overlay.active {
+        display: block;
+      }
+      body {
+        background: linear-gradient(135deg, #a9c7f7, #e4bdf5);
+        background-size: 400% 400%;
+        animation: gradientBG 25s ease infinite;
+        font-family: "Arial", sans-serif;
+        margin: 0;
+      }
+
+      @keyframes gradientBG {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      .content-wrapper {
+        max-width: 1200px;
+        margin: 70px auto 120px auto;
+        padding: 0 20px;
+      }
+
+      .section-title {
+        font-size: 26px;
+        font-weight: 700;
+        margin-bottom: 40px;
+      }
+
+      /* === LAYOUT PRINCIPAL === */
+
+      .compat-layout {
+        display: flex;
+        gap: 40px;
+        align-items: stretch;
+      }
+
+      /* === CONTAINER GRAPHIQUE PRINCIPAL === */
+
+      .graph-container {
+        flex: 1.2;
+        background: linear-gradient(
+          135deg,
+          rgba(90, 140, 230, 0.22),
+          rgba(180, 120, 230, 0.22)
+        );
+        backdrop-filter: blur(20px);
+        border-radius: 25px;
+        padding: 20px;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        min-height: 520px;
+        height: auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+      }
+
+      .graph-container h3 {
+        margin-bottom: 30px;
+      }
+
+      canvas {
+        width: 100%;
+        height: 100% !important;
+        max-height: 400px;
+      }
+
+      /* === COLONNE DES BANDES === */
+
+      .tabs-container {
+        flex: 0.6;
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+      }
+
+      .tab {
+        padding: 28px 30px;
+        border-radius: 20px;
+        cursor: pointer;
+        color: #fff;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.35s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        background: linear-gradient(
+          135deg,
+          rgba(70, 110, 220, 0.7),
+          rgba(170, 90, 220, 0.7)
+        );
+
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      }
+
+      .tab:hover {
+        transform: translateX(8px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+      }
+
+      .tab.active {
+        transform: translateX(12px);
+        background: linear-gradient(
+          135deg,
+          rgba(60, 100, 210, 0.9),
+          rgba(150, 70, 210, 0.9)
+        );
+      }
+
+      .tab::after {
+        content: "›";
+        font-size: 22px;
+        opacity: 0.8;
+      }
+
+      .bottom-banner {
+        text-align: center;
+        padding: 16px;
+        background: rgba(0, 0, 0, 0.65);
+        font-size: 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .logo-text {
+        font-size: 28px;
+        font-weight: 700;
+        background: linear-gradient(270deg, #659cef, #d194ed, #8fbafc);
+        background-size: 400% 400%;
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: gradientBG 30s ease infinite;
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .menu-links {
+        list-style: none;
+        padding: 0;
+      }
+
+      .menu-bottom {
+        margin-top: auto;
+        padding: 20px;
+      }
+
+      .home-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: inherit;
+        transition:
+          transform 0.3s ease,
+          opacity 0.3s ease;
+      }
+
+      /* --- Animation porte --- */
+      .home-link svg {
+        transition: transform 0.4s ease;
+        transform-origin: left center; /* charnière côté gauche */
+      }
+
+      /* --- Animation flèche (3e path du SVG) --- */
+      .home-link svg path:last-child {
+        transition: transform 0.3s ease;
+      }
+
+      /* --- Hover --- */
+      .home-link:hover {
+        transform: translateX(4px);
+      }
+
+      .home-link:hover svg {
+        transform: rotateY(-20deg); /* ouverture légère */
+      }
+
+      .home-link:hover svg path:last-child {
+        transform: translateX(-3px); /* flèche qui rentre un peu plus */
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ===== BOUTON MENU FLOTTANT ===== -->
+    <button class="menu-toggle" id="openSidebar">☰</button>
+
+    <!-- ===== SIDEBAR ===== -->
+    <nav id="sidebar" class="sidebar">
+      <span class="close-btn" id="closeSidebar">&times;</span>
+      <h2>Menu</h2>
+
+      <!-- Liens principaux -->
+      <ul class="menu-links">
+        <li><a href="profil.html">Profil & Compte</a></li>
+        <li><a href="messagerie.html">Messagerie</a></li>
+        <li><a href="favoris.html">Profils favoris</a></li>
+        <li><a href="statistiques.html">Statistiques</a></li>
+      </ul>
+
+      <!-- Retour accueil placé tout en bas -->
+      <div class="menu-bottom">
+        <a href="accueil.html" class="home-link">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <!-- Porte -->
+            <path d="M3 21h18"></path>
+            <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"></path>
+            <!-- Flèche qui rentre -->
+            <path d="M12 11l-3 3 3 3"></path>
+          </svg>
+          <span><i>Retour à l'accueil</i></span>
+        </a>
+      </div>
+    </nav>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+    <header class="top-banner">
+      <div class="logo-container">
+        <img src="images/logo.png" class="logo-img" />
+        <h1 class="logo-text">Mon AiGENT Immobilier</h1>
+      </div>
+    </header>
+
+    <main class="content-wrapper">
+      <div class="section-title">📊 Compatibilité des Matchs</div>
+
+      <div class="compat-layout">
+        <!-- CONTAINER UNIQUE QUI CHANGERA DE CONTENU -->
+        <div class="graph-container" id="mainGraphContainer">
+          <h3 id="graphTitle">Répartition des compatibilités</h3>
+          <canvas id="dynamicChart"></canvas>
+        </div>
+        <!-- BANDES À DROITE -->
+        <div class="tabs-container">
+          <div class="tab active" data-view="repartition">
+            Répartition des profils
+          </div>
+
+          <div class="tab" data-view="profil">Compatibilité par profil</div>
+
+          <div class="tab" data-view="criteres">Compatibilité par critères</div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="bottom-banner">
+      © Mon AiGENT Immobilier - Tous droits réservés
+    </footer>
+
+    <script src="js/chart.umd.min.js"></script>
+    <script src="compatibilite.js"></script>
+  </body>
+</html>

@@ -1,0 +1,290 @@
+/* ==========================
+VARIABLES
+========================= */
+:root {
+  --primary: #0d47a1;
+  --secondary: #e91e63;
+  --cyan: #00bcd4;
+  --text: #ffffff;
+  --card-bg: rgba(255, 255, 255, 0.08);
+  --banner-bg: rgba(0, 0, 0, 0.9);
+  --btn-gradient: linear-gradient(90deg, #87cefa, #ffb6c1);
+}
+
+/* ==========================
+RESET + GLOBAL
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  color: var(--text);
+  position: relative;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* ==========================
+SLIDESHOW BACKGROUND
+========================= */
+.slideshow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  overflow: hidden;
+}
+
+.slideshow img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* remplace background-size: cover */
+  object-position: center;
+  opacity: 0;
+  animation: slideshow 30s infinite, zoomSlow 30s infinite;
+  image-rendering: auto; /* pour éviter pixelisation */
+}
+
+.slideshow img:nth-child(1) { animation-delay: 0s; }
+.slideshow img:nth-child(2) { animation-delay: 7.5s; }
+.slideshow img:nth-child(3) { animation-delay: 15s; }
+.slideshow img:nth-child(4) { animation-delay: 22.5s; }
+
+@keyframes slideshow {
+  0% { opacity: 0; }
+  5% { opacity: 1; }
+  25% { opacity: 1; }
+  30% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes zoomSlow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+/* Overlay sombre */
+.overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.35);
+  z-index: -1;
+}
+
+/* ==========================
+MAIN CONTENT
+========================= */
+main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  position: relative;
+  z-index: 1;
+}
+
+.section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  max-width: 500px;
+  margin: auto;
+}
+
+/* ==========================
+CARDS
+========================= */
+.card {
+  width: 100%;
+  background: var(--card-bg);
+  padding: 32px;
+  border-radius: 20px;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.5);
+  transition: transform 0.4s ease, box-shadow 0.4s ease, background 0.3s ease, opacity 0.4s ease;
+  opacity: 0;
+  animation: fadeInUp 0.8s forwards;
+}
+
+.card:nth-child(1) { animation-delay: 0.2s; }
+.card:nth-child(2) { animation-delay: 0.4s; }
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 32px rgba(0,0,0,0.6);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.card h2 { margin-bottom: 20px; font-size: 24px; text-align: center; }
+
+.card form { display: flex; flex-direction: column; gap: 16px; }
+
+.card input,
+.card select {
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  outline: none;
+  font-size: 15px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+}
+
+.card input:hover,
+.card select:hover {
+  transform: scale(1.02) translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+
+.card input:focus,
+.card select:focus {
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 8px var(--cyan);
+  background: rgba(255,255,255,0.12);
+}
+
+/* ==========================
+BUTTONS
+========================= */
+.btn-primary {
+  background: var(--btn-gradient);
+  border: none;
+  color: #000;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: opacity 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+  transform: scale(1.03);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: rgba(255,255,255,0.1);
+  transform: rotate(45deg) translate(-100%, -100%);
+  transition: transform 0.5s ease;
+}
+.btn-primary:hover::after {
+  transform: rotate(45deg) translate(100%, 100%);
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: var(--text);
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: opacity 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+.btn-secondary:hover {
+  opacity: 0.9;
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+/* ==========================
+HEADER
+========================= */
+.top-banner {
+  background: var(--banner-bg);
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  text-align: center;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.logo-img {
+  width: 60px;
+  height: auto;
+  transition: transform 0.4s ease;
+}
+
+.logo-container:hover .logo-img {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.logo-text {
+  font-size: 28px;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.logo-text strong {
+  background: linear-gradient(270deg, var(--primary), var(--cyan), var(--secondary));
+  background-size: 800% 800%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: gradientMove 25s ease infinite;
+  text-shadow: 0 0 6px rgba(255,255,255,0.4);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.logo-text strong:hover {
+  transform: scale(1.05);
+  opacity: 0.95;
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@media (max-width: 600px) {
+  .logo-container { flex-direction: column; gap: 8px; }
+  .logo-text { font-size: 22px; text-align: center; }
+  .logo-img { width: 45px; }
+}
+
+/* ==========================
+FOOTER
+========================= */
+footer {
+  text-align: center;
+  padding: 16px;
+  background: rgba(0,0,0,0.7);
+  color: var(--text);
+  font-size: 14px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.hidden {
+  display: none;
+}

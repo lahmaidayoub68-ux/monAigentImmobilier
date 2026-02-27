@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiGENT - Chat</title>
+
+    <link rel="stylesheet" href="accueil.css" />
+
+    <!-- Leaflet CSS (LOCAL – compatible CSP) -->
+    <link rel="stylesheet" href="/leaflet/leaflet.css" />
+
+    <!-- ===== MENU LATÉRAL (STYLE ISOLÉ – NE TOUCHE PAS AU SITE) ===== -->
+    <style>
+      /* ===== BOUTON MENU FLOTTANT ===== */
+      .menu-toggle {
+        position: fixed;
+        top: 90px;
+        left: 20px;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: #ffffff;
+        color: #000000;
+        font-size: 26px;
+        cursor: pointer;
+        border: none;
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+      }
+
+      .menu-toggle:hover {
+        background: #f2f2f2;
+      }
+
+      /* ===== SIDEBAR ===== */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 260px;
+        height: 100vh;
+        background: #000;
+        color: #fff;
+        transform: translateX(-100%);
+        transition: transform 0.35s ease;
+        z-index: 2000;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .sidebar .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 22px;
+        cursor: pointer;
+      }
+
+      .sidebar h2 {
+        margin-top: 40px;
+        margin-bottom: 30px;
+        font-size: 20px;
+      }
+
+      .sidebar ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .sidebar ul li {
+        margin-bottom: 20px;
+      }
+
+      .sidebar ul li a {
+        color: #fff;
+        text-decoration: none;
+        font-size: 16px;
+      }
+
+      .sidebar ul li a:hover {
+        text-decoration: underline;
+      }
+
+      /* ===== OVERLAY ===== */
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1500;
+        display: none;
+      }
+
+      .sidebar-overlay.active {
+        display: block;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ===== BOUTON MENU FLOTTANT ===== -->
+    <button class="menu-toggle" id="openSidebar" aria-label="Ouvrir le menu">
+      ☰
+    </button>
+
+    <!-- ===== MENU LATÉRAL ===== -->
+    <nav id="sidebar" class="sidebar" aria-label="Menu principal">
+      <span class="close-btn" id="closeSidebar">&times;</span>
+
+      <h2>Menu</h2>
+
+      <ul>
+        <li><a href="profil.html">Profil & Compte</a></li>
+        <li><a href="messagerie.html">Messagerie</a></li>
+        <li><a href="favoris.html">Profils favoris</a></li>
+        <li><a href="statistiques.html">Statistiques</a></li>
+      </ul>
+    </nav>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- HEADER -->
+    <header class="top-banner">
+      <div class="logo-container">
+        <img
+          src="images/logo.png"
+          alt="Logo AiGENT Immobilier"
+          class="logo-img"
+        />
+        <h1 class="logo-text" id="animated-title">AiGENT Immobilier</h1>
+      </div>
+
+      <button id="btn-logout" class="btn-secondary hidden">
+        Se déconnecter
+      </button>
+    </header>
+
+    <!-- CHAT SECTION -->
+    <main class="chat-section" id="chat-section" aria-label="Chat immobilier">
+      <div class="chat-container">
+        <div id="chat-box" class="chat-messages" aria-live="polite"></div>
+
+        <form
+          id="chat-form"
+          class="chat-form"
+          aria-label="Envoyer un message au chatbot"
+        >
+          <input
+            type="text"
+            id="user-input"
+            placeholder="Écris ton message..."
+            required
+          />
+          <button type="submit">Envoyer</button>
+        </form>
+
+        <div id="user-info" class="user-info"></div>
+      </div>
+    </main>
+
+    <!-- MODAL CARTE -->
+    <div id="mapModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <span
+          id="closeModal"
+          style="cursor: pointer"
+          aria-label="Fermer la carte"
+          >&times;</span
+        >
+        <div id="map" style="height: 60vh; width: 100%"></div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bottom-banner">
+      <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
+    </footer>
+
+    <!-- Leaflet JS -->
+    <script src="/leaflet/leaflet.js" defer></script>
+
+    <!-- Scripts existants -->
+    <script type="module" src="chatbot-init.js"></script>
+    <script type="module" src="animation.js"></script>
+
+    <!-- ===== SCRIPT MENU LATÉRAL (EXTERNE – CSP OK) ===== -->
+    <script src="sidebar.js" defer></script>
+  </body>
+</html>

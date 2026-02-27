@@ -1,0 +1,227 @@
+/* ==========================
+BASE ET RESET
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  color: #fff;
+  background: linear-gradient(
+    270deg,
+    #659cef,
+    #d194ed,
+    #8fbafc
+  );
+  background-size: 400% 400%;
+  animation: gradientBG 30s ease infinite;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ==========================
+HEADER + FOOTER (comme accueil)
+========================= */
+.top-banner {
+  background: rgba(0,0,0,0.85);
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  backdrop-filter: blur(8px);
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo-img {
+  width: 60px;
+  transition: transform 0.4s ease;
+}
+
+.logo-container:hover .logo-img {
+  transform: translateY(-2px) scale(1.03);
+}
+
+.logo-text {
+  font-size: 28px;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.bottom-banner {
+  text-align: center;
+  padding: 16px;
+  background: rgba(0,0,0,0.65);
+  font-size: 14px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+}
+
+/* ==========================
+SIDEBAR + BOUTON MENU
+========================= */
+.menu-toggle {
+  position: fixed;
+  top: 90px;
+  left: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #000000;
+  font-size: 26px;
+  cursor: pointer;
+  border: none;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.menu-toggle:hover { background: #f2f2f2; }
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 260px;
+  height: 100vh;
+  background: #000;
+  color: #fff;
+  transform: translateX(-100%);
+  transition: transform 0.35s ease;
+  z-index: 2000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.sidebar.open { transform: translateX(0); }
+
+.sidebar .close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.sidebar h2 {
+  margin-top: 40px;
+  margin-bottom: 30px;
+  font-size: 20px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar ul li {
+  margin-bottom: 20px;
+}
+
+.sidebar ul li a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.sidebar ul li a:hover { text-decoration: underline; }
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1500;
+  display: none;
+}
+
+.sidebar-overlay.active { display: block; }
+
+/* ==========================
+CONTENU PROFIL
+========================= */
+.profil-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.avatar {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: #ccc;
+  display: block;
+  margin: 0 auto 25px auto;
+  border: 3px solid rgba(255,255,255,0.3);
+}
+
+.section-title {
+  font-weight: bold;
+  font-style: italic;
+  border-bottom: 2px solid #000;
+  padding-bottom: 6px;
+  margin-top: 30px;
+  margin-bottom: 20px;
+  font-size: 20px;
+}
+
+.info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+}
+
+.info-list li {
+  margin-bottom: 14px;
+  font-size: 16px;
+}
+
+.info-list li span.label {
+  font-weight: bold;
+  display: inline-block;
+  width: 160px;
+}
+
+.action-btn {
+  margin-top: 6px;
+  padding: 8px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  border-radius: 20px;
+  border: none;
+  background: linear-gradient(90deg, #5b8def, #e8a2b8);
+  color: #fff;
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+
+.action-btn:hover {
+  background: linear-gradient(90deg, #4f83e6, #d98aa8);
+  transform: translateY(-2px);
+}
+
+/* ==========================
+RESPONSIVE
+========================= */
+@media (max-width: 600px) {
+  .avatar { width: 100px; height: 100px; }
+  .section-title { font-size: 18px; }
+  .info-list li span.label { width: 120px; font-size: 15px; }
+  .action-btn { font-size: 14px; padding: 6px 14px; }
+}

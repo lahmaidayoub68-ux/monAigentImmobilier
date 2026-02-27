@@ -1,0 +1,15 @@
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+
+# Environnement
+.env
+
+# Base de données SQLite
+data.db
+
+# Système
+.DS_Store

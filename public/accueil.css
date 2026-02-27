@@ -1,0 +1,498 @@
+/* ==========================
+DESIGN TOKENS (SaaS)
+========================= */
+:root {
+  --primary-blue: #5b8def;
+  --primary-pink: #e8a2b8;
+
+  --success-soft-bg: rgba(90, 180, 140, 0.18);
+  --success-soft-text: #3c8f6a;
+
+  --danger-soft-bg: rgba(220, 120, 120, 0.18);
+  --danger-soft-text: #a24a4a;
+
+  --neutral-soft-bg: rgba(255, 255, 255, 0.12);
+  --neutral-soft-text: #e5e7eb;
+
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.15);
+}
+
+/* ==========================
+RESET + GLOBAL
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  color: #fff;
+  background: linear-gradient(270deg, #659cef, #d194ed, #8fbafc);
+  background-size: 400% 400%;
+  animation: gradientBG 30s ease infinite;
+}
+
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ==========================
+HEADER
+========================= */
+.top-banner {
+  background: rgba(0, 0, 0, 0.85);
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  backdrop-filter: blur(8px);
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo-img {
+  width: 60px;
+  transition: transform 0.4s ease;
+}
+
+.logo-container:hover .logo-img {
+  transform: translateY(-2px) scale(1.03);
+}
+
+.logo-text {
+  font-size: 28px;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ==========================
+FOOTER
+========================= */
+.bottom-banner {
+  text-align: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.65);
+  font-size: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ==========================
+CHAT SECTION
+========================= */
+.chat-section {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 120px);
+  padding: 1rem;
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ==========================
+CHAT MESSAGES
+========================= */
+#chat-box {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 14px;
+  backdrop-filter: blur(6px);
+}
+
+/* ==========================
+BULLES + AVATARS
+========================= */
+.msg {
+  display: flex;
+  max-width: 75%;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeSlide 0.4s forwards;
+  gap: 0.6rem;
+}
+
+@keyframes fadeSlide {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.msg.user {
+  justify-content: flex-end;
+}
+.msg.bot {
+  justify-content: flex-start;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background-size: cover;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.msg.user .avatar {
+  background-image: url("images/user-avatar.jpg");
+}
+.msg.bot .avatar {
+  background-image: url("images/bot-avatar.webp");
+}
+
+.bubble {
+  padding: 0.9rem 1.2rem;
+  border-radius: 20px;
+  font-weight: 500;
+  line-height: 1.45;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+}
+
+.msg.user .bubble {
+  background: linear-gradient(135deg, #2446b8, #6aa7f5);
+}
+
+.msg.bot .bubble {
+  background: linear-gradient(135deg, #1b4fa3, #4da3ff);
+}
+
+/* ==========================
+TIMESTAMP
+========================= */
+.bubble .timestamp {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* ==========================
+CHAT FORM
+========================= */
+.chat-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chat-form input {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  border-radius: 20px;
+  border: none;
+  font-size: 1rem;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  backdrop-filter: blur(6px);
+}
+
+.chat-form button {
+  padding: 0.8rem 1.5rem;
+  border-radius: 20px;
+  background: linear-gradient(90deg, var(--primary-blue), var(--primary-pink));
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.chat-form button:hover {
+  background: linear-gradient(90deg, #4f83e6, #d98aa8);
+  transform: translateY(-2px);
+}
+
+/* ==========================
+PROFILS STRUCTURÉS (CARDS)
+========================= */
+.msg.structured .bubble {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 1.1rem 1.3rem;
+  gap: 10px;
+  max-width: 500px;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.msg.structured .bubble:hover {
+  transform: translateY(-4px);
+}
+
+/* ==========================
+LABELS / PILLS (SaaS)
+========================= */
+.msg.structured .bubble .pill,
+.msg.structured .bubble .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.msg.structured .bubble .pill-common,
+.msg.structured .bubble .badge.common {
+  background: var(--success-soft-bg);
+  color: var(--success-soft-text);
+  border-color: rgba(90, 180, 140, 0.35);
+}
+
+.msg.structured .bubble .pill-different,
+.msg.structured .bubble .badge.different {
+  background: var(--danger-soft-bg);
+  color: var(--danger-soft-text);
+  border-color: rgba(220, 120, 120, 0.35);
+}
+
+.msg.structured .bubble .pill-neutral,
+.msg.structured .bubble .badge.none {
+  background: var(--neutral-soft-bg);
+  color: var(--neutral-soft-text);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ==========================
+COMPATIBILITÉ
+========================= */
+.compat-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.compat-bar-inner {
+  height: 100%;
+  border-radius: 999px;
+  transition:
+    width 0.8s ease,
+    background 0.8s ease;
+}
+
+/* ==========================
+BUTTONS & USER INFO
+========================= */
+.buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.buttons button {
+  flex: 1;
+  padding: 0.8rem;
+  border-radius: 20px;
+  background: linear-gradient(90deg, var(--primary-blue), var(--primary-pink));
+  color: #fff;
+  font-weight: bold;
+  transition: all 0.25s ease;
+}
+
+.buttons button:hover:not(:disabled) {
+  background: linear-gradient(90deg, #4f83e6, #d98aa8);
+  transform: translateY(-2px);
+}
+
+.buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==========================
+BOUTON DÉCONNEXION (HEADER)
+========================= */
+#btn-logout.btn-secondary {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 180, 180, 0.25),
+    rgba(255, 200, 200, 0.25)
+  );
+  color: rgba(255, 180, 180, 0.95);
+  border: 1px solid rgba(255, 180, 180, 0.35);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.4rem 0.9rem;
+  opacity: 0.85;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+#btn-logout.btn-secondary:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 180, 180, 0.35),
+    rgba(255, 200, 200, 0.35)
+  );
+  text-decoration: none;
+}
+
+/* ==========================
+BOUTON VOIR LA CARTE
+========================= */
+.voir-carte-btn {
+  flex: 1;
+  padding: 0.8rem;
+  border-radius: 20px;
+  background: linear-gradient(90deg, var(--primary-blue), var(--primary-pink));
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  /* Pas de hover spécifique */
+}
+
+.user-info {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+/* ==========================
+SCROLLBAR
+========================= */
+#chat-box::-webkit-scrollbar {
+  width: 8px;
+}
+#chat-box::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+}
+
+/* ==========================
+RESPONSIVE
+========================= */
+@media (max-width: 600px) {
+  .logo-img {
+    width: 45px;
+  }
+  .logo-text {
+    font-size: 22px;
+  }
+  .chat-form button,
+  .buttons button {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+  .bubble {
+    font-size: 0.9rem;
+  }
+}
+
+/* ==========================
+MODAL CARTE LEAFLET
+========================= */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none; /* cachée par défaut */
+  justify-content: center;
+  align-items: flex-start;
+  z-index: 2000;
+  backdrop-filter: blur(6px);
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+.modal-content {
+  position: relative;
+  margin-top: 5%;
+  width: 60%; /* largeur de la carte */
+  height: 60%; /* hauteur de la carte */
+  background: rgba(20, 20, 20, 0.95);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Conteneur Leaflet */
+#map {
+  flex: 1;
+}
+
+/* Bouton fermer */
+#closeModal {
+  margin-top: 8px;
+  align-self: center;
+  padding: 0.6rem 1.2rem;
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--primary-blue), var(--primary-pink));
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  transition: all 0.25s ease;
+}
+
+#closeModal:hover {
+  background: linear-gradient(90deg, #4f83e6, #d98aa8);
+  transform: translateY(-2px);
+}
+
+/* Blur du chatbot derrière */
+body.modal-open #chat-section,
+body.modal-open header,
+body.modal-open footer {
+  filter: blur(5px) brightness(0.7);
+  pointer-events: none; /* empêche toute interaction derrière la modal */
+}
+
+/* Responsive modal */
+@media (max-width: 900px) {
+  .modal-content {
+    width: 90%;
+    height: 55%;
+    margin-top: 8%;
+  }
+}
+
+@media (max-width: 500px) {
+  .modal-content {
+    width: 95%;
+    height: 50%;
+    margin-top: 10%;
+  }
+}

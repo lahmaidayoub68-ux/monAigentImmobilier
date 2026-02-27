@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AiGENT - Connexion / Inscription</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- SLIDESHOW BACKGROUND -->
+  <div class="slideshow" aria-hidden="true">
+    <img src="images/maison2.png" alt="Maison moderne avec piscine">
+    <img src="images/unsplash.jpg" alt="Grande maison familiale">
+    <img src="images/good.jpg" alt="Appartement lumineux">
+    <img src="images/appart.luxe.jpg" alt="Villa contemporaine">
+  </div>
+  <div class="overlay" aria-hidden="true"></div>
+
+  <!-- HEADER -->
+  <header class="top-banner">
+    <div class="logo-container">
+      <img src="images/logo.png" alt="Logo AiGENT Immobilier" class="logo-img">
+      <h1 class="logo-text">Mon <strong>AiGENT Immobilier</strong></h1>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main>
+    <section id="auth-section" class="section" aria-label="Connexion et inscription">
+      <!-- Connexion -->
+      <article class="card">
+        <h2>Connexion</h2>
+        <form id="loginForm">
+          <label for="login-username" class="sr-only">Pseudo ou email</label>
+          <input type="text" id="login-username" placeholder="Pseudo ou email" required>
+
+          <label for="login-password" class="sr-only">Mot de passe</label>
+          <input type="password" id="login-password" placeholder="Mot de passe" required>
+
+          <button type="submit" class="btn-primary">Se connecter</button>
+        </form>
+      </article>
+
+      <!-- Inscription -->
+      <article class="card">
+        <h2>Inscription</h2>
+        <form id="registerForm">
+          <label for="register-username" class="sr-only">Pseudo</label>
+          <input type="text" id="register-username" placeholder="Pseudo" required>
+
+          <label for="register-password" class="sr-only">Mot de passe</label>
+          <input type="password" id="register-password" placeholder="Mot de passe" required>
+
+          <label for="register-email" class="sr-only">Adresse email</label>
+          <input
+            type="email"
+            id="register-email"
+            placeholder="Adresse email"
+            required
+            title="Veuillez entrer une adresse email valide"
+          >
+
+          <label for="register-role" class="sr-only">Choisir un profil</label>
+          <select id="register-role" required>
+            <option value="" disabled selected>Choisir un profil</option>
+            <option value="buyer">Acheteur</option>
+            <option value="seller">Vendeur</option>
+          </select>
+
+          <button type="submit" class="btn-primary">S'inscrire</button>
+        </form>
+      </article>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bottom-banner">
+    <button id="btn-logout" class="btn-secondary hidden">Se déconnecter</button>
+    <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
+  </footer>
+
+  <!-- SCRIPTS -->
+  <script type="module" src="main.js"></script>
+</body>
+</html>
+

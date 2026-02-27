@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiGENT - Messagerie</title>
+    <link rel="stylesheet" href="accueil.css" />
+    <link rel="stylesheet" href="/leaflet/leaflet.css" />
+
+    <!-- ===== MENU LATÉRAL & MESSAGERIE (STYLE ISOLÉ) ===== -->
+    <style>
+      /* ===== BOUTON MENU FLOTTANT ===== */
+      .menu-toggle {
+        position: fixed;
+        top: 90px;
+        left: 20px;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: #ffffff;
+        color: #000000;
+        font-size: 26px;
+        cursor: pointer;
+        border: none;
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+      }
+      .menu-toggle:hover {
+        background: #f2f2f2;
+      }
+
+      /* ===== SIDEBAR ===== */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 260px;
+        height: 100vh;
+        background: #000;
+        color: #fff;
+        transform: translateX(-100%);
+        transition: transform 0.35s ease;
+        z-index: 2000;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .sidebar .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 22px;
+        cursor: pointer;
+      }
+      .sidebar h2 {
+        margin-top: 40px;
+        margin-bottom: 30px;
+        font-size: 20px;
+      }
+      .sidebar ul {
+        list-style: none;
+        padding: 0;
+      }
+      .sidebar ul li {
+        margin-bottom: 20px;
+      }
+      .sidebar ul li a {
+        color: #fff;
+        text-decoration: none;
+        font-size: 16px;
+      }
+      .sidebar ul li a:hover {
+        text-decoration: underline;
+      }
+
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1500;
+        display: none;
+      }
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      /* ===== CONTENU MESSAGERIE ===== */
+      .messagerie-container {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 20px;
+        display: flex;
+        flex-direction: row;
+        gap: 20px;
+        color: #fff;
+      }
+      @media (max-width: 900px) {
+        .messagerie-container {
+          flex-direction: column;
+        }
+      }
+
+      /* ===== LISTE DE CONVERSATIONS ===== */
+      .conversations-list {
+        width: 320px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 14px;
+        padding: 10px;
+        overflow-y: auto;
+        max-height: 70vh;
+        flex-shrink: 0;
+      }
+      @media (max-width: 900px) {
+        .conversations-list {
+          width: 100%;
+          max-height: 250px;
+        }
+      }
+
+      .conversation {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        margin-bottom: 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+      .conversation:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .conversation .avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #ccc;
+        background-size: cover;
+        background-position: center;
+        margin-right: 12px;
+      }
+      .conversation .info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .conversation .info .name {
+        font-weight: bold;
+      }
+      .conversation .info .preview {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .conversation .unread {
+        background: #e84a5f;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-left: auto;
+      }
+
+      /* ===== ZONE DE CHAT ===== */
+      .chat-zone {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        height: 70vh;
+        min-height: 500px;
+      }
+      .chat-header {
+        font-weight: bold;
+        font-style: italic;
+        font-size: 20px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 5px;
+      }
+
+      /* =========================================================
+       STYLE SPÉCIFIQUE : RÉPONDRE / NOUVEAU MESSAGE (HEADER)
+       ========================================================= */
+      .chat-header .action-btn {
+        padding: 6px 14px;
+        border-radius: 18px;
+        font-size: 0.85rem;
+        font-weight: 600;
+
+        background: linear-gradient(
+          90deg,
+          rgba(210, 235, 255, 0.85),
+          rgba(140, 200, 255, 0.85)
+        );
+        color: #0b1e3d;
+
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        backdrop-filter: blur(6px);
+
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        transition: all 0.25s ease;
+      }
+
+      .chat-header .action-btn:hover {
+        background: linear-gradient(
+          90deg,
+          rgba(91, 141, 239, 0.75),
+          rgba(232, 162, 184, 0.75)
+        );
+        color: #ffffff;
+        transform: translateY(-1px);
+      }
+      /* ========================================================= */
+
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 14px;
+        backdrop-filter: blur(6px);
+        min-height: 0;
+      }
+      .bubble {
+        padding: 0.9rem 1.2rem;
+        border-radius: 20px;
+        font-weight: 500;
+        line-height: 1.45;
+        max-width: 75%;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .bubble.user {
+        background: linear-gradient(135deg, #2446b8, #6aa7f5);
+        align-self: flex-end;
+      }
+      .bubble.contact {
+        background: linear-gradient(135deg, #1b4fa3, #4da3ff);
+        align-self: flex-start;
+      }
+
+      /* ===== FORMULAIRE MESSAGE ===== */
+      .chat-form {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .chat-form input {
+        flex: 1;
+        padding: 0.8rem 1rem;
+        border-radius: 20px;
+        border: none;
+        font-size: 1rem;
+        background: rgba(0, 0, 0, 0.25);
+        color: #fff;
+        backdrop-filter: blur(6px);
+      }
+      .chat-form button {
+        padding: 0.8rem 1.5rem;
+        border-radius: 20px;
+        background: linear-gradient(90deg, #5b8def, #e8a2b8);
+        color: #fff;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        transition: all 0.25s ease;
+      }
+      .chat-form button:hover {
+        background: linear-gradient(90deg, #4f83e6, #d98aa8);
+        transform: translateY(-2px);
+      }
+
+      /* ===== ACTIONS CONTEXTUELLES ===== */
+      .chat-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 8px;
+      }
+      .chat-actions .action-btn {
+        flex: 1;
+        padding: 8px 16px;
+        border-radius: 20px;
+        background: linear-gradient(90deg, #5b8def, #e8a2b8);
+        color: #fff;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        transition: all 0.25s ease;
+      }
+      .chat-actions .action-btn:hover {
+        background: linear-gradient(90deg, #4f83e6, #d98aa8);
+        transform: translateY(-2px);
+      }
+
+      /* ==========================
+       POPUP NOUVEAU MESSAGE
+       ========================== */
+      .newmsg-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(6px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 5000;
+      }
+      .newmsg-overlay.active {
+        display: flex;
+      }
+      .newmsg-modal {
+        width: 60%;
+        max-width: 900px;
+        height: 70%;
+        background: #ffffff;
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+        animation: popupIn 0.25s ease;
+      }
+      @keyframes popupIn {
+        from {
+          transform: scale(0.92);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .newmsg-header {
+        background: #000;
+        color: #fff;
+        padding: 16px 22px;
+        font-weight: bold;
+        font-size: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .newmsg-close {
+        cursor: pointer;
+        font-size: 22px;
+      }
+      .newmsg-fields {
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .newmsg-fields input {
+        padding: 12px 14px;
+        font-size: 15px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        color: #000;
+      }
+      .newmsg-separator {
+        height: 2px;
+        background: #000;
+        margin: 0 18px;
+      }
+      #newMsgBody {
+        flex: 1;
+        margin: 18px;
+        margin-top: 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        padding: 14px;
+        font-size: 15px;
+        resize: none;
+        color: #000;
+      }
+      .newmsg-footer {
+        padding: 14px 18px;
+        border-top: 1px solid #eee;
+        display: flex;
+        justify-content: flex-end;
+        background: #fff;
+      }
+      .newmsg-footer button {
+        padding: 10px 22px;
+        border-radius: 20px;
+        border: none;
+        font-weight: bold;
+        cursor: pointer;
+        background: linear-gradient(90deg, #5b8def, #e8a2b8);
+        color: #fff;
+      }
+
+      #animated-title {
+        font-size: 28px;
+        font-weight: 700;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+
+        /* Dégradé animé */
+        background: linear-gradient(270deg, #5b8def, #e8a2b8, #8fbafc, #d194ed);
+        background-size: 400% 400%;
+
+        /* Compatibilité cross-browser */
+        background-clip: text; /* standard pour Firefox, Edge */
+        -webkit-background-clip: text; /* Chrome, Safari */
+        color: transparent; /* fallback pour Firefox */
+        -webkit-text-fill-color: transparent; /* Chrome, Safari */
+
+        animation: gradientText 8s ease infinite;
+        display: inline-block;
+      }
+
+      @keyframes gradientText {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .menu-links {
+        list-style: none;
+        padding: 0;
+      }
+
+      .menu-bottom {
+        margin-top: auto;
+        padding: 20px;
+      }
+
+      .home-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: inherit;
+        transition:
+          transform 0.3s ease,
+          opacity 0.3s ease;
+      }
+
+      /* --- Animation porte --- */
+      .home-link svg {
+        transition: transform 0.4s ease;
+        transform-origin: left center; /* charnière côté gauche */
+      }
+
+      /* --- Animation flèche (3e path du SVG) --- */
+      .home-link svg path:last-child {
+        transition: transform 0.3s ease;
+      }
+
+      /* --- Hover --- */
+      .home-link:hover {
+        transform: translateX(4px);
+      }
+
+      .home-link:hover svg {
+        transform: rotateY(-20deg); /* ouverture légère */
+      }
+
+      .home-link:hover svg path:last-child {
+        transform: translateX(-3px); /* flèche qui rentre un peu plus */
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ===== BOUTON MENU FLOTTANT ===== -->
+    <button class="menu-toggle" id="openSidebar">☰</button>
+
+    <!-- ===== SIDEBAR ===== -->
+    <nav id="sidebar" class="sidebar">
+      <span class="close-btn" id="closeSidebar">&times;</span>
+      <h2>Menu</h2>
+
+      <!-- Liens principaux -->
+      <ul class="menu-links">
+        <li><a href="profil.html">Profil & Compte</a></li>
+        <li><a href="messagerie.html">Messagerie</a></li>
+        <li><a href="favoris.html">Profils favoris</a></li>
+        <li><a href="statistiques.html">Statistiques</a></li>
+      </ul>
+
+      <!-- Retour accueil placé tout en bas -->
+      <div class="menu-bottom">
+        <a href="accueil.html" class="home-link">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <!-- Porte -->
+            <path d="M3 21h18"></path>
+            <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"></path>
+            <!-- Flèche qui rentre -->
+            <path d="M12 11l-3 3 3 3"></path>
+          </svg>
+          <span><i>Retour à l'accueil</i></span>
+        </a>
+      </div>
+    </nav>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- HEADER -->
+    <header class="top-banner">
+      <div class="logo-container">
+        <img
+          src="images/logo.png"
+          alt="Logo AiGENT Immobilier"
+          class="logo-img"
+        />
+        <h1 class="logo-text" id="animated-title">Mon AiGENT Immobilier</h1>
+      </div>
+      <button id="btn-logout" class="btn-secondary hidden">
+        Se déconnecter
+      </button>
+    </header>
+
+    <!-- CONTENU MESSAGERIE -->
+    <main class="messagerie-container">
+      <!-- LISTE DE CONVERSATIONS -->
+      <div class="conversations-list" aria-label="Liste de conversations">
+        <div class="section-title">Mes conversations</div>
+        <!--
+      Les conversations sont désormais injectées dynamiquement
+      via messagerie.js (loadAllConversations)
+      Aucune conversation statique ici
+    -->
+      </div>
+
+      <!-- ZONE DE CHAT -->
+      <div class="chat-zone" aria-label="Chat actif">
+        <div class="chat-header">
+          Chat avec <span id="chat-with"></span>
+          <button
+            class="action-btn"
+            style="width: auto; margin-left: 10px"
+            id="btn-reply"
+          >
+            Répondre
+          </button>
+          <button
+            class="action-btn"
+            style="width: auto; margin-left: 5px"
+            id="btn-nouveau-message"
+          >
+            Nouveau message
+          </button>
+        </div>
+
+        <div class="chat-messages" id="chat-box" aria-live="polite">
+          <!-- Messages injectés dynamiquement -->
+        </div>
+
+        <form class="chat-form" id="chat-form" aria-label="Envoyer un message">
+          <input
+            type="text"
+            id="user-input"
+            placeholder="Écris ton message..."
+            required
+          />
+          <button type="submit">Envoyer</button>
+        </form>
+
+        <div class="chat-actions">
+          <button class="action-btn">Archiver</button>
+          <button class="action-btn">Supprimer</button>
+          <button class="action-btn">Bloquer</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bottom-banner">
+      <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
+    </footer>
+
+    <!-- ==========================
+       POPUP NOUVEAU MESSAGE
+       ========================== -->
+    <div id="newMsgOverlay" class="newmsg-overlay">
+      <div class="newmsg-modal">
+        <div class="newmsg-header">
+          Nouveau message
+          <span id="newMsgClose" class="newmsg-close">&times;</span>
+        </div>
+        <div class="newmsg-fields">
+          <input
+            type="text"
+            id="newMsgPseudo"
+            placeholder="Pseudo du destinataire"
+          />
+          <input
+            type="email"
+            id="newMsgEmail"
+            placeholder="Email du destinataire"
+          />
+          <input type="text" id="newMsgObjet" placeholder="Objet du message" />
+        </div>
+        <div class="newmsg-separator"></div>
+        <textarea id="newMsgBody" placeholder="Écris ton message..."></textarea>
+        <div class="newmsg-footer">
+          <button id="newMsgSend">Envoyer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="/leaflet/leaflet.js" defer></script>
+    <!-- JS EXTERNE MESSAGERIE -->
+    <script src="/messagerie.js" defer></script>
+  </body>
+</html>

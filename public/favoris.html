@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiGENT - Profils Favoris</title>
+
+    <link rel="stylesheet" href="accueil.css" />
+
+    <!-- Leaflet CSS (LOCAL – compatible CSP) -->
+    <link rel="stylesheet" href="/leaflet/leaflet.css" />
+
+    <style>
+      /* ===== BOUTON MENU FLOTTANT ===== */
+      .menu-toggle {
+        position: fixed;
+        top: 90px;
+        left: 20px;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: #ffffff;
+        color: #000000;
+        font-size: 26px;
+        cursor: pointer;
+        border: none;
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+      }
+
+      .menu-toggle:hover {
+        background: #f2f2f2;
+      }
+
+      /* ===== SIDEBAR ===== */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 260px;
+        height: 100vh;
+        background: #000;
+        color: #fff;
+        transform: translateX(-100%);
+        transition: transform 0.35s ease;
+        z-index: 2000;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .sidebar .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 22px;
+        cursor: pointer;
+      }
+
+      .sidebar h2 {
+        margin-top: 40px;
+        margin-bottom: 30px;
+        font-size: 20px;
+      }
+
+      .sidebar ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .sidebar ul li {
+        margin-bottom: 20px;
+      }
+
+      .sidebar ul li a {
+        color: #fff;
+        text-decoration: none;
+        font-size: 16px;
+      }
+
+      .sidebar ul li a:hover {
+        text-decoration: underline;
+      }
+
+      /* ===== OVERLAY ===== */
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1500;
+        display: none;
+      }
+
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      /* ==========================
+       CONTENEUR CENTRAL FAVORIS
+    ========================== */
+
+      .favoris-container {
+        max-width: 1200px;
+        margin: 50px auto;
+        padding: 0 20px 60px 20px;
+      }
+
+      .favoris-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+        gap: 30px;
+        margin-top: 30px;
+      }
+
+      .section-title {
+        font-weight: bold;
+        font-style: italic;
+        font-size: 22px;
+        margin-bottom: 25px;
+        border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+        padding-bottom: 8px;
+      }
+
+      /* ==========================
+       BARRE DE RECHERCHE
+    ========================== */
+
+      .search-wrapper {
+        margin-bottom: 35px;
+        display: flex;
+        justify-content: flex-start;
+      }
+
+      .search-bar {
+        width: 100%;
+        max-width: 600px;
+        padding: 14px 22px;
+        border-radius: 30px;
+        border: none;
+        outline: none;
+        font-size: 15px;
+        background: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(12px);
+        color: #000;
+        font-weight: 500;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+      }
+
+      .search-bar:focus {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      /* ==========================
+       MATCH CARDS (IDENTIQUES AU CHATBOT)
+    ========================== */
+
+      .match-card {
+        background: rgba(255, 255, 255, 0.35);
+        backdrop-filter: blur(15px);
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+        transition: all 0.25s ease;
+        min-height: 280px;
+      }
+
+      .match-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 35px rgba(0, 0, 0, 0.35);
+      }
+
+      .match-header {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+
+      .match-meta {
+        display: flex;
+        gap: 25px;
+        font-size: 14px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+      }
+
+      .match-criteria {
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .criteria-title {
+        font-size: 13px;
+        font-weight: 600;
+        opacity: 0.8;
+        margin-bottom: 6px;
+      }
+
+      .criteria-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .pill-common {
+        background: rgba(34, 197, 94, 0.25);
+        color: #065f46;
+      }
+
+      .pill-different {
+        background: rgba(239, 68, 68, 0.25);
+        color: #7f1d1d;
+      }
+
+      .pill-neutral {
+        background: rgba(0, 0, 0, 0.1);
+      }
+
+      .match-compat {
+        margin-top: 14px;
+      }
+
+      .compat-bar {
+        height: 8px;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 20px;
+        overflow: hidden;
+        margin-top: 6px;
+      }
+
+      .compat-bar-inner {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #5b8def, #e8a2b8);
+        transition: width 0.6s ease;
+      }
+
+      /* ==========================
+       RESPONSIVE
+    ========================== */
+
+      @media (max-width: 768px) {
+        .match-meta {
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .search-bar {
+          font-size: 14px;
+        }
+      }
+      .bottom-banner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #000;
+        color: #fff;
+        text-align: center;
+        padding: 12px 0;
+        z-index: 1000;
+      }
+
+      /* ===== TITRE LOGO AVEC GRADIENT ANIMÉ ===== */
+      .logo-text {
+        font-size: 28px;
+        font-weight: 700;
+
+        background: linear-gradient(270deg, #659cef, #d194ed, #8fbafc);
+        background-size: 400% 400%;
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        animation: gradientBG 30s ease infinite;
+      }
+
+      @keyframes gradientBG {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .menu-links {
+        list-style: none;
+        padding: 0;
+      }
+
+      .menu-bottom {
+        margin-top: auto;
+        padding: 20px;
+      }
+
+      .home-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: inherit;
+        transition:
+          transform 0.3s ease,
+          opacity 0.3s ease;
+      }
+
+      /* --- Animation porte --- */
+      .home-link svg {
+        transition: transform 0.4s ease;
+        transform-origin: left center; /* charnière côté gauche */
+      }
+
+      /* --- Animation flèche (3e path du SVG) --- */
+      .home-link svg path:last-child {
+        transition: transform 0.3s ease;
+      }
+
+      /* --- Hover --- */
+      .home-link:hover {
+        transform: translateX(4px);
+      }
+
+      .home-link:hover svg {
+        transform: rotateY(-20deg); /* ouverture légère */
+      }
+
+      .home-link:hover svg path:last-child {
+        transform: translateX(-3px); /* flèche qui rentre un peu plus */
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ===== BOUTON MENU FLOTTANT ===== -->
+    <button class="menu-toggle" id="openSidebar">☰</button>
+
+    <!-- ===== SIDEBAR ===== -->
+    <nav id="sidebar" class="sidebar">
+      <span class="close-btn" id="closeSidebar">&times;</span>
+      <h2>Menu</h2>
+
+      <!-- Liens principaux -->
+      <ul class="menu-links">
+        <li><a href="profil.html">Profil & Compte</a></li>
+        <li><a href="messagerie.html">Messagerie</a></li>
+        <li><a href="favoris.html">Profils favoris</a></li>
+        <li><a href="statistiques.html">Statistiques</a></li>
+      </ul>
+
+      <!-- Retour accueil placé tout en bas -->
+      <div class="menu-bottom">
+        <a href="accueil.html" class="home-link">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <!-- Porte -->
+            <path d="M3 21h18"></path>
+            <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"></path>
+            <!-- Flèche qui rentre -->
+            <path d="M12 11l-3 3 3 3"></path>
+          </svg>
+          <span><i>Retour à l'accueil</i></span>
+        </a>
+      </div>
+    </nav>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+    <!-- ===== HEADER ===== -->
+    <header class="top-banner">
+      <div class="logo-container">
+        <img
+          src="images/logo.png"
+          alt="Logo AiGENT Immobilier"
+          class="logo-img"
+        />
+        <h1 class="logo-text">Mon AiGENT Immobilier</h1>
+      </div>
+
+      <button id="btn-logout" class="btn-secondary hidden">
+        Se déconnecter
+      </button>
+    </header>
+
+    <!-- ===== CONTENU FAVORIS ===== -->
+    <main class="favoris-container">
+      <div class="section-title">⭐ Mes profils favoris</div>
+
+      <div class="search-wrapper">
+        <input
+          type="text"
+          class="search-bar"
+          placeholder="Rechercher un profil favori par ville ou type..."
+        />
+      </div>
+
+      <!-- NOUVEAU WRAPPER -->
+      <div class="favoris-grid"></div>
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="bottom-banner">
+      <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
+    </footer>
+    <!-- MODAL CARTE -->
+    <div id="mapModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <span
+          id="closeModal"
+          style="cursor: pointer"
+          aria-label="Fermer la carte"
+          >&times;</span
+        >
+        <div id="map" style="height: 60vh; width: 100%"></div>
+      </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="/leaflet/leaflet.js" defer></script>
+
+    <script src="favoris.js"></script>
+  </body>
+</html>

@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiGENT - Statistiques</title>
+
+    <link rel="stylesheet" href="accueil.css" />
+
+    <style>
+      /* ================================
+   FOND PLUS DOUX (même couleur)
+================================ */
+      body {
+        background: linear-gradient(135deg, #a9c7f7, #e4bdf5);
+        background-size: 400% 400%;
+        animation: gradientBG 25s ease infinite;
+        min-height: 100vh;
+      }
+
+      /* ================================
+   MENU FLOTTANT (identique)
+================================ */
+      .menu-toggle {
+        position: fixed;
+        top: 90px;
+        left: 20px;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: #ffffff;
+        font-size: 26px;
+        cursor: pointer;
+        border: none;
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+      }
+
+      /* ================================
+   SIDEBAR (identique)
+================================ */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 260px;
+        height: 100vh;
+        background: #000;
+        color: #fff;
+        transform: translateX(-100%);
+        transition: transform 0.35s ease;
+        z-index: 2000;
+        padding: 20px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .sidebar .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 22px;
+        cursor: pointer;
+      }
+
+      .sidebar h2 {
+        margin-top: 40px;
+        margin-bottom: 30px;
+        font-size: 20px;
+      }
+
+      .sidebar ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .sidebar ul li {
+        margin-bottom: 20px;
+      }
+
+      .sidebar ul li a {
+        color: #fff;
+        text-decoration: none;
+        font-size: 16px;
+      }
+
+      .sidebar ul li a:hover {
+        text-decoration: underline;
+      }
+
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1500;
+        display: none;
+      }
+
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      /* ================================
+   CONTENU CENTRAL STATISTIQUES
+================================ */
+
+      .stats-container {
+        max-width: 1100px;
+        margin: 70px auto;
+        padding: 0 20px 80px 20px;
+        display: flex;
+        gap: 50px;
+        align-items: flex-start;
+      }
+
+      /* ===== Bloc gauche : chiffres ===== */
+
+      .stats-left {
+        flex: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+      }
+
+      .stat-line {
+        background: linear-gradient(
+          135deg,
+          rgba(101, 156, 239, 0.18),
+          rgba(209, 148, 237, 0.18)
+        );
+        backdrop-filter: blur(18px);
+        border-radius: 22px;
+        padding: 28px 35px;
+        font-size: 20px;
+        font-weight: 500;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        transition: all 0.25s ease;
+      }
+
+      .stat-line:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+      }
+
+      .stat-line span {
+        font-weight: 700;
+        font-size: 26px;
+        margin-left: 10px;
+      }
+
+      /* ===== Bloc droite : boutons ===== */
+
+      .stats-right {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+        margin-top: 5px;
+      }
+
+      .stat-btn {
+        background: linear-gradient(135deg, #659cef, #d194ed);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        padding: 20px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+
+      .stat-btn:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+      }
+
+      /* ================================
+   HEADER / LOGO (identique style)
+================================ */
+
+      .logo-text {
+        font-size: 28px;
+        font-weight: 700;
+        background: linear-gradient(270deg, #659cef, #d194ed, #8fbafc);
+        background-size: 400% 400%;
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: gradientBG 30s ease infinite;
+      }
+
+      @keyframes gradientBG {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      /* ================================
+   FOOTER
+================================ */
+      .bottom-banner {
+        text-align: center;
+        padding: 16px;
+        background: rgba(0, 0, 0, 0.65);
+        font-size: 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      /* ================================
+   RESPONSIVE
+================================ */
+
+      @media (max-width: 900px) {
+        .stats-container {
+          flex-direction: column;
+        }
+
+        .stats-right {
+          flex-direction: row;
+          flex-wrap: wrap;
+        }
+
+        .stat-btn {
+          flex: 1;
+        }
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .menu-links {
+        list-style: none;
+        padding: 0;
+      }
+
+      .menu-bottom {
+        margin-top: auto;
+        padding: 20px;
+      }
+
+      .home-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: inherit;
+        transition:
+          transform 0.3s ease,
+          opacity 0.3s ease;
+      }
+
+      /* --- Animation porte --- */
+      .home-link svg {
+        transition: transform 0.4s ease;
+        transform-origin: left center; /* charnière côté gauche */
+      }
+
+      /* --- Animation flèche (3e path du SVG) --- */
+      .home-link svg path:last-child {
+        transition: transform 0.3s ease;
+      }
+
+      /* --- Hover --- */
+      .home-link:hover {
+        transform: translateX(4px);
+      }
+
+      .home-link:hover svg {
+        transform: rotateY(-20deg); /* ouverture légère */
+      }
+
+      .home-link:hover svg path:last-child {
+        transform: translateX(-3px); /* flèche qui rentre un peu plus */
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ===== BOUTON MENU FLOTTANT ===== -->
+    <button class="menu-toggle" id="openSidebar">☰</button>
+
+    <!-- ===== SIDEBAR ===== -->
+    <nav id="sidebar" class="sidebar">
+      <span class="close-btn" id="closeSidebar">&times;</span>
+      <h2>Menu</h2>
+
+      <!-- Liens principaux -->
+      <ul class="menu-links">
+        <li><a href="profil.html">Profil & Compte</a></li>
+        <li><a href="messagerie.html">Messagerie</a></li>
+        <li><a href="favoris.html">Profils favoris</a></li>
+      </ul>
+
+      <!-- Retour accueil placé tout en bas -->
+      <div class="menu-bottom">
+        <a href="accueil.html" class="home-link">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <!-- Porte -->
+            <path d="M3 21h18"></path>
+            <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"></path>
+            <!-- Flèche qui rentre -->
+            <path d="M12 11l-3 3 3 3"></path>
+          </svg>
+          <span><i>Retour à l'accueil</i></span>
+        </a>
+      </div>
+    </nav>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- HEADER -->
+    <header class="top-banner">
+      <div class="logo-container">
+        <img src="images/logo.png" alt="Logo AiGENT" class="logo-img" />
+        <h1 class="logo-text">Mon AiGENT Immobilier</h1>
+      </div>
+    </header>
+
+    <!-- CONTENU -->
+    <main class="stats-container">
+      <div class="stats-left">
+        <div class="stat-line">
+          Nombre total de matchs générés :
+          <span id="totalMatches">34</span>
+        </div>
+
+        <div class="stat-line">
+          Nombre de profils favoris :
+          <span id="totalFavoris">8</span>
+        </div>
+
+        <div class="stat-line">
+          Taux moyen de compatibilité :
+          <span id="averageCompat">76%</span>
+        </div>
+
+        <div class="stat-line">
+          Nombre de conversations actives :
+          <span id="activeConversations">12</span>
+        </div>
+      </div>
+
+      <div class="stats-right">
+        <a href="compatibilite.html" class="stat-btn">
+          Compatibilité des matchs
+        </a>
+
+        <a href="carte-matchs.html" class="stat-btn"> Carte géographique </a>
+
+        <a href="recommandations.html" class="stat-btn">
+          Recommandations perso (IA)
+        </a>
+      </div>
+    </main>
+
+    <footer class="bottom-banner">
+      <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
+    </footer>
+    <script src="statistiques.js"></script>
+  </body>
+</html>
