@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://monaigentimmobilier.onrender.com/sitemap.xml
