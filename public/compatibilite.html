@@ -289,6 +289,161 @@
       .home-link:hover svg path:last-child {
         transform: translateX(-3px); /* flèche qui rentre un peu plus */
       }
+
+      /* ==========================
+RESPONSIVE MOBILE PRO (GRAPHIQUES + LAYOUT)
+========================= */
+
+      /* ---------- BREAKPOINT TABLETTE ---------- */
+      @media (max-width: 768px) {
+        /* Menu flottant */
+        .menu-toggle {
+          top: 70px;
+          left: 16px;
+          width: 48px;
+          height: 48px;
+          font-size: 24px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+          width: 220px;
+          padding: 16px;
+        }
+
+        .sidebar h2 {
+          font-size: 18px;
+          margin-top: 30px;
+          margin-bottom: 25px;
+        }
+
+        .sidebar ul li a {
+          font-size: 15px;
+        }
+
+        .sidebar .close-btn {
+          font-size: 20px;
+          top: 12px;
+          right: 12px;
+        }
+
+        /* Wrapper principal */
+        .content-wrapper {
+          padding: 0 16px 100px 16px;
+        }
+
+        /* Titres de section */
+        .section-title {
+          font-size: 22px;
+          margin-bottom: 30px;
+        }
+
+        /* Layout graphique */
+        .compat-layout {
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        /* Container graphique */
+        .graph-container {
+          width: 100%;
+          min-height: 400px;
+          padding: 16px;
+          border-radius: 20px;
+        }
+
+        /* Canvas responsive */
+        canvas {
+          max-height: 300px !important;
+        }
+
+        /* Tabs container */
+        .tabs-container {
+          flex: 1;
+          gap: 15px;
+        }
+
+        .tab {
+          padding: 20px;
+          font-size: 15px;
+        }
+      }
+
+      /* ---------- BREAKPOINT MOBILE ---------- */
+      @media (max-width: 480px) {
+        /* Menu flottant */
+        .menu-toggle {
+          top: 60px;
+          left: 12px;
+          width: 44px;
+          height: 44px;
+          font-size: 20px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+          width: 75%;
+          padding: 12px;
+        }
+
+        .sidebar h2 {
+          font-size: 16px;
+          margin-top: 25px;
+          margin-bottom: 20px;
+        }
+
+        .sidebar ul li a {
+          font-size: 14px;
+        }
+
+        .sidebar .close-btn {
+          font-size: 18px;
+          top: 10px;
+          right: 10px;
+        }
+
+        /* Wrapper principal */
+        .content-wrapper {
+          padding: 0 12px 80px 12px;
+        }
+
+        /* Titres de section */
+        .section-title {
+          font-size: 20px;
+          margin-bottom: 20px;
+        }
+
+        /* Layout graphique vertical */
+        .compat-layout {
+          flex-direction: column;
+          gap: 15px;
+        }
+
+        /* Container graphique */
+        .graph-container {
+          width: 100%;
+          min-height: 300px;
+          padding: 12px;
+          border-radius: 16px;
+        }
+
+        /* Canvas responsive */
+        canvas {
+          max-height: 250px !important;
+          width: 100% !important;
+        }
+
+        /* Tabs container */
+        .tabs-container {
+          flex: 1;
+          gap: 12px;
+        }
+
+        .tab {
+          padding: 16px;
+          font-size: 14px;
+        }
+      }
     </style>
   </head>
 

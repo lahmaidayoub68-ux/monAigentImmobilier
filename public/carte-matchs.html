@@ -169,25 +169,126 @@
         animation: gradientBG 30s ease infinite;
       }
 
-      /* Media queries pour écrans plus petits */
+      /* ==========================
+RESPONSIVE MOBILE PRO (SaaS)
+========================= */
       @media (max-width: 768px) {
+        /* ---------- BOUTON MENU FLOTTANT ---------- */
+        .menu-toggle {
+          top: 80px;
+          left: 18px;
+          width: 50px;
+          height: 50px;
+          font-size: 24px;
+        }
+
+        /* ---------- SIDEBAR ---------- */
+        .sidebar {
+          width: 220px;
+          padding: 18px;
+        }
+
+        .sidebar h2 {
+          font-size: 18px;
+          margin-top: 30px;
+          margin-bottom: 25px;
+        }
+
+        .sidebar ul li a {
+          font-size: 15px;
+        }
+
+        .sidebar .close-btn {
+          font-size: 20px;
+          top: 12px;
+          right: 12px;
+        }
+
+        /* ---------- CONTENU PRINCIPAL ---------- */
+        .content-wrapper {
+          padding: 0 16px 100px 16px;
+        }
+
+        /* ---------- TITRES DE SECTION ---------- */
         .section-title {
           font-size: 22px;
         }
 
+        /* ---------- MAP ---------- */
         .map-container {
-          height: 50vh; /* réduit légèrement la carte */
+          height: 50vh;
+        }
+
+        /* ---------- FOOTER ---------- */
+        .bottom-banner {
+          padding: 14px;
+          font-size: 13px;
+        }
+
+        /* ---------- LOGO TEXTE ---------- */
+        .logo-text {
+          font-size: 24px;
         }
       }
 
       @media (max-width: 480px) {
+        /* ---------- BOUTON MENU FLOTTANT ---------- */
+        .menu-toggle {
+          top: 70px;
+          left: 16px;
+          width: 48px;
+          height: 48px;
+          font-size: 22px;
+        }
+
+        /* ---------- SIDEBAR ---------- */
+        .sidebar {
+          width: 75%; /* occupe 3/4 de l'écran */
+          padding: 16px;
+        }
+
+        .sidebar h2 {
+          font-size: 16px;
+          margin-top: 25px;
+          margin-bottom: 20px;
+        }
+
+        .sidebar ul li a {
+          font-size: 14px;
+        }
+
+        .sidebar .close-btn {
+          font-size: 18px;
+          top: 10px;
+          right: 10px;
+        }
+
+        /* ---------- CONTENU PRINCIPAL ---------- */
+        .content-wrapper {
+          padding: 0 12px 90px 12px;
+        }
+
+        /* ---------- TITRES DE SECTION ---------- */
         .section-title {
           font-size: 20px;
         }
 
+        /* ---------- MAP ---------- */
         .map-container {
-          height: 40vh; /* encore plus compacte sur mobile */
-          min-height: 250px;
+          height: 40vh;
+          min-height: 200px;
+          border-radius: 16px;
+        }
+
+        /* ---------- FOOTER ---------- */
+        .bottom-banner {
+          padding: 12px;
+          font-size: 12px;
+        }
+
+        /* ---------- LOGO TEXTE ---------- */
+        .logo-text {
+          font-size: 22px;
         }
       }
 

@@ -1,4 +1,4 @@
-/// ================== IMPORTS ==================
+//================ IMPORTS ==================//
 import express from "express";
 import Database from "better-sqlite3";
 import bcrypt from "bcryptjs";
@@ -14,7 +14,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import levenshtein from "fast-levenshtein";
-
+const HOST = "0.0.0.0";
 import {
   addBuyer,
   addSeller,
@@ -38,7 +38,6 @@ const db = new Database("data.db");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 3000;
-const HOST = "localhost";
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // ================== VILLES ==================
@@ -1227,7 +1226,6 @@ app.post("/api/ai", authenticateToken, async (req, res) => {
 });
 
 // ================== START ==================
-app.listen(PORT, async () => {
-  const url = `http://${HOST}:${PORT}`;
-  console.log("🚀 Serveur lancé :", url);
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Serveur lancé sur http://${HOST}:${PORT}`);
 });

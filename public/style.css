@@ -46,40 +46,68 @@ SLIDESHOW BACKGROUND
 
 .slideshow img {
   position: absolute;
-  top: 0; left: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover; /* remplace background-size: cover */
   object-position: center;
   opacity: 0;
-  animation: slideshow 30s infinite, zoomSlow 30s infinite;
+  animation:
+    slideshow 30s infinite,
+    zoomSlow 30s infinite;
   image-rendering: auto; /* pour éviter pixelisation */
 }
 
-.slideshow img:nth-child(1) { animation-delay: 0s; }
-.slideshow img:nth-child(2) { animation-delay: 7.5s; }
-.slideshow img:nth-child(3) { animation-delay: 15s; }
-.slideshow img:nth-child(4) { animation-delay: 22.5s; }
+.slideshow img:nth-child(1) {
+  animation-delay: 0s;
+}
+.slideshow img:nth-child(2) {
+  animation-delay: 7.5s;
+}
+.slideshow img:nth-child(3) {
+  animation-delay: 15s;
+}
+.slideshow img:nth-child(4) {
+  animation-delay: 22.5s;
+}
 
 @keyframes slideshow {
-  0% { opacity: 0; }
-  5% { opacity: 1; }
-  25% { opacity: 1; }
-  30% { opacity: 0; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes zoomSlow {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
 }
 
 /* Overlay sombre */
 .overlay {
   position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.35);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.35);
   z-index: -1;
 }
 
@@ -115,29 +143,51 @@ CARDS
   padding: 32px;
   border-radius: 20px;
   backdrop-filter: blur(15px);
-  box-shadow: 0 12px 28px rgba(0,0,0,0.5);
-  transition: transform 0.4s ease, box-shadow 0.4s ease, background 0.3s ease, opacity 0.4s ease;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.4s ease,
+    box-shadow 0.4s ease,
+    background 0.3s ease,
+    opacity 0.4s ease;
   opacity: 0;
   animation: fadeInUp 0.8s forwards;
 }
 
-.card:nth-child(1) { animation-delay: 0.2s; }
-.card:nth-child(2) { animation-delay: 0.4s; }
+.card:nth-child(1) {
+  animation-delay: 0.2s;
+}
+.card:nth-child(2) {
+  animation-delay: 0.4s;
+}
 
 @keyframes fadeInUp {
-  0% { opacity: 0; transform: translateY(20px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 16px 32px rgba(0,0,0,0.6);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
   background: rgba(255, 255, 255, 0.12);
 }
 
-.card h2 { margin-bottom: 20px; font-size: 24px; text-align: center; }
+.card h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+  text-align: center;
+}
 
-.card form { display: flex; flex-direction: column; gap: 16px; }
+.card form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
 .card input,
 .card select {
@@ -146,22 +196,27 @@ CARDS
   border-radius: 12px;
   outline: none;
   font-size: 15px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  background: rgba(255,255,255,0.05);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text);
 }
 
 .card input:hover,
 .card select:hover {
   transform: scale(1.02) translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
 .card input:focus,
 .card select:focus {
   transform: scale(1.02);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 8px var(--cyan);
-  background: rgba(255,255,255,0.12);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.5),
+    0 0 8px var(--cyan);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* ==========================
@@ -177,19 +232,24 @@ BUTTONS
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: opacity 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.2s ease,
+    box-shadow 0.3s ease;
 }
 .btn-primary:hover {
   opacity: 0.9;
   transform: scale(1.03);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
 }
 .btn-primary::after {
-  content: '';
+  content: "";
   position: absolute;
-  top: -50%; left: -50%;
-  width: 200%; height: 200%;
-  background: rgba(255,255,255,0.1);
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: rgba(255, 255, 255, 0.1);
   transform: rotate(45deg) translate(-100%, -100%);
   transition: transform 0.5s ease;
 }
@@ -198,19 +258,22 @@ BUTTONS
 }
 
 .btn-secondary {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border: none;
   color: var(--text);
   font-weight: 600;
   padding: 10px 16px;
   border-radius: 10px;
   cursor: pointer;
-  transition: opacity 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.2s ease,
+    box-shadow 0.3s ease;
 }
 .btn-secondary:hover {
   opacity: 0.9;
   transform: scale(1.03);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 /* ==========================
@@ -219,7 +282,7 @@ HEADER
 .top-banner {
   background: var(--banner-bg);
   padding: 16px 24px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   text-align: center;
 }
 
@@ -243,18 +306,25 @@ HEADER
 .logo-text {
   font-size: 28px;
   font-weight: 700;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 .logo-text strong {
-  background: linear-gradient(270deg, var(--primary), var(--cyan), var(--secondary));
+  background: linear-gradient(
+    270deg,
+    var(--primary),
+    var(--cyan),
+    var(--secondary)
+  );
   background-size: 800% 800%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
   animation: gradientMove 25s ease infinite;
-  text-shadow: 0 0 6px rgba(255,255,255,0.4);
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
 }
 .logo-text strong:hover {
   transform: scale(1.05);
@@ -262,15 +332,29 @@ HEADER
 }
 
 @keyframes gradientMove {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @media (max-width: 600px) {
-  .logo-container { flex-direction: column; gap: 8px; }
-  .logo-text { font-size: 22px; text-align: center; }
-  .logo-img { width: 45px; }
+  .logo-container {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .logo-text {
+    font-size: 22px;
+    text-align: center;
+  }
+  .logo-img {
+    width: 45px;
+  }
 }
 
 /* ==========================
@@ -279,12 +363,111 @@ FOOTER
 footer {
   text-align: center;
   padding: 16px;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   color: var(--text);
   font-size: 14px;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .hidden {
   display: none;
+}
+/* ==========================
+MOBILE OPTIMIZATION
+========================= */
+@media (max-width: 600px) {
+  /* MAIN CONTENT */
+  main {
+    padding: 20px;
+  }
+
+  .section {
+    gap: 24px;
+    max-width: 90%;
+  }
+
+  /* CARDS */
+  .card {
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .card h2 {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card form {
+    gap: 12px;
+  }
+
+  .card input,
+  .card select {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  /* BUTTONS */
+  .btn-primary,
+  .btn-secondary {
+    font-size: 14px;
+    padding: 10px 14px;
+    min-height: 44px; /* ergonomie touch */
+    min-width: 44px;
+  }
+
+  /* HEADER / LOGO */
+  .logo-container {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .logo-img {
+    width: 40px;
+  }
+
+  .logo-text {
+    font-size: 20px;
+    text-align: center;
+  }
+
+  /* SLIDESHOW */
+  .slideshow img {
+    animation: slideshow 30s infinite; /* supprime zoom pour CPU léger */
+  }
+}
+
+/* Très petits écrans <400px */
+@media (max-width: 400px) {
+  .card {
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .card h2 {
+    font-size: 18px;
+  }
+
+  .card input,
+  .card select {
+    font-size: 13px;
+    padding: 8px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+
+  .logo-text {
+    font-size: 18px;
+  }
+}
+
+/* Scroll fluide avec clavier sur mobile */
+main {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
