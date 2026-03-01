@@ -1,12 +1,20 @@
 import "dotenv/config";
-import { GoogleGenAI } from "@google/genai";
+import Together from "together-ai";
+
+/* =========================
+   Helpers
+========================= */
 
 function normalizeNumber(value) {
   if (typeof value === "number") return value;
   if (typeof value !== "string") return undefined;
+
   value = value.replace(/\s+/g, "");
-  if (value.toLowerCase().endsWith("k"))
+
+  if (value.toLowerCase().endsWith("k")) {
     return Math.round(parseFloat(value.slice(0, -1)) * 1000);
+  }
+
   const n = parseFloat(value);
   return isNaN(n) ? undefined : n;
 }
@@ -20,8 +28,19 @@ function extractJSON(text) {
   }
 }
 
-const aiClient = new GoogleGenAI({ apiKey: process.env.API_KEY });
+/* =========================
+   Together Client
+========================= */
+
+const aiClient = new Together({
+  apiKey: process.env.TOGETHER_API_KEY,
+});
+
 let conversationMessages = [];
+
+/* =========================
+   Main Function
+========================= */
 
 export async function aiChatWithCriteria(
   userMessage,
@@ -49,28 +68,45 @@ Tu parles naturellement mais tu DOIS répondre uniquement avec un JSON strict au
   }
 }
 Aucune explication, aucun texte hors JSON. Même le message humain doit être dans "message".
+Si tu n'es pas sûr, mets la valeur à null.
+Ne produis JAMAIS de texte hors JSON.
+Ne mets PAS de balises json .
+Toute réponse non conforme sera considérée comme une erreur.
 Phase : ${phase}
 MatchingProfiles : ${JSON.stringify(matchingProfiles)}
 `;
 
   if (conversationMessages.length === 0) {
-    conversationMessages.push({ role: "system", text: systemPrompt });
+    conversationMessages.push({
+      role: "system",
+      content: systemPrompt,
+    });
   }
 
-  conversationMessages.push({ role: "user", text: userMessage });
+  conversationMessages.push({
+    role: "user",
+    content: userMessage,
+  });
 
   try {
-    const response = await aiClient.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: conversationMessages,
+    const response = await aiClient.chat.completions.create({
+      model: "ServiceNow-AI/Apriel-1.6-15b-Thinker",
+      messages: conversationMessages,
+      temperature: 0.2,
     });
 
-    const aiText = response.output_text || "";
-    conversationMessages.push({ role: "assistant", text: aiText });
+    const aiText = response?.choices?.[0]?.message?.content || "";
+    console.log("AI TEXT RAW:", aiText);
+
+    conversationMessages.push({
+      role: "assistant",
+      content: aiText,
+    });
 
     const raw = extractJSON(aiText);
 
     const normalized = { ...existingCriteria };
+
     if (raw.criteria && typeof raw.criteria === "object") {
       for (const key of Object.keys(raw.criteria)) {
         if (["budgetMin", "piecesMin", "espaceMin"].includes(key)) {
@@ -96,6 +132,7 @@ MatchingProfiles : ${JSON.stringify(matchingProfiles)}
     };
   } catch (err) {
     console.error("[AI CHAT ERROR]", err);
+
     return {
       message: "Désolé, je n'ai pas compris. Pouvez-vous reformuler ?",
       criteria: { ...existingCriteria },
