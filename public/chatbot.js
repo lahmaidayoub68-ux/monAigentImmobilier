@@ -171,10 +171,30 @@ function addMessage({
 function showThinking() {
   const el = document.createElement("div");
   el.className = "msg bot";
-  el.innerHTML = `<div class="bubble">⏳ Analyse en cours…</div>`;
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = "Analyse en cours";
+
+  const dots = document.createElement("span");
+  dots.className = "dots";
+
+  // Crée 3 spans pour animation CSS
+  for (let i = 0; i < 3; i++) {
+    const dot = document.createElement("span");
+    dot.textContent = ".";
+    dots.appendChild(dot);
+  }
+
+  bubble.appendChild(dots);
+  el.appendChild(bubble);
   $("chat-box").appendChild(el);
   scrollBottom($("chat-box"));
-  return el;
+
+  return {
+    el,
+    remove: () => el.remove(),
+  };
 }
 
 // ================== MATCH RENDER ==================
@@ -231,7 +251,7 @@ async function renderMatches(matches) {
     bubble.style.gap = "8px";
     bubble.style.position = "relative";
 
-    const villeLabel = m.ville || "Ville inconnue";
+    const villeLabel = m.villeOriginal || m.ville || "Ville inconnue";
     const piecesLabel =
       (m.pieces ?? m.piecesMin)
         ? `${m.pieces ?? m.piecesMin} pièces`

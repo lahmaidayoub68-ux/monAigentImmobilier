@@ -333,17 +333,30 @@ function switchView(view) {
     generateHorizontalBarChart(globalStatsCache.top30);
   }
 }
-
-/* =======================================================
-   ANIMATION TOTAL MATCHES
-======================================================= */
 function animateTotalMatches(total) {
+  // Création du conteneur principal
   const container = document.createElement("div");
   container.style.cssText =
-    "font-size:24px;font-weight:700;text-align:center;margin-bottom:15px;color:#333";
-  container.innerText = "Nombre total de matchs : 0";
+    "display: flex; flex-direction: column; justify-content: space-between;" +
+    "font-size:24px; font-weight:700; text-align:center; margin-bottom:15px;" +
+    "color:#333; min-height:3em; padding:0.5em;";
   document.querySelector(".content-wrapper").prepend(container);
 
+  // Texte principal fixe (au sommet)
+  const mainText = document.createElement("div");
+  mainText.innerText = "Analyse des meilleurs profils (max 30)";
+  container.appendChild(mainText);
+
+  // Petit texte "par session" fixé en bas à droite
+  const smallTextWrapper = document.createElement("div");
+  smallTextWrapper.style.cssText =
+    "display: flex; justify-content: flex-end; font-size:0.75em; font-style:italic;";
+  const smallText = document.createElement("span");
+  smallText.innerText = "par session";
+  smallTextWrapper.appendChild(smallText);
+  container.appendChild(smallTextWrapper);
+
+  // Animation du compteur (facultatif)
   let count = 0;
   const step = Math.max(1, Math.floor(total / 60));
   const interval = setInterval(() => {
@@ -352,10 +365,9 @@ function animateTotalMatches(total) {
       count = total;
       clearInterval(interval);
     }
-    container.innerText = `Analyse des 30 meilleurs profils (par session)`;
+    // ici on peut mettre à jour d'autres éléments si nécessaire
   }, 15);
 }
-
 /* =======================================================
    INIT
 ======================================================= */

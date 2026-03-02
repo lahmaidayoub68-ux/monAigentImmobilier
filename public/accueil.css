@@ -4,18 +4,20 @@ DESIGN TOKENS (SaaS)
 :root {
   --primary-blue: #5b8def;
   --primary-pink: #e8a2b8;
+  --primary-blue-dark: #4f7edc; /* pour hover */
+  --primary-pink-dark: #d88aa8;
 
-  --success-soft-bg: rgba(90, 180, 140, 0.18);
+  --success-soft-bg: rgba(90, 180, 140, 0.15);
   --success-soft-text: #3c8f6a;
 
-  --danger-soft-bg: rgba(220, 120, 120, 0.18);
+  --danger-soft-bg: rgba(220, 120, 120, 0.15);
   --danger-soft-text: #a24a4a;
 
-  --neutral-soft-bg: rgba(255, 255, 255, 0.12);
+  --neutral-soft-bg: rgba(255, 255, 255, 0.08);
   --neutral-soft-text: #e5e7eb;
 
-  --glass-bg: rgba(255, 255, 255, 0.08);
-  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.12);
 }
 
 /* ==========================
@@ -33,36 +35,63 @@ body {
   height: 100%;
   width: 100%;
   color: #fff;
-  background: linear-gradient(270deg, #659cef, #d194ed, #8fbafc);
-  background-size: 400% 400%;
-  animation: gradientBG 30s ease infinite;
+  font-family: "Segoe UI", sans-serif;
+
+  /* 💜 Violet en haut (coin droit) */
+  background:
+    radial-gradient(
+      circle at top right,
+      #6a5fff 0%,
+      #7c69e6 18%,
+      rgba(98, 70, 241, 0.45) 35%,
+      transparent 60%
+    ),
+    /* 🌊 Transition centrale large */
+    linear-gradient(
+        to bottom,
+        #7c6fff 10%,
+        #8f7bff 25%,
+        #84a4ef 55%,
+        #a7a2f9 100%
+      );
+
+  background-attachment: fixed;
+
+  /* ✨ mouvement subtil, ambiance IA */
+  animation: ambientShift 18s ease-in-out infinite alternate;
 }
 
-@keyframes gradientBG {
+/* Animation très légère */
+@keyframes ambientShift {
   0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
+    background-position:
+      0% 0%,
+      50% 50%;
   }
   100% {
-    background-position: 0% 50%;
+    background-position:
+      4% 4%,
+      50% 55%;
   }
 }
-
 /* ==========================
 HEADER
 ========================= */
 .top-banner {
-  background: rgba(0, 0, 0, 0.85);
-  padding: 16px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.75); /* un peu moins opaque */
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08); /* plus subtil */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(6px);
 }
 
+.logo-text {
+  font-size: 24px;
+  font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); /* plus léger */
+}
 .logo-container {
   display: flex;
   align-items: center;
@@ -122,9 +151,9 @@ CHAT MESSAGES
   flex-direction: column;
   gap: 0.6rem;
   margin-bottom: 1rem;
-  background: rgba(0, 0, 0, 0.18);
+  background: transparent;
   border-radius: 14px;
-  backdrop-filter: blur(6px);
+  backdrop-filter: none;
 }
 
 /* ==========================
@@ -180,14 +209,55 @@ BULLES + AVATARS
   backdrop-filter: blur(6px);
 }
 
-.msg.user .bubble {
-  background: linear-gradient(135deg, #2446b8, #6aa7f5);
+/* Points de suspension animés */
+.bubble .dots {
+  display: inline-block;
+  margin-left: 4px;
+  width: 1.2em;
+  text-align: left;
 }
 
-.msg.bot .bubble {
-  background: linear-gradient(135deg, #1b4fa3, #4da3ff);
+.bubble .dots span {
+  display: inline-block;
+  opacity: 0;
+  animation: blink 1.5s infinite;
 }
 
+.bubble .dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+.bubble .dots span:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.bubble .dots span:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes blink {
+  0%,
+  20%,
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+.msg.user .bubble::after,
+.msg.bot .bubble::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.03) 1px,
+    transparent 1px
+  );
+  background-size: 4px 4px;
+  opacity: 0.18;
+  pointer-events: none;
+}
 /* ==========================
 TIMESTAMP
 ========================= */
@@ -218,21 +288,35 @@ CHAT FORM
 }
 
 .chat-form button {
-  padding: 0.8rem 1.5rem;
-  border-radius: 20px;
-  background: linear-gradient(90deg, var(--primary-blue), var(--primary-pink));
-  color: #fff;
-  font-weight: bold;
+  height: 48px;
+  width: 48px;
+  padding: 0;
+
+  border-radius: 50%;
   border: none;
-  cursor: pointer;
+
+  background: linear-gradient(135deg, var(--primary-blue), var(--primary-pink));
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   transition: all 0.25s ease;
 }
 
 .chat-form button:hover {
-  background: linear-gradient(90deg, #4f83e6, #d98aa8);
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 18px rgba(119, 109, 249, 0.35);
 }
-
+.chat-form button:active {
+  transform: scale(0.95);
+}
+.chat-form button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
 /* ==========================
 PROFILS STRUCTURÉS (CARDS)
 ========================= */
@@ -325,7 +409,7 @@ BUTTONS & USER INFO
 }
 
 .buttons button:hover:not(:disabled) {
-  background: linear-gradient(90deg, #4f83e6, #d98aa8);
+  background: linear-gradient(90deg, #4f83e6, #a26dd0);
   transform: translateY(-2px);
 }
 
@@ -480,200 +564,228 @@ body.modal-open footer {
   pointer-events: none; /* empêche toute interaction derrière la modal */
 }
 
-/* ==========================
-RESPONSIVE MOBILE PRO (SaaS)
-========================= */
+/* =========================================================
+📱 MOBILE — GPT / MESSENGER APP EXPERIENCE
+========================================================= */
 @media (max-width: 600px) {
-  /* ---------- HEADER ---------- */
-  .top-banner {
-    padding: 12px 16px;
+  html,
+  body {
+    height: 100dvh;
+    overflow: hidden;
   }
 
-  .logo-img {
-    width: 45px;
-  }
-
-  .logo-text {
-    font-size: 22px;
-  }
-
-  #btn-logout.btn-secondary {
-    padding: 0.45rem 0.85rem;
-    font-size: 0.8rem;
-    border-radius: 12px;
-  }
-
-  /* ---------- CHAT SECTION ---------- */
+  /* APP LAYOUT */
   .chat-section {
-    padding: 0.8rem 1rem;
-    height: calc(100% - 100px); /* occupe quasi tout l'écran */
-    max-width: 100%;
+    height: 100dvh;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    margin: 0 auto;
   }
 
   .chat-container {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
   }
 
-  /* ---------- CHAT BOX ---------- */
+  /* ZONE MESSAGES — FULLSCREEN FLOW */
   #chat-box {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    padding: 1rem;
-    gap: 0.6rem;
-    background: rgba(0, 0, 0, 0.18);
-    border-radius: 14px;
-    backdrop-filter: blur(6px);
+
     display: flex;
     flex-direction: column;
+    gap: 18px;
+
+    padding: 80px 16px 120px 16px;
+
+    background: transparent;
+    border: none;
+    border-radius: 0;
+
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
-  /* ---------- BULLES + AVATARS ---------- */
+  /* MESSAGES */
   .msg {
     max-width: 100%;
     display: flex;
-    gap: 0.6rem;
+    align-items: flex-end;
+    gap: 8px;
+    animation: fadeSlide 0.25s ease;
   }
 
-  .bubble {
-    font-size: 0.95rem;
-    padding: 0.85rem 1.2rem;
-    max-width: 90%;
-    line-height: 1.45;
-    border-radius: 20px;
-    word-wrap: break-word;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
-  }
-
-  .msg.user .bubble {
-    background: linear-gradient(135deg, #2446b8, #6aa7f5);
-  }
-
-  .msg.bot .bubble {
-    background: linear-gradient(135deg, #1b4fa3, #4da3ff);
-  }
-
+  /* AVATARS DISCRETS */
   .avatar {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
     border-radius: 50%;
-    flex-shrink: 0;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
-  /* ---------- TIMESTAMP ---------- */
-  .bubble .timestamp {
-    font-size: 0.7rem;
-    opacity: 0.7;
-    margin-top: 3px;
-    text-align: right;
+  /* ALIGNEMENTS */
+  .msg.user {
+    justify-content: flex-end;
   }
 
-  /* ---------- CHAT FORM (BARRE DE SAISIE) ---------- */
+  .msg.bot {
+    justify-content: flex-start;
+  }
+
+  /* BULLES — ULTRA LÉGÈRES */
+  .bubble {
+    max-width: 85%;
+    padding: 10px 14px;
+
+    font-size: 0.95rem;
+    line-height: 1.55;
+    font-weight: 400;
+
+    border-radius: 18px;
+
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  }
+
+  /* USER */
+  .msg.user .bubble {
+    background: linear-gradient(135deg, #3f6ee8, #7aa7ff);
+    border-bottom-right-radius: 6px;
+  }
+
+  /* BOT */
+  .msg.bot .bubble {
+    background: linear-gradient(135deg, #3f6ee8, #7aa7ff);
+    border-bottom-right-radius: 6px;
+  }
+
+  /* TIMESTAMP */
+  .timestamp {
+    font-size: 0.65rem;
+    opacity: 0.5;
+    margin-top: 4px;
+  }
+
+  /* INPUT BAR — STYLE GPT */
   .chat-form {
-    flex-direction: row;
-    gap: 0.5rem;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+
+    display: flex;
     align-items: center;
-    margin-top: 0.5rem;
+    gap: 10px;
+
+    padding: 12px 14px;
+
+    background: rgba(15, 15, 20, 0.75);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 
+  /* SAFE AREA IPHONE */
+  .chat-form {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  /* INPUT */
   .chat-form input {
     flex: 1;
-    font-size: 1rem;
-    padding: 0.85rem 1rem; /* barre plus haute */
-    border-radius: 20px;
-    background: rgba(0, 0, 0, 0.25);
+    height: 48px;
+
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    padding: 0 16px;
+
+    font-size: 0.95rem;
     color: #fff;
-    border: none;
-    backdrop-filter: blur(6px);
+
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(8px);
   }
 
+  /* FOCUS PRO */
+  .chat-form input:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 2px rgba(91, 141, 239, 0.25);
+  }
+
+  /* SEND BUTTON */
   .chat-form button {
-    padding: 0.85rem 1.2rem;
-    font-size: 0.9rem;
-    border-radius: 20px;
+    height: 48px;
+    padding: 0 18px;
+
+    border-radius: 999px;
+    border: none;
+
+    font-weight: 600;
+
     background: linear-gradient(
       90deg,
       var(--primary-blue),
       var(--primary-pink)
     );
-    color: #fff;
-    font-weight: bold;
-    border: none;
-    cursor: pointer;
-    transition: all 0.25s ease;
   }
 
-  .chat-form button:hover {
-    background: linear-gradient(90deg, #4f83e6, #d98aa8);
-    transform: translateY(-2px);
+  /* STRUCTURED CARDS */
+  .msg.structured .bubble {
+    max-width: 100%;
+    padding: 14px;
+    border-radius: 20px;
+
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
   }
 
-  /* ---------- BUTTONS ---------- */
+  /* BUTTONS DANS LES MESSAGES */
   .buttons {
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    gap: 8px;
+    margin-top: 10px;
   }
 
   .buttons button {
     flex: 1 1 48%;
-    padding: 0.75rem 1rem;
-    font-size: 0.9rem;
-    border-radius: 18px;
-  }
-
-  /* ---------- PROFILS STRUCTURÉS (CARDS) ---------- */
-  .msg.structured .bubble {
-    padding: 1rem 1.1rem;
-    max-width: 95%;
-    border-radius: 18px;
-    gap: 8px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
-  }
-
-  .msg.structured .bubble:hover {
-    transform: translateY(-3px);
-  }
-
-  .msg.structured .bubble .pill,
-  .msg.structured .bubble .badge {
-    font-size: 0.75rem;
-    padding: 3px 8px;
-  }
-
-  /* ---------- FOOTER ---------- */
-  .bottom-banner {
-    padding: 12px 16px;
-    font-size: 13px;
-  }
-
-  /* ---------- MODAL CARTE ---------- */
-  .modal-content {
-    width: 95%;
-    height: 55%;
-    margin-top: 8%;
-  }
-
-  #closeModal {
-    padding: 0.6rem 1rem;
+    height: 42px;
+    border-radius: 14px;
     font-size: 0.85rem;
-    border-radius: 16px;
   }
 
-  /* ---------- SCROLLBAR ---------- */
+  /* SCROLLBAR MINIMAL */
   #chat-box::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
+  }
+  #chat-box::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
   }
 
-  #chat-box::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.25);
-    border-radius: 6px;
+  /* HEADER COMPACT */
+  .top-banner {
+    padding: 10px 14px;
+  }
+
+  .logo-text {
+    font-size: 20px;
+  }
+  .logo-img {
+    width: 42px;
+  }
+
+  /* FOOTER MINIMAL */
+  .bottom-banner {
+    font-size: 12px;
+    padding: 10px;
   }
 }

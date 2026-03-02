@@ -317,27 +317,30 @@ function upsertProfile(user, normalized) {
   try {
     db.prepare(
       `
-      INSERT INTO users (
-        username, password, role, contact, type, ville, region, price, budgetMin, budgetMax,
-        piecesMin, piecesMax, surfaceMin, surfaceMax, pieces, budget, surface
-      ) VALUES (?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(username) DO UPDATE SET
-        role = excluded.role,
-        contact = excluded.contact,
-        type = excluded.type,
-        ville = excluded.ville, 
-        region = excluded.region,
-        price = excluded.price,
-        pieces = excluded.pieces,
-        surface = excluded.surface,
-        budget = excluded.budget,
-        budgetMin = excluded.budgetMin,
-        budgetMax = excluded.budgetMax,
-        piecesMin = excluded.piecesMin,
-        piecesMax = excluded.piecesMax,
-        surfaceMin = excluded.surfaceMin,
-        surfaceMax = excluded.surfaceMax
-      `,
+  INSERT INTO users (
+    username, password, role, contact, type, ville, region,
+    price, budgetMin, budgetMax,
+    piecesMin, piecesMax,
+    surfaceMin, surfaceMax,
+    pieces, budget, surface
+  ) VALUES (?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ON CONFLICT(username) DO UPDATE SET
+    role = excluded.role,
+    contact = excluded.contact,
+    type = excluded.type,
+    ville = excluded.ville,
+    region = excluded.region,
+    price = excluded.price,
+    pieces = excluded.pieces,
+    surface = excluded.surface,
+    budget = excluded.budget,
+    budgetMin = excluded.budgetMin,
+    budgetMax = excluded.budgetMax,
+    piecesMin = excluded.piecesMin,
+    piecesMax = excluded.piecesMax,
+    surfaceMin = excluded.surfaceMin,
+    surfaceMax = excluded.surfaceMax
+`,
     ).run(
       username,
       role,
@@ -352,6 +355,9 @@ function upsertProfile(user, normalized) {
       profileData.piecesMax,
       profileData.surfaceMin,
       profileData.surfaceMax,
+      profileData.pieces || 0,
+      profileData.budgetMin || 0,
+      profileData.surface || 0,
     );
   } catch (err) {
     console.error("[UPSERT PROFILE DB ERROR] :", err);
@@ -365,8 +371,39 @@ const ORDER = ["type", "ville", "pieces", "espace"];
 
 // ================== IMPORT AI CHAT ==================
 import { aiChatWithCriteria } from "./services/aiParsee.js";
+
+// QUEUE RATE-LIMIT //
+const QUEUE = [];
+let processing = false;
+
+function getIntervalByUsers() {
+  const activeUsers = Object.keys(sessions).length;
+  if (activeUsers === 0) return 1000; // 1s par défaut
+  return Math.max(1000, 60000 / activeUsers); // 60 req/min divisées par nb utilisateurs
+}
+
+async function processQueue() {
+  if (processing || QUEUE.length === 0) return;
+  processing = true;
+
+  while (QUEUE.length > 0) {
+    const { req, res, next } = QUEUE.shift();
+    await next(); // Appelle le handler original
+    const interval = getIntervalByUsers();
+    await new Promise((r) => setTimeout(r, interval));
+  }
+
+  processing = false;
+}
+
+// Middleware pour push dans la queue
+function userQueueMiddleware(req, res, next) {
+  QUEUE.push({ req, res, next });
+  processQueue();
+}
+
 // ================== CHAT ROUTE ==================
-app.post("/chat", authenticateToken, async (req, res) => {
+app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
   try {
     // ========== VALIDATION DU MESSAGE ==========
     const { message } = z
@@ -1224,7 +1261,9 @@ app.post("/api/ai", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Erreur serveur lors de l'appel à l'IA" });
   }
 });
-
+// RESET //
+resetProfiles();
+seedProfiles(50);
 // ================== START ==================
 app.listen(PORT, HOST, () => {
   console.log(`🚀 Serveur lancé sur http://${HOST}:${PORT}`);

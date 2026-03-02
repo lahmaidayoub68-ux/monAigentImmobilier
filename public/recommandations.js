@@ -181,7 +181,7 @@ async function updateCentralContent() {
 }
 
 /* =======================================================
-   DIAGNOSTIC IA GLOBAL
+   DIAGNOSTIC IA GLOBAL – VERSION SAAS (CORRIGÉE)
 ======================================================= */
 async function updateDiagnostic() {
   try {
@@ -192,46 +192,53 @@ async function updateDiagnostic() {
     const user = raw ? JSON.parse(raw) : { role: "buyer" };
     const role = user.role || "buyer";
 
-    // Préparer le prompt
+    // Préparer le prompt SaaS complet
     const prompt = `
-Analyse la session immobilière actuelle.
-Tu disposes des 30 meilleurs profils correspondants à l'utilisateur.
+Analyse les 30 meilleurs profils immobiliers correspondant à l'utilisateur.
 L'utilisateur est un <ROLE_UTILISATEUR> (${role}).
 
-Pour chaque critère (ville, type, surface, budget, pièces), rédige un texte clair et détaillé en 3 paragraphes :
-1. Synthèse des observations par critère, phrases complètes, pas de liste ni de symboles.
-2. Diagnostic actionnable et conseils concrets pour améliorer les opportunités ou la pertinence des biens.
-3. Recommandations pour maximiser la compatibilité globale et la sélection des biens, avec des suggestions stratégiques.
-4. Synthèse globale de tous les critères et plan d'action en 3-5 phrases à la fin du texte
+Pour chaque critère suivant : ville, type, surface, budget, pièces
+- rédige exactement 1 paragraphe synthèse par critère,
+- puis 1 paragraphe final de synthèse globale avec plan d'action (3-5 phrases).
 
-⚠️ Adapte le texte au rôle de l'utilisateur :
-- Si c'est un buyer, parle des biens à acheter et de la compatibilité avec les offres disponibles, en améliorant la précision et la clarté du constat.
-- Si c'est un seller, sois ultra-robuste : rédige strictement du point de vue du vendeur, analyse les profils d'acheteurs et leurs attentes, identifie les opportunités de vente, propose des suggestions de mise en marché concrètes et ne glisse jamais de formulations centrées sur l'acheteur ("votre budget", "vos critères", etc.). Adapte le ton pour qu'il soit professionnel, analytique et actionnable.
+⚠️ Adapte le texte au rôle :
+- buyer : parle des biens à acheter et de la compatibilité avec les offres disponibles.
+- seller : analyse du point de vue du vendeur et des opportunités de mise en marché.
 
-Optimise la qualité du constat et des recommandations pour les deux rôles.
-Formate la réponse finale comme : { "message": "texte clair avec retours à la ligne" }.
+Format de sortie : { "message": "texte clair avec retours à la ligne" }
 `.replace("<ROLE_UTILISATEUR>", role);
 
+    // Préparer le contexte à envoyer
     const context = {
       phase: "results",
       matchingProfiles: globalStatsCache.top30,
       role: role,
     };
 
-    // Appel IA
-    const aiResp = await sendMessageToAI(JSON.stringify({ prompt, context }));
+    // ✅ Appel IA : envoyer directement un objet pour éviter le double JSON.stringify
+    const aiResp = await sendMessageToAI({ prompt, context });
 
-    // Découper le texte en paragraphes, forcer au moins 3 paragraphes
-    let paragraphs = aiResp.message
-      ? aiResp.message.split(/\n{1,}/).filter((p) => p.trim() !== "")
-      : [];
-    while (paragraphs.length < 3) paragraphs.push(""); // padding si IA renvoie trop court
+    // Vérifier que le message IA est valide
+    const rawText = aiResp.message?.trim();
+    if (!rawText) {
+      centralEl.innerHTML =
+        "<p>⚠️ L'IA n'a renvoyé aucun texte. Vérifiez le prompt et les profils.</p>";
+      return;
+    }
 
-    paragraphs = paragraphs
+    // Découper en paragraphes par retours à la ligne (1 ou plus)
+    const paragraphs = rawText
+      .split(/\n{1,}/)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+
+    // Injection HTML SaaS propre avec mise en évidence
+    const htmlContent = paragraphs
       .map((p) => {
-        let txt = p.trim();
+        let txt = p;
 
-        const importantWords = ["ville", "pièces", "budget", "surface", "type"];
+        // Mots importants pour highlight
+        const importantWords = ["ville", "type", "surface", "budget", "pièces"];
         const highlightWords = [
           "compatibilité",
           "recommandations",
@@ -239,19 +246,22 @@ Formate la réponse finale comme : { "message": "texte clair avec retours à la 
           "sélection",
         ];
 
-        importantWords.forEach((w, idx) => {
-          if (idx < 4)
-            txt = txt.replace(new RegExp(`\\b${w}\\b`, "gi"), "<b>$&</b>");
+        // Gras pour critères
+        importantWords.forEach((w) => {
+          txt = txt.replace(new RegExp(`\\b${w}\\b`, "gi"), "<b>$&</b>");
         });
-        highlightWords.slice(0, 2).forEach((w) => {
+
+        // Souligné pour mots clés importants
+        highlightWords.forEach((w) => {
           txt = txt.replace(new RegExp(`\\b${w}\\b`, "gi"), "<u>$&</u>");
         });
 
-        return `<p style="margin-bottom:12px; line-height:1.5;">${txt}</p>`;
+        return `<p style="margin-bottom:14px; line-height:1.6;">${txt}</p>`;
       })
       .join("");
 
-    centralEl.innerHTML = `<div style="font-size:14px;">${paragraphs}</div>`;
+    // Affichage final
+    centralEl.innerHTML = `<div style="font-size:14px;">${htmlContent}</div>`;
   } catch (err) {
     console.error("[updateDiagnostic]", err);
     centralEl.innerHTML =

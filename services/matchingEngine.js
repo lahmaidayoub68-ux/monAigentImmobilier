@@ -336,6 +336,12 @@ export function matchUsers(buyerProfile, topN = 5) {
       villeScoreVal,
       buyerLat: buyerCoords?.lat ?? null,
       buyerLng: buyerCoords?.lng ?? null,
+
+      // ✅ Ajout pour le front : ville originale
+      villeOriginal:
+        villesCoordsArray.find(
+          (v) => normalize(v.ville) === normalize(seller.ville),
+        )?.ville || seller.ville,
     };
   });
 
@@ -475,6 +481,10 @@ export function matchSellerToBuyers(sellerProfile, topN = 5) {
       pieces: buyer.piecesMin, // ou sellerProfile.pieces ?
       surface: buyer.surfaceMin,
       price: buyer.budgetMax,
+      villeOriginal:
+        villesCoordsArray.find(
+          (v) => normalize(v.ville) === normalize(buyer.ville),
+        )?.ville || buyer.ville,
     };
   });
 
