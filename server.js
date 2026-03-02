@@ -60,7 +60,17 @@ const villesNormalized = villes.map((v) => ({
   original: v,
   norm: normalizeStr(v.ville),
 }));
-
+app.use((req, res, next) => {
+  const ua = req.headers["user-agent"];
+  if (/Mobi|Android|iPhone/i.test(ua)) {
+    return res.send(`
+      <h2>🚫 Mobile non supporté</h2>
+      <p>Pour vous garantir une meilleure experience,
+      merci d’utiliser un ordinateur pour accéder à ce site.</p>
+    `);
+  }
+  next();
+});
 // ================== MIDDLEWARES ==================
 app.disable("x-powered-by");
 app.use(cors({ origin: true, credentials: true }));
