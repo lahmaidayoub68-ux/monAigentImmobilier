@@ -38,12 +38,18 @@ if (overlay && sidebar) {
     openBtn.style.display = "flex";
   });
 }
-
 // ==========================
 // CHARGEMENT PROFIL + ACTIONS
 // ==========================
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("[PROFIL] DOMContentLoaded");
+
+  // ==========================
+  // AVATAR POPUP / ELEMENTS
+  // ==========================
+  const popup = document.getElementById("avatarPopup");
+  const openBtn = document.getElementById("openAvatarPopup");
+  const mainAvatar = document.getElementById("mainAvatar");
 
   // ==========================
   // AUTH / PROFIL
@@ -111,6 +117,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const emailEl = document.getElementById("profile-email");
     const roleEl = document.getElementById("profile-role");
     const lastLoginEl = document.getElementById("profile-last-login");
+
+    // === AVATAR ===
+    if (mainAvatar) {
+      mainAvatar.style.backgroundImage = `url(${user.avatar || "/images/default-avatar.png"})`;
+      mainAvatar.style.backgroundSize = "cover";
+      mainAvatar.style.backgroundPosition = "center";
+      mainAvatar.style.backgroundRepeat = "no-repeat";
+    }
 
     if (usernameEl) {
       usernameEl.textContent = user.username;
@@ -306,6 +320,52 @@ document.addEventListener("DOMContentLoaded", async () => {
       // TODO : appel API DELETE /api/me
       // puis localStorage.removeItem("agent_user");
       // window.location.href = "/";
+    });
+  }
+
+  // ==========================
+  // POPUP AVATAR
+  // ==========================
+  if (openBtn && popup && mainAvatar) {
+    // Ouvrir popup
+    openBtn.addEventListener("click", () => popup.classList.add("active"));
+
+    // Fermer si clic en dehors
+    popup.addEventListener("click", (e) => {
+      if (e.target === popup) popup.classList.remove("active");
+    });
+
+    document.querySelectorAll(".avatar-item img").forEach((img) => {
+      img.addEventListener("click", () => {
+        // Mettre l'image sélectionnée
+        mainAvatar.style.backgroundImage = `url(${img.src})`;
+        mainAvatar.style.backgroundColor = "#83c9f4";
+        mainAvatar.style.backgroundSize = "cover";
+        mainAvatar.style.backgroundPosition = "center";
+        mainAvatar.style.backgroundRepeat = "no-repeat";
+
+        // Fermer le popup
+        popup.classList.remove("active");
+
+        // ================== PERSISTE EN BASE ==================
+        (async () => {
+          try {
+            const token = JSON.parse(localStorage.getItem("agent_user")).token;
+            const res = await fetch("/api/change-avatar", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ avatar: img.src }),
+            });
+            if (!res.ok) throw new Error("Erreur sauvegarde avatar");
+            console.log("[PROFIL] Avatar sauvegardé en DB ✅");
+          } catch (err) {
+            console.error("[PROFIL] Impossible de sauvegarder l'avatar :", err);
+          }
+        })();
+      });
     });
   }
 

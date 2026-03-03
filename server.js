@@ -74,11 +74,11 @@ app.use((req, res, next) => {
 // ================== MIDDLEWARES ==================
 app.disable("x-powered-by");
 app.use(cors({ origin: true, credentials: true }));
-
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
     contentSecurityPolicy: {
+      useDefaults: true, // 🔥 IMPORTANT
       directives: {
         defaultSrc: ["'self'"],
 
@@ -91,6 +91,7 @@ app.use(
           "data:",
           "blob:",
           "https://*.tile.openstreetmap.org",
+          "https://api.dicebear.com",
         ],
 
         connectSrc: ["'self'"],
@@ -137,7 +138,8 @@ db.prepare(
     piecesMin INTEGER DEFAULT 0,
     piecesMax INTEGER DEFAULT 100,
     surfaceMin REAL DEFAULT 0,
-    surfaceMax REAL DEFAULT 1000
+    surfaceMax REAL DEFAULT 1000,
+    avatar TEXT DEFAULT '/images/user-avatar.jpg'
   )
 `,
 ).run();
@@ -621,33 +623,31 @@ app.post("/signup", async (req, res) => {
     db.prepare(
       `
 INSERT INTO users (
-  id, username, password, role, contact, ville, region, type, price,
+  username, password, role, contact, ville, region, type, price,
   budget, budgetMin, budgetMax, pieces, piecesMin, piecesMax,
-  surface, surfaceMin, surfaceMax
-) VALUES (
-  NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-)
+  surface, surfaceMin, surfaceMax, avatar
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `,
     ).run(
-      username, // username
-      hash, // password
-      role, // role
-      contact, // contact
-      "", // ville
-      "", // region
-      "appartement", // type
-      0, // price
-      0, // budget
-      0, // budgetMin
-      0, // budgetMax
-      1, // pieces
-      0, // piecesMin
-      100, // piecesMax
-      10, // surface
-      0, // surfaceMin
-      1000, // surfaceMax
+      username,
+      hash,
+      role,
+      contact,
+      "",
+      "",
+      "appartement",
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      100,
+      10,
+      0,
+      1000,
+      "/images/user-avatar.jpg", // avatar par défaut
     );
-
     res.json({ token: generateToken({ username, role, contact }) });
   } catch (err) {
     console.error("[SIGNUP] ERREUR INATTENDUE:", err.stack);
@@ -695,12 +695,12 @@ app.post("/login", async (req, res) => {
 app.get("/api/me", authenticateToken, (req, res) => {
   try {
     const user = db
-      .prepare("SELECT username, role, contact FROM users WHERE username = ?")
+      .prepare(
+        "SELECT username, role, contact, avatar FROM users WHERE username = ?",
+      )
       .get(req.user.username);
 
-    if (!user) {
-      return res.sendStatus(404);
-    }
+    if (!user) return res.sendStatus(404);
 
     res.json(user);
   } catch (err) {
@@ -1271,6 +1271,35 @@ app.post("/api/ai", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Erreur serveur lors de l'appel à l'IA" });
   }
 });
+
+app.post("/api/change-avatar", authenticateToken, async (req, res) => {
+  try {
+    const { avatar } = req.body;
+    if (!avatar) return res.status(400).json({ error: "Avatar manquant" });
+
+    const user = db
+      .prepare("SELECT id FROM users WHERE username=?")
+      .get(req.user.username);
+
+    if (!user)
+      return res.status(404).json({ error: "Utilisateur introuvable" });
+
+    db.prepare("UPDATE users SET avatar=? WHERE id=?").run(avatar, user.id);
+
+    res.json({ success: true, avatar });
+  } catch (err) {
+    console.error("[API /change-avatar] ERREUR :", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+// Vérifier si la colonne avatar existe, sinon l'ajouter
+const tableInfo = db.prepare("PRAGMA table_info(users)").all();
+if (!tableInfo.find((col) => col.name === "avatar")) {
+  console.log("⚡ Ajout de la colonne avatar à la table users...");
+  db.prepare(
+    "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT '/images/user-avatar.jpg'",
+  ).run();
+}
 // RESET //
 resetProfiles();
 seedProfiles(50);

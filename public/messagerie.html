@@ -181,7 +181,13 @@
         font-style: italic;
         font-size: 20px;
         border-bottom: 2px solid #000;
-        padding-bottom: 5px;
+        padding-bottom: 6px;
+
+        display: flex;
+        align-items: center;
+      }
+      #chat-with {
+        margin-right: auto;
       }
 
       /* =========================================================
@@ -267,7 +273,7 @@
       .chat-form button {
         padding: 0.8rem 1.5rem;
         border-radius: 20px;
-        background: linear-gradient(90deg, #5b8def, #e8a2b8);
+        background: linear-gradient(90deg, #2563eb, #ec6ed9);
         color: #fff;
         font-weight: bold;
         border: none;
@@ -289,7 +295,7 @@
         flex: 1;
         padding: 8px 16px;
         border-radius: 20px;
-        background: linear-gradient(90deg, #5b8def, #e8a2b8);
+        background: linear-gradient(90deg, #1e3c72, #4b6cb7 #6a11cb);
         color: #fff;
         font-weight: bold;
         border: none;
@@ -297,7 +303,7 @@
         transition: all 0.25s ease;
       }
       .chat-actions .action-btn:hover {
-        background: linear-gradient(90deg, #4f83e6, #d98aa8);
+        filter: brightness(1.08);
         transform: translateY(-2px);
       }
 
@@ -736,7 +742,7 @@ MESSAGERIE PREMIUM RESPONSIVE
       .chat-form button {
         border-radius: 20px;
         padding: 0.8rem 1.5rem;
-        background: linear-gradient(90deg, #5b8def, #e8a2b8);
+        background: linear-gradient(90deg, #77a3f3, #6a11cb);
         color: #fff;
         font-weight: bold;
         border: none;
@@ -744,7 +750,7 @@ MESSAGERIE PREMIUM RESPONSIVE
         transition: all 0.25s ease;
       }
       .chat-form button:hover {
-        background: linear-gradient(90deg, #4f83e6, #d98aa8);
+        filter: brightness(1.08);
         transform: translateY(-2px);
       }
 
@@ -758,7 +764,7 @@ MESSAGERIE PREMIUM RESPONSIVE
         flex: 1;
         padding: 8px 16px;
         border-radius: 20px;
-        background: linear-gradient(90deg, #5b8def, #e8a2b8);
+        background: linear-gradient(90deg, #5b8def, #8eccfc);
         color: #fff;
         font-weight: bold;
         border: none;
@@ -766,7 +772,7 @@ MESSAGERIE PREMIUM RESPONSIVE
         transition: all 0.25s ease;
       }
       .chat-actions .action-btn:hover {
-        background: linear-gradient(90deg, #4f83e6, #d98aa8);
+        filter: brightness(1.08);
         transform: translateY(-2px);
       }
 
@@ -882,7 +888,7 @@ MESSAGERIE PREMIUM RESPONSIVE
       <!-- ZONE DE CHAT -->
       <div class="chat-zone" aria-label="Chat actif">
         <div class="chat-header">
-          Chat avec <span id="chat-with"></span>
+          Chat avec&nbsp;<span id="chat-with"></span>
           <button
             class="action-btn"
             style="width: auto; margin-left: 10px"
@@ -910,7 +916,14 @@ MESSAGERIE PREMIUM RESPONSIVE
             placeholder="Écris ton message..."
             required
           />
-          <button type="submit">Envoyer</button>
+          <button type="submit">
+            <img
+              src="images/message.svg"
+              alt="Envoyer"
+              width="24"
+              height="24"
+            />
+          </button>
         </form>
 
         <div class="chat-actions">

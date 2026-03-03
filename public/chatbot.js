@@ -56,6 +56,21 @@ function restoreSession() {
     state.criteria = load("criteria") ?? {};
     state.history = load("chat") ?? [];
     log("🔑 Session restaurée :", state.user.username);
+
+    // --- Ajout pour avatar ---
+    if (!state.user.avatar) {
+      // récupérer depuis /api/me si nécessaire
+      fetch("/api/me", {
+        headers: { Authorization: `Bearer ${state.user.token}` },
+      })
+        .then((res) => res.json())
+        .then((userData) => {
+          state.user.avatar = userData.avatar || "/images/user-avatar.jpg";
+          saveSession(); // sauvegarder l'avatar dans localStorage
+          render(); // rerender pour mettre à jour l'UI
+        })
+        .catch((err) => console.error("[CHATBOT] Erreur fetch avatar :", err));
+    }
   } catch (e) {
     err("Erreur restauration session", e);
   }
@@ -141,6 +156,17 @@ function addMessage({
 
   const avatar = document.createElement("div");
   avatar.className = "avatar";
+  if (from === "user" && state.user?.avatar) {
+    avatar.style.backgroundImage = `url(${state.user.avatar})`;
+    avatar.style.backgroundSize = "cover";
+    avatar.style.backgroundPosition = "center";
+    avatar.style.backgroundRepeat = "no-repeat";
+  } else if (from === "bot") {
+    avatar.style.backgroundImage = "url('/images/bot-avatar.webp')"; // ton avatar bot
+    avatar.style.backgroundSize = "cover";
+    avatar.style.backgroundPosition = "center";
+    avatar.style.backgroundRepeat = "no-repeat";
+  }
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";

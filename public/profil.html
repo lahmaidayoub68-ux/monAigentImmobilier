@@ -243,6 +243,124 @@
       .home-link:hover svg path:last-child {
         transform: translateX(-3px); /* flèche qui rentre un peu plus */
       }
+
+      /* ===== AVATAR MODIFIABLE ===== */
+
+      .avatar-container {
+        position: relative;
+        width: 120px;
+        margin: 0 auto 20px auto;
+      }
+
+      .avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background-color: #ccc;
+        background-image: url("images/user-avatar.jpg");
+        background-size: cover;
+        background-position: center;
+      }
+
+      /* Bouton + */
+      .edit-avatar-btn {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+
+        background: linear-gradient(135deg, #659cef, #d194ed);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+        transition: 0.2s ease;
+      }
+
+      .edit-avatar-btn:hover {
+        transform: scale(1.1);
+      }
+
+      .edit-avatar-btn img {
+        width: 16px;
+      }
+
+      /* ===== POPUP ===== */
+
+      .avatar-popup {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(6px);
+        align-items: center;
+        justify-content: center;
+        z-index: 7000;
+      }
+
+      .avatar-popup.active {
+        display: flex;
+      }
+
+      .popup-content {
+        background: white;
+        width: 280px;
+        max-height: 400px;
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+      }
+
+      .popup-content h3 {
+  margin-bottom: 15px;
+  color: #222;
+  text-align: center;
+  font-weight: 600;
+}
+
+      /* Scroll */
+      .avatar-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        justify-items: center;
+      }
+
+      /* Item */
+      .avatar-item {
+        width: 80px;
+        height: 80px;
+        overflow: hidden;
+        padding: 8px;
+        border-radius: 50%;
+        background: #83c9f4;
+        cursor: pointer;
+        transition: 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .avatar-item:hover {
+        background: #83c9f4;
+      }
+
+      /* Image */
+      .avatar-item img {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
     </style>
   </head>
 
@@ -308,7 +426,17 @@
     <!-- CONTENU PROFIL -->
     <main class="profil-container" aria-label="Profil utilisateur">
       <!-- AVATAR -->
-      <div class="avatar" aria-label="Avatar utilisateur"></div>
+      <div class="avatar-container">
+        <div
+          class="avatar"
+          id="mainAvatar"
+          aria-label="Avatar utilisateur"
+        ></div>
+
+        <button class="edit-avatar-btn" id="openAvatarPopup">
+          <img src="images/plus.svg" alt="Modifier" />
+        </button>
+      </div>
 
       <!-- MES INFORMATIONS PERSONNELLES -->
       <div class="section-title">Mes informations personnelles</div>
@@ -498,6 +626,11 @@
           transform: translateY(-3px);
           box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
         }
+
+        .avatar.selected {
+  background-color: #eef2ff; /* fond bleu clair */
+  background-image: none; /* optionnel si tu veux juste la couleur */
+}
       </style>
 
       <!-- ===== SÉCURITÉ DU COMPTE ===== -->
@@ -558,6 +691,87 @@
         <li><button class="action-btn">Supprimer le compte</button></li>
         <li><button class="action-btn">Contacter le support</button></li>
       </ul>
+      <!-- ===== POPUP AVATAR ===== -->
+      <div class="avatar-popup" id="avatarPopup">
+        <div class="popup-content">
+          <h3><i>Choisir un avatar</i></h3>
+
+<div class="avatar-list">
+  <div class="avatar-item">
+    <img
+      src="https://api.dicebear.com/9.x/avataaars/svg?seed=Mackenzie"
+      alt="avatar"
+    />
+  </div>
+
+  <div class="avatar-item">
+    <img
+      src="https://api.dicebear.com/9.x/avataaars/svg?seed=Luis"
+      alt="avatar"
+    />
+  </div>
+
+  <div class="avatar-item">
+    <img
+      src="https://api.dicebear.com/9.x/avataaars/svg?seed=Maria"
+      alt="avatar"
+    />
+  </div>
+
+  <!-- Nouveaux avatars -->
+
+  <div class="avatar-item">
+    <img
+  src="https://api.dicebear.com/9.x/avataaars/svg?seed=Amaya"
+  alt="avatar" />
+  </div>
+
+  <div class="avatar-item">
+    <img
+  src="https://api.dicebear.com/9.x/avataaars/svg?seed=Destiny"
+  alt="avatar" />
+  </div>
+
+  <div class="avatar-item">
+    <img
+  src="https://api.dicebear.com/9.x/avataaars/svg?seed=Eden"
+  alt="avatar" />
+  </div>
+
+  <div class="avatar-item">
+    <img
+  src="https://api.dicebear.com/9.x/avataaars/svg?seed=Easton"
+  alt="avatar" />
+  </div>
+
+  <div class="avatar-item">
+    <img
+  src="https://api.dicebear.com/9.x/avataaars/svg?seed=Christian"
+  alt="avatar" />
+  </div>
+
+  <div class="avatar-item">
+    <img
+  src="https://api.dicebear.com/9.x/bottts/svg?seed=Alexander"
+  alt="avatar" />
+  </div>
+
+  <div class="avatar-item">
+    <img
+  src="https://api.dicebear.com/9.x/bottts/svg?seed=Katherine"
+  alt="avatar" />
+  </div>
+  <div class="avatar-item">
+    <img
+  src="https://api.dicebear.com/9.x/bottts/svg?seed=Brian"
+  alt="avatar" />
+  </div>
+  <div class="avatar-item">
+    <img
+  src="https://api.dicebear.com/9.x/bottts/svg?seed=Caleb"
+  alt="avatar" />
+  </div>
+</div>
     </main>
 
     <!-- FOOTER -->

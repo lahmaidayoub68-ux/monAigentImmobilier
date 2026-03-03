@@ -275,7 +275,6 @@ CHAT FORM
   display: flex;
   gap: 0.5rem;
 }
-
 .chat-form input {
   flex: 1;
   padding: 0.8rem 1rem;
@@ -294,23 +293,47 @@ CHAT FORM
 
   border-radius: 50%;
   border: none;
+  cursor: pointer;
 
-  background: linear-gradient(135deg, var(--primary-blue), var(--primary-pink));
+  /* Dégradé principal violet → bleu clair */
+  background: linear-gradient(135deg, #5b3fff, #8a7fff, #b6ddf5);
+  backdrop-filter: blur(6px);
+
+  /* Ombre subtile pour donner de la profondeur */
+  box-shadow: 0 4px 12px rgba(91, 63, 255, 0.25);
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  transition: all 0.25s ease;
+  /* Transition douce pour hover/active */
+  transition: all 0.25s ease-in-out;
+
+  overflow: hidden;
 }
 
-.chat-form button:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 6px 18px rgba(119, 109, 249, 0.35);
+/* Forcer l'icône SVG à rester blanche */
+.chat-form button svg {
+  stroke: white; /* contour SVG */
+  fill: white; /* si le SVG utilise fill */
+  width: 24px;
+  height: 24px;
 }
+
+/* Hover du bouton */
+.chat-form button:hover {
+  background: linear-gradient(135deg, #4f7eff, #8acfff, #b6e0ff);
+  transform: translateY(-2px) scale(1.1);
+  box-shadow: 0 6px 18px rgba(79, 126, 255, 0.35);
+}
+
+/* Active / click */
 .chat-form button:active {
   transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(79, 126, 255, 0.25);
 }
+
+/* Disabled */
 .chat-form button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
