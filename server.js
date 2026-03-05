@@ -78,14 +78,24 @@ app.use(
   helmet({
     crossOriginResourcePolicy: false,
     contentSecurityPolicy: {
-      useDefaults: true, // 🔥 IMPORTANT
+      useDefaults: true, // conserve les règles par défaut
       directives: {
+        // Source par défaut pour tout
         defaultSrc: ["'self'"],
 
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        // Autoriser scripts locaux, inline, eval, et CDNs connus
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'",
+          "https://cdn.jsdelivr.net",
+          "https://cdnjs.cloudflare.com",
+        ],
 
+        // Autoriser styles locaux et inline
         styleSrc: ["'self'", "'unsafe-inline'"],
 
+        // Autoriser images locales, data URI, blobs et certaines sources externes
         imgSrc: [
           "'self'",
           "data:",
@@ -94,9 +104,19 @@ app.use(
           "https://api.dicebear.com",
         ],
 
-        connectSrc: ["'self'"],
+        // Connexions autorisées pour fetch / websocket / fonts
+        // ⚠️ Ajouter la font self-hostée ou un domaine externe si nécessaire
+        connectSrc: [
+          "'self'",
+          "https://threejs.org", // <-- à utiliser uniquement si tu charges la font en externe
+        ],
 
+        // Autoriser fonts locales ou base64
         fontSrc: ["'self'", "data:"],
+
+        // Autres directives possibles selon besoins
+        frameSrc: ["'self'"],
+        objectSrc: ["'none'"],
       },
     },
   }),
@@ -377,21 +397,21 @@ function upsertProfile(user, normalized) {
 
   return profileData;
 }
+
+// ================== IMPORT AI CHAT ==================
+import { aiChatWithCriteria } from "./services/aiParsee.js";
 // ================== CHAT SYSTEM ==================
 const sessions = {};
 const ORDER = ["type", "ville", "pieces", "espace"];
 
-// ================== IMPORT AI CHAT ==================
-import { aiChatWithCriteria } from "./services/aiParsee.js";
-
-// QUEUE RATE-LIMIT //
+// ================== QUEUE RATE-LIMIT ==================
 const QUEUE = [];
 let processing = false;
 
 function getIntervalByUsers() {
   const activeUsers = Object.keys(sessions).length;
-  if (activeUsers === 0) return 1000; // 1s par défaut
-  return Math.max(1000, 60000 / activeUsers); // 60 req/min divisées par nb utilisateurs
+  if (activeUsers === 0) return 1000;
+  return Math.max(1000, 60000 / activeUsers);
 }
 
 async function processQueue() {
@@ -400,7 +420,7 @@ async function processQueue() {
 
   while (QUEUE.length > 0) {
     const { req, res, next } = QUEUE.shift();
-    await next(); // Appelle le handler original
+    await next();
     const interval = getIntervalByUsers();
     await new Promise((r) => setTimeout(r, interval));
   }
@@ -408,7 +428,6 @@ async function processQueue() {
   processing = false;
 }
 
-// Middleware pour push dans la queue
 function userQueueMiddleware(req, res, next) {
   QUEUE.push({ req, res, next });
   processQueue();
@@ -417,28 +436,28 @@ function userQueueMiddleware(req, res, next) {
 // ================== CHAT ROUTE ==================
 app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
   try {
-    // ========== VALIDATION DU MESSAGE ==========
+    // ===== Validation =====
     const { message } = z
       .object({ message: z.string().min(1) })
       .parse(req.body);
-
     const username = req.user.username;
     const userRole = req.user.role;
 
-    // ========== INITIALISATION SESSION ==========
+    // ===== Initialisation session =====
     if (!sessions[username]) {
       sessions[username] = {
         started: false,
         criteria: {},
         role: userRole,
-        phase: "collecting", // collecting | results
+        phase: "collecting",
         matches: [],
+        postReply: null,
       };
     }
     const session = sessions[username];
     session.role = userRole;
 
-    // ========== APPEL AI ==========
+    // ===== Appel IA pour parser les critères =====
     let aiResponse = {};
     try {
       aiResponse = await aiChatWithCriteria(message, session.criteria, {
@@ -453,23 +472,20 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       };
     }
 
-    // ========== LOG CRITÈRES BRUTS ==========
-    console.log(`[AI RAW CRITERIA] User ${username}:`, aiResponse.criteria);
-
-    // ========== MISE À JOUR DES CRITÈRES ==========
+    // ===== Mise à jour critères =====
     session.criteria = aiResponse.criteria || session.criteria;
 
-    // ========== INTRODUCTION ==========
+    // ===== Préparation reply =====
     let reply = "";
     if (!session.started) {
       reply +=
-        aiResponse.message || "Bonjour ! Je suis votre assistant immobilier. ";
+        aiResponse.message || "Bonjour ! Je suis votre assistant immobilier.";
       session.started = true;
     } else if (aiResponse.message) {
       reply += aiResponse.message;
     }
 
-    // ========== PARSING / NORMALISATION ==========
+    // ===== Normalisation =====
     const parseNumber = (value, fallback = 0) => {
       if (value == null) return fallback;
       const num = Number(String(value).replace(/[^\d.-]/g, ""));
@@ -487,14 +503,12 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       piecesMax: parseNumber(session.criteria.piecesMax, Infinity),
       surfaceMin: parseNumber(session.criteria.espaceMin, 0),
       surfaceMax: parseNumber(session.criteria.espaceMax, Infinity),
-      budgetMin: budgetMin,
-      budgetMax: budgetMax,
+      budgetMin,
+      budgetMax,
       price: budgetMin,
     };
 
-    console.log(`[AI NORMALIZED CRITERIA] User ${username}:`, normalized);
-
-    // ========== CHECK CRITERIA COMPLETION ==========
+    // ===== Vérification critères complets =====
     const missingCriteria = ORDER.filter((k) => {
       if (k === "pieces") return session.criteria.piecesMin === undefined;
       if (k === "espace") return session.criteria.espaceMin === undefined;
@@ -502,70 +516,78 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
     });
     const budgetIncomplete = session.criteria.budgetMin === undefined;
 
+    // ===== Phase collecting =====
     if (session.phase === "collecting") {
-      // Tant que tous les critères ne sont pas remplis
+      // ⚠️ si critères incomplets => juste réponse IA
       if (budgetIncomplete || missingCriteria.length > 0) {
-        return res.json({
-          reply,
-          criteria: session.criteria,
-        });
+        return res.json({ reply, criteria: session.criteria });
       }
 
-      // ========== CRITÈRES COMPLETS => UPSERT PROFILE ==========
-      const profile = upsertProfile(req.user, normalized);
+      // ===== Critères complets => matching direct =====
+      const profile =
+        session.role === "buyer"
+          ? addBuyer({ ...normalized, username: req.user.username })
+          : addSeller({ ...normalized, username: req.user.username });
 
-      // ========== MATCHING ==========
       const matches =
         session.role === "buyer"
           ? matchUsers(profile, 5)
           : matchSellerToBuyers(profile, 5);
 
       matches.forEach((m) => learnPreference(profile, m));
-
       session.matches = matches;
       session.phase = "results";
 
-      // 🔥 APPEL IA AUTOMATIQUE JUSTE APRÈS AFFICHAGE DES MATCHES
-      let postResultAI = {};
+      // ===== Appel IA postResult AVANT réponse =====
+      let postReply = null;
+
       try {
-        postResultAI = await aiChatWithCriteria(
-          "__POST_RESULTS__", // message interne déclencheur
+        const postResultAI = await aiChatWithCriteria(
+          "__POST_RESULTS__",
           session.criteria,
           {
             phase: "results",
             matchingProfiles: session.matches,
           },
         );
+
+        postReply =
+          postResultAI.message ||
+          "Souhaitez-vous que je vous aide à comparer ces profils ?";
       } catch (err) {
         console.error("[POST RESULTS AI ERROR]:", err);
-        postResultAI = {
-          message:
-            "Souhaitez-vous que je vous aide à choisir le profil le plus adapté ou approfondir un point particulier ?",
-        };
+        postReply =
+          "Souhaitez-vous que je vous aide à choisir le profil le plus adapté ?";
       }
 
+      // ⚡️ maintenant on renvoie tout d’un coup
       return res.json({
         reply,
         matches,
-        postReply: postResultAI.message,
+        postReply,
         criteria: session.criteria,
       });
+      then((postResultAI) => {
+        session.postReply = postResultAI.message;
+        // si front utilise websocket, peut push direct
+      }).catch((err) => {
+        console.error("[POST RESULTS AI ERROR]:", err);
+        session.postReply =
+          "Souhaitez-vous que je vous aide à choisir le profil le plus adapté ?";
+      });
+
+      return; // important pour ne pas continuer
     }
 
-    // ========== PHASE RESULTS ==========
+    // ===== Phase results =====
     if (session.phase === "results") {
-      // session.matches EXISTE DÉJÀ
-
+      // ⚡️ message IA normal pour conseils
       let postResultAI = {};
       try {
-        postResultAI = await aiChatWithCriteria(
-          message, // 👈 VRAI MESSAGE UTILISATEUR
-          session.criteria,
-          {
-            phase: "results",
-            matchingProfiles: session.matches,
-          },
-        );
+        postResultAI = await aiChatWithCriteria(message, session.criteria, {
+          phase: "results",
+          matchingProfiles: session.matches,
+        });
       } catch (err) {
         console.error("[RESULTS PHASE AI ERROR]:", err);
         postResultAI = {
@@ -581,17 +603,13 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       });
     }
 
-    // ========== CAS PAR DÉFAUT ==========
-    return res.json({
-      reply,
-      criteria: session.criteria,
-    });
+    // ===== Cas par défaut =====
+    return res.json({ reply, criteria: session.criteria });
   } catch (err) {
     console.error("[CHAT] ERREUR INATTENDUE :", err);
     res.status(500).json({ error: "Erreur serveur" });
   }
-}); // <-- fermer app.post /chat ici
-
+});
 // ================== AUTH ROUTES ==================
 app.post("/signup", async (req, res) => {
   try {

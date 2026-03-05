@@ -1,16 +1,203 @@
-// ================================================
-// recommandations.js (corrigé, sans backticks)
-// ================================================
+// recommandations.js – version NLG avancée ultime “quasi humaine”
+// =============================================================
 
-let currentTab = "global";
-let globalStatsCache = null; // Contient Top30, distribution, totalMatches
-let centralEl = null;
-let tabsEls = null;
-let mapInstance = null; // Leaflet map
+import { PHRASES } from "./PHRASES.js";
 
-// ==========================
+let currentTab = "global",
+  globalStatsCache = null,
+  centralEl = null,
+  tabsEls = null,
+  mapInstance = null;
+
+// =======================================================
+// CONFIGURATION CRITÈRES ET CONNECTEURS
+// =======================================================
+
+const WEIGHTS = { budget: 3, surface: 1, pieces: 1, ville: 2, type: 1 };
+
+const CONNECTORS = {
+  addition: [
+    "Par ailleurs",
+    "De plus",
+    "En complément",
+    "Dans le même esprit",
+    "Il est également à noter que",
+  ],
+  contrast: [
+    "En revanche",
+    "Cependant",
+    "Néanmoins",
+    "Toutefois",
+    "Malgré tout",
+  ],
+  cause: [
+    "En raison de cela",
+    "Compte tenu de ces éléments",
+    "Étant donné la situation",
+    "Du fait de cette observation",
+  ],
+  effect: [
+    "ce qui entraîne",
+    "ce qui implique",
+    "d'où la nécessité de",
+    "ce qui peut nécessiter",
+  ],
+  summary: [
+    "Dans l’ensemble",
+    "Globalement",
+    "Au final",
+    "Ainsi",
+    "En conclusion",
+  ],
+};
+
+const CRITERIA_ORDER = ["budget", "surface", "pieces", "ville", "type"];
+
+// =======================================================
+// UTILITAIRES TEXTE ET CONNECTEURS
+// =======================================================
+
+function cleanText(text) {
+  if (!text) return "";
+  // Normalisation NFC pour préserver accents + suppression espaces multiples
+  return text.normalize("NFC").replace(/\s+/g, " ").trim();
+}
+
+function capitalizeSentences(text) {
+  // Capitalisation par phrase, sans perdre les accents
+  return text
+    .split(/([.!?]+)/)
+    .map((s, i) => (i % 2 === 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s))
+    .join("")
+    .trim();
+}
+
+function pickConnectorUnique(used, type) {
+  const pool = _.shuffle(CONNECTORS[type].filter((c) => !used.has(c)));
+  const choice = pool[0] || _.sample(CONNECTORS[type]);
+  used.add(choice);
+  return choice;
+}
+
+// =======================================================
+// ANALYSE MATCHES
+// =======================================================
+
+function analyzeMatchesPro(matches) {
+  const stats = { budget: 0, surface: 0, pieces: 0, ville: 0, type: 0 };
+  matches.forEach((m) => {
+    if (m.budget >= m.userBudget) stats.budget++;
+    if (m.surface >= m.userSurface) stats.surface++;
+    if (m.pieces >= m.userPieces) stats.pieces++;
+    if (m.cityScore >= 0.7) stats.ville++;
+    if (m.typeMatch >= 0.7) stats.type++;
+  });
+
+  const ratio = (v) => v / matches.length;
+  const context = {
+    budget: ratio(stats.budget) > 0.6 ? "budgetOk" : "budgetHigh",
+    surface: ratio(stats.surface) > 0.6 ? "surfaceOk" : "surfaceLow",
+    pieces: ratio(stats.pieces) > 0.6 ? "piecesOk" : "piecesLow",
+    ville: ratio(stats.ville) > 0.6 ? "villeOk" : "villeLow",
+    type: ratio(stats.type) > 0.6 ? "typeOk" : "typeLow",
+  };
+
+  context.scores = Object.keys(context).reduce((acc, key) => {
+    acc[key] = WEIGHTS[key] * (context[key].endsWith("Ok") ? 1 : -1);
+    return acc;
+  }, {});
+
+  return context;
+}
+
+// =======================================================
+// SÉLECTION PHRASES – NLG QUASI HUMAINE
+// =======================================================
+
+function selectSentencesProUltimate(role, context) {
+  const paragraphs = [],
+    usedConnectors = new Set();
+  let lastConnector = null;
+
+  CRITERIA_ORDER.forEach((criterion) => {
+    const key = context[criterion];
+    const bank = PHRASES[role][key];
+    if (!bank || !bank.length) return;
+
+    const block = _.sample(bank);
+    const idea = block[0],
+      explanation = block[1] || "",
+      recommendation =
+        block[2] ||
+        "Il est recommandé d’adapter vos critères selon ce constat.";
+
+    const connectorIdea =
+      context.scores[criterion] < 0
+        ? pickConnectorUnique(usedConnectors, "contrast")
+        : pickConnectorUnique(usedConnectors, "addition");
+    const connectorExp = explanation
+      ? pickConnectorUnique(usedConnectors, "effect")
+      : "";
+    const connectorReco = pickConnectorUnique(usedConnectors, "cause");
+
+    // Liaison fluide avec le critère précédent
+    const interConnector = lastConnector || connectorIdea;
+    lastConnector = connectorIdea;
+
+    const ideaText = capitalizeSentences(
+      `${interConnector}, ${cleanText(idea)}.`,
+    );
+    const explanationText = explanation
+      ? capitalizeSentences(`${connectorExp}, ${cleanText(explanation)}.`)
+      : "";
+    const recoText = capitalizeSentences(
+      `${connectorReco}, ${cleanText(recommendation)}.`,
+    );
+
+    paragraphs.push({
+      criterion,
+      text: [ideaText, explanationText, recoText].filter(Boolean).join(" "),
+      score: context.scores[criterion],
+    });
+  });
+
+  // Synthèse finale
+  const synth = _.sample(
+    PHRASES[role].conclusion || ["Analyse globale effectuée."],
+  );
+  const summaryConnector = pickConnectorUnique(usedConnectors, "summary");
+  paragraphs.push({
+    criterion: "synthese",
+    text: capitalizeSentences(`${summaryConnector}, ${cleanText(synth)}`),
+    score: 0,
+  });
+
+  return paragraphs.sort((a, b) => b.score - a.score);
+}
+
+// =======================================================
+// CONSTRUCTION PARAGRAPHES
+// =======================================================
+
+function buildParagraphsProUltimate(paragraphs) {
+  return paragraphs.map((p) => cleanText(p.text));
+}
+
+// =======================================================
+// GÉNÉRATION DIAGNOSTIC – EXPORT
+// =======================================================
+
+export function generateDiagnosticPro(matches, role = "buyer") {
+  if (!matches || !matches.length)
+    return ["Aucune donnée n’est disponible pour réaliser une analyse fiable."];
+  const context = analyzeMatchesPro(matches);
+  const paragraphsData = selectSentencesProUltimate(role, context);
+  return buildParagraphsProUltimate(paragraphsData);
+}
+// =======================================================
 // MENU LATÉRAL
-// ==========================
+// =======================================================
+
 const sidebar = document.getElementById("sidebar");
 const openBtn = document.getElementById("openSidebar");
 const closeBtn = document.getElementById("closeSidebar");
@@ -18,154 +205,105 @@ const overlay = document.getElementById("sidebarOverlay");
 
 if (openBtn && sidebar && overlay) {
   openBtn.addEventListener("click", () => {
-    console.log("[SIDEBAR] Ouverture menu");
     sidebar.classList.add("open");
     overlay.classList.add("active");
-
-    // FAIRE DISPARAÎTRE LE BOUTON DU MENU
     openBtn.style.display = "none";
   });
 }
 
 if (closeBtn && sidebar && overlay) {
   closeBtn.addEventListener("click", () => {
-    console.log("[SIDEBAR] Fermeture menu");
     sidebar.classList.remove("open");
     overlay.classList.remove("active");
-
-    // FAIRE RÉAPPARAÎTRE LE BOUTON DU MENU
-    openBtn.style.display = "flex"; // flex pour conserver l'alignement initial
+    openBtn.style.display = "flex";
   });
 }
 
 if (overlay && sidebar) {
   overlay.addEventListener("click", () => {
-    console.log("[SIDEBAR] Fermeture menu via overlay");
     sidebar.classList.remove("open");
     overlay.classList.remove("active");
-
-    // FAIRE RÉAPPARAÎTRE LE BOUTON DU MENU
     openBtn.style.display = "flex";
   });
 }
-/* =======================================================
-   ENVOI MESSAGE À L'IA VIA L'API
-======================================================= */
-async function sendMessageToAI(message) {
-  try {
-    const raw = localStorage.getItem("agent_user");
-    if (!raw) throw new Error("Token manquant");
-    const user = JSON.parse(raw);
-    const token = user.token;
-    if (!token) throw new Error("Token JWT manquant");
 
-    const resp = await fetch("/api/ai", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
-      },
-      body: JSON.stringify({ message: message }),
-    });
+// =======================================================
+// FETCH STATS
+// =======================================================
 
-    if (!resp.ok) throw new Error("Erreur API: " + resp.status);
-    return resp.json();
-  } catch (err) {
-    console.error("[sendMessageToAI] Erreur :", err);
-    return { message: "Impossible de contacter l'IA." };
-  }
-}
-async function waitForTop30(retries = 5, delayMs = 300) {
-  for (let i = 0; i < retries; i++) {
-    const stats = await fetchStats();
-    if (stats && stats.top30 && stats.top30.length === 30) {
-      return stats;
-    }
-    // Attendre un petit délai avant de réessayer
-    await new Promise((r) => setTimeout(r, delayMs));
-  }
-  console.warn("[waitForTop30] Top30 incomplet après plusieurs tentatives");
-  return null;
-}
-/* =======================================================
-   INIT RECOMMANDATIONS
-======================================================= */
-async function initRecommendations() {
-  centralEl = document.getElementById("central-diagnostic");
-  tabsEls = document.querySelectorAll(".reco-tab");
-
-  // 1️⃣ Afficher un loader global
-  centralEl.innerHTML = `<div class="loader"></div> Chargement des données...`;
-
-  // 2️⃣ Récupérer les stats avec retry si nécessaire
-  globalStatsCache = await waitForTop30();
-
-  if (!globalStatsCache) {
-    centralEl.innerHTML =
-      "⚠️ Impossible de récupérer les données de la session.";
-    return;
-  }
-
-  animateTotalMatches(globalStatsCache.totalMatches || 30);
-
-  // 3️⃣ Lancer le diagnostic IA
-  await updateDiagnostic();
-
-  // 4️⃣ Initialiser la map
-  initMap();
-
-  // 5️⃣ Écoute des tabs
-  tabsEls.forEach(function (tab) {
-    tab.addEventListener("click", async function () {
-      var tabName = tab.dataset.tab;
-      await switchTab(tabName);
-    });
-  });
-}
-/* =======================================================
-   FETCH STATS → Top30 et distribution
-======================================================= */
 async function fetchStats() {
   try {
     const raw = localStorage.getItem("agent_user");
     if (!raw) throw new Error("Token manquant");
+
     const user = JSON.parse(raw);
     const token = user.token;
-    if (!token) throw new Error("Token JWT manquant");
 
     const res = await fetch("/api/stats", {
-      headers: { Authorization: "Bearer " + token },
+      headers: { Authorization: `Bearer ${token}` },
     });
+    if (!res.ok) throw new Error("Erreur API");
 
-    if (!res.ok) throw new Error("Erreur API: " + res.status);
     const data = await res.json();
-
-    return Object.assign({}, data, { top30: data.matches.slice(0, 30) });
+    return { ...data, top30: data.matches.slice(0, 30) };
   } catch (err) {
-    console.error("[fetchStats] Error:", err);
+    console.error("[fetchStats]", err);
     return null;
   }
 }
 
-/* =======================================================
-   SWITCH TAB CENTRAL
-======================================================= */
+async function waitForTop30(retries = 5) {
+  for (let i = 0; i < retries; i++) {
+    const stats = await fetchStats();
+    if (stats?.top30?.length === 30) return stats;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  return null;
+}
+
+// =======================================================
+// INIT RECOMMANDATIONS
+// =======================================================
+
+async function initRecommendations() {
+  centralEl = document.getElementById("central-diagnostic");
+  tabsEls = document.querySelectorAll(".reco-tab");
+
+  centralEl.innerHTML = `<div class="loader"></div> Chargement des données...`;
+
+  globalStatsCache = await waitForTop30();
+  if (!globalStatsCache) {
+    centralEl.innerHTML = "⚠️ Impossible de récupérer les données.";
+    return;
+  }
+
+  animateTotalMatches(globalStatsCache.totalMatches || 30);
+  await updateDiagnostic();
+  initMap();
+
+  tabsEls.forEach((tab) => {
+    tab.addEventListener("click", async () => {
+      await switchTab(tab.dataset.tab);
+    });
+  });
+}
+
+// =======================================================
+// SWITCH TAB
+// =======================================================
+
 async function switchTab(tabName) {
   currentTab = tabName;
-  tabsEls.forEach(function (t) {
-    t.classList.remove("active");
-  });
-  var selectedTab = document.querySelector(
-    ".reco-tab[data-tab='" + tabName + "']",
-  );
-  if (selectedTab) selectedTab.classList.add("active");
-
+  tabsEls.forEach((t) => t.classList.remove("active"));
+  const selected = document.querySelector(`.reco-tab[data-tab='${tabName}']`);
+  if (selected) selected.classList.add("active");
   await updateCentralContent();
 }
 
-/* =======================================================
-   UPDATE CENTRAL CONTENT SELON TAB
-======================================================= */
+// =======================================================
+// UPDATE CENTRAL
+// =======================================================
+
 async function updateCentralContent() {
   if (!globalStatsCache) return;
 
@@ -180,298 +318,72 @@ async function updateCentralContent() {
   }
 }
 
-/* =======================================================
-   DIAGNOSTIC IA GLOBAL – VERSION SAAS (CORRIGÉE)
-======================================================= */
+// =======================================================
+// DIAGNOSTIC
+// =======================================================
+
 async function updateDiagnostic() {
   try {
-    centralEl.innerHTML = `<div class="loader"></div> Analyse IA en cours...`;
+    centralEl.innerHTML = `<div class="loader"></div> Analyse en cours...`;
 
-    // Récupérer le rôle utilisateur
     const raw = localStorage.getItem("agent_user");
     const user = raw ? JSON.parse(raw) : { role: "buyer" };
     const role = user.role || "buyer";
 
-    // Préparer le prompt SaaS complet
-    const prompt = `
-Analyse les 30 meilleurs profils immobiliers correspondant à l'utilisateur.
-L'utilisateur est un <ROLE_UTILISATEUR> (${role}).
+    const paragraphs = generateDiagnosticPro(globalStatsCache.top30, role);
 
-Pour chaque critère suivant : ville, type, surface, budget, pièces
-- rédige exactement 1 paragraphe synthèse par critère,
-- puis 1 paragraphe final de synthèse globale avec plan d'action (3-5 phrases).
-
-⚠️ Adapte le texte au rôle :
-- buyer : parle des biens à acheter et de la compatibilité avec les offres disponibles.
-- seller : analyse du point de vue du vendeur et des opportunités de mise en marché.
-
-Format de sortie : { "message": "texte clair avec retours à la ligne" }
-`.replace("<ROLE_UTILISATEUR>", role);
-
-    // Préparer le contexte à envoyer
-    const context = {
-      phase: "results",
-      matchingProfiles: globalStatsCache.top30,
-      role: role,
-    };
-
-    // ✅ Appel IA : envoyer directement un objet pour éviter le double JSON.stringify
-    const aiResp = await sendMessageToAI({ prompt, context });
-
-    // Vérifier que le message IA est valide
-    const rawText = aiResp.message?.trim();
-    if (!rawText) {
-      centralEl.innerHTML =
-        "<p>⚠️ L'IA n'a renvoyé aucun texte. Vérifiez le prompt et les profils.</p>";
-      return;
-    }
-
-    // Découper en paragraphes par retours à la ligne (1 ou plus)
-    const paragraphs = rawText
-      .split(/\n{1,}/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0);
-
-    // Injection HTML SaaS propre avec mise en évidence
-    const htmlContent = paragraphs
-      .map((p) => {
-        let txt = p;
-
-        // Mots importants pour highlight
-        const importantWords = ["ville", "type", "surface", "budget", "pièces"];
-        const highlightWords = [
-          "compatibilité",
-          "recommandations",
-          "diagnostic",
-          "sélection",
-        ];
-
-        // Gras pour critères
-        importantWords.forEach((w) => {
-          txt = txt.replace(new RegExp(`\\b${w}\\b`, "gi"), "<b>$&</b>");
-        });
-
-        // Souligné pour mots clés importants
-        highlightWords.forEach((w) => {
-          txt = txt.replace(new RegExp(`\\b${w}\\b`, "gi"), "<u>$&</u>");
-        });
-
-        return `<p style="margin-bottom:14px; line-height:1.6;">${txt}</p>`;
-      })
-      .join("");
-
-    // Affichage final
-    centralEl.innerHTML = `<div style="font-size:14px;">${htmlContent}</div>`;
+    centralEl.innerHTML = `<div style="font-size:14px;">${paragraphs
+      .map((p) => `<p style="margin-bottom:14px;line-height:1.6;">${p}</p>`)
+      .join("")}</div>`;
   } catch (err) {
     console.error("[updateDiagnostic]", err);
-    centralEl.innerHTML =
-      "<p>⚠️ Une erreur est survenue lors de l'analyse IA.</p>";
+    centralEl.innerHTML = "<p>⚠️ Erreur lors de l'analyse.</p>";
   }
 }
-/* =======================================================
-   GENERATE CRITERIA HTML
-======================================================= */
-function generateCriteriaHTML(matches) {
-  if (!matches || matches.length === 0)
-    return "<p>Aucune donnée disponible.</p>";
 
-  var stats = { surface: 0, ville: 0, type: 0, budget: 0, pieces: 0 };
+// =======================================================
+// MAP LEAFLET
+// =======================================================
 
-  matches.forEach(function (m) {
-    if (!m.common) return;
-    if (
-      m.common.includes("Surface parfaite") ||
-      m.common.includes("Surface supérieure")
-    )
-      stats.surface++;
-    if (
-      m.common.includes("Ville parfaite") ||
-      m.common.includes("Ville proche")
-    )
-      stats.ville++;
-    if (m.common.includes("Type parfait")) stats.type++;
-    if (
-      m.common.includes("Budget parfait") ||
-      m.different.includes("Prix légèrement supérieur")
-    )
-      stats.budget++;
-    if (
-      m.common.includes("Pièces parfaites") ||
-      m.common.includes("Nombre de pièces supérieur")
-    )
-      stats.pieces++;
-  });
-
-  var total = matches.length;
-  var html =
-    "<h4>📊 Constat par critère</h4><table class='criteria-table'>" +
-    "<tr><th>Critère</th><th>Compatibilité</th><th>Observation</th></tr>";
-
-  ["surface", "ville", "type", "budget", "pieces"].forEach(function (crit) {
-    var percent = Math.round((stats[crit] / total) * 100);
-    var color =
-      percent >= 80
-        ? "#4caf50"
-        : percent >= 60
-          ? "#2196f3"
-          : percent >= 40
-            ? "#ff9800"
-            : "#f44336";
-    var obs =
-      percent > 80
-        ? "Très large"
-        : percent > 60
-          ? "Large"
-          : percent > 40
-            ? "Modéré"
-            : "Très restrictif";
-    html +=
-      "<tr><td>" +
-      capitalize(crit) +
-      "</td><td style='color:" +
-      color +
-      "; font-weight:600'>" +
-      percent +
-      "%</td><td>" +
-      obs +
-      "</td></tr>";
-  });
-
-  html += "</table><div id='criteria-map' style='height:250px;'></div>";
-  return html;
-}
-
-/* =======================================================
-   GENERATE SUGGESTIONS HTML
-======================================================= */
-function generateSuggestionsHTML(matches) {
-  if (!matches || matches.length === 0)
-    return "<p>Aucune suggestion disponible.</p>";
-
-  var total = matches.length;
-  var stats = { surface: 0, ville: 0, type: 0, budget: 0, pieces: 0 };
-
-  matches.forEach(function (m) {
-    if (!m.common) return;
-    if (
-      m.common.includes("Surface parfaite") ||
-      m.common.includes("Surface supérieure")
-    )
-      stats.surface++;
-    if (
-      m.common.includes("Ville parfaite") ||
-      m.common.includes("Ville proche")
-    )
-      stats.ville++;
-    if (m.common.includes("Type parfait")) stats.type++;
-    if (
-      m.common.includes("Budget parfait") ||
-      m.different.includes("Prix légèrement supérieur")
-    )
-      stats.budget++;
-    if (
-      m.common.includes("Pièces parfaites") ||
-      m.common.includes("Nombre de pièces supérieur")
-    )
-      stats.pieces++;
-  });
-
-  var html =
-    "<h4>🚀 Suggestions concrètes</h4><table class='criteria-table'>" +
-    "<tr><th>Critère</th><th>Changement proposé</th><th>Compatibilité après</th></tr>";
-
-  ["surface", "ville", "type", "budget", "pieces"].forEach(function (crit) {
-    var percent = Math.round((stats[crit] / total) * 100);
-    var suggestion =
-      percent < 60
-        ? "Ajuster ce critère pour augmenter la compatibilité"
-        : "Pas de changement";
-    var newCompat = percent < 60 ? Math.min(100, percent + 20) : percent;
-    var color =
-      newCompat >= 80
-        ? "#4caf50"
-        : newCompat >= 60
-          ? "#2196f3"
-          : newCompat >= 40
-            ? "#ff9800"
-            : "#f44336";
-    html +=
-      "<tr><td>" +
-      capitalize(crit) +
-      "</td><td>" +
-      suggestion +
-      "</td><td style='color:" +
-      color +
-      "; font-weight:600'>" +
-      newCompat +
-      "%</td></tr>";
-  });
-
-  html += "</table>";
-  return html;
-}
-
-/* =======================================================
-   LEAFLET MAP
-======================================================= */
 function initMap() {
-  var mapContainer = document.getElementById("criteria-map");
+  const mapContainer = document.getElementById("criteria-map");
   if (!mapContainer) return;
 
-  mapInstance = L.map(mapContainer).setView([48.8566, 2.3522], 12); // Paris par défaut
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap contributors",
-  }).addTo(mapInstance);
+  mapInstance = L.map(mapContainer).setView([48.8566, 2.3522], 12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(
+    mapInstance,
+  );
 }
 
 function updateMap(matches) {
-  if (!mapInstance || !matches) return;
+  if (!mapInstance) return;
 
-  mapInstance.eachLayer(function (layer) {
+  mapInstance.eachLayer((layer) => {
     if (layer instanceof L.Marker) mapInstance.removeLayer(layer);
   });
 
-  matches.forEach(function (m) {
-    if (m.lat && m.lng) {
+  matches.forEach((m) => {
+    if (m.lat && m.lng)
       L.marker([m.lat, m.lng])
         .addTo(mapInstance)
-        .bindPopup(
-          "<b>" + (m.name || "Bien immobilier") + "</b><br/>" + (m.city || ""),
-        );
-    }
+        .bindPopup(`<b>${m.name || "Bien"}</b><br>${m.city || ""}`);
   });
-
-  if (matches.length > 0) {
-    var bounds = matches
-      .filter(function (m) {
-        return m.lat && m.lng;
-      })
-      .map(function (m) {
-        return [m.lat, m.lng];
-      });
-    if (bounds.length > 0) mapInstance.fitBounds(bounds, { padding: [50, 50] });
-  }
 }
 
-/* =======================================================
-   ANIMATION TOTAL MATCHES
-======================================================= */
+// =======================================================
+// HEADER
+// =======================================================
+
 function animateTotalMatches(total) {
-  var container = document.createElement("div");
+  const container = document.createElement("div");
   container.style.cssText =
     "font-size:24px;font-weight:700;text-align:center;margin-bottom:15px;color:#333";
-  container.innerText = "Analyse des 30 meilleurs profils (par session)";
+  container.innerText = `Analyse des ${total} meilleurs profils (session)`;
   document.querySelector(".content-wrapper").prepend(container);
 }
 
-/* =======================================================
-   CAPITALIZE
-======================================================= */
-function capitalize(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
+// =======================================================
+// INIT
+// =======================================================
 
-/* =======================================================
-   INIT
-======================================================= */
 document.addEventListener("DOMContentLoaded", initRecommendations);

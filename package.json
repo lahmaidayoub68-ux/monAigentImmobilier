@@ -24,10 +24,11 @@
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.5.0",
     "body-parser": "^2.2.0",
+    "chance": "^1.1.13",
     "chart.js": "^4.5.1",
     "child_process": "^1.0.2",
     "compression": "^1.8.1",
-    "compromise": "^14.14.5",
+    "compromise": "^14.15.0",
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "csvtojson": "^2.0.14",
@@ -38,11 +39,14 @@
     "fasttext.js": "^1.1.4",
     "fs": "^0.0.1-security",
     "gpt4all": "^1.0.0",
+    "gsap": "^3.14.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",
     "leaflet.markercluster": "^1.5.3",
+    "lodash": "^4.17.23",
+    "lodash-es": "^4.17.23",
     "morgan": "^1.10.1",
     "natural": "^8.1.0",
     "node-fetch": "^3.3.2",
@@ -53,7 +57,13 @@
     "pg": "^8.19.0",
     "puppeteer": "^24.34.0",
     "remove-accents": "^0.5.0",
+    "rita": "^3.2.11",
+    "seedrandom": "^3.0.5",
+    "sentence-case": "^3.0.4",
+    "sentence-splitter": "^5.0.0",
+    "three": "^0.183.2",
     "together-ai": "^0.37.0",
+    "tracery-grammar": "^2.8.4",
     "unidecode": "^1.1.0",
     "zod": "^3.25.76"
   },
@@ -66,5 +76,13 @@
     "eslint-plugin-prettier": "^5.5.5",
     "nodemon": "^3.1.11",
     "prettier": "^3.8.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lahmaidayoub68-ux/monAigentImmobilier.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lahmaidayoub68-ux/monAigentImmobilier/issues"
+  },
+  "homepage": "https://github.com/lahmaidayoub68-ux/monAigentImmobilier#readme"
 }

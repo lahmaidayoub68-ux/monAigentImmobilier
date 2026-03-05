@@ -224,7 +224,7 @@ function showThinking() {
 }
 
 // ================== MATCH RENDER ==================
-async function renderMatches(matches) {
+async function renderMatches(matches, postReply) {
   if (!Array.isArray(matches) || matches.length === 0) {
     addMessage({
       text: "Aucun profil ne correspond à vos critères.",
@@ -522,7 +522,16 @@ async function renderMatches(matches) {
       };
     });
   });
+
+  // ===== AFFICHAGE AUTOMATIQUE DU POST-REPLY IA =====
+  if (postReply) {
+    addMessage({
+      text: postReply,
+      from: "bot",
+    });
+  }
 }
+
 //============== SEND ==================//
 async function sendMessage(text) {
   if (state.sending || !text) return;
@@ -558,17 +567,8 @@ async function sendMessage(text) {
       save("criteria", state.criteria);
     }
     if (Array.isArray(data.matches)) {
-      renderMatches(data.matches);
-
-      // === ICI ===
-      if (data.postReply) {
-        setTimeout(() => {
-          addMessage({
-            text: data.postReply,
-            from: "bot",
-          });
-        }, 600);
-      }
+      // Passer postReply à renderMatches
+      renderMatches(data.matches, data.postReply);
     }
 
     renderUserInfo();
