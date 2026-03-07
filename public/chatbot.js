@@ -222,8 +222,6 @@ function showThinking() {
     remove: () => el.remove(),
   };
 }
-
-// ================== MATCH RENDER ==================
 async function renderMatches(matches, postReply) {
   if (!Array.isArray(matches) || matches.length === 0) {
     addMessage({
@@ -234,7 +232,7 @@ async function renderMatches(matches, postReply) {
   }
 
   addMessage({
-    text: `🤝 ${matches.length} profil${matches.length > 1 ? "s" : ""} correspondant${matches.length > 1 ? "s" : ""} à vos critères :`,
+    text: `${matches.length} profil${matches.length > 1 ? "s" : ""} correspondant${matches.length > 1 ? "s" : ""} à vos critères :`,
     from: "bot",
   });
 
@@ -244,19 +242,15 @@ async function renderMatches(matches, postReply) {
       .replace(/pièces/i, "Pièces")
       .replace(/surface/i, "Surface") ?? "";
 
-  // ===== Récupération des favoris depuis l'API =====
+  // ===== Récupération des favoris =====
   let existingFavs = [];
   try {
     const favRes = await fetch(`${API_BASE}/api/favorites`, {
-      headers: {
-        Authorization: `Bearer ${state.user?.token}`,
-      },
+      headers: { Authorization: `Bearer ${state.user?.token}` },
     });
-    if (favRes.ok) {
-      existingFavs = await favRes.json();
-    }
+    if (favRes.ok) existingFavs = await favRes.json();
   } catch (e) {
-    console.error("Erreur récupération favoris depuis le serveur :", e);
+    console.error("Erreur récupération favoris :", e);
   }
 
   matches.forEach((m, index) => {
@@ -267,15 +261,8 @@ async function renderMatches(matches, postReply) {
     row.style.marginBottom = "18px";
     row.style.opacity = 0;
 
-    const avatar = document.createElement("div");
-    avatar.className = "avatar";
-
     const bubble = document.createElement("div");
     bubble.className = "bubble match-card";
-    bubble.style.display = "flex";
-    bubble.style.flexDirection = "column";
-    bubble.style.gap = "8px";
-    bubble.style.position = "relative";
 
     const villeLabel = m.villeOriginal || m.ville || "Ville inconnue";
     const piecesLabel =
@@ -286,29 +273,18 @@ async function renderMatches(matches, postReply) {
       (m.surface ?? m.surfaceMin)
         ? `${m.surface ?? m.surfaceMin} m²`
         : "Surface inconnue";
-
-    const common = m.common ?? [];
-    const different = m.different ?? [];
     const pct = Number(m.compatibility ?? 0);
 
-    const commonHTML = common.length
-      ? common
-          .map(
-            (c) => `<span class="pill pill-common">
-                      <span class="pill-icon">✔</span>
-                      <span class="pill-text">${formatLabel(c)}</span>
-                    </span>`,
-          )
+    const commonHTML = (m.common ?? []).length
+      ? m.common
+          .map((c) => `<span class="pill pill-common">${formatLabel(c)}</span>`)
           .join("")
       : `<span class="pill pill-neutral">Aucun critère commun</span>`;
 
-    const differentHTML = different.length
-      ? different
+    const differentHTML = (m.different ?? []).length
+      ? m.different
           .map(
-            (d) => `<span class="pill pill-different">
-                      <span class="pill-icon">✕</span>
-                      <span class="pill-text">${formatLabel(d)}</span>
-                    </span>`,
+            (d) => `<span class="pill pill-different">${formatLabel(d)}</span>`,
           )
           .join("")
       : `<span class="pill pill-neutral">Aucune différence</span>`;
@@ -316,41 +292,26 @@ async function renderMatches(matches, postReply) {
     let priceLabel = "N/A";
     if (m.price != null) priceLabel = `${m.price} €`;
     else if (m.budget != null) priceLabel = `${m.budget} €`;
-    else if (m.budgetMin != null && m.budgetMax != null) {
+    else if (m.budgetMin != null && m.budgetMax != null)
       priceLabel =
         m.budgetMin === m.budgetMax
           ? `${m.budgetMin} €`
           : `${m.budgetMin} – ${m.budgetMax} €`;
-    }
 
     const alreadyFav = existingFavs.some((p) => p.contact === m.contact);
 
+    // ===== HTML de la carte premium =====
     bubble.innerHTML = `
-      <button class="fav-btn" data-index="${index}" style="
-        position:absolute;
-        top:8px;
-        right:8px;
-        background:#1976ff;
-        color:white;
-        border:none;
-        border-radius:50%;
-        width:28px;
-        height:28px;
-        font-size:14px;
-        cursor:pointer;
-        transition:0.2s;
-      ">⭐</button>
-
-      <div class="match-header">🏠 <strong>${m.type}</strong> – <span class="match-city">${villeLabel}</span></div>
-
-      <div class="match-meta">
-        <span>🛏️ ${piecesLabel}</span>
-        <span>📐 ${surfaceLabel}</span>
+      <div class="match-header">
+        <div class="match-title"><strong>${m.type}</strong> – ${villeLabel}</div>
+        <button class="fav-btn" data-index="${index}">${alreadyFav ? "★" : "☆"}</button>
       </div>
 
-      <div class="match-meta">
-        <span>💰 ${priceLabel}</span>
-        <span>📞 ${m.contact ?? "N/A"}</span>
+      <div class="match-details">
+        <div class="detail-row"><span class="label">Prix</span><span class="value">${priceLabel}</span></div>
+        <div class="detail-row"><span class="label">Pièces</span><span class="value">${piecesLabel}</span></div>
+        <div class="detail-row"><span class="label">Surface</span><span class="value">${surfaceLabel}</span></div>
+        <div class="detail-row"><span class="label">Contact</span><span class="value">${m.contact ?? "N/A"}</span></div>
       </div>
 
       <div class="match-criteria">
@@ -364,46 +325,35 @@ async function renderMatches(matches, postReply) {
         </div>
       </div>
 
-      <div class="match-compat">
-        <div class="compat-label">Compatibilité : <strong>${pct}%</strong></div>
-        <div class="compat-bar">
-          <div class="compat-bar-inner"></div>
+      <div class="match-footer">
+        <div class="compat-container">
+          <div class="compat-label">Compatibilité : <strong>${pct}%</strong></div>
+          <div class="compat-bar"><div class="compat-bar-inner"></div></div>
         </div>
+        <button class="voir-carte-btn"
+          data-lat="${m.lat ?? m.buyerLat ?? 48.8566}"
+          data-lng="${m.lng ?? m.buyerLng ?? 2.3522}"
+          data-buyer-lat="${m.buyerLat ?? 48.8566}"
+          data-buyer-lng="${m.buyerLng ?? 2.3522}"
+          data-ville="${villeLabel}">
+          Voir la carte
+        </button>
       </div>
-
-      <button class="voir-carte-btn"
-        data-lat="${m.lat ?? m.buyerLat ?? 48.8566}"
-        data-lng="${m.lng ?? m.buyerLng ?? 2.3522}"
-        data-buyer-lat="${m.buyerLat ?? 48.8566}"
-        data-buyer-lng="${m.buyerLng ?? 2.3522}"
-        data-ville="${villeLabel}">
-        Voir la carte
-      </button>
     `;
 
-    row.append(avatar, bubble);
+    row.appendChild(bubble);
     $("chat-box").appendChild(row);
 
+    // ===== Favoris =====
     const favBtn = bubble.querySelector(".fav-btn");
-    if (alreadyFav) {
-      favBtn.style.background = "gold";
-      favBtn.style.color = "black";
-    }
-
-    // ===== Ajout favoris via API =====
     favBtn.addEventListener("click", async () => {
       try {
-        if (favBtn.style.background === "gold") return;
-
-        // 🔥 ON CLONE ET ON AJOUTE LES COORDONNÉES ACHETEUR
+        if (favBtn.style.color === "gold") return;
         const enrichedMatch = {
           ...m,
           lat: m.lat ?? m.buyerLat,
           lng: m.lng ?? m.buyerLng,
-          buyerLat: m.buyerLat,
-          buyerLng: m.buyerLng,
         };
-
         const res = await fetch(`${API_BASE}/api/favorites`, {
           method: "POST",
           headers: {
@@ -412,42 +362,34 @@ async function renderMatches(matches, postReply) {
           },
           body: JSON.stringify(enrichedMatch),
         });
-
-        if (res.ok) {
-          favBtn.style.background = "gold";
-          favBtn.style.color = "black";
-        } else {
-          console.error("Erreur ajout favori :", await res.text());
-        }
+        if (res.ok) favBtn.style.color = "gold";
       } catch (err) {
-        console.error("Erreur ajout favori :", err);
+        console.error(err);
       }
     });
 
+    // ===== Compatibilité =====
     requestAnimationFrame(() => {
       const bar = row.querySelector(".compat-bar-inner");
-      if (bar) {
-        bar.style.width = pct + "%";
-
-        let r,
-          g,
-          b = 0;
-        if (pct < 50) {
-          r = 200 + (255 - 200) * (pct / 50);
-          g = 80 + (190 - 80) * (pct / 50);
-        } else {
-          r = 255 - (255 - 60) * ((pct - 50) / 50);
-          g = 190 - (190 - 130) * ((pct - 50) / 50);
-        }
-        bar.style.background = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+      bar.style.width = pct + "%";
+      let r,
+        g,
+        b = 0;
+      if (pct < 50) {
+        r = 200 + (255 - 200) * (pct / 50);
+        g = 80 + (190 - 80) * (pct / 50);
+      } else {
+        r = 255 - (255 - 60) * ((pct - 50) / 50);
+        g = 190 - (190 - 130) * ((pct - 50) / 50);
       }
+      bar.style.background = `linear-gradient(90deg, rgb(${Math.round(r)},${Math.round(g)},0), #7a5fff)`;
       row.style.opacity = 1;
     });
   });
 
   scrollBottom($("chat-box"));
 
-  // ====== BOUTON "Voir la carte" EXACTEMENT COMME AVANT ======
+  // ===== Bouton "Voir la carte" =====
   document.querySelectorAll(".voir-carte-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const profileLat = parseFloat(btn.dataset.lat);
@@ -458,13 +400,11 @@ async function renderMatches(matches, postReply) {
 
       const mapContainer = document.getElementById("map");
       mapContainer.innerHTML = "";
-
       const modal = document.getElementById("mapModal");
       modal.style.display = "flex";
       document.body.classList.add("modal-open");
 
       const map = L.map("map").setView([userLat, userLng], 6);
-
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "&copy; OpenStreetMap contributors",
       }).addTo(map);
@@ -474,7 +414,6 @@ async function renderMatches(matches, postReply) {
         iconSize: [25, 41],
         iconAnchor: [12, 41],
       });
-
       const redIcon = L.icon({
         iconUrl: "images/red-marker.png",
         iconSize: [25, 41],
@@ -484,7 +423,6 @@ async function renderMatches(matches, postReply) {
       const userMarker = L.marker([userLat, userLng], { icon: blueIcon })
         .addTo(map)
         .bindPopup("Vous / ville recherchée");
-
       const profileMarker = L.marker([profileLat, profileLng], {
         icon: redIcon,
       })
@@ -493,12 +431,8 @@ async function renderMatches(matches, postReply) {
 
       const distanceKm =
         map.distance([userLat, userLng], [profileLat, profileLng]) / 1000;
-
-      let lineColor = "gray";
-      if (distanceKm <= 110) lineColor = "green";
-      else if (distanceKm <= 220) lineColor = "yellow";
-      else lineColor = "red";
-
+      let lineColor =
+        distanceKm <= 110 ? "green" : distanceKm <= 220 ? "yellow" : "red";
       L.polyline(
         [
           [userLat, userLng],
@@ -510,11 +444,6 @@ async function renderMatches(matches, postReply) {
       const group = new L.featureGroup([userMarker, profileMarker]);
       map.fitBounds(group.getBounds().pad(0.2));
 
-      L.tooltip({ permanent: true })
-        .setContent(distanceKm.toFixed(1) + " km")
-        .setLatLng([(userLat + profileLat) / 2, (userLng + profileLng) / 2])
-        .addTo(map);
-
       document.getElementById("closeModal").onclick = () => {
         modal.style.display = "none";
         document.body.classList.remove("modal-open");
@@ -523,15 +452,9 @@ async function renderMatches(matches, postReply) {
     });
   });
 
-  // ===== AFFICHAGE AUTOMATIQUE DU POST-REPLY IA =====
-  if (postReply) {
-    addMessage({
-      text: postReply,
-      from: "bot",
-    });
-  }
+  // ===== Post reply automatique =====
+  if (postReply) addMessage({ text: postReply, from: "bot" });
 }
-
 //============== SEND ==================//
 async function sendMessage(text) {
   if (state.sending || !text) return;

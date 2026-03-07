@@ -108,7 +108,8 @@ app.use(
         // ⚠️ Ajouter la font self-hostée ou un domaine externe si nécessaire
         connectSrc: [
           "'self'",
-          "https://threejs.org", // <-- à utiliser uniquement si tu charges la font en externe
+          "https://threejs.org",
+          "https://api.languagetoolplus.com",
         ],
 
         // Autoriser fonts locales ou base64
@@ -311,9 +312,9 @@ function upsertProfile(user, normalized) {
     price: role === "seller" ? normalized.price || 0 : 0,
     budgetMin: role === "buyer" ? normalized.budgetMin || 0 : 0,
     budgetMax: role === "buyer" ? normalized.budgetMax || 0 : 0,
-    pieces: role === "seller" ? normalized.piecesMin || 0 : 0,
+    pieces: role === "seller" ? normalized.pieces || 0 : 0,
+    surface: role === "seller" ? normalized.surface || 0 : 0,
     piecesMin: role === "buyer" ? normalized.piecesMin || 0 : 0,
-    surface: role === "seller" ? normalized.surfaceMin || 0 : 0,
     surfaceMin: role === "buyer" ? normalized.surfaceMin || 0 : 0,
   };
 
@@ -523,12 +524,34 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
         return res.json({ reply, criteria: session.criteria });
       }
 
-      // ===== Critères complets => matching direct =====
-      const profile =
-        session.role === "buyer"
-          ? addBuyer({ ...normalized, username: req.user.username })
-          : addSeller({ ...normalized, username: req.user.username });
+      // ===== Critères complets => création du profil =====
+      let profile;
+      if (session.role === "buyer") {
+        // Acheteur : on garde les champs budget/pieces/surface min/max
+        profile = addBuyer({
+          username,
+          type: normalized.type,
+          ville: normalized.ville,
+          budgetMin: normalized.budgetMin,
+          budgetMax: normalized.budgetMax,
+          piecesMin: normalized.piecesMin,
+          piecesMax: normalized.piecesMax,
+          surfaceMin: normalized.surfaceMin,
+          surfaceMax: normalized.surfaceMax,
+        });
+      } else {
+        // Vendeur : mapper les champs IA (budgetMin → price, piecesMin → pieces, espaceMin → surface)
+        profile = addSeller({
+          username,
+          type: normalized.type,
+          ville: normalized.ville,
+          price: normalized.budgetMin,
+          pieces: normalized.piecesMin,
+          surface: normalized.surfaceMin,
+        });
+      }
 
+      // ===== Matching =====
       const matches =
         session.role === "buyer"
           ? matchUsers(profile, 5)
@@ -540,17 +563,12 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
 
       // ===== Appel IA postResult AVANT réponse =====
       let postReply = null;
-
       try {
         const postResultAI = await aiChatWithCriteria(
           "__POST_RESULTS__",
           session.criteria,
-          {
-            phase: "results",
-            matchingProfiles: session.matches,
-          },
+          { phase: "results", matchingProfiles: session.matches },
         );
-
         postReply =
           postResultAI.message ||
           "Souhaitez-vous que je vous aide à comparer ces profils ?";
@@ -560,28 +578,16 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           "Souhaitez-vous que je vous aide à choisir le profil le plus adapté ?";
       }
 
-      // ⚡️ maintenant on renvoie tout d’un coup
       return res.json({
         reply,
         matches,
         postReply,
         criteria: session.criteria,
       });
-      then((postResultAI) => {
-        session.postReply = postResultAI.message;
-        // si front utilise websocket, peut push direct
-      }).catch((err) => {
-        console.error("[POST RESULTS AI ERROR]:", err);
-        session.postReply =
-          "Souhaitez-vous que je vous aide à choisir le profil le plus adapté ?";
-      });
-
-      return; // important pour ne pas continuer
     }
 
     // ===== Phase results =====
     if (session.phase === "results") {
-      // ⚡️ message IA normal pour conseils
       let postResultAI = {};
       try {
         postResultAI = await aiChatWithCriteria(message, session.criteria, {

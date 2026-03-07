@@ -11,7 +11,29 @@ function getAuthToken() {
     return null;
   }
 }
+// ==========================
+// LOGOUT
+// ==========================
+function logout() {
+  console.log("[AUTH] Déconnexion...");
 
+  // Supprimer la session
+  localStorage.removeItem("agent_user");
+
+  // Vider les stores locaux
+  Object.keys(messagesStore).forEach((k) => delete messagesStore[k]);
+  conversationStore.clear();
+
+  // Nettoyer le DOM
+  const list = document.querySelector(".conversations-list");
+  const chat = document.getElementById("chat-box");
+
+  if (list) list.innerHTML = "";
+  if (chat) chat.innerHTML = "";
+
+  // Redirection vers la page login
+  window.location.href = "index.html";
+}
 // ==========================
 // MENU LATÉRAL
 // ==========================
@@ -433,8 +455,26 @@ newMsgSend.addEventListener("click", async () => {
     alert("Erreur lors de l'envoi du message au serveur.");
   }
 });
+// ==========================
+// BOUTON LOGOUT
+// ==========================
+const logoutBtn = document.getElementById("btn-logout");
 
+if (logoutBtn) {
+  logoutBtn.classList.remove("hidden");
+  logoutBtn.addEventListener("click", logout);
+}
 // ==========================
-// INITIAL LOAD
+// CHECK SESSION
 // ==========================
-loadAllConversations();
+document.addEventListener("DOMContentLoaded", () => {
+  const user = localStorage.getItem("agent_user");
+
+  if (!user) {
+    console.warn("[AUTH] Aucun utilisateur connecté");
+    window.location.href = "index.html";
+    return;
+  }
+
+  loadAllConversations();
+});

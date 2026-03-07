@@ -343,68 +343,143 @@ CHAT FORM
 /* ==========================
 PROFILS STRUCTURÉS (CARDS)
 ========================= */
-.msg.structured .bubble {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+.msg.structured .bubble.match-card {
+  background: rgba(28, 28, 38, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
-  padding: 1.1rem 1.3rem;
-  gap: 10px;
+  padding: 0;
   max-width: 500px;
-  box-shadow:
-    0 8px 20px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  font-size: 0.95rem;
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.msg.structured .bubble.match-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
 }
 
-.msg.structured .bubble:hover {
-  transform: translateY(-4px);
-}
-
-/* ==========================
-LABELS / PILLS (SaaS)
-========================= */
-.msg.structured .bubble .pill,
-.msg.structured .bubble .badge {
-  display: inline-flex;
+/* HEADER */
+.match-header {
+  background: linear-gradient(135deg, #7a5fff, #b6a8ff);
+  padding: 12px 16px;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+}
+.match-header .match-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* FAVORIS */
+.fav-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.fav-btn:hover {
+  transform: scale(1.2);
+}
+
+/* DETAILS */
+.match-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 500;
+}
+.detail-row .label {
+  color: #bbb;
+}
+.detail-row .value {
+  font-weight: 600;
+  color: #fff;
+}
+
+/* CRITÈRES */
+.match-criteria {
+  display: flex;
+  gap: 12px;
+  padding: 10px 16px;
+  flex-wrap: wrap;
+}
+.criteria-group {
+  flex: 1;
+  min-width: 140px;
+}
+.criteria-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ccc;
+  margin-bottom: 4px;
+}
+.criteria-list {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
+}
+
+/* PILLS */
+.pill {
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 600;
-  border: 1px solid transparent;
+}
+.pill-common {
+  background: #4caf71;
+  color: #eafaf1;
+}
+.pill-different {
+  background: #e57373;
+  color: #fff1f1;
+}
+.pill-neutral {
+  background: #555;
+  color: #eee;
 }
 
-.msg.structured .bubble .pill-common,
-.msg.structured .bubble .badge.common {
-  background: var(--success-soft-bg);
-  color: var(--success-soft-text);
-  border-color: rgba(90, 180, 140, 0.35);
+/* FOOTER + COMPAT */
+.match-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
-
-.msg.structured .bubble .pill-different,
-.msg.structured .bubble .badge.different {
-  background: var(--danger-soft-bg);
-  color: var(--danger-soft-text);
-  border-color: rgba(220, 120, 120, 0.35);
+.compat-container {
+  flex: 1;
+  margin-right: 12px;
 }
-
-.msg.structured .bubble .pill-neutral,
-.msg.structured .bubble .badge.none {
-  background: var(--neutral-soft-bg);
-  color: var(--neutral-soft-text);
-  border-color: rgba(255, 255, 255, 0.2);
+.compat-label {
+  font-size: 0.85rem;
+  margin-bottom: 4px;
 }
-
-/* ==========================
-COMPATIBILITÉ
-========================= */
 .compat-bar {
-  height: 8px;
+  height: 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.15);
   overflow: hidden;
 }
-
 .compat-bar-inner {
   height: 100%;
   border-radius: 999px;
@@ -413,6 +488,22 @@ COMPATIBILITÉ
     background 0.8s ease;
 }
 
+/* BOUTON CARTE */
+.voir-carte-btn {
+  padding: 6px 16px;
+  border-radius: 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #7a5fff, #b6a8ff);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.voir-carte-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(122, 95, 255, 0.4);
+}
 /* ==========================
 BUTTONS & USER INFO
 ========================= */

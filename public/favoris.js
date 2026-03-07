@@ -18,6 +18,24 @@ function getToken() {
 let currentUser = null;
 let favoris = [];
 
+function logout() {
+  // Supprime la session
+  localStorage.removeItem("agent_user");
+
+  // Réinitialise les variables locales
+  currentUser = null;
+  favoris = [];
+
+  // Vider le DOM si besoin
+  const container = document.querySelector(".favoris-grid");
+  if (container) container.innerHTML = "";
+
+  // Redirection vers la page d'accueil
+  window.location.href = "index.html";
+
+  console.log("[FAVORIS] Déconnecté");
+}
+
 // ==========================
 // MENU LATÉRAL
 // ==========================
@@ -355,4 +373,10 @@ document.addEventListener("DOMContentLoaded", () => {
     renderFavoris();
   });
   initSearch();
+
+  // === Lien bouton déconnexion ===
+  const logoutBtn = document.getElementById("btn-logout");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", logout);
+  }
 });

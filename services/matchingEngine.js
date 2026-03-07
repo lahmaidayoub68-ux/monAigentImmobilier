@@ -4,8 +4,9 @@ Moteur de matching IMMOBILIER
 Scoring + compatibilité (%)
 Pondération : Budget 40 Ville 30 Pièces 20 Surface 10
 */
-import fs from "fs";
+import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 // ================== DONNÉES ==================
@@ -14,6 +15,10 @@ let BUYERS = [];
 let NEXT_SELLER_ID = 1;
 let NEXT_BUYER_ID = 1;
 
+// Valeurs max pour DB et calcul
+const MAX_PIECES = 100;
+const MAX_SURFACE = 1000;
+
 // ================== COORDONNÉES VILLES ==================
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,6 +26,9 @@ const __dirname = path.dirname(__filename);
 const villesCoordsArray = JSON.parse(
   fs.readFileSync(path.join(__dirname, "villes_simplifie.json"), "utf-8"),
 );
+
+const dbPath = path.join(__dirname, "../data.db"); // ajuste le chemin selon ton projet
+export const db = new Database(dbPath);
 
 // Crée une Map pour accès rapide
 const villesMap = new Map();
@@ -39,7 +47,6 @@ export function normalize(value = "") {
     .trim();
 }
 
-// Nouvelle version rapide avec Map
 export function getCoords(ville) {
   return villesMap.get(normalize(ville)) || null;
 }
@@ -47,7 +54,7 @@ export function getCoords(ville) {
 export function distanceKm(ville1, ville2) {
   const v1 = getCoords(ville1);
   const v2 = getCoords(ville2);
-  if (!v1 || !v2) return Infinity;
+  if (!v1 || !v2) return MAX_SURFACE; // valeur max raisonnable
 
   const R = 6371;
   const dLat = ((v2.lat - v1.lat) * Math.PI) / 180;
@@ -63,7 +70,6 @@ export function distanceKm(ville1, ville2) {
   return R * c;
 }
 
-// ================== SCORE VILLE ==================
 export function scoreVille(
   sellerVille,
   buyerVille,
@@ -91,70 +97,175 @@ export function resetProfiles() {
   resetSellers();
   resetBuyers();
 }
-
-// ================== AJOUT VENDEUR ==================
+// ================== AJOUT / MISE À JOUR VENDEUR ==================
 export function addSeller(criteria = {}) {
+  const existingIndex = SELLERS.findIndex(
+    (s) => s.username === criteria.username,
+  );
+
   const seller = {
-    id: NEXT_SELLER_ID++,
+    id: existingIndex >= 0 ? SELLERS[existingIndex].id : NEXT_SELLER_ID++,
     username: criteria.username || `seller_${NEXT_SELLER_ID}`,
     role: "seller",
     ville: criteria.ville || "",
     region: criteria.region || criteria.ville || "",
     type: normalize(criteria.type || "appartement"),
     price: Number(criteria.price ?? 0),
-    pieces: Number(criteria.pieces ?? 0),
-    surface: Number(criteria.surface ?? 0),
+    pieces: Math.min(Number(criteria.pieces ?? 0), MAX_PIECES),
+    surface: Math.min(Number(criteria.surface ?? 0), MAX_SURFACE),
     contact: criteria.contact || "",
   };
 
-  SELLERS.push(seller);
+  // Mettre à jour la mémoire
+  if (existingIndex >= 0) SELLERS[existingIndex] = seller;
+  else SELLERS.push(seller);
+
+  // Mettre à jour la DB avec paramètres nommés
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO users (
+        username, password, role, contact, type, ville, region,
+        price, budgetMin, budgetMax,
+        piecesMin, piecesMax,
+        surfaceMin, surfaceMax,
+        pieces, budget, surface
+      ) VALUES (
+        @username, '', @role, @contact, @type, @ville, @region,
+        @price, 0, 0,
+        0, @piecesMax,
+        0, @surfaceMax,
+        @pieces, 0, @surface
+      )
+      ON CONFLICT(username) DO UPDATE SET
+        role = excluded.role,
+        contact = excluded.contact,
+        type = excluded.type,
+        ville = excluded.ville,
+        region = excluded.region,
+        price = excluded.price,
+        pieces = excluded.pieces,
+        surface = excluded.surface
+    `);
+
+    stmt.run({
+      username: seller.username,
+      role: seller.role,
+      contact: seller.contact,
+      type: seller.type,
+      ville: seller.ville,
+      region: seller.region,
+      piecesMax: MAX_PIECES,
+      surfaceMax: MAX_SURFACE,
+      pieces: seller.pieces,
+      surface: seller.surface,
+      price: seller.price,
+    });
+  } catch (err) {
+    console.error("[ADD SELLER DB ERROR]:", err);
+  }
+
   return seller;
 }
 
-// ================== AJOUT ACHETEUR ==================
+// ================== AJOUT / MISE À JOUR ACHETEUR ==================
 export function addBuyer(criteria = {}) {
+  const existingIndex = BUYERS.findIndex(
+    (b) => b.username === criteria.username,
+  );
+
   const budget = criteria.budget != null ? Number(criteria.budget) : null;
-
   const budgetMin =
-    criteria.budgetMin != null
-      ? Number(criteria.budgetMin)
-      : budget != null
-        ? budget
-        : 0;
-
+    criteria.budgetMin != null ? Number(criteria.budgetMin) : (budget ?? 0);
   const budgetMax =
     criteria.budgetMax != null ? Number(criteria.budgetMax) : budgetMin;
 
   const buyer = {
-    id: NEXT_BUYER_ID++,
+    id: existingIndex >= 0 ? BUYERS[existingIndex].id : NEXT_BUYER_ID++,
     username: criteria.username || `buyer_${NEXT_BUYER_ID}`,
     role: "buyer",
     ville: criteria.ville || "",
-    region: criteria.region || "",
+    region: criteria.region || criteria.ville || "",
     type: normalize(criteria.type || ""),
     budget,
     budgetMin,
     budgetMax,
-
-    piecesMin: criteria.piecesMin != null ? Number(criteria.piecesMin) : 0,
-    piecesMax:
-      criteria.piecesMax != null ? Number(criteria.piecesMax) : Infinity,
-
-    surfaceMin: criteria.surfaceMin != null ? Number(criteria.surfaceMin) : 0,
-    surfaceMax:
-      criteria.surfaceMax != null ? Number(criteria.surfaceMax) : Infinity,
-
+    piecesMin: Number(criteria.piecesMin ?? 0),
+    piecesMax: Math.min(Number(criteria.piecesMax ?? MAX_PIECES), MAX_PIECES),
+    surfaceMin: Number(criteria.surfaceMin ?? 0),
+    surfaceMax: Math.min(
+      Number(criteria.surfaceMax ?? MAX_SURFACE),
+      MAX_SURFACE,
+    ),
     contact: criteria.contact || "",
-    preferences: {
-      typeWeights: {},
-      regionWeights: {},
-    },
+    preferences:
+      existingIndex >= 0
+        ? BUYERS[existingIndex].preferences
+        : { typeWeights: {}, regionWeights: {} },
   };
 
-  BUYERS.push(buyer);
+  // Mettre à jour la mémoire
+  if (existingIndex >= 0) BUYERS[existingIndex] = buyer;
+  else BUYERS.push(buyer);
+
+  // Mettre à jour la DB avec paramètres nommés
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO users (
+        username, password, role, contact, type, ville, region,
+        price, budgetMin, budgetMax,
+        piecesMin, piecesMax,
+        surfaceMin, surfaceMax,
+        pieces, budget, surface
+      ) VALUES (
+        @username, '', @role, @contact, @type, @ville, @region,
+        0, @budgetMin, @budgetMax,
+        @piecesMin, @piecesMax,
+        @surfaceMin, @surfaceMax,
+        0, @budget, 0
+      )
+      ON CONFLICT(username) DO UPDATE SET
+        role = excluded.role,
+        contact = excluded.contact,
+        type = excluded.type,
+        ville = excluded.ville,
+        region = excluded.region,
+        budget = excluded.budget,
+        budgetMin = excluded.budgetMin,
+        budgetMax = excluded.budgetMax,
+        piecesMin = excluded.piecesMin,
+        piecesMax = excluded.piecesMax,
+        surfaceMin = excluded.surfaceMin,
+        surfaceMax = excluded.surfaceMax
+    `);
+
+    stmt.run({
+      username: buyer.username,
+      role: buyer.role,
+      contact: buyer.contact,
+      type: buyer.type,
+      ville: buyer.ville,
+      region: buyer.region,
+      budget: buyer.budget ?? 0,
+      budgetMin: buyer.budgetMin,
+      budgetMax: buyer.budgetMax,
+      piecesMin: buyer.piecesMin,
+      piecesMax: buyer.piecesMax,
+      surfaceMin: buyer.surfaceMin,
+      surfaceMax: buyer.surfaceMax,
+    });
+  } catch (err) {
+    console.error("[ADD BUYER DB ERROR]:", err);
+  }
+
   return buyer;
 }
-
+// ================== SYNC IDs AVEC DB ==================
+export function syncNextIds() {
+  NEXT_SELLER_ID = SELLERS.length
+    ? Math.max(...SELLERS.map((s) => s.id)) + 1
+    : 1;
+  NEXT_BUYER_ID = BUYERS.length ? Math.max(...BUYERS.map((b) => b.id)) + 1 : 1;
+}
 // ================== SCORING ==================
 const BUDGET_WEIGHT = 40;
 const VILLE_WEIGHT = 30;
