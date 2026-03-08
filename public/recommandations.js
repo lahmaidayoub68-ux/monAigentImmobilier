@@ -1,5 +1,4 @@
 import { PHRASES } from "./PHRASES.js";
-// =======================================================
 // VARIABLES GLOBALES
 // =======================================================
 let centralEl; // Élément central pour le diagnostic
@@ -442,14 +441,14 @@ async function waitForTop30(retries = 5, delayMs = 300) {
 INIT RECOMMANDATIONS
 ======================================================= */
 // =======================================================
-// INIT RECOMMANDATIONS (avec rôle dynamique)
+// INIT RECOMMANDATIONS
 // =======================================================
 async function initRecommendations() {
   centralEl = document.getElementById("central-diagnostic");
   tabsEls = document.querySelectorAll(".reco-tab");
 
   if (!centralEl) {
-    console.error("Element central-diagnostic introuvable !");
+    console.error("Élément central-diagnostic introuvable !");
     return;
   }
 

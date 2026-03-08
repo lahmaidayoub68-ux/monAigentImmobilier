@@ -101,15 +101,20 @@ async function loadFavorisFromAPI() {
 }
 
 // ================= RENDER MATCH CARD =================
-function createMatchCard(m, index) {
+// ================== CREATE FAVORITE MATCH CARD (CROIX EN HAUT DROITE) ==================
+function createFavCard(m, index) {
   const row = document.createElement("div");
-  row.className = "match-card";
+  row.className = "msg bot structured match-row";
   row.style.display = "flex";
   row.style.flexDirection = "column";
-  row.style.gap = "8px";
+  row.style.marginBottom = "18px";
   row.style.opacity = 0;
 
-  const villeLabel = m.ville || "Ville inconnue";
+  const bubble = document.createElement("div");
+  bubble.className = "bubble match-card";
+  bubble.style.position = "relative"; // pour positionner la croix
+
+  const villeLabel = m.villeOriginal || m.ville || "Ville inconnue";
   const piecesLabel =
     (m.pieces ?? m.piecesMin)
       ? `${m.pieces ?? m.piecesMin} pièces`
@@ -118,9 +123,6 @@ function createMatchCard(m, index) {
     (m.surface ?? m.surfaceMin)
       ? `${m.surface ?? m.surfaceMin} m²`
       : "Surface inconnue";
-
-  const common = m.common ?? [];
-  const different = m.different ?? [];
   const pct = Number(m.compatibility ?? 0);
 
   const formatLabel = (label) =>
@@ -129,26 +131,16 @@ function createMatchCard(m, index) {
       .replace(/pièces/i, "Pièces")
       .replace(/surface/i, "Surface") ?? "";
 
-  const commonHTML = common.length
-    ? common
-        .map(
-          (c) => `
-        <span class="pill pill-common">
-          <span class="pill-icon">✔</span>
-          <span class="pill-text">${formatLabel(c)}</span>
-        </span>`,
-        )
+  const commonHTML = (m.common ?? []).length
+    ? m.common
+        .map((c) => `<span class="pill pill-common">${formatLabel(c)}</span>`)
         .join("")
     : `<span class="pill pill-neutral">Aucun critère commun</span>`;
 
-  const differentHTML = different.length
-    ? different
+  const differentHTML = (m.different ?? []).length
+    ? m.different
         .map(
-          (d) => `
-        <span class="pill pill-different">
-          <span class="pill-icon">✕</span>
-          <span class="pill-text">${formatLabel(d)}</span>
-        </span>`,
+          (d) => `<span class="pill pill-different">${formatLabel(d)}</span>`,
         )
         .join("")
     : `<span class="pill pill-neutral">Aucune différence</span>`;
@@ -156,26 +148,37 @@ function createMatchCard(m, index) {
   let priceLabel = "N/A";
   if (m.price != null) priceLabel = `${m.price} €`;
   else if (m.budget != null) priceLabel = `${m.budget} €`;
-  else if (m.budgetMin != null && m.budgetMax != null) {
+  else if (m.budgetMin != null && m.budgetMax != null)
     priceLabel =
       m.budgetMin === m.budgetMax
         ? `${m.budgetMin} €`
         : `${m.budgetMin} – ${m.budgetMax} €`;
-  }
 
-  row.innerHTML = `
+  // ===== HTML de la carte =====
+  bubble.innerHTML = `
     <div class="match-header">
-      🏠 <strong>${m.type}</strong> – <span class="match-city">${villeLabel}</span>
+      <div class="match-title"><strong>${m.type}</strong> – ${villeLabel}</div>
     </div>
 
-    <div class="match-meta">
-      <span>🛏️ ${piecesLabel}</span>
-      <span>📐 ${surfaceLabel}</span>
-    </div>
+    <button class="remove-fav-btn" data-index="${index}" 
+      style="
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: transparent;
+        border: none;
+        color: #aaa;
+        font-size: 16px;
+        cursor: pointer;
+      ">
+      ✕
+    </button>
 
-    <div class="match-meta">
-      <span>💰 ${priceLabel}</span>
-      <span>📞 ${m.contact ?? "N/A"}</span>
+    <div class="match-details">
+      <div class="detail-row"><span class="label">Prix</span><span class="value">${priceLabel}</span></div>
+      <div class="detail-row"><span class="label">Pièces</span><span class="value">${piecesLabel}</span></div>
+      <div class="detail-row"><span class="label">Surface</span><span class="value">${surfaceLabel}</span></div>
+      <div class="detail-row"><span class="label">Contact</span><span class="value">${m.contact ?? "N/A"}</span></div>
     </div>
 
     <div class="match-criteria">
@@ -189,28 +192,39 @@ function createMatchCard(m, index) {
       </div>
     </div>
 
-    <div class="match-compat">
-      <div class="compat-label">Compatibilité : <strong>${pct}%</strong></div>
-      <div class="compat-bar">
-        <div class="compat-bar-inner"></div>
+    <div class="match-footer">
+      <div class="compat-container">
+        <div class="compat-label">Compatibilité : <strong>${pct}%</strong></div>
+        <div class="compat-bar"><div class="compat-bar-inner"></div></div>
       </div>
+      <button class="voir-carte-btn"
+        data-lat="${m.lat ?? m.buyerLat ?? 48.8566}"
+        data-lng="${m.lng ?? m.buyerLng ?? 2.3522}"
+        data-buyer-lat="${m.buyerLat ?? 48.8566}"
+        data-buyer-lng="${m.buyerLng ?? 2.3522}"
+        data-ville="${villeLabel}">
+        Voir la carte
+      </button>
     </div>
-
-    <button class="voir-carte-btn"
-      data-index="${index}"
-      data-lat="${m.lat ?? m.buyerLat ?? 48.8566}"
-      data-lng="${m.lng ?? m.buyerLng ?? 2.3522}"
-      data-buyer-lat="${m.buyerLat ?? 48.8566}"
-      data-buyer-lng="${m.buyerLng ?? 2.3522}"
-      data-ville="${villeLabel}">
-      Voir la carte
-    </button>
-
-    <button class="remove-fav-btn" data-index="${index}">
-      ❌ Retirer des favoris
-    </button>
   `;
 
+  row.appendChild(bubble);
+
+  // ===== Bouton retirer favoris =====
+  const removeBtn = bubble.querySelector(".remove-fav-btn");
+  removeBtn.addEventListener("click", async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/favorites/${m.contact}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${state.user?.token}` },
+      });
+      if (res.ok) row.remove();
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  // ===== Compatibilité =====
   requestAnimationFrame(() => {
     const bar = row.querySelector(".compat-bar-inner");
     if (bar) {
@@ -225,29 +239,20 @@ function createMatchCard(m, index) {
         r = 255 - (255 - 60) * ((pct - 50) / 50);
         g = 190 - (190 - 130) * ((pct - 50) / 50);
       }
-      bar.style.background = `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+      bar.style.background = `linear-gradient(90deg, rgb(${Math.round(r)},${Math.round(g)},0), #7a5fff)`;
     }
     row.style.opacity = 1;
   });
 
   return row;
 }
-
 // ================= RENDER =================
 function renderFavoris(list = favoris) {
   const container = $(".favoris-grid");
-  $$(".match-card").forEach((c) => c.remove());
-
-  if (!list.length) return;
-
-  list.forEach((m, index) => {
-    const card = createMatchCard(m, index);
-    container.appendChild(card);
-  });
-
+  container.innerHTML = "";
+  list.forEach((m, i) => container.appendChild(createFavCard(m, i)));
   attachEvents();
 }
-
 // ================= EVENTS =================
 function attachEvents() {
   // Supprimer favori

@@ -316,6 +316,94 @@
       .home-link:hover svg path:last-child {
         transform: translateX(-3px); /* flèche qui rentre un peu plus */
       }
+      /* ===== OPTIMISATION MOBILE PETIT ÉCRAN (<400px) ===== */
+      @media (max-width: 400px) {
+        /* Body : désactiver animation pour performance */
+        body {
+          animation: none;
+        }
+
+        /* Content wrapper : réduire marges */
+        .content-wrapper {
+          margin: 30px 10px 50px 10px;
+          gap: 20px;
+        }
+
+        /* Titres : taille plus petite */
+        .section-title {
+          font-size: 22px;
+          margin-bottom: 15px;
+        }
+
+        /* Reco container : déjà en column sur <900px, rien à changer */
+
+        /* Reco central : réduire padding et min-height */
+        .reco-central {
+          padding: 20px;
+          font-size: 16px;
+          min-height: 250px;
+        }
+
+        /* Reco right : onglets droits en row overflow auto, déjà géré */
+
+        /* Reco tab : réduire padding et min-height */
+        .reco-tab {
+          padding: 14px;
+          min-height: 100px;
+        }
+
+        .reco-tab h3 {
+          font-size: 15px;
+        }
+
+        .reco-tab p {
+          font-size: 13px;
+        }
+
+        /* Tables : scroll horizontal si besoin */
+        .criteria-table-wrapper {
+          overflow-x: auto;
+        }
+        .criteria-table {
+          min-width: 280px; /* permet scroll sur petit écran */
+          font-size: 13px;
+        }
+        .criteria-table th,
+        .criteria-table td {
+          padding: 4px 6px;
+        }
+
+        /* Carte Leaflet : réduire hauteur */
+        #criteria-map {
+          height: 200px;
+        }
+
+        /* Footer : texte plus petit et padding réduit */
+        .bottom-banner {
+          font-size: 11px;
+          padding: 10px;
+        }
+
+        /* Sidebar : largeur plus petite sur mobile */
+        .sidebar {
+          width: 220px;
+          padding: 15px;
+        }
+
+        /* Menu toggle : taille légèrement réduite */
+        .menu-toggle {
+          width: 46px;
+          height: 46px;
+          font-size: 24px;
+          top: 70px;
+          left: 15px;
+        }
+
+        /* Logo texte : réduire taille */
+        .logo-text {
+          font-size: 22px;
+        }
+      }
     </style>
   </head>
 
