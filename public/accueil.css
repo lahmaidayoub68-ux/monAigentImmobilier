@@ -78,41 +78,70 @@ body {
 HEADER
 ========================= */
 .top-banner {
-  background: rgba(0, 0, 0, 0.75); /* un peu moins opaque */
+  background: rgba(0, 0, 0, 0.75); /* bande noire semi-transparente */
   padding: 12px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08); /* plus subtil */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: center;
   backdrop-filter: blur(6px);
+  z-index: 100;
 }
 
-.logo-text {
-  font-size: 24px;
-  font-weight: 600;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); /* plus léger */
-}
+/* Conteneur logo + texte */
 .logo-container {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
+/* Logo image */
 .logo-img {
   width: 60px;
-  transition: transform 0.4s ease;
+  transition:
+    transform 0.35s ease,
+    filter 0.35s ease;
 }
 
 .logo-container:hover .logo-img {
-  transform: translateY(-2px) scale(1.03);
+  transform: translateY(-2px) scale(1.05);
+  filter: drop-shadow(0 4px 6px rgba(122, 95, 255, 0.5));
 }
 
+/* Texte du logo */
 .logo-text {
   font-size: 28px;
   font-weight: 700;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  line-height: 1.1;
+  background: linear-gradient(135deg, #7a5fff, #b6a8ff, #f4a6ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  transition:
+    transform 0.3s ease,
+    text-shadow 0.3s ease,
+    filter 0.3s ease;
 }
 
+/* Hover léger sur le texte */
+.logo-container:hover .logo-text {
+  transform: translateY(-1px) scale(1.03);
+  text-shadow: 0 3px 12px rgba(122, 95, 255, 0.5);
+}
+
+/* Responsive mobile */
+@media (max-width: 600px) {
+  .logo-img {
+    width: 42px;
+  }
+  .logo-text {
+    font-size: 22px;
+  }
+  .top-banner {
+    padding: 10px 14px;
+  }
+}
 /* ==========================
 FOOTER
 ========================= */
@@ -167,7 +196,11 @@ BULLES + AVATARS
   animation: fadeSlide 0.4s forwards;
   gap: 0.6rem;
 }
-
+.msg.thinking {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeSlide 0.35s ease forwards;
+}
 @keyframes fadeSlide {
   to {
     opacity: 1;
@@ -564,22 +597,6 @@ BOUTON DÉCONNEXION (HEADER)
   text-decoration: none;
 }
 
-/* ==========================
-BOUTON VOIR LA CARTE
-========================= */
-.voir-carte-btn {
-  flex: 1;
-  padding: 0.8rem;
-  border-radius: 20px;
-  background: linear-gradient(90deg, var(--primary-blue), var(--primary-pink));
-  color: #fff;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  /* Pas de hover spécifique */
-}
-
 .user-info {
   font-size: 0.9rem;
   opacity: 0.85;
@@ -706,7 +723,7 @@ body.modal-open footer {
   /* ZONE MESSAGES — FULLSCREEN FLOW */
   #chat-box {
     flex: 1;
-    min-height: 0;
+    min-height: 50px;
     overflow-y: auto;
 
     display: flex;
@@ -749,6 +766,9 @@ body.modal-open footer {
 
   .msg.bot {
     justify-content: flex-start;
+    align-items: flex-start; /* <-- forcer l’alignement pour que la bulle ne disparaisse pas */
+    opacity: 0; /* initial */
+    animation: fadeSlide 0.25s forwards;
   }
 
   /* BULLES — ULTRA LÉGÈRES */
@@ -768,14 +788,14 @@ body.modal-open footer {
 
   /* USER */
   .msg.user .bubble {
-    background: linear-gradient(135deg, #3f6ee8, #7aa7ff);
-    border-bottom-right-radius: 6px;
+    background: linear-gradient(135deg, #7a5fff, #b6a8ff);
+    border-bottom-right-radius: 18px;
   }
 
   /* BOT */
   .msg.bot .bubble {
-    background: linear-gradient(135deg, #3f6ee8, #7aa7ff);
-    border-bottom-right-radius: 6px;
+    background: linear-gradient(135deg, #7a5fff, #b6a8ff);
+    border-bottom-right-radius: 18px;
   }
 
   /* TIMESTAMP */
@@ -843,11 +863,8 @@ body.modal-open footer {
 
     font-weight: 600;
 
-    background: linear-gradient(
-      90deg,
-      var(--primary-blue),
-      var(--primary-pink)
-    );
+    background: linear-gradient(135deg, #5b3fff, #8a7fff, #b6ddf5);
+    backdrop-filter: blur(6px);
   }
 
   /* STRUCTURED CARDS */

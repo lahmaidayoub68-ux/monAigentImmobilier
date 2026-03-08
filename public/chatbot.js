@@ -193,10 +193,16 @@ function addMessage({
     save("chat", state.history);
   }
 }
-
 function showThinking() {
   const el = document.createElement("div");
-  el.className = "msg bot";
+  el.className = "msg bot thinking"; // ← on ajoute 'thinking'
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.style.backgroundImage = "url('/images/bot-avatar.webp')";
+  avatar.style.backgroundSize = "cover";
+  avatar.style.backgroundPosition = "center";
+  avatar.style.backgroundRepeat = "no-repeat";
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";
@@ -204,18 +210,18 @@ function showThinking() {
 
   const dots = document.createElement("span");
   dots.className = "dots";
-
-  // Crée 3 spans pour animation CSS
   for (let i = 0; i < 3; i++) {
     const dot = document.createElement("span");
     dot.textContent = ".";
     dots.appendChild(dot);
   }
-
   bubble.appendChild(dots);
-  el.appendChild(bubble);
-  $("chat-box").appendChild(el);
-  scrollBottom($("chat-box"));
+
+  el.append(avatar, bubble);
+
+  const box = $("chat-box");
+  box.appendChild(el);
+  scrollBottom(box);
 
   return {
     el,
@@ -508,19 +514,23 @@ async function sendMessage(text) {
   }
 }
 
-// ================== RENDER ==================
 function render() {
   const box = $("chat-box");
   const section = $("chat-section");
+  const openBtn = $("openSidebar");
+
   box.innerHTML = "";
 
   if (!state.user) {
     section.style.display = "none";
     renderUserInfo();
+    if (openBtn) openBtn.style.display = "none"; // <-- cacher menu si déconnecté
     return;
   }
 
   section.style.display = "block";
+  if (openBtn) openBtn.style.display = "flex"; // <-- réafficher si connecté
+
   state.history.forEach((m) =>
     addMessage({
       text: m.content,
@@ -533,7 +543,6 @@ function render() {
   renderUserInfo();
   scrollBottom(box, false);
 }
-
 // ================== INIT ==================
 export function initChatbot() {
   if (state.ready) return;
