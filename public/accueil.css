@@ -146,11 +146,16 @@ HEADER
 FOOTER
 ========================= */
 .bottom-banner {
+  position: fixed; /* toujours visible */
+  bottom: 0; /* collé en bas */
+  left: 0;
+  width: 100%;
   text-align: center;
-  padding: 16px;
+  padding: 16px; /* desktop */
   background: rgba(0, 0, 0, 0.65);
   font-size: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
+  z-index: 1000; /* au-dessus du reste */
 }
 
 /* ==========================
@@ -696,24 +701,27 @@ body.modal-open footer {
 }
 
 /* =========================================================
-📱 MOBILE — GPT / MESSENGER APP EXPERIENCE
+📱 MOBILE — GPT / MESSENGER APP EXPERIENCE (uniquement page chat)
 ========================================================= */
 @media (max-width: 600px) {
-  html,
-  body {
-    height: 100dvh;
-    overflow: hidden;
+  /* ⚡️ Applique seulement si la page a la classe .chat-page */
+  .chat-page html,
+  .chat-page body {
+    height: auto; /* permet au body de s’adapter */
+    min-height: 100%; /* au moins 100% du viewport */
+    overflow-y: auto; /* scroll vertical activé */
   }
 
   /* APP LAYOUT */
-  .chat-section {
-    height: 100dvh;
+  .chat-page .chat-section {
+    height: auto;
+    min-height: 100vh;
     padding: 0;
     display: flex;
     flex-direction: column;
   }
 
-  .chat-container {
+  .chat-page .chat-container {
     flex: 1;
     min-height: 0;
     display: flex;
@@ -721,7 +729,7 @@ body.modal-open footer {
   }
 
   /* ZONE MESSAGES — FULLSCREEN FLOW */
-  #chat-box {
+  .chat-page #chat-box {
     flex: 1;
     min-height: 50px;
     overflow-y: auto;
@@ -742,7 +750,7 @@ body.modal-open footer {
   }
 
   /* MESSAGES */
-  .msg {
+  .chat-page .msg {
     max-width: 100%;
     display: flex;
     align-items: flex-end;
@@ -751,7 +759,7 @@ body.modal-open footer {
   }
 
   /* AVATARS DISCRETS */
-  .avatar {
+  .chat-page .avatar {
     width: 28px;
     height: 28px;
     min-width: 28px;
@@ -760,19 +768,19 @@ body.modal-open footer {
   }
 
   /* ALIGNEMENTS */
-  .msg.user {
+  .chat-page .msg.user {
     justify-content: flex-end;
   }
 
-  .msg.bot {
+  .chat-page .msg.bot {
     justify-content: flex-start;
-    align-items: flex-start; /* <-- forcer l’alignement pour que la bulle ne disparaisse pas */
-    opacity: 0; /* initial */
+    align-items: flex-start;
+    opacity: 0;
     animation: fadeSlide 0.25s forwards;
   }
 
   /* BULLES — ULTRA LÉGÈRES */
-  .bubble {
+  .chat-page .bubble {
     max-width: 85%;
     padding: 10px 14px;
 
@@ -786,27 +794,25 @@ body.modal-open footer {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
   }
 
-  /* USER */
-  .msg.user .bubble {
+  .chat-page .msg.user .bubble {
     background: linear-gradient(135deg, #7a5fff, #b6a8ff);
     border-bottom-right-radius: 18px;
   }
 
-  /* BOT */
-  .msg.bot .bubble {
+  .chat-page .msg.bot .bubble {
     background: linear-gradient(135deg, #7a5fff, #b6a8ff);
     border-bottom-right-radius: 18px;
   }
 
   /* TIMESTAMP */
-  .timestamp {
+  .chat-page .timestamp {
     font-size: 0.65rem;
     opacity: 0.5;
     margin-top: 4px;
   }
 
   /* INPUT BAR — STYLE GPT */
-  .chat-form {
+  .chat-page .chat-form {
     position: fixed;
     bottom: 0;
     left: 0;
@@ -818,105 +824,90 @@ body.modal-open footer {
     gap: 10px;
 
     padding: 12px 14px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
 
     background: rgba(15, 15, 20, 0.75);
     backdrop-filter: blur(14px);
     border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  /* SAFE AREA IPHONE */
-  .chat-form {
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
-  }
-
-  /* INPUT */
-  .chat-form input {
+  .chat-page .chat-form input {
     flex: 1;
     height: 48px;
-
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.08);
-
     padding: 0 16px;
-
     font-size: 0.95rem;
     color: #fff;
-
     background: rgba(255, 255, 255, 0.06);
     backdrop-filter: blur(8px);
   }
 
-  /* FOCUS PRO */
-  .chat-form input:focus {
+  .chat-page .chat-form input:focus {
     outline: none;
     border-color: var(--primary-blue);
     box-shadow: 0 0 0 2px rgba(91, 141, 239, 0.25);
   }
 
-  /* SEND BUTTON */
-  .chat-form button {
+  .chat-page .chat-form button {
     height: 48px;
     padding: 0 18px;
-
     border-radius: 999px;
     border: none;
-
     font-weight: 600;
-
     background: linear-gradient(135deg, #5b3fff, #8a7fff, #b6ddf5);
     backdrop-filter: blur(6px);
   }
+}
+/* STRUCTURED CARDS */
+.msg.structured .bubble {
+  max-width: 100%;
+  padding: 14px;
+  border-radius: 20px;
 
-  /* STRUCTURED CARDS */
-  .msg.structured .bubble {
-    max-width: 100%;
-    padding: 14px;
-    border-radius: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
 
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
-  }
+/* BUTTONS DANS LES MESSAGES */
+.buttons {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
 
-  /* BUTTONS DANS LES MESSAGES */
-  .buttons {
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 10px;
-  }
+.buttons button {
+  flex: 1 1 48%;
+  height: 42px;
+  border-radius: 14px;
+  font-size: 0.85rem;
+}
 
-  .buttons button {
-    flex: 1 1 48%;
-    height: 42px;
-    border-radius: 14px;
-    font-size: 0.85rem;
-  }
+/* SCROLLBAR MINIMAL */
+#chat-box::-webkit-scrollbar {
+  width: 4px;
+}
+#chat-box::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
 
-  /* SCROLLBAR MINIMAL */
-  #chat-box::-webkit-scrollbar {
-    width: 4px;
-  }
-  #chat-box::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 999px;
-  }
+/* HEADER COMPACT */
+.top-banner {
+  padding: 10px 14px;
+}
 
-  /* HEADER COMPACT */
-  .top-banner {
-    padding: 10px 14px;
-  }
+.logo-text {
+  font-size: 20px;
+}
+.logo-img {
+  width: 42px;
+}
 
-  .logo-text {
-    font-size: 20px;
-  }
-  .logo-img {
-    width: 42px;
-  }
-
-  /* FOOTER MINIMAL */
-  .bottom-banner {
-    font-size: 12px;
-    padding: 10px;
-  }
+/* FOOTER MINIMAL */
+.bottom-banner {
+  font-size: 12px;
+  padding: 10px;
 }

@@ -12,6 +12,10 @@
 
     <!-- ===== MENU LATÉRAL & PROFIL (STYLE ISOLÉ) ===== -->
     <style>
+      body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* smooth scroll sur iOS */
+}
       /* ===== BOUTON MENU FLOTTANT ===== */
       .menu-toggle {
         position: fixed;
@@ -38,11 +42,12 @@
 
       /* ===== SIDEBAR ===== */
       .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 260px;
-        height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;         /* remplace height */
+  width: 260px;
+  overflow-y: auto;  /* si la sidebar dépasse l'écran */
         background: #000;
         color: #fff;
         transform: translateX(-100%);
