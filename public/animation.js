@@ -1,51 +1,53 @@
 document.addEventListener("DOMContentLoaded", () => {
-  if (window.animationStarted) return; // Empêche de relancer l'animation
-  window.animationStarted = true;
+  if (window.aigentAnimationStarted) return;
+  window.aigentAnimationStarted = true;
 
-  const titleText = "Mon AiGENT Immobilier";
+  const TITLE_TEXT = "Mon AiGENT Immobilier";
+  const TYPE_SPEED = 45;
+
   const titleElement = document.getElementById("animated-title");
   const chatSection = document.getElementById("chat-section");
 
   if (!titleElement || !chatSection) return;
 
-  // 1️⃣ Vide le texte original
+  /* reset */
   titleElement.textContent = "";
-
-  // 2️⃣ Cache le chat au départ
   chatSection.style.opacity = 0;
 
-  let i = 0;
+  /* curseur */
+  const cursor = document.createElement("span");
+  cursor.className = "typing-cursor";
+  cursor.textContent = "|";
+
+  let index = 0;
 
   function typeLetter() {
-    if (i < titleText.length) {
+    if (index < TITLE_TEXT.length) {
       const span = document.createElement("span");
-      span.textContent = titleText[i];
+      span.textContent = TITLE_TEXT[index];
+      span.className = "title-letter";
 
-      // Gradient + texte transparent
-      span.style.background = "linear-gradient(90deg, #87cefa, #ffb6c1)";
-      span.style.backgroundSize = "200% 200%";
-      span.style.backgroundClip = "text";
-      span.style.webkitBackgroundClip = "text";
-      span.style.color = "transparent";
-
-      // Animation d’apparition
-      span.style.opacity = 0;
-      span.style.transition = "opacity 0.15s";
       titleElement.appendChild(span);
 
-      setTimeout(() => (span.style.opacity = 1), 20);
+      index++;
 
-      i++;
-      setTimeout(typeLetter, 50);
+      /* petite variation naturelle */
+      const delay = TYPE_SPEED + Math.random() * 25;
+      setTimeout(typeLetter, delay);
     } else {
-      // 3️⃣ Affiche le chat après l’animation
-      chatSection.style.transition = "opacity 1s";
+      /* animation finie */
+      cursor.remove();
+
+      chatSection.style.transition = "opacity 0.8s ease";
       chatSection.style.opacity = 1;
 
-      // Événement custom si besoin
       window.dispatchEvent(new Event("aigent_animation_done"));
     }
   }
 
-  typeLetter();
+  /* ajoute curseur */
+  titleElement.appendChild(cursor);
+
+  /* démarre animation */
+  setTimeout(typeLetter, 200);
 });
