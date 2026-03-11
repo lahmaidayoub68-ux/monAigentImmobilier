@@ -360,9 +360,8 @@ export function generateDiagnostic(matches, userCriteria, role = "buyer") {
     criterion: "summary",
     score: 0,
     html: `<p style="text-indent:0.8em; margin-bottom:1em;">
-             <span>${summaryConnector}, le bien présente des points positifs sur ${positives}, tout en nécessitant une attention particulière concernant ${negatives}.</span>
-             <span><b>Recommandations :</b> ${conclusion}</span>
-           </p>`,
+           <span>${summaryConnector}, le bien présente des points positifs sur ${positives}, tout en nécessitant une attention particulière concernant ${negatives}.</span>
+         </p>`,
   });
 
   return paragraphs
