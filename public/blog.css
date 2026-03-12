@@ -120,71 +120,107 @@ p {
 /* --------------------------
 HERO SECTION PREMIUM
 -------------------------- */
+/* --------------------------
+HERO SECTION PREMIUM
+-------------------------- */
 .hero {
-  background: white;
-  padding: 140px 60px 120px;
   position: relative;
+  padding: 180px 40px 140px;
+
+  background-image: url("images/immobilier-bg.jpg");
+  background-size: cover;
+  background-position: center;
+
+  text-align: center;
+
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
   overflow: hidden;
-  transition: all 0.5s ease;
 }
 
+/* overlay sombre derrière le contenu */
 .hero::before {
   content: "";
   position: absolute;
-  top: -220px;
-  right: -220px;
-  width: 700px;
-  height: 700px;
+  inset: 0;
+
+  background: linear-gradient(
+    180deg,
+    rgba(10, 10, 15, 0.55),
+    rgba(10, 10, 15, 0.35),
+    rgba(10, 10, 15, 0.15)
+  );
+
+  z-index: 0;
+  pointer-events: none;
+}
+/* contenu hero au-dessus */
+.hero-top {
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+  margin: auto;
+}
+
+/* halo lumineux derrière le titre */
+
+.hero-top::before {
+  content: "";
+  position: absolute;
+
+  width: 520px;
+  height: 520px;
+
+  left: 50%;
+  top: -120px;
+
+  transform: translateX(-50%);
+
   background: radial-gradient(
     circle,
-    rgba(122, 95, 255, 0.15),
-    rgba(91, 141, 255, 0.05) 60%,
-    transparent 85%
+    rgba(122, 95, 255, 0.35),
+    rgba(91, 141, 255, 0.25),
+    transparent 70%
   );
-  filter: blur(55px);
-  transform: rotate(12deg);
-}
 
-.hero-container {
-  max-width: 1200px;
-  margin: auto;
-  display: flex;
-  align-items: center;
-  gap: 80px;
-  position: relative;
-  transition: all 0.5s ease;
-}
+  filter: blur(80px);
 
-.hero-text {
-  flex: 1;
+  z-index: -1;
+  pointer-events: none;
 }
-
+/* titre principal */
 .hero-title {
-  font-size: 52px;
+  font-size: 44px;
   font-weight: 700;
   line-height: 1.2;
-  margin-bottom: 22px;
-  background: linear-gradient(135deg, #7a5fff, #5b8def, #c084fc);
-  -webkit-background: text;
+
+  margin-bottom: 32px;
+
+  background: linear-gradient(135deg, #7a5fff, #5b8def, #b6a8ff);
+
+  -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
-  transition: all 0.5s ease;
+
+  text-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
 }
 
-.hero-sub {
-  font-size: 18px;
-  line-height: 1.75;
-  margin-bottom: 40px;
-  color: #444;
-}
+/* bouton CTA */
 
 .hero-btn {
+  display: inline-block;
+
   background: linear-gradient(135deg, #7a5fff, #5b8def);
   color: white;
+
   padding: 16px 32px;
   border-radius: 14px;
+
   font-weight: 600;
   text-decoration: none;
+
   box-shadow: 0 10px 26px rgba(91, 141, 255, 0.25);
+
   transition: all 0.3s ease;
 }
 
@@ -193,17 +229,50 @@ HERO SECTION PREMIUM
   box-shadow: 0 14px 38px rgba(91, 141, 255, 0.35);
 }
 
+/* --------------------------
+SECTION SOUS LE HERO
+-------------------------- */
+
+.hero-bottom {
+  background: white;
+  padding: 120px 60px;
+}
+
+.hero-container {
+  max-width: 1200px;
+  margin: auto;
+
+  display: flex;
+  align-items: center;
+  gap: 80px;
+}
+
+/* texte */
+
+.hero-text {
+  flex: 1;
+}
+
+.hero-sub {
+  font-size: 18px;
+  line-height: 1.85;
+  color: #444;
+}
+
+/* image */
+
 .hero-image img {
   width: 440px;
-  border-radius: 12px;
-  filter: drop-shadow(0 22px 44px rgba(0, 0, 0, 0.15));
+  border-radius: 14px;
+
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.18);
+
   transition: transform 0.3s ease;
 }
 
 .hero-image img:hover {
-  transform: translateY(-6px) scale(1.04);
+  transform: translateY(-6px) scale(1.03);
 }
-
 /* --------------------------
 FEATURE SECTIONS PREMIUM
 -------------------------- */
