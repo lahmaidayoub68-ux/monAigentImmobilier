@@ -12,6 +12,7 @@ import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import nodemailer from "nodemailer";
 import fs from "fs";
 import levenshtein from "fast-levenshtein";
 const HOST = "0.0.0.0";
@@ -1313,6 +1314,65 @@ if (!tableInfo.find((col) => col.name === "avatar")) {
     "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT '/images/user-avatar.jpg'",
   ).run();
 }
+app.post("/api/support", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Token manquant" });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ error: "Token invalide" });
+    }
+
+    const { subject, message } = req.body;
+
+    if (!subject || !message) {
+      return res.status(400).json({ error: "Sujet et message obligatoires" });
+    }
+
+    // 🔥 TRANSPORTER GMAIL
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_USER, // ton email
+        pass: process.env.GMAIL_PASS, // mot de passe d'application
+      },
+    });
+
+    // 🔥 EMAIL ENVOYÉ À TOI
+    await transporter.sendMail({
+      from: `"Support Site" <${process.env.GMAIL_USER}>`,
+      to: process.env.GMAIL_USER, // TU REÇOIS LE MESSAGE
+      subject: `📩 Support - ${subject}`,
+      text: `
+Nouveau message support :
+
+Utilisateur : ${decoded.username}
+Role : ${decoded.role}
+
+Sujet : ${subject}
+
+Message :
+${message}
+      `,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Message envoyé au développeur",
+    });
+  } catch (err) {
+    console.error("[SUPPORT ROUTE ERROR]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
 // RESET //
 resetProfiles();
 seedProfiles(50);

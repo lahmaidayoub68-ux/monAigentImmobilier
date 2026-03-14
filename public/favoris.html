@@ -156,33 +156,23 @@
        BARRE DE RECHERCHE
     ========================== */
 
-      .search-wrapper {
-        margin-bottom: 35px;
-        display: flex;
-        justify-content: flex-start;
-      }
-
       .search-bar {
         width: 100%;
-        max-width: 600px;
-        padding: 14px 22px;
-        border-radius: 30px;
-        border: none;
-        outline: none;
+        max-width: 650px;
+        padding: 14px 18px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        background: #fff;
         font-size: 15px;
-        background: rgba(255, 255, 255, 0.25);
-        backdrop-filter: blur(12px);
-        color: #000;
         font-weight: 500;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
       }
 
       .search-bar:focus {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+        outline: none;
+        border-color: #635bff; /* couleur Stripe */
+        box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.15);
       }
-
       .msg.structured .bubble.match-card {
         background: rgba(28, 28, 38, 0.9);
         border: 1px solid rgba(255, 255, 255, 0.08);
@@ -560,6 +550,29 @@
       .home-link:hover svg path:last-child {
         transform: translateX(-3px); /* flèche qui rentre un peu plus */
       }
+      /* ==========================
+   FAVORIS HEADER — STRIPE / LUXE
+========================== */
+
+      .favorites-header {
+        margin-bottom: 40px;
+      }
+
+      .favorites-title {
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: -0.4px;
+        margin: 0;
+        color: #111;
+      }
+
+      /* Ligne ultra fine type Stripe */
+      .favorites-divider {
+        margin-top: 18px;
+        height: 1px;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.08);
+      }
     </style>
   </head>
 
@@ -624,7 +637,10 @@
 
     <!-- ===== CONTENU FAVORIS ===== -->
     <main class="favoris-container">
-      <div class="section-title">⭐ Mes profils favoris</div>
+      <div class="favorites-header">
+        <h2 class="favorites-title">Mes profils favoris</h2>
+        <div class="favorites-divider"></div>
+      </div>
 
       <div class="search-wrapper">
         <input

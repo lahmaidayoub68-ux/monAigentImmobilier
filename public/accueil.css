@@ -580,74 +580,73 @@ BUTTONS & USER INFO
   cursor: not-allowed;
 }
 /* ==========================
-LOGOUT BUTTON PREMIUM
+LOGOUT BUTTON — AI PREMIUM
 ========================= */
+
 #btn-logout {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 
-  padding: 6px 14px;
+  padding: 8px 18px;
 
   font-size: 0.85rem;
   font-weight: 600;
 
-  color: #fff;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 999px;
+  color: white;
 
-  backdrop-filter: blur(8px);
+  border: none;
+  border-radius: 10px;
+
   cursor: pointer;
 
-  transition: all 0.25s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(135deg, #7a5fff, #9c6bff, #f093ff);
+
+  box-shadow:
+    0 4px 14px rgba(122, 95, 255, 0.35),
+    inset 0 0 8px rgba(255, 255, 255, 0.08);
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    filter 0.18s ease;
 }
 
-/* Icon inside */
-#btn-logout svg {
-  width: 16px;
-  height: 16px;
-  stroke: #fff;
-  fill: none;
+/* icône */
+
+.logout-icon {
+  width: 18px;
+  height: 18px;
+
   transition: transform 0.25s ease;
 }
 
-/* Hover state */
+/* hover */
+
 #btn-logout:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: translateY(-1px) scale(1.05);
-}
-#btn-logout:hover svg {
-  transform: translateX(2px);
+  transform: translateY(-1px);
+
+  filter: brightness(1.08);
+
+  box-shadow: 0 6px 18px rgba(122, 95, 255, 0.45);
 }
 
-/* Active / click */
+/* animation icône */
+
+#btn-logout:hover .logout-icon {
+  transform: translateX(4px);
+}
+#btn-logout {
+  background-size: 200% 200%;
+}
+
+#btn-logout:hover {
+  background-position: right center;
+}
+/* click */
+
 #btn-logout:active {
-  transform: scale(0.97);
-  background: rgba(255, 255, 255, 0.18);
-}
-#btn-logout:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(122, 95, 255, 0.25),
-    rgba(91, 141, 255, 0.25)
-  );
-  box-shadow: 0 4px 12px rgba(91, 141, 255, 0.35);
-}
-
-/* Mobile responsive */
-@media (max-width: 600px) {
-  #btn-logout {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-  }
-
-  #btn-logout svg {
-    width: 14px;
-    height: 14px;
-  }
+  transform: scale(0.96);
 }
 /* ==========================
 USER INFO BADGE
@@ -845,8 +844,7 @@ body.modal-open footer {
     flex-direction: column;
 
     gap: 16px;
-
-    padding: 90px 18px 140px 18px;
+    padding: 90px 18px 20px 18px;
 
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
@@ -964,27 +962,26 @@ body.modal-open footer {
   }
 
   /* INPUT BAR */
-
   .chat-page .chat-form {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    position: relative;
+
+    margin-top: auto;
 
     display: flex;
     align-items: center;
-
     gap: 10px;
 
     padding: 12px 16px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
 
     background: rgba(15, 15, 20, 0.8);
     backdrop-filter: blur(14px);
 
     border-top: 1px solid rgba(255, 255, 255, 0.08);
-  }
 
+    /* 👇 plein écran */
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+  }
   .chat-page .chat-form input {
     flex: 1;
 
@@ -1026,5 +1023,28 @@ body.modal-open footer {
   #chat-box::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.15);
     border-radius: 999px;
+  }
+}
+/* ==========================
+LOGOUT BUTTON MOBILE
+========================= */
+@media (max-width: 600px) {
+  #btn-logout {
+    padding: 6px 12px;
+
+    font-size: 0.75rem;
+
+    border-radius: 8px;
+
+    gap: 6px;
+
+    box-shadow:
+      0 3px 10px rgba(122, 95, 255, 0.35),
+      inset 0 0 6px rgba(255, 255, 255, 0.08);
+  }
+
+  .logout-icon {
+    width: 14px;
+    height: 14px;
   }
 }

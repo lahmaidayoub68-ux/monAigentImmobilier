@@ -113,42 +113,111 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ==========================
     // INJECTION DES DONNÉES
     // ==========================
-    const usernameEl = document.getElementById("profile-username");
-    const emailEl = document.getElementById("profile-email");
-    const roleEl = document.getElementById("profile-role");
+
+    const usernameEls = document.querySelectorAll(".profile-username");
+    const emailEls = document.querySelectorAll(".profile-email");
+    const roleEls = document.querySelectorAll(".profile-role");
     const lastLoginEl = document.getElementById("profile-last-login");
+    const mainAvatar = document.getElementById("mainAvatar");
 
-    // === AVATAR ===
-    if (mainAvatar) {
-      mainAvatar.style.backgroundImage = `url(${user.avatar || "/images/default-avatar.png"})`;
-      mainAvatar.style.backgroundSize = "cover";
-      mainAvatar.style.backgroundPosition = "center";
-      mainAvatar.style.backgroundRepeat = "no-repeat";
+    console.log("[PROFIL] Début injection des données");
+    console.log("[PROFIL] Données utilisateur reçues :", user);
+
+    // ==========================
+    // AVATAR
+    // ==========================
+    try {
+      if (mainAvatar) {
+        mainAvatar.style.backgroundImage = `url(${
+          user.avatar || "/images/default-avatar.png"
+        })`;
+        mainAvatar.style.backgroundSize = "cover";
+        mainAvatar.style.backgroundPosition = "center";
+        mainAvatar.style.backgroundRepeat = "no-repeat";
+
+        console.log("[PROFIL] Avatar injecté :", user.avatar);
+      } else {
+        console.warn("[PROFIL] mainAvatar introuvable dans le DOM");
+      }
+    } catch (avatarErr) {
+      console.error("[PROFIL] Erreur injection avatar :", avatarErr);
     }
 
-    if (usernameEl) {
-      usernameEl.textContent = user.username;
-      console.log("[PROFIL] username injecté :", user.username);
+    // ==========================
+    // USERNAME
+    // ==========================
+    try {
+      usernameEls.forEach((el) => {
+        el.textContent = user.username || "Utilisateur";
+        console.log("[PROFIL] username injecté :", user.username);
+      });
+
+      if (usernameEls.length === 0) {
+        console.warn("[PROFIL] Aucun élément .profile-username trouvé");
+      }
+    } catch (usernameErr) {
+      console.error("[PROFIL] Erreur injection username :", usernameErr);
     }
-    if (emailEl) {
-      emailEl.textContent = user.contact;
-      console.log("[PROFIL] email injecté :", user.contact);
+
+    // ==========================
+    // EMAIL
+    // ==========================
+    try {
+      emailEls.forEach((el) => {
+        el.textContent = user.contact || "Non renseigné";
+        console.log("[PROFIL] email injecté :", user.contact);
+      });
+
+      if (emailEls.length === 0) {
+        console.warn("[PROFIL] Aucun élément .profile-email trouvé");
+      }
+    } catch (emailErr) {
+      console.error("[PROFIL] Erreur injection email :", emailErr);
     }
-    if (roleEl) {
-      roleEl.textContent = user.role === "buyer" ? "Acheteur" : "Vendeur";
-      console.log("[PROFIL] role injecté :", roleEl.textContent);
+
+    // ==========================
+    // ROLE
+    // ==========================
+    try {
+      const roleText = user.role === "buyer" ? "Acheteur" : "Vendeur";
+
+      roleEls.forEach((el) => {
+        el.textContent = roleText;
+        console.log("[PROFIL] role injecté :", roleText);
+      });
+
+      if (roleEls.length === 0) {
+        console.warn("[PROFIL] Aucun élément .profile-role trouvé");
+      }
+    } catch (roleErr) {
+      console.error("[PROFIL] Erreur injection role :", roleErr);
     }
-    if (lastLoginEl) {
-      lastLoginEl.textContent = new Date().toLocaleString("fr-FR");
-      console.log("[PROFIL] lastLogin injecté :", lastLoginEl.textContent);
+
+    // ==========================
+    // LAST LOGIN
+    // ==========================
+    try {
+      if (lastLoginEl) {
+        const now = new Date().toLocaleString("fr-FR");
+        lastLoginEl.textContent = now;
+
+        console.log("[PROFIL] last login injecté :", now);
+      } else {
+        console.warn("[PROFIL] Element #profile-last-login introuvable");
+      }
+    } catch (loginErr) {
+      console.error("[PROFIL] Erreur injection last login :", loginErr);
     }
+
+    console.log("[PROFIL] Injection terminée avec succès");
   } catch (err) {
-    console.error("[PROFIL] Erreur lors du fetch /api/me :", err);
+    console.error("[PROFIL] Erreur globale lors du fetch / injection :", err);
+
     alert("Erreur lors du chargement du profil. Veuillez revenir à l'accueil.");
+
     window.location.href = "/index.html";
     return;
   }
-
   // ==========================
   // BOUTONS ACTIONS PROFIL
   // ==========================
@@ -186,7 +255,29 @@ document.addEventListener("DOMContentLoaded", async () => {
       window.location.href = "/index.html";
     });
   }
+  const supportOverlay = document.getElementById("supportOverlay");
+  const openSupportBtn = document.getElementById("openSupportModal");
+  const closeSupportBtn = document.getElementById("closeSupportModal");
 
+  if (openSupportBtn && supportOverlay) {
+    openSupportBtn.addEventListener("click", () => {
+      supportOverlay.classList.add("active");
+    });
+  }
+
+  if (closeSupportBtn && supportOverlay) {
+    closeSupportBtn.addEventListener("click", () => {
+      supportOverlay.classList.remove("active");
+    });
+  }
+
+  if (supportOverlay) {
+    supportOverlay.addEventListener("click", (e) => {
+      if (e.target === supportOverlay) {
+        supportOverlay.classList.remove("active");
+      }
+    });
+  }
   // ==========================
   // POPUP CHANGER MOT DE PASSE
   // ==========================
@@ -369,14 +460,61 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // ==========================
-  // SUPPORT
-  // ==========================
-  if (btnSupport) {
-    btnSupport.addEventListener("click", () => {
-      console.log("[PROFIL] Bouton support cliqué");
-      alert("Contacter le support...");
-      // window.location.href = "/support.html";
+  const supportSubject = document.getElementById("supportSubject");
+  const supportMessage = document.getElementById("supportMessage");
+  const btnSendSupport = document.getElementById("btnSendSupport");
+  if (btnSendSupport && supportOverlay && supportSubject && supportMessage) {
+    btnSendSupport.addEventListener("click", async () => {
+      const subject = supportSubject.value.trim();
+      const message = supportMessage.value.trim();
+
+      if (!subject) {
+        alert("Veuillez choisir un sujet.");
+        return;
+      }
+
+      if (!message) {
+        alert("Veuillez écrire un message.");
+        return;
+      }
+
+      const savedUser = localStorage.getItem("agent_user");
+      if (!savedUser) {
+        alert("Session expirée.");
+        window.location.href = "/index.html";
+        return;
+      }
+
+      let token;
+      try {
+        token = JSON.parse(savedUser).token;
+      } catch {
+        alert("Erreur session.");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/support", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ subject, message }),
+        });
+
+        if (res.ok) {
+          alert("Message envoyé ✅");
+          supportOverlay.classList.remove("active");
+          supportSubject.value = "";
+          supportMessage.value = "";
+        } else {
+          const data = await res.json();
+          alert(data.error || "Erreur envoi.");
+        }
+      } catch (err) {
+        alert("Erreur serveur.");
+      }
     });
   }
 });
