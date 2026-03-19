@@ -334,39 +334,21 @@ function switchView(view) {
   }
 }
 function animateTotalMatches(total) {
-  // Création du conteneur principal
   const container = document.createElement("div");
-  container.style.cssText =
-    "display: flex; flex-direction: column; justify-content: space-between;" +
-    "font-size:24px; font-weight:700; text-align:center; margin-bottom:15px;" +
-    "color:#333; min-height:3em; padding:0.5em;";
-  document.querySelector(".content-wrapper").prepend(container);
+  container.className = "stats-header-centered";
 
-  // Texte principal fixe (au sommet)
   const mainText = document.createElement("div");
-  mainText.innerText = "Analyse des meilleurs profils (max 30)";
+  mainText.className = "stats-title-centered";
+  mainText.innerText = "Analyse des 30 meilleurs profils";
+
+  const subText = document.createElement("div");
+  subText.className = "stats-subtitle";
+  subText.innerText = "Par session";
+
   container.appendChild(mainText);
+  container.appendChild(subText);
 
-  // Petit texte "par session" fixé en bas à droite
-  const smallTextWrapper = document.createElement("div");
-  smallTextWrapper.style.cssText =
-    "display: flex; justify-content: flex-end; font-size:0.75em; font-style:italic;";
-  const smallText = document.createElement("span");
-  smallText.innerText = "par session";
-  smallTextWrapper.appendChild(smallText);
-  container.appendChild(smallTextWrapper);
-
-  // Animation du compteur (facultatif)
-  let count = 0;
-  const step = Math.max(1, Math.floor(total / 60));
-  const interval = setInterval(() => {
-    count += step;
-    if (count >= total) {
-      count = total;
-      clearInterval(interval);
-    }
-    // ici on peut mettre à jour d'autres éléments si nécessaire
-  }, 15);
+  document.querySelector(".content-wrapper").prepend(container);
 }
 /* =======================================================
    INIT

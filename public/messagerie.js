@@ -131,6 +131,7 @@ async function loadAllConversations() {
     }
 
     const msgs = Array.isArray(data) ? data : [];
+    console.log("MESSAGES:", msgs);
 
     msgs.forEach((m) => {
       const pseudoNorm =
@@ -162,6 +163,24 @@ async function loadAllConversations() {
         const avatar = document.createElement("div");
         avatar.className = "avatar";
 
+        // 🔥 récupérer le dernier message
+        const latestMsg =
+          messagesStore[pseudo]?.[messagesStore[pseudo].length - 1];
+
+        // 🔥 choisir l'avatar selon le dernier message
+        let avatarUrl = null;
+
+        if (latestMsg) {
+          avatarUrl =
+            latestMsg.sender?.trim().toLowerCase() === currentUser
+              ? latestMsg.receiverAvatar
+              : latestMsg.senderAvatar;
+        }
+
+        if (avatarUrl) {
+          avatar.style.backgroundImage = `url(${avatarUrl})`;
+        }
+
         const info = document.createElement("div");
         info.className = "info";
 
@@ -172,8 +191,6 @@ async function loadAllConversations() {
         const previewDiv = document.createElement("div");
         previewDiv.className = "preview";
 
-        const latestMsg =
-          messagesStore[pseudo][messagesStore[pseudo].length - 1];
         previewDiv.textContent = latestMsg
           ? latestMsg.body.substring(0, 40)
           : "";
@@ -182,6 +199,7 @@ async function loadAllConversations() {
         info.appendChild(previewDiv);
         convo.appendChild(avatar);
         convo.appendChild(info);
+
         listContainer.appendChild(convo);
 
         attachConversationClick(convo);

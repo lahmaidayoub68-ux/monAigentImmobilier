@@ -37,14 +37,20 @@ DESIGN SYSTEM
   cursor: pointer;
   border: none;
   z-index: 3000;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
 }
 
 .menu-toggle:hover {
   background: #f2f2f2;
+  transform: scale(1.05);
 }
 
 /* ===== SIDEBAR ===== */
@@ -54,13 +60,20 @@ DESIGN SYSTEM
   left: 0;
   width: 260px;
   height: 100vh;
+
   background: #000;
   color: #fff;
+
   transform: translateX(-100%);
   transition: transform 0.35s ease;
+
   z-index: 2000;
   padding: 20px;
   box-sizing: border-box;
+
+  /* IMPORTANT pour placer le bouton en bas */
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar.open {
@@ -81,30 +94,78 @@ DESIGN SYSTEM
   font-size: 20px;
 }
 
-.sidebar ul {
+/* ===== LIENS MENU ===== */
+.menu-links {
   list-style: none;
   padding: 0;
 }
 
-.sidebar ul li {
+.menu-links li {
   margin-bottom: 20px;
 }
 
-.sidebar ul li a {
+.menu-links li a {
   color: #fff;
   text-decoration: none;
   font-size: 16px;
+  transition: color 0.2s ease;
 }
 
-.sidebar ul li a:hover {
-  text-decoration: underline;
+.menu-links li a:hover {
+  color: #5b8def;
+}
+
+/* ===== BOUTON RETOUR ACCUEIL (BAS MENU) ===== */
+.menu-bottom {
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+.home-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  text-decoration: none;
+  color: #fff;
+
+  transition: transform 0.3s ease;
+}
+
+/* ===== ANIMATION PORTE ===== */
+
+.home-link svg {
+  transition: transform 0.4s ease;
+  transform-origin: left center;
+}
+
+/* flèche */
+.home-link svg path:last-child {
+  transition: transform 0.3s ease;
+}
+
+/* hover global */
+.home-link:hover {
+  transform: translateX(4px);
+}
+
+/* porte qui s'ouvre */
+.home-link:hover svg {
+  transform: rotateY(-20deg);
+}
+
+/* flèche qui rentre */
+.home-link:hover svg path:last-child {
+  transform: translateX(-3px);
 }
 
 /* ===== OVERLAY ===== */
 .sidebar-overlay {
   position: fixed;
   inset: 0;
+
   background: rgba(0, 0, 0, 0.4);
+
   z-index: 1500;
   display: none;
 }

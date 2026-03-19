@@ -24,7 +24,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const villesCoordsArray = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "villes_simplifie.json"), "utf-8"),
+  fs.readFileSync(path.join(__dirname, "villes-france.json"), "utf-8"),
 );
 
 const dbPath = path.join(__dirname, "../data.db"); // ajuste le chemin selon ton projet
@@ -33,7 +33,11 @@ export const db = new Database(dbPath);
 // Crée une Map pour accès rapide
 const villesMap = new Map();
 for (const v of villesCoordsArray) {
-  villesMap.set(normalize(v.ville), { lat: v.lat, lng: v.lng });
+  villesMap.set(normalize(v.ville), {
+    lat: v.lat,
+    lng: v.lng,
+    departement: v.departement,
+  });
 }
 
 // ================== UTILITAIRES ==================
@@ -50,7 +54,9 @@ export function normalize(value = "") {
 export function getCoords(ville) {
   return villesMap.get(normalize(ville)) || null;
 }
-
+export function getDepartement(ville) {
+  return getCoords(ville)?.departement ?? null;
+}
 export function distanceKm(ville1, ville2) {
   const v1 = getCoords(ville1);
   const v2 = getCoords(ville2);
@@ -96,19 +102,22 @@ export function resetBuyers() {
 export function resetProfiles() {
   resetSellers();
   resetBuyers();
-}
-// ================== AJOUT / MISE À JOUR VENDEUR ==================
+} // ================== AJOUT / MISE À JOUR VENDEUR ==================
 export function addSeller(criteria = {}) {
   const existingIndex = SELLERS.findIndex(
     (s) => s.username === criteria.username,
   );
 
+  const villeData = villesMap.get(normalize(criteria.ville));
+
   const seller = {
     id: existingIndex >= 0 ? SELLERS[existingIndex].id : NEXT_SELLER_ID++,
     username: criteria.username || `seller_${NEXT_SELLER_ID}`,
     role: "seller",
+    departement: getDepartement(criteria.ville),
     ville: criteria.ville || "",
     region: criteria.region || criteria.ville || "",
+
     type: normalize(criteria.type || "appartement"),
     price: Number(criteria.price ?? 0),
     pieces: Math.min(Number(criteria.pieces ?? 0), MAX_PIECES),
@@ -116,11 +125,9 @@ export function addSeller(criteria = {}) {
     contact: criteria.contact || "",
   };
 
-  // Mettre à jour la mémoire
   if (existingIndex >= 0) SELLERS[existingIndex] = seller;
   else SELLERS.push(seller);
 
-  // Mettre à jour la DB avec paramètres nommés
   try {
     const stmt = db.prepare(`
       INSERT INTO users (
@@ -165,13 +172,13 @@ export function addSeller(criteria = {}) {
   }
 
   return seller;
-}
-
-// ================== AJOUT / MISE À JOUR ACHETEUR ==================
+} // ================== AJOUT / MISE À JOUR ACHETEUR ==================
 export function addBuyer(criteria = {}) {
   const existingIndex = BUYERS.findIndex(
     (b) => b.username === criteria.username,
   );
+
+  const villeData = villesMap.get(normalize(criteria.ville));
 
   const budget = criteria.budget != null ? Number(criteria.budget) : null;
   const budgetMin =
@@ -183,12 +190,17 @@ export function addBuyer(criteria = {}) {
     id: existingIndex >= 0 ? BUYERS[existingIndex].id : NEXT_BUYER_ID++,
     username: criteria.username || `buyer_${NEXT_BUYER_ID}`,
     role: "buyer",
+    departement: getDepartement(criteria.ville),
+
     ville: criteria.ville || "",
     region: criteria.region || criteria.ville || "",
+
     type: normalize(criteria.type || ""),
+
     budget,
     budgetMin,
     budgetMax,
+
     piecesMin: Number(criteria.piecesMin ?? 0),
     piecesMax: Math.min(Number(criteria.piecesMax ?? MAX_PIECES), MAX_PIECES),
     surfaceMin: Number(criteria.surfaceMin ?? 0),
@@ -196,18 +208,18 @@ export function addBuyer(criteria = {}) {
       Number(criteria.surfaceMax ?? MAX_SURFACE),
       MAX_SURFACE,
     ),
+
     contact: criteria.contact || "",
+
     preferences:
       existingIndex >= 0
         ? BUYERS[existingIndex].preferences
         : { typeWeights: {}, regionWeights: {} },
   };
 
-  // Mettre à jour la mémoire
   if (existingIndex >= 0) BUYERS[existingIndex] = buyer;
   else BUYERS.push(buyer);
 
-  // Mettre à jour la DB avec paramètres nommés
   try {
     const stmt = db.prepare(`
       INSERT INTO users (
@@ -437,6 +449,8 @@ export function matchUsers(buyerProfile, topN = 5) {
       different.push("Surface incompatible");
     }
 
+    const departement = getDepartement(seller.ville);
+
     return {
       ...seller,
       score: scoreSellerForBuyer(seller, buyerProfile),
@@ -448,11 +462,9 @@ export function matchUsers(buyerProfile, topN = 5) {
       buyerLat: buyerCoords?.lat ?? null,
       buyerLng: buyerCoords?.lng ?? null,
 
-      // ✅ Ajout pour le front : ville originale
-      villeOriginal:
-        villesCoordsArray.find(
-          (v) => normalize(v.ville) === normalize(seller.ville),
-        )?.ville || seller.ville,
+      // pour le front
+      villeOriginal: seller.ville,
+      departement: getDepartement(seller.ville) || "TEST",
     };
   });
 
@@ -570,6 +582,8 @@ export function matchSellerToBuyers(sellerProfile, topN = 5) {
     const compatibility = Math.round((score / TOTAL_WEIGHT) * 100);
     const buyerCoords = getCoords(buyer.ville);
 
+    const departement = getDepartement(buyer.ville);
+
     return {
       ...buyer,
       score,
@@ -588,14 +602,12 @@ export function matchSellerToBuyers(sellerProfile, topN = 5) {
       lat: buyerCoords?.lat ?? null,
       lng: buyerCoords?.lng ?? null,
 
-      // Ajout pour le front
-      pieces: buyer.piecesMin, // ou sellerProfile.pieces ?
+      pieces: buyer.piecesMin,
       surface: buyer.surfaceMin,
       price: buyer.budgetMax,
-      villeOriginal:
-        villesCoordsArray.find(
-          (v) => normalize(v.ville) === normalize(buyer.ville),
-        )?.ville || buyer.ville,
+
+      villeOriginal: buyer.ville,
+      departement: getDepartement(buyer.ville),
     };
   });
 

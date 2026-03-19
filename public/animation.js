@@ -10,9 +10,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (!titleElement || !chatSection) return;
 
+  const isMobile = window.innerWidth <= 600;
+
   /* reset */
   titleElement.textContent = "";
-  chatSection.style.opacity = 0;
+
+  // ❗ cacher le chat seulement sur desktop
+  if (!isMobile) {
+    chatSection.style.opacity = 0;
+  }
 
   /* curseur */
   const cursor = document.createElement("span");
@@ -31,23 +37,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
       index++;
 
-      /* petite variation naturelle */
       const delay = TYPE_SPEED + Math.random() * 25;
       setTimeout(typeLetter, delay);
     } else {
-      /* animation finie */
       cursor.remove();
 
-      chatSection.style.transition = "opacity 0.8s ease";
-      chatSection.style.opacity = 1;
+      // ❗ réafficher seulement sur desktop
+      if (!isMobile) {
+        chatSection.style.transition = "opacity 0.8s ease";
+        chatSection.style.opacity = 1;
+      }
 
       window.dispatchEvent(new Event("aigent_animation_done"));
     }
   }
 
-  /* ajoute curseur */
   titleElement.appendChild(cursor);
-
-  /* démarre animation */
   setTimeout(typeLetter, 200);
 });

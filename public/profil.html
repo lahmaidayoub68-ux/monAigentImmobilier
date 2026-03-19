@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href="/images/favicon.ico"
+    />
 
     <title>AiGENT - Profil & Compte</title>
 
@@ -12,15 +18,15 @@
   </head>
 
   <body>
-    <!-- ===== MENU BUTTON ===== -->
+    <!-- ===== BOUTON MENU FLOTTANT ===== -->
     <button class="menu-toggle" id="openSidebar">☰</button>
 
     <!-- ===== SIDEBAR ===== -->
     <nav id="sidebar" class="sidebar">
       <span class="close-btn" id="closeSidebar">&times;</span>
-
       <h2>Menu</h2>
 
+      <!-- Liens principaux -->
       <ul class="menu-links">
         <li><a href="profil.html">Profil & Compte</a></li>
         <li><a href="messagerie.html">Messagerie</a></li>
@@ -28,8 +34,28 @@
         <li><a href="statistiques.html">Statistiques</a></li>
       </ul>
 
+      <!-- Retour accueil placé tout en bas -->
       <div class="menu-bottom">
-        <a href="accueil.html" class="home-link">Retour à l'accueil</a>
+        <a href="accueil.html" class="home-link">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <!-- Porte -->
+            <path d="M3 21h18"></path>
+            <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"></path>
+            <!-- Flèche qui rentre -->
+            <path d="M12 11l-3 3 3 3"></path>
+          </svg>
+          <span><i>Retour à l'accueil</i></span>
+        </a>
       </div>
     </nav>
 

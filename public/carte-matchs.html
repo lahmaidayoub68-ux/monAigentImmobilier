@@ -3,62 +3,220 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/images/favicon.ico"
+    />
     <title>AiGENT - Carte des Matchs</title>
 
     <link rel="stylesheet" href="accueil.css" />
     <link rel="stylesheet" href="/leaflet/leaflet.css" />
 
     <style>
-      /* ===== BOUTON MENU FLOTTANT ===== */
+      /* ================================
+BASE
+================================ */
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+
+        background: #f8faff;
+        color: #1a1a1a;
+      }
+
+      /* ================================
+ACCENT GLOBAL DÉGRADÉ
+================================ */
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+
+        background:
+          radial-gradient(
+            circle at 15% 20%,
+            rgba(79, 124, 255, 0.18),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 85% 25%,
+            rgba(155, 107, 255, 0.16),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 50% 95%,
+            rgba(209, 148, 237, 0.18),
+            transparent 50%
+          );
+      }
+
+      /* ================================
+HEADER
+================================ */
+
+      .top-banner {
+        background: rgba(10, 10, 15, 0.72);
+        padding: 14px 22px;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+
+        position: relative;
+      }
+
+      .top-banner::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 1px;
+
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(122, 95, 255, 0.4),
+          transparent
+        );
+
+        opacity: 0.6;
+      }
+
+      /* ================================
+LOGO
+================================ */
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .logo-img {
+        width: 52px;
+        transition: transform 0.3s ease;
+      }
+
+      .logo-container:hover .logo-img {
+        transform: translateY(-1px) scale(1.04);
+      }
+
+      .logo-text {
+        font-size: 28px;
+        font-weight: 700;
+
+        background: linear-gradient(270deg, #659cef, #d194ed, #8fbafc);
+        background-size: 400% 400%;
+
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+
+        animation: gradientBG 30s ease infinite;
+      }
+
+      @keyframes gradientBG {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      /* ================================
+MENU FLOTTANT (SIGNATURE FIXÉE)
+================================ */
+
       .menu-toggle {
         position: fixed;
         top: 90px;
         left: 20px;
-        width: 52px;
-        height: 52px;
+
+        width: 56px;
+        height: 56px;
+
         border-radius: 50%;
-        background: #ffffff;
-        color: #000000;
-        font-size: 26px;
-        cursor: pointer;
         border: none;
-        z-index: 3000;
+        cursor: pointer;
+
+        background: linear-gradient(135deg, #4f7cff, #9b6bff);
+        color: white;
+
+        font-size: 24px;
+
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+
+        z-index: 3000;
+
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+
+        transition: all 0.25s ease;
       }
 
       .menu-toggle:hover {
-        background: #f2f2f2;
+        transform: translateY(-3px) scale(1.05);
       }
 
-      /* ===== SIDEBAR ===== */
+      /* ================================
+SIDEBAR (IDENTITÉ CONSERVÉE)
+================================ */
+
       .sidebar {
         position: fixed;
         top: 0;
         left: 0;
+
         width: 260px;
         height: 100vh;
-        background: #000;
+
+        background: rgba(10, 10, 20, 0.95);
+        backdrop-filter: blur(18px);
+
         color: #fff;
+
         transform: translateX(-100%);
         transition: transform 0.35s ease;
+
         z-index: 2000;
+
         padding: 20px;
-        box-sizing: border-box;
+
+        display: flex;
+        flex-direction: column;
+
+        border-right: 1px solid rgba(155, 107, 255, 0.2);
+      }
+      .menu-bottom {
+        margin-top: auto;
       }
 
       .sidebar.open {
         transform: translateX(0);
-      }
-
-      .sidebar .close-btn {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 22px;
-        cursor: pointer;
       }
 
       .sidebar h2 {
@@ -77,20 +235,18 @@
       }
 
       .sidebar ul li a {
-        color: #fff;
+        color: rgba(255, 255, 255, 0.85);
         text-decoration: none;
-        font-size: 16px;
       }
 
       .sidebar ul li a:hover {
-        text-decoration: underline;
+        color: white;
       }
 
-      /* ===== OVERLAY ===== */
       .sidebar-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.4);
+        background: rgba(0, 0, 0, 0.45);
         z-index: 1500;
         display: none;
       }
@@ -98,200 +254,11 @@
       .sidebar-overlay.active {
         display: block;
       }
-      /* Animation du background */
-      body {
-        background: linear-gradient(135deg, #a9c7f7, #e4bdf5);
-        background-size: 400% 400%;
-        animation: gradientBG 25s ease infinite;
-        margin: 0;
-        font-family: sans-serif;
+      .sidebar .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
       }
-
-      @keyframes gradientBG {
-        0% {
-          background-position: 0% 50%;
-        }
-        50% {
-          background-position: 100% 50%;
-        }
-        100% {
-          background-position: 0% 50%;
-        }
-      }
-
-      /* Conteneur principal */
-      .content-wrapper {
-        max-width: 1100px;
-        margin: 70px auto 0 auto;
-        padding: 0 20px 120px 20px; /* espace pour footer */
-        box-sizing: border-box;
-      }
-
-      /* Titre de section */
-      .section-title {
-        font-size: 26px;
-        font-weight: 700;
-        margin-bottom: 20px;
-        text-align: center;
-      }
-
-      /* Carte réactive */
-      .map-container {
-        width: 100%;
-        max-width: 1100px;
-        height: 60vh; /* 60% de la hauteur de la fenêtre */
-        min-height: 350px; /* jamais trop petite */
-        border-radius: 25px;
-        overflow: hidden;
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
-        margin: 0 auto 40px auto; /* centrage et espace */
-        transition: height 0.3s ease;
-      }
-
-      /* Footer fixe */
-      .bottom-banner {
-        text-align: center;
-        padding: 16px;
-        background: rgba(0, 0, 0, 0.65);
-        font-size: 14px;
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
-      }
-
-      /* Logo et texte */
-      .logo-text {
-        font-size: 28px;
-        font-weight: 700;
-        background: linear-gradient(270deg, #659cef, #d194ed, #8fbafc);
-        background-size: 400% 400%;
-        background-clip: text;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: gradientBG 30s ease infinite;
-      }
-
-      /* ==========================
-RESPONSIVE MOBILE PRO (SaaS)
-========================= */
-      @media (max-width: 768px) {
-        /* ---------- BOUTON MENU FLOTTANT ---------- */
-        .menu-toggle {
-          top: 80px;
-          left: 18px;
-          width: 50px;
-          height: 50px;
-          font-size: 24px;
-        }
-
-        /* ---------- SIDEBAR ---------- */
-        .sidebar {
-          width: 220px;
-          padding: 18px;
-        }
-
-        .sidebar h2 {
-          font-size: 18px;
-          margin-top: 30px;
-          margin-bottom: 25px;
-        }
-
-        .sidebar ul li a {
-          font-size: 15px;
-        }
-
-        .sidebar .close-btn {
-          font-size: 20px;
-          top: 12px;
-          right: 12px;
-        }
-
-        /* ---------- CONTENU PRINCIPAL ---------- */
-        .content-wrapper {
-          padding: 0 16px 100px 16px;
-        }
-
-        /* ---------- TITRES DE SECTION ---------- */
-        .section-title {
-          font-size: 22px;
-        }
-
-        /* ---------- MAP ---------- */
-        .map-container {
-          height: 50vh;
-        }
-
-        /* ---------- FOOTER ---------- */
-        .bottom-banner {
-          padding: 14px;
-          font-size: 13px;
-        }
-
-        /* ---------- LOGO TEXTE ---------- */
-        .logo-text {
-          font-size: 24px;
-        }
-      }
-
-      @media (max-width: 480px) {
-        /* ---------- BOUTON MENU FLOTTANT ---------- */
-        .menu-toggle {
-          top: 70px;
-          left: 16px;
-          width: 48px;
-          height: 48px;
-          font-size: 22px;
-        }
-
-        /* ---------- SIDEBAR ---------- */
-        .sidebar {
-          width: 75%; /* occupe 3/4 de l'écran */
-          padding: 16px;
-        }
-
-        .sidebar h2 {
-          font-size: 16px;
-          margin-top: 25px;
-          margin-bottom: 20px;
-        }
-
-        .sidebar ul li a {
-          font-size: 14px;
-        }
-
-        .sidebar .close-btn {
-          font-size: 18px;
-          top: 10px;
-          right: 10px;
-        }
-
-        /* ---------- CONTENU PRINCIPAL ---------- */
-        .content-wrapper {
-          padding: 0 12px 90px 12px;
-        }
-
-        /* ---------- TITRES DE SECTION ---------- */
-        .section-title {
-          font-size: 20px;
-        }
-
-        /* ---------- MAP ---------- */
-        .map-container {
-          height: 40vh;
-          min-height: 200px;
-          border-radius: 16px;
-        }
-
-        /* ---------- FOOTER ---------- */
-        .bottom-banner {
-          padding: 12px;
-          font-size: 12px;
-        }
-
-        /* ---------- LOGO TEXTE ---------- */
-        .logo-text {
-          font-size: 22px;
-        }
-      }
-
       .sidebar {
         display: flex;
         flex-direction: column;
@@ -342,6 +309,307 @@ RESPONSIVE MOBILE PRO (SaaS)
       .home-link:hover svg path:last-child {
         transform: translateX(-3px); /* flèche qui rentre un peu plus */
       }
+
+      /* ================================
+LAYOUT
+================================ */
+
+      .content-wrapper {
+        max-width: 1300px;
+        margin: 70px auto 120px auto;
+        padding: 0 20px;
+      }
+
+      /* ================================
+HEADER CARTE (ULTRA PREMIUM)
+================================ */
+
+      .map-header {
+        text-align: center;
+
+        background: linear-gradient(135deg, #4f7cff, #9b6bff, #d194ed);
+        color: white;
+
+        padding: 26px;
+        border-radius: 24px;
+
+        margin-bottom: 30px;
+
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+
+        position: relative;
+        overflow: hidden;
+      }
+
+      .map-header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 4px;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.25);
+      }
+
+      .map-title {
+        font-size: 24px;
+        font-weight: 700;
+      }
+
+      .map-subtitle {
+        margin-top: 8px;
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      /* ================================
+CARTE CONTAINER (BOOST)
+================================ */
+
+      .map-container {
+        width: 100%;
+        height: 65vh;
+
+        border-radius: 28px;
+
+        overflow: hidden;
+
+        box-shadow:
+          0 25px 80px rgba(0, 0, 0, 0.12),
+          0 0 0 1px rgba(79, 124, 255, 0.08);
+
+        position: relative;
+      }
+
+      /* gradient top line */
+      .map-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+
+        background: linear-gradient(90deg, #4f7cff, #9b6bff, #d194ed);
+        z-index: 1000;
+      }
+
+      /* ================================
+FILTRES (PRÊTS POUR PLUS TARD)
+================================ */
+
+      .filters-bar {
+        margin-top: 20px;
+
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .filter {
+        padding: 10px 18px;
+        border-radius: 999px;
+
+        background: white;
+
+        border: 1px solid rgba(0, 0, 0, 0.08);
+
+        font-size: 14px;
+        cursor: pointer;
+
+        transition: all 0.25s ease;
+      }
+
+      .filter:hover {
+        background: linear-gradient(135deg, #4f7cff, #9b6bff);
+        color: white;
+      }
+
+      /* ================================
+DATA PANEL BAS (ULTRA PRO)
+================================ */
+
+      .map-data-panel {
+        margin-top: 30px;
+
+        display: flex;
+        gap: 20px;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+
+      .data-card {
+        flex: 1;
+        min-width: 220px;
+
+        background: white;
+        border-radius: 20px;
+
+        padding: 20px;
+
+        box-shadow:
+          0 10px 30px rgba(0, 0, 0, 0.06),
+          0 0 0 1px rgba(0, 0, 0, 0.04);
+
+        text-align: center;
+      }
+
+      .data-card h3 {
+        font-size: 14px;
+        margin-bottom: 10px;
+        opacity: 0.7;
+      }
+
+      .data-card p {
+        font-size: 22px;
+        font-weight: 700;
+
+        background: linear-gradient(135deg, #4f7cff, #9b6bff);
+        -webkit-background-clip: text;
+        background-clip: text;
+
+        color: transparent;
+      }
+      /* ================================
+FILTRES DASHBOARD PRO
+================================ */
+
+      .filters-dashboard {
+        margin-top: 25px;
+        padding: 25px;
+
+        background: white;
+        border-radius: 22px;
+
+        box-shadow:
+          0 15px 40px rgba(0, 0, 0, 0.06),
+          0 0 0 1px rgba(0, 0, 0, 0.04);
+      }
+
+      .filters-title {
+        background: linear-gradient(135deg, #4f7cff, #9b6bff);
+        -webkit-background-clip: text;
+        background-clip: text;
+
+        color: transparent;
+      }
+
+      .filters-grid {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      /* Groupe */
+      .filter-group {
+        flex: 1;
+        min-width: 180px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      /* Labels */
+      .filter-group label {
+        font-size: 13px;
+        opacity: 0.7;
+      }
+
+      /* Inputs */
+      .filter-group input,
+      .filter-group select {
+        padding: 10px 12px;
+
+        border-radius: 10px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+
+        font-size: 14px;
+
+        transition: all 0.2s ease;
+      }
+
+      .filter-group input:focus,
+      .filter-group select:focus {
+        outline: none;
+        border-color: #7a5fff;
+        box-shadow: 0 0 0 3px rgba(122, 95, 255, 0.1);
+      }
+
+      /* Range stylé */
+      input[type="range"] {
+        padding: 0;
+      }
+
+      /* Score value */
+      #scoreValue {
+        font-size: 12px;
+        opacity: 0.6;
+      }
+
+      /* Bouton reset */
+      .reset-group {
+        justify-content: flex-end;
+      }
+
+      #resetFilters {
+        margin-top: auto;
+
+        padding: 10px 16px;
+        border-radius: 10px;
+
+        border: none;
+        cursor: pointer;
+
+        background: linear-gradient(135deg, #ff5f6d, #ff9966);
+        color: white;
+
+        font-size: 13px;
+
+        transition: all 0.25s ease;
+      }
+
+      #resetFilters:hover {
+        transform: translateY(-2px);
+      }
+
+      /* ================================
+FOOTER
+================================ */
+
+      .bottom-banner {
+        text-align: center;
+        padding: 16px;
+
+        background: rgba(0, 0, 0, 0.65);
+
+        font-size: 14px;
+
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        color: white;
+      }
+
+      /* ================================
+RESPONSIVE
+================================ */
+
+      @media (max-width: 768px) {
+        .map-container {
+          height: 50vh;
+        }
+
+        .map-header {
+          padding: 20px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .map-container {
+          height: 42vh;
+          border-radius: 18px;
+        }
+      }
     </style>
   </head>
 
@@ -388,6 +656,8 @@ RESPONSIVE MOBILE PRO (SaaS)
     </nav>
 
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- ===== HEADER ===== -->
     <header class="top-banner">
       <div class="logo-container">
         <img src="images/logo.png" class="logo-img" />
@@ -395,17 +665,73 @@ RESPONSIVE MOBILE PRO (SaaS)
       </div>
     </header>
 
+    <!-- ===== CONTENU ===== -->
     <main class="content-wrapper">
-      <div class="section-title">
-        🗺️ Carte Géographique des Matchs (30 meilleurs profils)
+      <!-- NOUVEAU HEADER MAP PREMIUM -->
+      <div class="map-header">
+        <div class="map-title">🗺️ Carte des 30 meilleurs matchs</div>
+        <div class="map-subtitle">Analyse géographique en temps réel</div>
       </div>
+
+      <!-- MAP -->
       <div id="map" class="map-container"></div>
+
+      <!-- PANEL DATA PREMIUM -->
+      <div class="map-data-panel">
+        <div class="data-card">
+          <h3>Matchs affichés</h3>
+          <p>30</p>
+        </div>
+        <div class="data-card">
+          <h3>Score moyen</h3>
+          <p>74%</p>
+        </div>
+        <div class="data-card">
+          <h3>Zone dominante (ville avec le + de matchs)</h3>
+          <p>Île-de-France</p>
+        </div>
+      </div>
+      <div class="filters-dashboard">
+        <div class="filters-title">Filtres avancés</div>
+
+        <div class="filters-grid">
+          <!-- Score -->
+          <div class="filter-group">
+            <label>Score minimum</label>
+            <input type="range" id="filterScore" min="0" max="100" value="0" />
+            <span id="scoreValue">0%</span>
+          </div>
+
+          <!-- Type -->
+          <div class="filter-group">
+            <label>Type de bien</label>
+            <select id="filterType">
+              <option value="all">Tous</option>
+              <option value="appartement">Appartement</option>
+              <option value="maison">Maison</option>
+            </select>
+          </div>
+
+          <!-- Budget -->
+          <div class="filter-group">
+            <label>Budget max (€)</label>
+            <input type="number" id="filterBudget" placeholder="Ex: 500000" />
+          </div>
+
+          <!-- Bouton reset -->
+          <div class="filter-group reset-group">
+            <button id="resetFilters">Réinitialiser</button>
+          </div>
+        </div>
+      </div>
     </main>
 
+    <!-- ===== FOOTER ===== -->
     <footer class="bottom-banner">
       © Mon AiGENT Immobilier - Tous droits réservés
     </footer>
 
+    <!-- ===== SCRIPTS MAP ===== -->
     <link rel="stylesheet" href="/leaflet/MarkerCluster.css" />
     <link rel="stylesheet" href="/leaflet/MarkerCluster.Default.css" />
     <script src="/leaflet/leaflet.js"></script>

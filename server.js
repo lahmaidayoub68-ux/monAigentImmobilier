@@ -27,7 +27,7 @@ import {
   SELLERS,
   BUYERS,
 } from "./services/matchingEngine.js";
-
+import { getDepartement } from "./services/matchingEngine.js";
 import { seedProfiles } from "./services/seedProfiles.js";
 
 dotenv.config();
@@ -44,7 +44,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 // ================== VILLES ==================
 const villes = JSON.parse(
   fs.readFileSync(
-    path.join(__dirname, "./services/villes_simplifie.json"),
+    path.join(__dirname, "./services/villes-france.json"),
     "utf-8",
   ),
 );
@@ -66,48 +66,80 @@ app.disable("x-powered-by");
 app.use(cors({ origin: true, credentials: true }));
 app.use(
   helmet({
+    // 🔥 IMPORTANT pour Leaflet + tiles externes
     crossOriginResourcePolicy: false,
+
+    // 🔥 FIX PRINCIPAL → autorise l'envoi du Referer à OSM
+    referrerPolicy: {
+      policy: "strict-origin-when-cross-origin",
+    },
+
     contentSecurityPolicy: {
-      useDefaults: true, // conserve les règles par défaut
+      useDefaults: true,
+
       directives: {
-        // Source par défaut pour tout
+        // ==========================
+        // BASE
+        // ==========================
         defaultSrc: ["'self'"],
 
-        // Autoriser scripts locaux, inline, eval, et CDNs connus
+        // ==========================
+        // SCRIPTS
+        // ==========================
         scriptSrc: [
           "'self'",
-          "'unsafe-inline'",
-          "'unsafe-eval'",
+          "'unsafe-inline'", // ⚠️ nécessaire si tu as du JS inline
+          "'unsafe-eval'", // ⚠️ à retirer si possible en prod
+          "https://cdn.jsdelivr.net",
+          "https://cdnjs.cloudflare.com",
+          "https://unpkg.com",
+        ],
+
+        // ==========================
+        // STYLES
+        // ==========================
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'", // Leaflet en a besoin
           "https://cdn.jsdelivr.net",
           "https://cdnjs.cloudflare.com",
         ],
 
-        // Autoriser styles locaux et inline
-        styleSrc: ["'self'", "'unsafe-inline'"],
-
-        // Autoriser images locales, data URI, blobs et certaines sources externes
+        // ==========================
+        // IMAGES (CRITIQUE POUR OSM)
+        // ==========================
         imgSrc: [
           "'self'",
           "data:",
           "blob:",
           "https://*.tile.openstreetmap.org",
           "https://api.dicebear.com",
+          "https://unpkg.com",
         ],
 
-        // Connexions autorisées pour fetch / websocket / fonts
-        // ⚠️ Ajouter la font self-hostée ou un domaine externe si nécessaire
+        // ==========================
+        // FETCH / API / SOCKETS
+        // ==========================
         connectSrc: [
           "'self'",
           "https://threejs.org",
           "https://api.languagetoolplus.com",
+          "https://unpkg.com",
         ],
 
-        // Autoriser fonts locales ou base64
+        // ==========================
+        // FONTS
+        // ==========================
         fontSrc: ["'self'", "data:"],
 
-        // Autres directives possibles selon besoins
+        // ==========================
+        // AUTRES
+        // ==========================
         frameSrc: ["'self'"],
         objectSrc: ["'none'"],
+
+        // 🔥 BONUS sécurité moderne
+        upgradeInsecureRequests: [],
       },
     },
   }),
@@ -218,6 +250,7 @@ allUsers.forEach((u) => {
     budgetMin: u.budgetMin ?? u.budget ?? 0,
     budgetMax: u.budgetMax ?? u.budget ?? 0,
     piecesMin: u.piecesMin ?? 0,
+    departement: getDepartement(u.ville),
     piecesMax: u.piecesMax ?? Infinity,
     surfaceMin: u.surfaceMin ?? 0,
     surfaceMax: u.surfaceMax ?? Infinity,
@@ -915,21 +948,27 @@ app.get("/api/messages", authenticateToken, (req, res) => {
     const messages = db
       .prepare(
         `
-
 SELECT
 m.id,
 m.sender_id,
 m.receiver_id,
+
 su.username AS sender,
 su.contact AS senderEmail,
+su.avatar AS senderAvatar,
+
 ru.username AS receiver,
 ru.contact AS receiverEmail,
+ru.avatar AS receiverAvatar,
+
 m.subject,
 m.body,
 m.timestamp
+
 FROM messages m
 JOIN users su ON m.sender_id = su.id
 JOIN users ru ON m.receiver_id = ru.id
+
 WHERE m.receiver_id = ? OR m.sender_id = ?
 ORDER BY m.timestamp ASC
 `,

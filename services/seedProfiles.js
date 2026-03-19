@@ -1,13 +1,12 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-
 // === Chemin absolu du fichier courant ===
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const villesData = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "villes_simplifie.json"), "utf-8"),
+  fs.readFileSync(path.join(__dirname, "villes-france.json"), "utf-8"),
 );
 
 import {
@@ -43,9 +42,10 @@ export function seedProfiles(count = 50) {
   const sellersData = [];
   const buyersData = [];
 
-  // ===== VENDEURS EN MEMOIRE =====
+  // ===== VENDEURS =====
   for (let i = 1; i <= count; i++) {
-    const villeObj = randomChoice(villesData); // { ville, lat, lng }
+    const villeObj = randomChoice(villesData);
+
     const type = randomChoice(types);
     const price = randomInt(100_000, 1_000_000);
     const surface = randomInt(20, 200);
@@ -54,18 +54,26 @@ export function seedProfiles(count = 50) {
 
     sellersData.push({
       username: `seller${i}`,
+
       ville: villeObj.ville,
+      region: villeObj.ville,
+
+      // ✅ AJOUTS
+      departement: villeObj.departement,
+      code: villeObj.code,
+
       type: normalize(type),
       price,
       surface,
       pieces,
       contact,
+
       lat: villeObj.lat,
       lng: villeObj.lng,
     });
   }
 
-  // ===== ACHETEURS EN MEMOIRE =====
+  // ===== ACHETEURS =====
   for (let i = 1; i <= count; i++) {
     const villeObj = randomChoice(villesData);
     const type = randomChoice(types);
@@ -86,7 +94,14 @@ export function seedProfiles(count = 50) {
 
     buyersData.push({
       username: `buyer${i}`,
-      ville: normalize(villeObj.ville),
+
+      ville: villeObj.ville,
+      region: villeObj.ville,
+
+      // ✅ AJOUTS
+      departement: villeObj.departement,
+      code: villeObj.code,
+
       type: normalize(type),
       budgetMin,
       budgetMax,
@@ -95,15 +110,15 @@ export function seedProfiles(count = 50) {
       pieces,
       surface,
       contact,
+
       lat: villeObj.lat,
       lng: villeObj.lng,
     });
   }
 
-  // ===== AJOUT DES VENDEURS =====
+  // ===== AJOUT EN BASE =====
   const sellers = sellersData.map((s) => addSeller(s));
 
-  // ===== AJOUT DES ACHETEURS =====
   const buyers = buyersData.map((b) => {
     const buyer = addBuyer(b);
 
@@ -113,4 +128,6 @@ export function seedProfiles(count = 50) {
 
     return buyer;
   });
+
+  console.log("✅ Seed terminé.");
 }

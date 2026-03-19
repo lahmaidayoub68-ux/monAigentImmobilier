@@ -270,7 +270,9 @@ async function renderMatches(matches, postReply) {
     const bubble = document.createElement("div");
     bubble.className = "bubble match-card";
 
-    const villeLabel = m.villeOriginal || m.ville || "Ville inconnue";
+    const ville = m.villeOriginal || m.ville || "Ville inconnue";
+    const dep = m.departement ? ` (${m.departement})` : "";
+    const villeLabel = ville + dep;
     const piecesLabel =
       (m.pieces ?? m.piecesMin)
         ? `${m.pieces ?? m.piecesMin} pièces`
@@ -368,7 +370,10 @@ async function renderMatches(matches, postReply) {
           },
           body: JSON.stringify(enrichedMatch),
         });
-        if (res.ok) favBtn.style.color = "gold";
+        if (res.ok) {
+          favBtn.textContent = "★";
+          favBtn.style.color = "#0f08e1";
+        }
       } catch (err) {
         console.error(err);
       }
