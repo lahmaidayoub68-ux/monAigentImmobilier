@@ -343,6 +343,7 @@ async function renderMatches(matches, postReply) {
           data-lng="${m.lng ?? m.buyerLng ?? 2.3522}"
           data-buyer-lat="${m.buyerLat ?? 48.8566}"
           data-buyer-lng="${m.buyerLng ?? 2.3522}"
+          data-tolerance="${state.criteria.toleranceKm ?? 0}"
           data-ville="${villeLabel}">
           Voir la carte
         </button>
@@ -454,6 +455,16 @@ async function renderMatches(matches, postReply) {
 
       const group = new L.featureGroup([userMarker, profileMarker]);
       map.fitBounds(group.getBounds().pad(0.2));
+      const tolerance = parseFloat(btn.dataset.tolerance || 0);
+
+      if (tolerance > 0) {
+        L.circle([userLat, userLng], {
+          radius: tolerance * 1000,
+          color: "#6c5ce7",
+          fillColor: "#a29bfe",
+          fillOpacity: 0.15,
+        }).addTo(map);
+      }
 
       document.getElementById("closeModal").onclick = () => {
         modal.style.display = "none";

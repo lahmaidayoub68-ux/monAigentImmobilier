@@ -178,13 +178,13 @@ export function addBuyer(criteria = {}) {
     (b) => b.username === criteria.username,
   );
 
-  const villeData = villesMap.get(normalize(criteria.ville));
-
   const budget = criteria.budget != null ? Number(criteria.budget) : null;
   const budgetMin =
     criteria.budgetMin != null ? Number(criteria.budgetMin) : (budget ?? 0);
   const budgetMax =
     criteria.budgetMax != null ? Number(criteria.budgetMax) : budgetMin;
+  const toleranceKm =
+    criteria.toleranceKm != null ? Number(criteria.toleranceKm) : 0; //
 
   const buyer = {
     id: existingIndex >= 0 ? BUYERS[existingIndex].id : NEXT_BUYER_ID++,
@@ -200,6 +200,7 @@ export function addBuyer(criteria = {}) {
     budget,
     budgetMin,
     budgetMax,
+    toleranceKm,
 
     piecesMin: Number(criteria.piecesMin ?? 0),
     piecesMax: Math.min(Number(criteria.piecesMax ?? MAX_PIECES), MAX_PIECES),

@@ -109,6 +109,7 @@ Tu enregistres uniquement ces critères :
 - budgetMin
 - piecesMin
 - espaceMin
+- toleranceKm
 
 Règles générales :
 - Si l’utilisateur donne une valeur unique, tu l’enregistres comme minimum.
@@ -151,6 +152,12 @@ ${JSON.stringify(matchingProfiles, null, 2)}
 - Tu n’inventes jamais d’informations.
 - Tu ne modifies pas les critères sauf demande explicite.
 
+La tolérance autour de la ville (toleranceKm) :
+- uniquement pour les acheteurs
+- elle correspond à une distance maximale autour de la ville en kilomètres
+- tu poses cette question uniquement après avoir obtenu la ville
+- exemple de question naturelle :
+"Quel rayon maximum autour de cette ville vous conviendrait ? (en km)"
 ────────────────────────
 STYLE
 ────────────────────────
@@ -169,13 +176,14 @@ Tu réponds toujours avec :
 {
   "message": "message naturel et humain",
   "criteria": {
-    "intent": null,
-    "type": null,
-    "ville": null,
-    "budgetMin": null,
-    "piecesMin": null,
-    "espaceMin": null
-  }
+  "intent": null,
+  "type": null,
+  "ville": null,
+  "toleranceKm": null,
+  "budgetMin": null,
+  "piecesMin": null,
+  "espaceMin": null
+}
 }
 - Les critères doivent conserver les valeurs existantes.
 - Ne modifier que ce que l’utilisateur dit explicitement.
@@ -210,9 +218,16 @@ Message utilisateur :
 
     if (raw.criteria && typeof raw.criteria === "object") {
       for (const key of Object.keys(raw.criteria)) {
-        if (["budgetMin", "piecesMin", "espaceMin"].includes(key)) {
+        if (
+          ["budgetMin", "piecesMin", "espaceMin", "toleranceKm"].includes(key)
+        ) {
           const n = normalizeNumber(raw.criteria[key]);
-          if (n !== undefined) normalized[key] = n;
+          // ✅ Nouveau fix pour toleranceKm
+          if (key === "toleranceKm") {
+            if (n !== undefined && n > 0) normalized[key] = n;
+          } else {
+            if (n !== undefined) normalized[key] = n;
+          }
         } else {
           normalized[key] = raw.criteria[key];
         }

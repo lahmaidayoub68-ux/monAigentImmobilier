@@ -522,6 +522,7 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
 
     const normalized = {
       type: session.criteria.type ? normalize(session.criteria.type) : "",
+      toleranceKm: parseNumber(session.criteria.toleranceKm, 0),
       ville: session.criteria.ville ? normalize(session.criteria.ville) : "",
       piecesMin: parseNumber(session.criteria.piecesMin, 0),
       piecesMax: parseNumber(session.criteria.piecesMax, Infinity),
