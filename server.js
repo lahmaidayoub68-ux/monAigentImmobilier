@@ -1355,43 +1355,45 @@ if (!tableInfo.find((col) => col.name === "avatar")) {
   ).run();
 }
 app.post("/api/support", async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
+  console.log("[SUPPORT] Requête reçue");
 
+  try {
+    console.log("[SUPPORT] Headers reçus :", req.headers);
+
+    const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.warn("[SUPPORT] Token manquant");
       return res.status(401).json({ error: "Token manquant" });
     }
 
+    console.log("[SUPPORT] Authorization header :", authHeader);
+
     const token = authHeader.split(" ")[1];
+    console.log("[SUPPORT] Token extrait :", token);
 
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
+      console.log(
+        "[SUPPORT] Token valide pour :",
+        decoded.username,
+        "Role :",
+        decoded.role,
+      );
     } catch (err) {
+      console.error("[SUPPORT] Token invalide :", err);
       return res.status(401).json({ error: "Token invalide" });
     }
 
-    const { subject, message } = req.body;
+    console.log("[SUPPORT] Body reçu :", req.body);
 
+    const { subject, message } = req.body;
     if (!subject || !message) {
+      console.warn("[SUPPORT] Sujet ou message manquant");
       return res.status(400).json({ error: "Sujet et message obligatoires" });
     }
 
-    // 🔥 TRANSPORTER GMAIL
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.GMAIL_USER, // ton email
-        pass: process.env.GMAIL_PASS, // mot de passe d'application
-      },
-    });
-
-    // 🔥 EMAIL ENVOYÉ À TOI
-    await transporter.sendMail({
-      from: `"Support Site" <${process.env.GMAIL_USER}>`,
-      to: process.env.GMAIL_USER, // TU REÇOIS LE MESSAGE
-      subject: `📩 Support - ${subject}`,
-      text: `
+    const emailContent = `
 Nouveau message support :
 
 Utilisateur : ${decoded.username}
@@ -1401,19 +1403,54 @@ Sujet : ${subject}
 
 Message :
 ${message}
-      `,
-    });
+    `;
 
-    return res.status(200).json({
-      success: true,
-      message: "Message envoyé au développeur",
-    });
+    console.log("[SUPPORT] Contenu email préparé :", emailContent);
+
+    // ===== ENVOI GMAIL UNIQUEMENT =====
+    try {
+      console.log("[SUPPORT] Tentative envoi via Gmail...");
+
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_PASS,
+        },
+      });
+
+      const mailOptions = {
+        from: `"Support Site" <${process.env.GMAIL_USER}>`,
+        to: process.env.GMAIL_USER,
+        subject: `📩 Support - ${subject}`,
+        text: emailContent,
+      };
+
+      console.log("[SUPPORT] MailOptions :", mailOptions);
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log("[SUPPORT] Email envoyé avec succès :", info);
+
+      return res.status(200).json({
+        success: true,
+        message: "Message envoyé au développeur",
+      });
+    } catch (gmailErr) {
+      console.error("[SUPPORT] Envoi Gmail échoué :", gmailErr);
+      console.error("[SUPPORT] Stack trace :", gmailErr.stack);
+
+      return res.status(500).json({
+        error: "Impossible d'envoyer le message (Gmail)",
+        details: gmailErr.message,
+      });
+    }
   } catch (err) {
-    console.error("[SUPPORT ROUTE ERROR]", err);
-    res.status(500).json({ error: "Erreur serveur" });
+    console.error("[SUPPORT] ERREUR INATTENDUE :", err);
+    console.error("[SUPPORT] Stack trace :", err.stack);
+    res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
 });
-// RESET //
+//Reset//
 resetProfiles();
 seedProfiles(50);
 // ================== START ==================

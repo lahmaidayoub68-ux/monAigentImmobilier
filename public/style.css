@@ -1,19 +1,15 @@
-/* ==========================
-VARIABLES
-========================= */
 :root {
-  --primary: #0d47a1;
-  --secondary: #e91e63;
-  --cyan: #00bcd4;
+  --bg: #ffffff;
+  --card: rgba(255, 255, 255, 0.05);
+  --border: rgba(0, 0, 0, 0.08);
   --text: #ffffff;
-  --card-bg: rgba(255, 255, 255, 0.08);
-  --banner-bg: rgba(0, 0, 0, 0.9);
-  --btn-gradient: linear-gradient(90deg, #87cefa, #ffb6c1);
+  --muted: rgba(255, 255, 255, 0.65);
+
+  --gradient: linear-gradient(135deg, #4facfe, #7b2ff7);
+  --subtle-gradient: linear-gradient(135deg, #4facfe, #7b2ff7);
 }
 
-/* ==========================
-RESET + GLOBAL
-========================= */
+/* RESET */
 * {
   margin: 0;
   padding: 0;
@@ -22,452 +18,385 @@ RESET + GLOBAL
 }
 
 body {
-  display: flex;
-  flex-direction: column;
+  background: var(--bg);
   min-height: 100vh;
-  color: var(--text);
-  position: relative;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
 }
 
-/* ==========================
-SLIDESHOW BACKGROUND
-========================= */
-.slideshow {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -2;
-  overflow: hidden;
-}
-
-.slideshow img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* remplace background-size: cover */
-  object-position: center;
-  opacity: 0;
-  animation:
-    slideshow 30s infinite,
-    zoomSlow 30s infinite;
-  image-rendering: auto; /* pour éviter pixelisation */
-}
-
-.slideshow img:nth-child(1) {
-  animation-delay: 0s;
-}
-.slideshow img:nth-child(2) {
-  animation-delay: 7.5s;
-}
-.slideshow img:nth-child(3) {
-  animation-delay: 15s;
-}
-.slideshow img:nth-child(4) {
-  animation-delay: 22.5s;
-}
-
-@keyframes slideshow {
-  0% {
-    opacity: 0;
-  }
-  5% {
-    opacity: 1;
-  }
-  25% {
-    opacity: 1;
-  }
-  30% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes zoomSlow {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.03);
-  }
-}
-
-/* Overlay sombre */
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.35);
-  z-index: -1;
-}
-
-/* ==========================
-MAIN CONTENT
-========================= */
-main {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  position: relative;
-  z-index: 1;
-}
-
-.section {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 40px;
-  max-width: 500px;
-  margin: auto;
-}
-
-/* ==========================
-CARDS
-========================= */
-.card {
-  width: 100%;
-  background: var(--card-bg);
-  padding: 32px;
-  border-radius: 20px;
-  backdrop-filter: blur(15px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
-  transition:
-    transform 0.4s ease,
-    box-shadow 0.4s ease,
-    background 0.3s ease,
-    opacity 0.4s ease;
-  opacity: 0;
-  animation: fadeInUp 0.8s forwards;
-}
-
-.card:nth-child(1) {
-  animation-delay: 0.2s;
-}
-.card:nth-child(2) {
-  animation-delay: 0.4s;
-}
-
-@keyframes fadeInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.card h2 {
-  margin-bottom: 20px;
-  font-size: 24px;
-  text-align: center;
-}
-
-.card form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.card input,
-.card select {
-  padding: 12px;
-  border: none;
-  border-radius: 12px;
-  outline: none;
-  font-size: 15px;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text);
-}
-
-.card input:hover,
-.card select:hover {
-  transform: scale(1.02) translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-}
-
-.card input:focus,
-.card select:focus {
-  transform: scale(1.02);
-  box-shadow:
-    0 6px 20px rgba(0, 0, 0, 0.5),
-    0 0 8px var(--cyan);
-  background: rgba(255, 255, 255, 0.12);
-}
-
-/* ==========================
-BUTTONS
-========================= */
-.btn-primary {
-  background: var(--btn-gradient);
-  border: none;
-  color: #000;
-  font-weight: 600;
-  padding: 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition:
-    opacity 0.3s ease,
-    transform 0.2s ease,
-    box-shadow 0.3s ease;
-}
-.btn-primary:hover {
-  opacity: 0.9;
-  transform: scale(1.03);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
-}
-.btn-primary::after {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: rgba(255, 255, 255, 0.1);
-  transform: rotate(45deg) translate(-100%, -100%);
-  transition: transform 0.5s ease;
-}
-.btn-primary:hover::after {
-  transform: rotate(45deg) translate(100%, 100%);
-}
-
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: var(--text);
-  font-weight: 600;
-  padding: 10px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition:
-    opacity 0.3s ease,
-    transform 0.2s ease,
-    box-shadow 0.3s ease;
-}
-.btn-secondary:hover {
-  opacity: 0.9;
-  transform: scale(1.03);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
-/* ==========================
-HEADER
-========================= */
-.top-banner {
-  background: var(--banner-bg);
-  padding: 16px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  text-align: center;
-}
-
+/* LOGO */
 .logo-container {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
+  gap: 12px;
+  z-index: 3;
 }
 
 .logo-img {
-  width: 60px;
+  width: 55px;
   height: auto;
-  transition: transform 0.4s ease;
 }
 
-.logo-container:hover .logo-img {
-  transform: translateY(-2px) scale(1.02);
+/* ================= CONTAINER ================= */
+.container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  position: relative;
+  background: white;
+  overflow: hidden;
 }
 
-.logo-text {
+/* ================= LEFT PANEL ================= */
+.left-panel {
+  position: relative;
+
+  /* 🔥 dépasse encore + pour effet pro */
+  width: 118%;
+  z-index: 2;
+
+  padding: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 60px;
+
+  color: white;
+
+  /* 🔥 IMAGE PLUS LUMINEUSE */
+  background:
+    linear-gradient(rgba(10, 15, 30, 0.45), rgba(10, 15, 30, 0.55)),
+    url("/images/login.png");
+
+  background-size: cover;
+  background-position: center 35%;
+  background-repeat: no-repeat;
+
+  /* 🔥 TRIANGLE ULTRA PRO (plus agressif + descente marquée) */
+  clip-path: polygon(0 0, 95% 0, 68% 100%, 0% 100%);
+
+  overflow: hidden;
+}
+
+/* 🔥 GLOW SUBTIL SUR L’IMAGE */
+.left-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background: radial-gradient(
+    circle at 70% 80%,
+    rgba(79, 172, 254, 0.25),
+    transparent 60%
+  );
+
+  z-index: 1;
+}
+
+/* 🔥 OMBRE FORTE ET PRO (VISIBLE) */
+.left-panel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -80px;
+
+  width: 180px;
+  height: 100%;
+
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.45),
+    rgba(0, 0, 0, 0.25),
+    rgba(0, 0, 0, 0.1),
+    transparent
+  );
+
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* HEADER */
+.left-header h1 {
   font-size: 28px;
   font-weight: 700;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  z-index: 3;
 }
-.logo-text strong {
-  background: linear-gradient(
-    270deg,
-    var(--primary),
-    var(--cyan),
-    var(--secondary)
-  );
-  background-size: 800% 800%;
-  -webkit-background-clip: text;
-  background-clip: text;
+
+.left-header span {
+  background: var(--gradient);
+  -webkit-background: text;
   -webkit-text-fill-color: transparent;
-  color: transparent;
-  animation: gradientMove 25s ease infinite;
-  text-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
-  transition:
-    transform 0.3s ease,
-    opacity 0.3s ease;
 }
-.logo-text strong:hover {
+
+/* CONTENT */
+.left-content {
+  max-width: 420px;
+  z-index: 3;
+}
+
+.left-content h2 {
+  font-size: 36px;
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+
+.left-content p {
+  color: var(--muted);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.left-content ul {
+  list-style: none;
+}
+
+.left-content li {
+  margin-bottom: 12px;
+  color: var(--muted);
+  position: relative;
+  padding-left: 22px;
+}
+
+.left-content li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #7b2ff7;
+}
+
+/* ================= RIGHT PANEL ================= */
+/* Décalage léger du right-panel */
+.right-panel {
+  padding: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 30px;
+  background: #ffffff;
+  color: #000000;
+  z-index: 1;
+
+  /* 🔥 Décalage léger vers la droite pour coller au triangle */
+  transform: translateX(20px); /* ajuster la valeur si besoin */
+}
+/* CONTENU DROIT */
+.right-content {
+  width: 480px;
+}
+
+/* ================= CARDS PRO PREMIUM STRUCTURÉ ================= */
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 25px; /* espace entre les cards */
+  width: 100%;
+}
+
+.card {
+  display: flex;
+  flex-direction: column; /* chaque enfant (titre, p, form) bien en colonne */
+  gap: 18px; /* espace interne entre les éléments */
+
+  background: linear-gradient(
+    145deg,
+    rgba(20, 20, 30, 0.95),
+    rgba(35, 30, 45, 0.95)
+  ); /* fond sombre pro */
+
+  border: 1px solid rgba(80, 60, 120, 0.3);
+  padding: 30px;
+  border-radius: 20px;
+  backdrop-filter: blur(14px);
+  transition: 0.3s;
+  color: #c0bfff; /* texte violet-bleu clair */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(123, 47, 247, 0.4);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* Titres et textes internes */
+.card h2,
+.card h3,
+.card p,
+.card span {
+  color: #d3cfff; /* violet-bleu subtil */
+  margin: 0;
+}
+
+/* FORM STRUCTURE */
+.card form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* espace entre les champs */
+  width: 100%;
+}
+
+/* INPUT */
+.card input {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #ffffff; /* blanc pur */
+  color: #000000; /* texte noir */
+  transition: 0.2s;
+  width: 100%;
+}
+
+.card input:focus {
+  outline: none;
+  border-color: #7b2ff7;
+  box-shadow: 0 0 12px rgba(123, 47, 247, 0.35);
+}
+.card select {
+  appearance: none; /* pour Chrome, Safari */
+  -webkit-appearance: none;
+  -moz-appearance: none; /* pour Firefox */
+  background: #ffffff; /* blanc pur comme les inputs */
+  color: #000000;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  padding: 12px 40px 12px 12px; /* espace pour la flèche */
+  font-size: 14px;
+  transition: 0.2s;
+  width: 100%;
+  cursor: pointer;
+}
+.card select:focus {
+  outline: none;
+  border-color: #7b2ff7;
+  box-shadow: 0 0 12px rgba(123, 47, 247, 0.35);
+}
+.card select {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 140 140' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='20,50 70,100 120,50' stroke='%237b2ff7' stroke-width='15' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}
+
+/* INPUT AUTOFILL CONNECTÉ */
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px rgba(123, 47, 247, 0.1) inset;
+  -webkit-text-fill-color: #7b5fff;
+  transition: background-color 5000s ease-in-out;
+}
+
+input:-moz-autofill {
+  box-shadow: 0 0 0px 1000px rgba(123, 47, 247, 0.1) inset;
+  -moz-text-fill-color: #7b5fff;
+}
+
+.card input:focus:-webkit-autofill {
+  box-shadow: 0 0 12px rgba(123, 47, 247, 0.35) inset;
+}
+
+/* BUTTON */
+.btn-primary {
+  margin-top: 10px;
+  padding: 13px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #4facfe, #7b2ff7);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s;
+  box-shadow: 0 8px 20px rgba(123, 47, 247, 0.3);
+}
+
+.btn-primary:hover {
   transform: scale(1.05);
   opacity: 0.95;
+  box-shadow: 0 12px 30px rgba(123, 47, 247, 0.4);
 }
-
-@keyframes gradientMove {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+/* LIEN */
+.access-link {
+  background: var(--subtle-gradient);
+  -webkit-background: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+  text-decoration: none;
 }
-
-@media (max-width: 600px) {
-  .logo-container {
-    flex-direction: column;
-    gap: 8px;
-  }
-  .logo-text {
-    font-size: 22px;
-    text-align: center;
-  }
-  .logo-img {
-    width: 45px;
-  }
-}
-
-/* ==========================
-FOOTER
-========================= */
-footer {
-  text-align: center;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.7);
-  color: var(--text);
-  font-size: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.hidden {
+.btn-slide-right,
+.btn-slide-left {
   display: none;
 }
-/* ==========================
-MOBILE OPTIMIZATION
-========================= */
-@media (max-width: 600px) {
-  /* MAIN CONTENT */
-  main {
-    padding: 20px;
-  }
-
-  .section {
-    gap: 24px;
-    max-width: 90%;
-  }
-
-  /* CARDS */
-  .card {
-    padding: 24px;
-    border-radius: 16px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-  }
-
-  .card h2 {
-    font-size: 20px;
-    margin-bottom: 16px;
-  }
-
-  .card form {
-    gap: 12px;
-  }
-
-  .card input,
-  .card select {
-    padding: 10px;
-    font-size: 14px;
-  }
-
-  /* BUTTONS */
-  .btn-primary,
-  .btn-secondary {
-    font-size: 14px;
-    padding: 10px 14px;
-    min-height: 44px; /* ergonomie touch */
-    min-width: 44px;
-  }
-
-  /* HEADER / LOGO */
-  .logo-container {
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .logo-img {
-    width: 40px;
-  }
-
-  .logo-text {
-    font-size: 20px;
-    text-align: center;
-  }
-
-  /* SLIDESHOW */
-  .slideshow img {
-    animation: slideshow 30s infinite; /* supprime zoom pour CPU léger */
-  }
+/* ================= INPUT AUTOFILL CONNECTÉ ================= */
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px rgba(123, 47, 247, 0.1) inset; /* fond violet clair */
+  -webkit-text-fill-color: #7b5fff; /* texte mauve-violet sobre */
+  transition: background-color 5000s ease-in-out; /* éviter le flash jaune */
 }
 
-/* Très petits écrans <400px */
-@media (max-width: 400px) {
-  .card {
-    padding: 20px;
-    border-radius: 14px;
-  }
-
-  .card h2 {
-    font-size: 18px;
-  }
-
-  .card input,
-  .card select {
-    font-size: 13px;
-    padding: 8px;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    font-size: 13px;
-    padding: 8px 12px;
-  }
-
-  .logo-text {
-    font-size: 18px;
-  }
+/* Pour Firefox */
+input:-moz-autofill {
+  box-shadow: 0 0 0px 1000px rgba(123, 47, 247, 0.1) inset;
+  -moz-text-fill-color: #7b5fff;
 }
 
-/* Scroll fluide avec clavier sur mobile */
-main {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+/* Maintien du focus normal */
+.card input:focus:-webkit-autofill {
+  box-shadow: 0 0 12px rgba(123, 47, 247, 0.35) inset;
+}
+/* --------------------------
+FOOTER PREMIUM
+-------------------------- */
+.bottom-banner {
+  width: 100%;
+  text-align: center;
+  padding: 16px;
+
+  background: rgba(10, 10, 15, 0.72);
+  color: white;
+
+  font-size: 14px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.bottom-banner p {
+  color: white;
+  margin: 0;
+}
+@media (max-width: 900px) {
+  .container {
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .left-panel,
+  .right-panel {
+    position: relative !important;
+    width: 100% !important;
+    min-height: auto;
+    padding: 40px 20px;
+    transform: none !important;
+    z-index: auto;
+  }
+
+  .left-panel {
+    clip-path: none !important;
+    overflow: visible !important;
+  }
+
+  .left-panel::before,
+  .left-panel::after {
+    content: none !important;
+  }
+
+  .right-panel {
+    margin-top: 20px;
+  }
+
+  .right-content {
+    width: 100% !important;
+  }
+
+  .btn-slide-right,
+  .btn-slide-left {
+    display: none !important;
+  }
 }

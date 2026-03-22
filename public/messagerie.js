@@ -131,8 +131,14 @@ async function loadAllConversations() {
     }
 
     const msgs = Array.isArray(data) ? data : [];
-    console.log("MESSAGES:", msgs);
 
+    // RESET
+    Object.keys(messagesStore).forEach((k) => delete messagesStore[k]);
+    conversationStore.clear();
+
+    // ==========================
+    // REGROUPEMENT DES MESSAGES
+    // ==========================
     msgs.forEach((m) => {
       const pseudoNorm =
         m.sender.trim().toLowerCase() === currentUser
@@ -145,73 +151,86 @@ async function loadAllConversations() {
 
       if (m.senderEmail)
         userEmailStore[pseudoNorm] = m.senderEmail.trim().toLowerCase();
+
       receiverIdStore[pseudoNorm] =
         m.sender.trim().toLowerCase() === currentUser
           ? m.receiver_id
           : m.sender_id;
-      // <-- stocker receiverId
     });
 
-    const listContainer = document.querySelector(".conversations-list");
+    // ==========================
+    // TRI DES CONVERSATIONS
+    // ==========================
+    const recentes = [];
+    const anciennes = [];
 
     conversationStore.forEach((pseudo) => {
-      if (!document.querySelector(`.conversation[data-user='${pseudo}']`)) {
-        const convo = document.createElement("div");
-        convo.className = "conversation";
-        convo.dataset.user = pseudo;
+      const msgs = messagesStore[pseudo];
+      const lastMsg = msgs[msgs.length - 1];
 
-        const avatar = document.createElement("div");
-        avatar.className = "avatar";
+      const date = new Date(lastMsg.timestamp);
+      const now = new Date();
 
-        // 🔥 récupérer le dernier message
-        const latestMsg =
-          messagesStore[pseudo]?.[messagesStore[pseudo].length - 1];
+      const diffHours = (now - date) / (1000 * 60 * 60);
 
-        // 🔥 choisir l'avatar selon le dernier message
-        let avatarUrl = null;
-
-        if (latestMsg) {
-          avatarUrl =
-            latestMsg.sender?.trim().toLowerCase() === currentUser
-              ? latestMsg.receiverAvatar
-              : latestMsg.senderAvatar;
-        }
-
-        if (avatarUrl) {
-          avatar.style.backgroundImage = `url(${avatarUrl})`;
-        }
-
-        const info = document.createElement("div");
-        info.className = "info";
-
-        const nameDiv = document.createElement("div");
-        nameDiv.className = "name";
-        nameDiv.textContent = pseudo;
-
-        const previewDiv = document.createElement("div");
-        previewDiv.className = "preview";
-
-        previewDiv.textContent = latestMsg
-          ? latestMsg.body.substring(0, 40)
-          : "";
-
-        info.appendChild(nameDiv);
-        info.appendChild(previewDiv);
-        convo.appendChild(avatar);
-        convo.appendChild(info);
-
-        listContainer.appendChild(convo);
-
-        attachConversationClick(convo);
+      if (diffHours < 24) {
+        recentes.push({ pseudo, lastMsg });
+      } else {
+        anciennes.push({ pseudo, lastMsg });
       }
     });
 
-    conversations = document.querySelectorAll(".conversation");
+    // ==========================
+    // RENDER HTML
+    // ==========================
+    const container = document.getElementById("conversations-container");
+
+    function renderGroup(title, list) {
+      if (!list.length) return "";
+
+      return `
+        <div class="conversation-group">
+          <div class="group-title">${title}</div>
+
+          ${list
+            .map(({ pseudo, lastMsg }) => {
+              let avatarUrl =
+                lastMsg.sender?.trim().toLowerCase() === currentUser
+                  ? lastMsg.receiverAvatar
+                  : lastMsg.senderAvatar;
+
+              return `
+              <div class="conversation" data-user="${pseudo}">
+                <div class="avatar" style="background-image:url('${avatarUrl || ""}')"></div>
+                
+                <div class="info">
+                  <div class="name">${pseudo}</div>
+                  <div class="preview">
+                    ${lastMsg.body.substring(0, 40)}
+                  </div>
+                </div>
+              </div>
+            `;
+            })
+            .join("")}
+        </div>
+      `;
+    }
+
+    container.innerHTML =
+      renderGroup("Récentes", recentes) + renderGroup("Anciennes", anciennes);
+
+    // ==========================
+    // REBIND EVENTS
+    // ==========================
+    const newConversations = document.querySelectorAll(".conversation");
+    newConversations.forEach(attachConversationClick);
+
+    conversations = newConversations;
   } catch (err) {
     console.error("[ERROR] Erreur chargement conversations :", err);
   }
 }
-
 // ==========================
 // CHARGER UNE CONVERSATION
 // ==========================

@@ -8,50 +8,89 @@ document.addEventListener("DOMContentLoaded", () => {
   const titleElement = document.getElementById("animated-title");
   const chatSection = document.getElementById("chat-section");
 
-  if (!titleElement || !chatSection) return;
+  if (!titleElement) return;
 
   const isMobile = window.innerWidth <= 600;
 
-  /* reset */
-  titleElement.textContent = "";
+  /* =========================
+     🛡️ FALLBACK GLOBAL (ANTI BUG)
+  ========================= */
+  function forceVisibleTitle() {
+    titleElement.textContent = TITLE_TEXT;
 
-  // ❗ cacher le chat seulement sur desktop
-  if (!isMobile) {
-    chatSection.style.opacity = 0;
+    // 🔥 force couleur visible si gradient bug
+    titleElement.style.webkitTextFillColor = "initial";
+    titleElement.style.color = "#fff";
+    titleElement.style.background = "none";
   }
 
-  /* curseur */
+  /* =========================
+     📱 MOBILE = PAS D’ANIMATION
+  ========================= */
+  if (isMobile) {
+    forceVisibleTitle();
+    if (chatSection) chatSection.style.opacity = 1;
+    return;
+  }
+
+  /* =========================
+     💻 DESKTOP ANIMATION
+  ========================= */
+
+  // reset safe
+  titleElement.textContent = "";
+  if (chatSection) chatSection.style.opacity = 0;
+
+  // curseur
   const cursor = document.createElement("span");
   cursor.className = "typing-cursor";
   cursor.textContent = "|";
+  titleElement.appendChild(cursor);
 
   let index = 0;
+  let animationFailed = false;
 
   function typeLetter() {
-    if (index < TITLE_TEXT.length) {
-      const span = document.createElement("span");
-      span.textContent = TITLE_TEXT[index];
-      span.className = "title-letter";
+    try {
+      if (index < TITLE_TEXT.length) {
+        const span = document.createElement("span");
 
-      titleElement.appendChild(span);
+        // 🔹 gérer correctement les espaces
+        span.textContent =
+          TITLE_TEXT[index] === " " ? "\u00A0" : TITLE_TEXT[index];
+        span.className = "title-letter";
 
-      index++;
+        titleElement.appendChild(span);
+        index++;
 
-      const delay = TYPE_SPEED + Math.random() * 25;
-      setTimeout(typeLetter, delay);
-    } else {
-      cursor.remove();
+        const delay = TYPE_SPEED + Math.random() * 25;
+        setTimeout(typeLetter, delay);
+      } else {
+        cursor.remove();
 
-      // ❗ réafficher seulement sur desktop
-      if (!isMobile) {
-        chatSection.style.transition = "opacity 0.8s ease";
-        chatSection.style.opacity = 1;
+        if (chatSection) {
+          chatSection.style.transition = "opacity 0.8s ease";
+          chatSection.style.opacity = 1;
+        }
+
+        window.dispatchEvent(new Event("aigent_animation_done"));
       }
-
-      window.dispatchEvent(new Event("aigent_animation_done"));
+    } catch (e) {
+      animationFailed = true;
+      forceVisibleTitle();
     }
   }
 
-  titleElement.appendChild(cursor);
+  // lancer l’animation
   setTimeout(typeLetter, 200);
+
+  /* =========================
+     ⏱️ FALLBACK SI RIEN S’AFFICHE
+  ========================= */
+  setTimeout(() => {
+    if (titleElement.textContent.trim() === "" || animationFailed) {
+      forceVisibleTitle();
+      if (chatSection) chatSection.style.opacity = 1;
+    }
+  }, 1500); // sécurité
 });

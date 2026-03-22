@@ -111,6 +111,86 @@
       .sidebar-overlay.active {
         display: block;
       }
+      /* ==========================
+HEADER LAYOUT
+========================== */
+      .top-banner {
+        background: rgba(10, 10, 15, 0.72);
+        padding: 14px 22px;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+
+        position: relative;
+      }
+
+      /* ligne subtile premium */
+      .top-banner::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 1px;
+
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(122, 95, 255, 0.4),
+          transparent
+        );
+
+        opacity: 0.6;
+      }
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .logo-img {
+        width: 52px;
+        transition: transform 0.3s ease;
+      }
+
+      .logo-container:hover .logo-img {
+        transform: translateY(-1px) scale(1.04);
+      }
+
+      /* NOM DU PRODUIT */
+      .logo-text {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+
+        background: linear-gradient(135deg, #7a5fff, #b6a8ff, #f4a6ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+
+        background-clip: text;
+        color: transparent;
+
+        line-height: 1;
+      }
+
+      /* Responsive mobile */
+      @media (max-width: 600px) {
+        .logo-img {
+          width: 42px;
+        }
+        .logo-text {
+          font-size: 22px;
+        }
+        .top-banner {
+          padding: 10px 14px;
+        }
+      }
 
       /* ==========================
        CONTENEUR CENTRAL FAVORIS
@@ -477,33 +557,6 @@
 
         .favoris-grid::-webkit-scrollbar-track {
           background: transparent;
-        }
-      }
-
-      /* ===== TITRE LOGO AVEC GRADIENT ANIMÉ ===== */
-      .logo-text {
-        font-size: 28px;
-        font-weight: 700;
-
-        background: linear-gradient(270deg, #659cef, #d194ed, #8fbafc);
-        background-size: 400% 400%;
-        background-clip: text;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-        animation: gradientBG 30s ease infinite;
-      }
-
-      @keyframes gradientBG {
-        0% {
-          background-position: 0% 50%;
-        }
-        50% {
-          background-position: 100% 50%;
-        }
-        100% {
-          background-position: 0% 50%;
         }
       }
 

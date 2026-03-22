@@ -95,6 +95,86 @@
       .sidebar-overlay.active {
         display: block;
       }
+      /* ==========================
+HEADER LAYOUT
+========================== */
+      .top-banner {
+        background: rgba(10, 10, 15, 0.72);
+        padding: 14px 22px;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+
+        position: relative;
+      }
+
+      /* ligne subtile premium */
+      .top-banner::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 1px;
+
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(122, 95, 255, 0.4),
+          transparent
+        );
+
+        opacity: 0.6;
+      }
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .logo-img {
+        width: 52px;
+        transition: transform 0.3s ease;
+      }
+
+      .logo-container:hover .logo-img {
+        transform: translateY(-1px) scale(1.04);
+      }
+
+      /* NOM DU PRODUIT */
+      .logo-text {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+
+        background: linear-gradient(135deg, #7a5fff, #b6a8ff, #f4a6ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+
+        background-clip: text;
+        color: transparent;
+
+        line-height: 1;
+      }
+
+      /* Responsive mobile */
+      @media (max-width: 600px) {
+        .logo-img {
+          width: 42px;
+        }
+        .logo-text {
+          font-size: 22px;
+        }
+        .top-banner {
+          padding: 10px 14px;
+        }
+      }
 
       /* ===== CONTENU MESSAGERIE ===== */
       .messagerie-container {
@@ -413,25 +493,30 @@
       }
 
       #animated-title {
-        font-size: 28px;
         font-weight: 700;
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        letter-spacing: 0.4px;
 
-        /* Dégradé animé */
-        background: linear-gradient(270deg, #5b8def, #e8a2b8, #8fbafc, #d194ed);
-        background-size: 400% 400%;
+        /* Dégradé plus propre et cohérent */
+        background: linear-gradient(135deg, #7a5fff, #b6a8ff, #f4a6ff);
 
-        /* Compatibilité cross-browser */
-        background-clip: text; /* standard pour Firefox, Edge */
-        -webkit-background-clip: text; /* Chrome, Safari */
-        color: transparent; /* fallback pour Firefox */
-        -webkit-text-fill-color: transparent; /* Chrome, Safari */
+        /* Animation douce */
+        background-size: 200% 200%;
 
-        animation: gradientText 8s ease infinite;
+        /* Compatibilité */
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        -webkit-text-fill-color: transparent;
+
+        /* Effet lisibilité premium */
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+
+        /* Animation lente */
+        animation: gradientShift 14s ease-in-out infinite;
+
         display: inline-block;
       }
-
-      @keyframes gradientText {
+      @keyframes gradientShift {
         0% {
           background-position: 0% 50%;
         }
@@ -442,7 +527,6 @@
           background-position: 0% 50%;
         }
       }
-
       .sidebar {
         display: flex;
         flex-direction: column;
@@ -580,52 +664,121 @@ MESSAGERIE PREMIUM RESPONSIVE
       .sidebar-overlay.active {
         display: block;
       }
-
-      /* ---------- LAYOUT PRINCIPAL ---------- */
-      .messagerie-container {
-        display: flex;
-        flex-direction: row;
-        gap: 20px;
-        max-width: 1200px;
-        margin: 40px auto;
-        height: calc(100vh - 80px);
-        color: #fff;
+      /* ---------- BODY & BACKGROUND ---------- */
+      /* ========================== */
+      /* ---------- BODY ---------- */
+      /* ========================== */
+      body {
+        background:
+          radial-gradient(
+            circle at 20% 0%,
+            rgba(120, 119, 255, 0.08),
+            transparent 40%
+          ),
+          radial-gradient(
+            circle at 80% 100%,
+            rgba(168, 85, 247, 0.08),
+            transparent 40%
+          ),
+          #f7f8fb;
+        font-family: "Segoe UI", sans-serif;
       }
 
-      /* ---------- LISTE DES CONVERSATIONS ---------- */
+      /* ========================== */
+      /* ----- MESSAGERIE CONTAINER ----- */
+      /* ========================== */
+      .messagerie-container {
+        max-width: 1200px;
+        margin: 40px auto;
+        display: flex;
+        background: #ffffff;
+        border-radius: 18px;
+        box-shadow:
+          0 10px 30px rgba(0, 0, 0, 0.06),
+          0 2px 8px rgba(106, 92, 255, 0.05);
+        overflow: hidden;
+      }
+
+      /* ========================== */
+      /* ----- LISTE DES CONVERSATIONS ----- */
+      /* ========================== */
       .conversations-list {
-        flex-shrink: 0;
-        flex-basis: 320px;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 14px;
-        padding: 10px;
+        width: 320px;
+        background: #fafbff;
+        border-right: 1px solid #e6e8ee;
+        padding: 0;
         overflow-y: auto;
-        max-height: 100%;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
       }
       .conversations-list::-webkit-scrollbar {
         width: 6px;
       }
       .conversations-list::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.3);
+        background: rgba(91, 91, 255, 0.2);
         border-radius: 6px;
       }
+      .conversations-header {
+        padding: 16px 18px;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        background: linear-gradient(90deg, #5b5bff, #8b5cf6);
+        color: white;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      /* ---------- CONVERSATION INDIVIDUELLE ---------- */
       .conversation {
+        position: relative;
         display: flex;
         align-items: center;
-        padding: 10px 8px;
-        margin-bottom: 10px;
+        padding: 14px 16px;
+        margin: 0 10px;
         border-radius: 12px;
-        cursor: pointer;
-        transition:
-          background 0.2s ease,
-          transform 0.2s ease;
+        transition: all 0.3s ease;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        background: #fff;
+        overflow: hidden;
       }
+
+      /* Hover animé ligne violette */
+      .conversation::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 3px;
+        height: 100%;
+        background: linear-gradient(180deg, #5b5bff, #8b5cf6);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .conversation:hover::before {
+        opacity: 1;
+      }
+
+      /* Effet hover background */
       .conversation:hover {
-        background: rgba(255, 255, 255, 0.1);
-        transform: translateX(2px);
+        background: linear-gradient(
+          135deg,
+          rgba(91, 91, 255, 0.05),
+          rgba(139, 92, 246, 0.05)
+        );
       }
+
+      /* Conversation active */
+      .conversation.active {
+        background: linear-gradient(
+          90deg,
+          rgba(91, 91, 255, 0.12),
+          rgba(139, 92, 246, 0.12)
+        );
+        border-left: 3px solid #6a5cff;
+      }
+
+      /* Avatar et info */
       .conversation .avatar {
         width: 50px;
         height: 50px;
@@ -642,6 +795,7 @@ MESSAGERIE PREMIUM RESPONSIVE
       }
       .conversation .info .name {
         font-weight: bold;
+        color: #0f172a;
       }
       .conversation .info .preview {
         font-size: 0.9rem;
@@ -650,140 +804,282 @@ MESSAGERIE PREMIUM RESPONSIVE
         overflow: hidden;
         text-overflow: ellipsis;
       }
+
+      /* Mini-indicateurs de lecture */
       .conversation .unread {
-        background: #e84a5f;
-        width: 12px;
-        height: 12px;
+        width: 10px;
+        height: 10px;
         border-radius: 50%;
         margin-left: auto;
+        background: linear-gradient(135deg, #5b5bff, #8b5cf6);
+        box-shadow: 0 0 6px rgba(91, 91, 255, 0.6);
+        transition: transform 0.3s ease;
+      }
+      .conversation .unread.new {
+        transform: scale(1.2);
+        animation: pulse 1.2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1.2);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1);
+          opacity: 0.6;
+        }
       }
 
-      /* ---------- ZONE DE CHAT ---------- */
+      /* ========================== */
+      /* ----- CHAT ZONE ----- */
+      /* ========================== */
       .chat-zone {
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        height: 100%;
-      }
-      .chat-header {
-        font-weight: bold;
-        font-size: 20px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        padding-bottom: 6px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .chat-header .action-btn {
-        padding: 6px 14px;
-        border-radius: 18px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        background: linear-gradient(
-          90deg,
-          rgba(210, 235, 255, 0.85),
-          rgba(140, 200, 255, 0.85)
-        );
-        color: #0b1e3d;
-        border: 1px solid rgba(255, 255, 255, 0.35);
-        backdrop-filter: blur(6px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-        transition: all 0.25s ease;
-      }
-      .chat-header .action-btn:hover {
-        background: linear-gradient(
-          90deg,
-          rgba(91, 141, 239, 0.75),
-          rgba(232, 162, 184, 0.75)
-        );
-        color: #fff;
-        transform: translateY(-1px);
+        background: #ffffff;
       }
 
-      /* ---------- MESSAGES ---------- */
+      /* ---------- CHAT HEADER PREMIUM ---------- */
+      .chat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        background: linear-gradient(90deg, #5b5bff, #8b5cf6);
+        color: white !important;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      /* Chat header left */
+      .chat-header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .chat-header-left .chat-avatar {
+        width: 46px;
+        height: 46px;
+        font-weight: bold;
+        font-size: 1rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        color: white;
+        background: linear-gradient(135deg, #5b5bff, #8b5cf6);
+      }
+      .chat-header-left .chat-user-info .name,
+      .chat-header-left .chat-user-info .status {
+        color: white !important;
+      }
+
+      /* Chat header actions */
+      .chat-header-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .chat-header .action-btn {
+        padding: 8px 18px;
+        border-radius: 14px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: none;
+        transition: all 0.25s ease;
+        color: white;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(6px);
+      }
+      .chat-header .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(91, 91, 255, 0.25);
+        background: linear-gradient(135deg, #5b5bff, #8b5cf6);
+      }
+
+      /* ========================== */
+      /* ----- MESSAGES ----- */
+      /* ========================== */
       .chat-messages {
         flex: 1;
-        overflow-y: auto;
+        padding: 16px;
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        padding: 10px;
-        background: rgba(0, 0, 0, 0.15);
-        border-radius: 14px;
-        backdrop-filter: blur(6px);
-        scroll-behavior: smooth;
+        gap: 10px;
+        background: linear-gradient(180deg, #f8f9fc 0%, #f4f6fb 100%);
+        overflow-y: auto;
       }
       .bubble {
         border-radius: 20px;
         line-height: 1.45;
         max-width: 75%;
         padding: 0.9rem 1.2rem;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
         backdrop-filter: blur(6px);
+        position: relative;
+        animation: fadeInUp 0.3s ease;
+        transition: all 0.2s ease;
       }
       .bubble.user {
-        background: linear-gradient(135deg, #2446b8, #6aa7f5);
+        background: linear-gradient(135deg, #5b5bff, #8b5cf6);
+        color: white;
         align-self: flex-end;
+        border-radius: 16px;
+        padding: 10px 14px;
+        max-width: 65%;
+        box-shadow: 0 8px 18px rgba(91, 91, 255, 0.18);
       }
       .bubble.contact {
-        background: linear-gradient(135deg, #1b4fa3, #4da3ff);
-        align-self: flex-start;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        color: #111827;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
+      }
+      .bubble .timestamp {
+        font-size: 10px;
+        color: #9ca3af;
+        position: absolute;
+        bottom: 4px;
+        right: 10px;
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
-      /* ---------- FORMULAIRE ---------- */
+      /* ========================== */
+      /* ----- FORMULAIRE ----- */
+      /* ========================== */
       .chat-form {
         display: flex;
-        gap: 0.5rem;
+        gap: 10px;
+        padding: 12px 16px;
+        border-top: 1px solid #e6e8ee;
       }
       .chat-form input {
         flex: 1;
-        border-radius: 20px;
-        border: none;
-        padding: 0.8rem 1rem;
-        font-size: 1rem;
-        background: rgba(0, 0, 0, 0.25);
-        color: #fff;
-        backdrop-filter: blur(6px);
+        padding: 12px 16px;
+        border-radius: 22px;
+        border: 1px solid #e2e4ea;
+        font-size: 14px;
+        background: #f9fafc;
+        color: #0f172a;
+      }
+      .chat-form input::placeholder {
+        color: #9ca3af;
+      }
+      .chat-form input:focus {
+        outline: none;
+        border-color: #6a5cff;
+        box-shadow: 0 0 0 3px rgba(106, 92, 255, 0.1);
       }
       .chat-form button {
-        border-radius: 20px;
-        padding: 0.8rem 1.5rem;
-        background: linear-gradient(90deg, #77a3f3, #6a11cb);
-        color: #fff;
-        font-weight: bold;
         border: none;
-        cursor: pointer;
-        transition: all 0.25s ease;
+        border-radius: 22px;
+        padding: 10px 18px;
+        background: linear-gradient(135deg, #5b5bff, #8b5cf6);
+        color: white;
+        font-weight: 600;
+        transition: 0.2s;
       }
       .chat-form button:hover {
-        filter: brightness(1.08);
-        transform: translateY(-2px);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(91, 91, 255, 0.25);
       }
 
-      /* ---------- ACTIONS CONTEXTUELLES ---------- */
+      /* ========================== */
+      /* ----- ACTIONS CONTEXTUELLES ----- */
+      /* ========================== */
       .chat-actions {
         display: flex;
         gap: 10px;
-        margin-top: 8px;
+        padding: 12px 16px;
+        border-top: 1px solid #e6e8ee;
+        background: #fafbff;
       }
       .chat-actions .action-btn {
-        flex: 1;
-        padding: 8px 16px;
-        border-radius: 20px;
-        background: linear-gradient(90deg, #5b8def, #8eccfc);
-        color: #fff;
-        font-weight: bold;
-        border: none;
-        cursor: pointer;
+        border-radius: 999px;
+        padding: 10px 20px;
+        font-size: 13px;
+        font-weight: 500;
+        background: linear-gradient(
+          135deg,
+          rgba(91, 91, 255, 0.08),
+          rgba(139, 92, 246, 0.08)
+        );
+        color: #4f46e5;
+        border: 1px solid rgba(91, 91, 255, 0.2);
+        backdrop-filter: blur(6px);
         transition: all 0.25s ease;
       }
       .chat-actions .action-btn:hover {
-        filter: brightness(1.08);
+        box-shadow:
+          0 0 0 3px rgba(106, 92, 255, 0.15),
+          0 8px 20px rgba(91, 91, 255, 0.25);
         transform: translateY(-2px);
       }
+      .chat-actions .action-btn.danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+      }
+      .chat-actions .action-btn.danger:hover {
+        box-shadow:
+          0 0 0 3px rgba(239, 68, 68, 0.15),
+          0 8px 20px rgba(239, 68, 68, 0.25);
+      }
+      /* Chat header left */
+      .chat-header-left {
+        display: flex;
+        align-items: center; /* centre verticalement l'avatar et la colonne */
+        gap: 12px;
+      }
 
-      /* ---------- RESPONSIVE ---------- */
+      .chat-header-left .chat-avatar {
+        width: 46px;
+        height: 46px;
+        font-weight: bold;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center; /* centre le "A" parfaitement */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        color: white;
+        background: linear-gradient(135deg, #5b5bff, #8b5cf6);
+      }
+
+      .chat-header-left .chat-user-info {
+        display: flex;
+        flex-direction: column; /* nom au-dessus, statut en dessous */
+        justify-content: center; /* centre verticalement par rapport à l'avatar */
+      }
+
+      .chat-header-left .chat-user-info .name {
+        font-weight: 600;
+        color: white !important;
+        font-size: 1rem;
+      }
+
+      .chat-header-left .chat-user-info .status {
+        font-size: 0.75rem; /* plus petit */
+        color: rgba(255, 255, 255, 0.8) !important;
+        margin-top: 2px;
+      }
+
+      /* ========================== */
+      /* ----- RESPONSIVE ----- */
+      /* ========================== */
       @media (max-width: 900px) {
         .messagerie-container {
           flex-direction: column;
@@ -797,6 +1093,21 @@ MESSAGERIE PREMIUM RESPONSIVE
         .chat-zone {
           height: calc(100vh - 260px);
           min-height: 400px;
+        }
+        .chat-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .chat-header-actions {
+          width: 100%;
+          justify-content: flex-start;
+          gap: 6px;
+          margin-top: 6px;
+        }
+        .chat-header .action-btn {
+          flex: 1;
+          text-align: center;
+          min-width: 100px;
         }
       }
       @media (max-width: 480px) {
@@ -884,38 +1195,42 @@ MESSAGERIE PREMIUM RESPONSIVE
     <main class="messagerie-container">
       <!-- LISTE DE CONVERSATIONS -->
       <div class="conversations-list" aria-label="Liste de conversations">
-        <div class="section-title">Mes conversations</div>
-        <!--
-      Les conversations sont désormais injectées dynamiquement
-      via messagerie.js (loadAllConversations)
-      Aucune conversation statique ici
-    -->
+        <!-- HEADER GLOBAL -->
+        <div class="conversations-header">Messages</div>
+
+        <!-- CONTENU DYNAMIQUE -->
+        <div id="conversations-container">
+          <!-- JS injecte ici des groupes -->
+        </div>
       </div>
 
       <!-- ZONE DE CHAT -->
       <div class="chat-zone" aria-label="Chat actif">
+        <!-- HEADER MODERNE -->
         <div class="chat-header">
-          Chat avec&nbsp;<span id="chat-with"></span>
-          <button
-            class="action-btn"
-            style="width: auto; margin-left: 10px"
-            id="btn-reply"
-          >
-            Répondre
-          </button>
-          <button
-            class="action-btn"
-            style="width: auto; margin-left: 5px"
-            id="btn-nouveau-message"
-          >
-            Nouveau message
-          </button>
+          <div class="chat-header-left">
+            <div class="chat-avatar" id="chat-avatar">A</div>
+
+            <div class="chat-user-info">
+              <span class="name" id="chat-with"></span>
+              <span class="status" id="chat-status">En ligne</span>
+            </div>
+          </div>
+
+          <div class="chat-header-actions">
+            <button class="action-btn" id="btn-reply">Répondre</button>
+            <button class="action-btn primary" id="btn-nouveau-message">
+              Nouveau
+            </button>
+          </div>
         </div>
 
+        <!-- MESSAGES -->
         <div class="chat-messages" id="chat-box" aria-live="polite">
           <!-- Messages injectés dynamiquement -->
         </div>
 
+        <!-- FORMULAIRE -->
         <form class="chat-form" id="chat-form" aria-label="Envoyer un message">
           <input
             type="text"
@@ -933,9 +1248,10 @@ MESSAGERIE PREMIUM RESPONSIVE
           </button>
         </form>
 
+        <!-- ACTIONS CONTEXTUELLES -->
         <div class="chat-actions">
           <button class="action-btn">Archiver</button>
-          <button class="action-btn">Supprimer</button>
+          <button class="action-btn danger">Supprimer</button>
           <button class="action-btn">Bloquer</button>
         </div>
       </div>
@@ -945,7 +1261,6 @@ MESSAGERIE PREMIUM RESPONSIVE
     <footer class="bottom-banner">
       <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
     </footer>
-
     <!-- ==========================
        POPUP NOUVEAU MESSAGE
        ========================== -->

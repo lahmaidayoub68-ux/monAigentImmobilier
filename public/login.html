@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Favicon -->
     <link
       rel="icon"
       type="image/png"
@@ -10,139 +12,175 @@
       href="/images/favicon.ico"
     />
 
+    <!-- SEO -->
+    <title>
+      Mon AiGENT Immobilier – Trouvez votre logement idéal avec l’IA
+    </title>
 
-    <!-- Titre optimisé pour Google -->
-    <title>Mon AiGENTimmobilier – Trouvez votre logement idéal avec l’IA</title>
-
-    <!-- Description optimisée -->
     <meta
       name="description"
-      content="monAiGENTimmobilier vous aide à découvrir et trouver votre logement idéal grâce à notre expérience immersive avec intelligence artificielle. Connectez-vous ou inscrivez-vous pour commencer."
+      content="Mon AiGENT Immobilier vous aide à trouver votre logement idéal grâce à une expérience immersive avec intelligence artificielle."
     />
 
-    <!-- Mots-clés pertinents (optionnel) -->
     <meta
       name="keywords"
-      content="immobilier, agence immobilière, AI immobilier, appartement, maison, logement, recherche logement, intelligence artificielle, logement Paris, logement France, gratuit"
+      content="immobilier, AI immobilier, appartement, maison, logement, recherche logement, intelligence artificielle"
     />
 
-    <!-- Social / partage (Open Graph) pour Facebook, LinkedIn, etc. -->
-    <meta property="og:title" content="monAiGENTimmobilier – Trouvez votre logement idéal" />
-    <meta property="og:description" content="Découvrez votre futur logement avec monAiGENTimmobilier, grâce à notre expérience immersive AI." />
+    <!-- Open Graph -->
+    <meta
+      property="og:title"
+      content="Mon AiGENT Immobilier – Trouvez votre logement idéal"
+    />
+    <meta
+      property="og:description"
+      content="Découvrez votre futur logement grâce à l'IA."
+    />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://monAiGENTimmobilier.onrender.com" />
+    <meta
+      property="og:url"
+      content="https://monAiGENTimmobilier.onrender.com"
+    />
 
-    <!-- Twitter Card -->
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="monAiGENTimmobilier – Trouvez votre logement idéal" />
-    <meta name="twitter:description" content="Découvrez votre futur logement avec monAiGENTimmobilier, grâce à notre expérience immersive AI." />
-  </head>
+    <meta name="twitter:title" content="Mon AiGENT Immobilier" />
+    <meta
+      name="twitter:description"
+      content="Trouvez votre logement avec l’IA."
+    />
+
+    <!-- CSS -->
     <link rel="stylesheet" href="style.css" />
   </head>
+
   <body>
-    <!-- SLIDESHOW BACKGROUND -->
-    <div class="slideshow" aria-hidden="true">
-      <img src="images/maison2.png" alt="Maison moderne avec piscine" />
-      <img src="images/unsplash.jpg" alt="Grande maison familiale" />
-      <img src="images/good.jpg" alt="Appartement lumineux" />
-      <img src="images/appart.luxe.jpg" alt="Villa contemporaine" />
+    <!-- ================= CONTAINER ================= -->
+    <div class="container">
+      <!-- ===== LEFT : BRANDING ===== -->
+      <aside class="left-panel">
+        <!-- BOUTON POUR PASSER À LA RIGHT PANEL -->
+        <button class="btn-slide-right">→</button>
+
+        <!-- HEADER -->
+        <div class="left-header">
+          <div class="logo-container">
+            <img src="images/logo.png" alt="Logo AiGENT" class="logo-img" />
+            <h1 class="logo-text">Mon <strong>AiGENT</strong> Immobilier</h1>
+          </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="left-content">
+          <h2>Une nouvelle vision de l'immobilier</h2>
+
+          <p>
+            Rejoindre un site créé par un jeune qui ouvre une nouvelle vision de
+            l’intelligence artificielle appliquée à l’immobilier.
+          </p>
+
+          <ul>
+            <li>Recherche intelligente</li>
+            <li>Interface rapide et moderne</li>
+            <li>Expérience simplifiée</li>
+          </ul>
+        </div>
+
+        <!-- IMAGE PARTIELLE -->
+        <div class="left-image"></div>
+      </aside>
+
+      <!-- ===== RIGHT : AUTH ===== -->
+      <main class="right-panel">
+        <!-- BOUTON POUR REVENIR À LA LEFT PANEL -->
+        <button class="btn-slide-left">←</button>
+        <!-- HEADER -->
+        <div class="right-header">
+          <h2>Accéder à votre espace</h2>
+        </div>
+
+        <!-- CARDS -->
+        <section class="cards" aria-label="Connexion et inscription">
+          <!-- CONNEXION -->
+          <article class="card">
+            <h3>Connexion</h3>
+
+            <form id="loginForm">
+              <label for="login-username" class="sr-only"
+                >Pseudo ou email</label
+              >
+              <input
+                type="text"
+                id="login-username"
+                placeholder="Pseudo ou email"
+                required
+              />
+
+              <label for="login-password" class="sr-only">Mot de passe</label>
+              <input
+                type="password"
+                id="login-password"
+                placeholder="Mot de passe"
+                required
+              />
+
+              <button type="submit" class="btn-primary">Se connecter</button>
+            </form>
+          </article>
+
+          <!-- INSCRIPTION -->
+          <article class="card">
+            <h3>Inscription</h3>
+
+            <form id="registerForm">
+              <label for="register-username" class="sr-only">Pseudo</label>
+              <input
+                type="text"
+                id="register-username"
+                placeholder="Pseudo"
+                required
+              />
+
+              <label for="register-password" class="sr-only"
+                >Mot de passe</label
+              >
+              <input
+                type="password"
+                id="register-password"
+                placeholder="Mot de passe"
+                required
+              />
+
+              <label for="register-email" class="sr-only">Adresse email</label>
+              <input
+                type="email"
+                id="register-email"
+                placeholder="Adresse email"
+                required
+              />
+
+              <label for="register-role" class="sr-only"
+                >Choisir un profil</label
+              >
+              <select id="register-role" required>
+                <option value="" disabled selected>Choisir un profil</option>
+                <option value="buyer">Acheteur</option>
+                <option value="seller">Vendeur</option>
+              </select>
+
+              <button type="submit" class="btn-primary">S'inscrire</button>
+            </form>
+          </article>
+        </section>
+      </main>
     </div>
-    <div class="overlay" aria-hidden="true"></div>
 
-    <!-- HEADER -->
-    <header class="top-banner">
-      <div class="logo-container">
-        <img
-          src="images/logo.png"
-          alt="Logo AiGENT Immobilier"
-          class="logo-img"
-        />
-        <h1 class="logo-text">Mon <strong>AiGENT Immobilier</strong></h1>
-      </div>
-    </header>
-
-    <!-- MAIN CONTENT -->
-    <main>
-      <section
-        id="auth-section"
-        class="section"
-        aria-label="Connexion et inscription"
-      >
-        <!-- Connexion -->
-        <article class="card">
-          <h2>Connexion</h2>
-          <form id="loginForm">
-            <label for="login-username" class="sr-only">Pseudo ou email</label>
-            <input
-              type="text"
-              id="login-username"
-              placeholder="Pseudo ou email"
-              required
-            />
-
-            <label for="login-password" class="sr-only">Mot de passe</label>
-            <input
-              type="password"
-              id="login-password"
-              placeholder="Mot de passe"
-              required
-            />
-
-            <button type="submit" class="btn-primary">Se connecter</button>
-          </form>
-        </article>
-
-        <!-- Inscription -->
-        <article class="card">
-          <h2>Inscription</h2>
-          <form id="registerForm">
-            <label for="register-username" class="sr-only">Pseudo</label>
-            <input
-              type="text"
-              id="register-username"
-              placeholder="Pseudo"
-              required
-            />
-
-            <label for="register-password" class="sr-only">Mot de passe</label>
-            <input
-              type="password"
-              id="register-password"
-              placeholder="Mot de passe"
-              required
-            />
-
-            <label for="register-email" class="sr-only">Adresse email</label>
-            <input
-              type="email"
-              id="register-email"
-              placeholder="Adresse email"
-              required
-              title="Veuillez entrer une adresse email valide"
-            />
-
-            <label for="register-role" class="sr-only">Choisir un profil</label>
-            <select id="register-role" required>
-              <option value="" disabled selected>Choisir un profil</option>
-              <option value="buyer">Acheteur</option>
-              <option value="seller">Vendeur</option>
-            </select>
-
-            <button type="submit" class="btn-primary">S'inscrire</button>
-          </form>
-        </article>
-      </section>
-    </main>
-
-    <!-- FOOTER -->
+    <!-- ===== FOOTER GLOBAL ===== -->
     <footer class="bottom-banner">
-      <button id="btn-logout" class="btn-secondary hidden">
-        Se déconnecter
-      </button>
       <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
     </footer>
 
-    <!-- SCRIPTS -->
+    <!-- SCRIPT -->
     <script type="module" src="main.js"></script>
   </body>
 </html>

@@ -140,6 +140,9 @@ HEADER LAYOUT
 
   line-height: 1;
 }
+.logo-text {
+  white-space: pre-wrap;
+}
 
 /* Responsive mobile */
 @media (max-width: 600px) {
@@ -1058,5 +1061,12 @@ LOGOUT BUTTON MOBILE
   html,
   body {
     background-attachment: scroll !important;
+  }
+}
+@media (max-width: 600px) {
+  .logo-text {
+    background: none;
+    -webkit-text-fill-color: initial;
+    color: #fff;
   }
 }

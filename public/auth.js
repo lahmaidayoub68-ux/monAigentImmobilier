@@ -1,5 +1,60 @@
-console.log("AUTH.JS CHARGE");
+document.addEventListener("DOMContentLoaded", () => {
+  const leftPanel = document.querySelector(".left-panel");
+  const rightPanel = document.querySelector(".right-panel");
+  const btnRight = document.querySelector(".btn-slide-right");
+  const btnLeft = document.querySelector(".btn-slide-left");
 
+  // État actuel
+  let currentSide = "left";
+
+  const initSlider = () => {
+    const isMobile = window.innerWidth <= 900;
+    if (!btnRight || !btnLeft) return;
+
+    if (isMobile) {
+      // Initialisation : gauche visible, droite hors écran
+      leftPanel.style.transform = "translateX(0)";
+      leftPanel.style.zIndex = 2;
+      rightPanel.style.transform = "translateX(100%)";
+      rightPanel.style.zIndex = 1;
+      currentSide = "left";
+
+      // Click droite
+      btnRight.addEventListener("click", () => {
+        if (currentSide === "left") {
+          leftPanel.style.transform = "translateX(-100%)";
+          rightPanel.style.transform = "translateX(0)";
+          leftPanel.style.zIndex = 1;
+          rightPanel.style.zIndex = 2;
+          currentSide = "right";
+        }
+      });
+
+      // Click gauche
+      btnLeft.addEventListener("click", () => {
+        if (currentSide === "right") {
+          leftPanel.style.transform = "translateX(0)";
+          rightPanel.style.transform = "translateX(100%)";
+          leftPanel.style.zIndex = 2;
+          rightPanel.style.zIndex = 1;
+          currentSide = "left";
+        }
+      });
+    } else {
+      // Si on est desktop → réinitialiser panels et supprimer listeners
+      leftPanel.style.transform = "";
+      leftPanel.style.zIndex = "";
+      rightPanel.style.transform = "";
+      rightPanel.style.zIndex = "";
+    }
+  };
+
+  // Initialisation au chargement
+  initSlider();
+
+  // Réinitialisation au resize
+  window.addEventListener("resize", initSlider);
+});
 const API_BASE = window.location.origin;
 const $ = (id) => document.getElementById(id);
 
