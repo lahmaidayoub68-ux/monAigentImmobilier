@@ -581,29 +581,40 @@ HEADER LAYOUT
 MESSAGERIE PREMIUM RESPONSIVE
 ========================= */
 
-      /* ---------- MENU FLOTTANT ---------- */
+      /* ================================
+MENU FLOTTANT (SIGNATURE FIXÉE)
+================================ */
+
       .menu-toggle {
         position: fixed;
-        top: 80px;
-        left: 16px;
-        width: 48px;
-        height: 48px;
+        top: 90px;
+        left: 20px;
+
+        width: 56px;
+        height: 56px;
+
         border-radius: 50%;
-        background: #fff;
-        color: #000;
-        font-size: 24px;
-        cursor: pointer;
         border: none;
-        z-index: 3000;
+        cursor: pointer;
+
+        background: linear-gradient(135deg, #4f7cff, #9b6bff);
+        color: white;
+
+        font-size: 24px;
+
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-        transition: transform 0.2s ease;
+
+        z-index: 3000;
+
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+
+        transition: all 0.25s ease;
       }
+
       .menu-toggle:hover {
-        background: #f2f2f2;
-        transform: scale(1.05);
+        transform: translateY(-3px) scale(1.05);
       }
 
       /* ---------- SIDEBAR ---------- */
@@ -664,6 +675,21 @@ MESSAGERIE PREMIUM RESPONSIVE
       .sidebar-overlay.active {
         display: block;
       }
+      /* ==========================
+FOOTER
+========================= */
+      .bottom-banner {
+        position: relative; /* ou supprimer cette ligne */
+        /* bottom: 0; <-- à supprimer */
+        width: 100%;
+        text-align: center;
+        padding: 16px;
+        background: rgba(0, 0, 0, 0.65);
+        font-size: 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        z-index: 1000;
+      }
+
       /* ---------- BODY & BACKGROUND ---------- */
       /* ========================== */
       /* ---------- BODY ---------- */
@@ -731,40 +757,25 @@ MESSAGERIE PREMIUM RESPONSIVE
 
       /* ---------- CONVERSATION INDIVIDUELLE ---------- */
       .conversation {
-        position: relative;
         display: flex;
         align-items: center;
-        padding: 14px 16px;
-        margin: 0 10px;
-        border-radius: 12px;
-        transition: all 0.3s ease;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 12px 14px;
+        gap: 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #eef0f4;
         background: #fff;
-        overflow: hidden;
+        transition: all 0.2s ease;
       }
 
-      /* Hover animé ligne violette */
-      .conversation::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 3px;
-        height: 100%;
-        background: linear-gradient(180deg, #5b5bff, #8b5cf6);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-      .conversation:hover::before {
-        opacity: 1;
-      }
-
-      /* Effet hover background */
       .conversation:hover {
+        background: #f6f8ff;
+      }
+
+      .conversation.active {
         background: linear-gradient(
-          135deg,
-          rgba(91, 91, 255, 0.05),
-          rgba(139, 92, 246, 0.05)
+          90deg,
+          rgba(91, 91, 255, 0.08),
+          rgba(139, 92, 246, 0.08)
         );
       }
 
@@ -829,6 +840,21 @@ MESSAGERIE PREMIUM RESPONSIVE
           transform: scale(1);
           opacity: 0.6;
         }
+      }
+      .top-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .time {
+        font-size: 11px;
+        color: #9ca3af;
+      }
+
+      .preview {
+        font-size: 0.85rem;
+        color: #6b7280;
       }
 
       /* ========================== */
@@ -907,45 +933,57 @@ MESSAGERIE PREMIUM RESPONSIVE
       /* ========================== */
       .chat-messages {
         flex: 1;
-        padding: 16px;
+        padding: 18px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        background: linear-gradient(180deg, #f8f9fc 0%, #f4f6fb 100%);
+        gap: 6px;
+        background: #f3f4f8;
         overflow-y: auto;
       }
       .bubble {
-        border-radius: 20px;
-        line-height: 1.45;
-        max-width: 75%;
-        padding: 0.9rem 1.2rem;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-        backdrop-filter: blur(6px);
+        max-width: 62%;
+        padding: 10px 14px 18px 14px; /* 👈 IMPORTANT (place pour l'heure) */
+        font-size: 14px;
+        line-height: 1.4;
+        border-radius: 16px;
         position: relative;
-        animation: fadeInUp 0.3s ease;
-        transition: all 0.2s ease;
       }
+
       .bubble.user {
         background: linear-gradient(135deg, #5b5bff, #8b5cf6);
         color: white;
         align-self: flex-end;
-        border-radius: 16px;
-        padding: 10px 14px;
-        max-width: 65%;
-        box-shadow: 0 8px 18px rgba(91, 91, 255, 0.18);
+        border-bottom-right-radius: 6px;
       }
+      .bubble + .bubble.user {
+        margin-top: 2px;
+      }
+
+      .bubble + .bubble.contact {
+        margin-top: 2px;
+      }
+
       .bubble.contact {
         background: #ffffff;
         border: 1px solid #e5e7eb;
         color: #111827;
-        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
+        border-bottom-left-radius: 6px;
       }
       .bubble .timestamp {
         font-size: 10px;
-        color: #9ca3af;
         position: absolute;
         bottom: 4px;
         right: 10px;
+        opacity: 0.7;
+      }
+
+      /* couleur adaptée selon bulle */
+      .bubble.user .timestamp {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .bubble.contact .timestamp {
+        color: #6b7280;
       }
       @keyframes fadeInUp {
         from {
@@ -962,36 +1000,40 @@ MESSAGERIE PREMIUM RESPONSIVE
       /* ----- FORMULAIRE ----- */
       /* ========================== */
       .chat-form {
+        padding: 10px 14px;
+        background: #ffffff;
         display: flex;
+        align-items: center;
         gap: 10px;
-        padding: 12px 16px;
         border-top: 1px solid #e6e8ee;
       }
+
       .chat-form input {
         flex: 1;
+        border-radius: 999px;
         padding: 12px 16px;
-        border-radius: 22px;
-        border: 1px solid #e2e4ea;
+        border: none;
+        background: #f1f3f8;
         font-size: 14px;
-        background: #f9fafc;
-        color: #0f172a;
+        color: #111827; /* 👈 FIX ICI */
       }
       .chat-form input::placeholder {
         color: #9ca3af;
       }
+
       .chat-form input:focus {
         outline: none;
-        border-color: #6a5cff;
         box-shadow: 0 0 0 3px rgba(106, 92, 255, 0.1);
       }
+
       .chat-form button {
-        border: none;
-        border-radius: 22px;
-        padding: 10px 18px;
-        background: linear-gradient(135deg, #5b5bff, #8b5cf6);
-        color: white;
-        font-weight: 600;
-        transition: 0.2s;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       .chat-form button:hover {
         transform: translateY(-1px);
@@ -1003,25 +1045,18 @@ MESSAGERIE PREMIUM RESPONSIVE
       /* ========================== */
       .chat-actions {
         display: flex;
-        gap: 10px;
-        padding: 12px 16px;
+        gap: 8px;
+        padding: 10px 14px;
+        background: #ffffff;
         border-top: 1px solid #e6e8ee;
-        background: #fafbff;
       }
+
       .chat-actions .action-btn {
-        border-radius: 999px;
-        padding: 10px 20px;
-        font-size: 13px;
-        font-weight: 500;
-        background: linear-gradient(
-          135deg,
-          rgba(91, 91, 255, 0.08),
-          rgba(139, 92, 246, 0.08)
-        );
-        color: #4f46e5;
-        border: 1px solid rgba(91, 91, 255, 0.2);
-        backdrop-filter: blur(6px);
-        transition: all 0.25s ease;
+        flex: 1;
+        border-radius: 10px;
+        padding: 10px;
+        font-size: 12px;
+        font-weight: 600;
       }
       .chat-actions .action-btn:hover {
         box-shadow:
@@ -1070,11 +1105,140 @@ MESSAGERIE PREMIUM RESPONSIVE
         color: white !important;
         font-size: 1rem;
       }
+      .chat-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
+
+      .chat-user-info {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .status {
+        font-size: 11px;
+        opacity: 0.8;
+      }
 
       .chat-header-left .chat-user-info .status {
         font-size: 0.75rem; /* plus petit */
         color: rgba(255, 255, 255, 0.8) !important;
         margin-top: 2px;
+      }
+      .conversations-tools {
+        position: sticky;
+        top: 48px;
+        z-index: 9;
+        background: #fafbff;
+      }
+
+      /* SEARCH */
+      .search-box {
+        padding: 10px 12px;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 20px;
+        border: 1px solid #e5e7eb;
+        background: #ffffff;
+        font-size: 13px;
+        transition: all 0.2s;
+      }
+
+      .search-box input:focus {
+        outline: none;
+        border-color: #6a5cff;
+        box-shadow: 0 0 0 3px rgba(106, 92, 255, 0.1);
+      }
+
+      /* TABS */
+      .tabs {
+        display: flex;
+        border-top: 1px solid #eef0f4;
+        border-bottom: 1px solid #eef0f4;
+      }
+
+      .tabs button {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        background: transparent;
+        font-size: 12px;
+        font-weight: 600;
+        color: #6b7280;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+
+      .tabs button.active {
+        color: #5b5bff;
+        border-bottom: 2px solid #5b5bff;
+      }
+      .conv-actions {
+        opacity: 0;
+        transition: 0.2s;
+        font-size: 13px;
+        margin-left: auto;
+      }
+
+      .conversation:hover .conv-actions {
+        opacity: 1;
+      }
+      /* Archiver */
+      #btn-archive {
+        background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+        color: #0369a1;
+        border: 1px solid #7dd3fc;
+      }
+
+      /* Bloquer */
+      #btn-block {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #92400e;
+        border: 1px solid #fcd34d;
+      }
+      #btn-archive:hover {
+        box-shadow:
+          0 0 0 3px rgba(56, 189, 248, 0.2),
+          0 8px 20px rgba(56, 189, 248, 0.25);
+      }
+
+      #btn-block:hover {
+        box-shadow:
+          0 0 0 3px rgba(251, 191, 36, 0.2),
+          0 8px 20px rgba(251, 191, 36, 0.25);
+      }
+      .unread.new {
+        width: 10px;
+        height: 10px;
+        background: #ff3b30;
+        border-radius: 50%;
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .conversation {
+        position: relative;
+      }
+      .bubble {
+        animation: fadeInUp 0.25s ease;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(6px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
       }
 
       /* ========================== */
@@ -1193,20 +1357,60 @@ MESSAGERIE PREMIUM RESPONSIVE
 
     <!-- CONTENU MESSAGERIE -->
     <main class="messagerie-container">
-      <!-- LISTE DE CONVERSATIONS -->
+      <!-- ===================== -->
+      <!-- LISTE CONVERSATIONS -->
+      <!-- ===================== -->
       <div class="conversations-list" aria-label="Liste de conversations">
-        <!-- HEADER GLOBAL -->
+        <!-- HEADER -->
         <div class="conversations-header">Messages</div>
 
-        <!-- CONTENU DYNAMIQUE -->
+        <!-- TOOLS (SEARCH + TABS) -->
+        <div class="conversations-tools">
+          <div class="search-box">
+            <input
+              type="text"
+              id="search-conversations"
+              placeholder="Rechercher une conversation..."
+            />
+          </div>
+
+          <div class="tabs">
+            <button class="active" data-filter="all">Tous</button>
+            <button data-filter="unread">Non lus</button>
+            <button data-filter="archived">Archivés</button>
+          </div>
+        </div>
+
+        <!-- CONTENEUR JS -->
         <div id="conversations-container">
-          <!-- JS injecte ici des groupes -->
+          <!-- JS injecte ici les conversations -->
+
+          <!-- ✅ EXEMPLE STRUCTURE (à reproduire en JS) -->
+          <!--
+      <div class="conversation active">
+        <div class="avatar"></div>
+
+        <div class="info">
+          <div class="top-line">
+            <span class="name">John Doe</span>
+            <span class="time">14:32</span>
+          </div>
+          <div class="preview">Dernier message affiché ici...</div>
+        </div>
+
+        <div class="conv-actions">
+          <span>🗑</span>
+        </div>
+      </div>
+      -->
         </div>
       </div>
 
-      <!-- ZONE DE CHAT -->
+      <!-- ===================== -->
+      <!-- ZONE CHAT -->
+      <!-- ===================== -->
       <div class="chat-zone" aria-label="Chat actif">
-        <!-- HEADER MODERNE -->
+        <!-- HEADER CHAT -->
         <div class="chat-header">
           <div class="chat-header-left">
             <div class="chat-avatar" id="chat-avatar">A</div>
@@ -1227,32 +1431,46 @@ MESSAGERIE PREMIUM RESPONSIVE
 
         <!-- MESSAGES -->
         <div class="chat-messages" id="chat-box" aria-live="polite">
-          <!-- Messages injectés dynamiquement -->
+          <!-- JS injecte ici les messages -->
+
+          <!-- ✅ EXEMPLE STRUCTURE -->
+          <!--
+      <div class="bubble contact">
+        Bonjour 👋
+        <span class="timestamp">14:30</span>
+      </div>
+
+      <div class="bubble user">
+        Salut !
+        <span class="timestamp">14:31</span>
+      </div>
+      -->
         </div>
 
-        <!-- FORMULAIRE -->
+        <!-- INPUT -->
         <form class="chat-form" id="chat-form" aria-label="Envoyer un message">
           <input
             type="text"
             id="user-input"
             placeholder="Écris ton message..."
+            autocomplete="off"
             required
           />
           <button type="submit">
             <img
               src="images/message.svg"
               alt="Envoyer"
-              width="24"
-              height="24"
+              width="20"
+              height="20"
             />
           </button>
         </form>
 
-        <!-- ACTIONS CONTEXTUELLES -->
+        <!-- ACTIONS BAS -->
         <div class="chat-actions">
-          <button class="action-btn">Archiver</button>
-          <button class="action-btn danger">Supprimer</button>
-          <button class="action-btn">Bloquer</button>
+          <button class="action-btn" id="btn-archive">Archiver</button>
+          <button class="action-btn danger" id="btn-delete">Supprimer</button>
+          <button class="action-btn" id="btn-block">Bloquer</button>
         </div>
       </div>
     </main>

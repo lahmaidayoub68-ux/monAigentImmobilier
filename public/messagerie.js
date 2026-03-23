@@ -1,3 +1,11 @@
+function formatTime(dateString) {
+  const date = new Date(dateString);
+
+  return date.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 // ==========================
 // AUTH TOKEN UTILITAIRE
 // ==========================
@@ -23,6 +31,7 @@ function logout() {
   // Vider les stores locaux
   Object.keys(messagesStore).forEach((k) => delete messagesStore[k]);
   conversationStore.clear();
+  Object.keys(unreadStore).forEach((k) => delete unreadStore[k]);
 
   // Nettoyer le DOM
   const list = document.querySelector(".conversations-list");
@@ -84,6 +93,7 @@ const messagesStore = {};
 const conversationStore = new Set();
 const userEmailStore = {};
 const receiverIdStore = {}; // <-- nouveau
+const unreadStore = {};
 
 const currentUser = JSON.parse(
   localStorage.getItem("agent_user"),
@@ -94,17 +104,25 @@ const currentUser = JSON.parse(
 // ==========================
 function attachConversationClick(convo) {
   convo.addEventListener("click", async () => {
-    conversations.forEach((c) => (c.style.background = "none"));
-    convo.style.background = "rgba(255,255,255,0.1)";
+    // reset active
+    document
+      .querySelectorAll(".conversation")
+      .forEach((c) => c.classList.remove("active"));
+    convo.classList.add("active");
 
-    const name = convo.querySelector(".name").textContent.trim().toLowerCase();
+    const name = convo.dataset.user;
+
+    // 🔥 RESET NON LU
+    unreadStore[name.toLowerCase()] = false;
+    convo.querySelector(".unread")?.remove();
+    convo.classList.remove("has-unread"); // ← IMPORTANT pour le filtre
+
     chatWithTitle.textContent = name;
 
     console.log(`[CONVERSATION] Ouverture de ${name}`);
     await loadConversation(name);
   });
 }
-
 conversations.forEach(attachConversationClick);
 
 // ==========================
@@ -148,6 +166,10 @@ async function loadAllConversations() {
       if (!messagesStore[pseudoNorm]) messagesStore[pseudoNorm] = [];
       messagesStore[pseudoNorm].push(m);
       conversationStore.add(pseudoNorm);
+      // 🔥 NON LU (AJOUT ICI)
+      if (m.receiver?.toLowerCase() === currentUser && !m.read) {
+        unreadStore[pseudoNorm] = true;
+      }
 
       if (m.senderEmail)
         userEmailStore[pseudoNorm] = m.senderEmail.trim().toLowerCase();
@@ -189,34 +211,43 @@ async function loadAllConversations() {
       if (!list.length) return "";
 
       return `
-        <div class="conversation-group">
-          <div class="group-title">${title}</div>
+    <div class="conversation-group">
+      <div class="group-title">${title}</div>
 
-          ${list
-            .map(({ pseudo, lastMsg }) => {
-              let avatarUrl =
-                lastMsg.sender?.trim().toLowerCase() === currentUser
-                  ? lastMsg.receiverAvatar
-                  : lastMsg.senderAvatar;
+      ${list
+        .map(({ pseudo, lastMsg }) => {
+          let avatarUrl =
+            lastMsg.sender?.trim().toLowerCase() === currentUser
+              ? lastMsg.receiverAvatar
+              : lastMsg.senderAvatar;
 
-              return `
-              <div class="conversation" data-user="${pseudo}">
-                <div class="avatar" style="background-image:url('${avatarUrl || ""}')"></div>
-                
-                <div class="info">
-                  <div class="name">${pseudo}</div>
-                  <div class="preview">
-                    ${lastMsg.body.substring(0, 40)}
-                  </div>
-                </div>
-              </div>
-            `;
-            })
-            .join("")}
-        </div>
-      `;
+          const date = new Date(lastMsg.timestamp);
+          const time = date.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          return `
+  <div class="conversation ${unreadStore[pseudo] ? "has-unread" : ""}" data-user="${pseudo}">
+    ${unreadStore[pseudo] ? `<div class="unread new"></div>` : ""}
+    <div class="avatar" style="background-image:url('${avatarUrl || ""}')"></div>
+    <div class="info">
+      <div class="top-line">
+        <span class="name">${pseudo}</span>
+        <span class="time">${time}</span>
+      </div>
+      <div class="preview">
+        ${lastMsg.body.substring(0, 40)}
+      </div>
+    </div>
+    <div class="conv-actions" data-user="${pseudo}">🗑</div>
+  </div>
+`;
+        })
+        .join("")}
+    </div>
+  `;
     }
-
     container.innerHTML =
       renderGroup("Récentes", recentes) + renderGroup("Anciennes", anciennes);
 
@@ -225,6 +256,33 @@ async function loadAllConversations() {
     // ==========================
     const newConversations = document.querySelectorAll(".conversation");
     newConversations.forEach(attachConversationClick);
+    // ACTION DELETE HOVER
+    document.querySelectorAll(".conv-actions").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+
+        const pseudo = btn.dataset.user;
+
+        if (!confirm(`Supprimer la conversation avec ${pseudo} ?`)) return;
+
+        try {
+          delete messagesStore[pseudo];
+          conversationStore.delete(pseudo);
+
+          const el = document.querySelector(
+            `.conversation[data-user='${pseudo}']`,
+          );
+          if (el) el.remove();
+
+          if (chatWithTitle.textContent === pseudo) {
+            chatBox.innerHTML = "";
+            chatWithTitle.textContent = "";
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      });
+    });
 
     conversations = newConversations;
   } catch (err) {
@@ -242,19 +300,29 @@ async function loadConversation(name) {
   msgs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
   msgs.forEach((msg) => {
+    const isContact = msg.sender.trim().toLowerCase() === pseudoNorm;
+
     const div = document.createElement("div");
-    div.classList.add(
-      "bubble",
-      msg.sender.trim().toLowerCase() === pseudoNorm ? "contact" : "user",
-    );
-    div.textContent = `[${msg.subject}] ${msg.body}`;
+    div.classList.add("bubble", isContact ? "contact" : "user");
+
+    const date = new Date(msg.timestamp);
+    const time = date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    div.innerHTML = `
+  <span class="text">
+    <span class="subject">[${msg.subject}]</span> ${msg.body}
+  </span>
+  <span class="timestamp">${time}</span>
+`;
+
     chatBox.appendChild(div);
   });
 
   chatBox.scrollTop = chatBox.scrollHeight;
-  console.log(`[CHAT] Conversation ${pseudoNorm} affichée`);
 }
-
 // ==========================
 // ENVOI DE MESSAGE RAPIDE
 // ==========================
@@ -286,6 +354,12 @@ chatForm.addEventListener("submit", async (e) => {
   const div = document.createElement("div");
   div.classList.add("bubble", "user");
   div.textContent = text;
+
+  const time = document.createElement("span");
+  time.classList.add("timestamp");
+  time.textContent = formatTime(new Date());
+
+  div.appendChild(time);
   chatBox.appendChild(div);
   chatBox.scrollTop = chatBox.scrollHeight;
   userInput.value = "";
@@ -501,6 +575,59 @@ if (logoutBtn) {
   logoutBtn.classList.remove("hidden");
   logoutBtn.addEventListener("click", logout);
 }
+const searchInput = document.getElementById("search-conversations");
+
+if (searchInput) {
+  searchInput.addEventListener("input", () => {
+    const value = searchInput.value.toLowerCase();
+
+    document.querySelectorAll(".conversation").forEach((c) => {
+      const name = c.dataset.user;
+
+      if (name.includes(value)) {
+        c.style.display = "flex";
+      } else {
+        c.style.display = "none";
+      }
+    });
+  });
+}
+// ==========================
+// FILTRE DES ONGLETS
+// ==========================
+document.querySelectorAll(".tabs button").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    // Reset active
+    document
+      .querySelectorAll(".tabs button")
+      .forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    const filter = btn.dataset.filter;
+
+    document.querySelectorAll(".conversation").forEach((c) => {
+      if (filter === "all") {
+        c.style.display = "flex";
+      } else if (filter === "unread") {
+        // ✅ Maintenant on check la classe has-unread
+        c.style.display = c.classList.contains("has-unread") ? "flex" : "none";
+      } else if (filter === "archived") {
+        c.style.display = "none"; // placeholder pour futur
+      }
+    });
+  });
+});
+function updateOnlineStatus() {
+  const status = document.getElementById("chat-status");
+  if (!status) return;
+
+  const isOnline = Math.random() > 0.5;
+
+  status.textContent = isOnline ? "En ligne" : "Hors ligne";
+  status.style.opacity = isOnline ? "1" : "0.6";
+}
+
+setInterval(updateOnlineStatus, 5000);
 // ==========================
 // CHECK SESSION
 // ==========================
