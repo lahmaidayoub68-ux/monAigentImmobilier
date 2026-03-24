@@ -16,85 +16,6 @@
 
     <!-- ===== MENU LATÉRAL & MESSAGERIE (STYLE ISOLÉ) ===== -->
     <style>
-      /* ===== BOUTON MENU FLOTTANT ===== */
-      .menu-toggle {
-        position: fixed;
-        top: 90px;
-        left: 20px;
-        width: 52px;
-        height: 52px;
-        border-radius: 50%;
-        background: #ffffff;
-        color: #000000;
-        font-size: 26px;
-        cursor: pointer;
-        border: none;
-        z-index: 3000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-      }
-      .menu-toggle:hover {
-        background: #f2f2f2;
-      }
-
-      /* ===== SIDEBAR ===== */
-      .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 260px;
-        height: 100vh;
-        background: #000;
-        color: #fff;
-        transform: translateX(-100%);
-        transition: transform 0.35s ease;
-        z-index: 2000;
-        padding: 20px;
-        box-sizing: border-box;
-      }
-      .sidebar.open {
-        transform: translateX(0);
-      }
-      .sidebar .close-btn {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 22px;
-        cursor: pointer;
-      }
-      .sidebar h2 {
-        margin-top: 40px;
-        margin-bottom: 30px;
-        font-size: 20px;
-      }
-      .sidebar ul {
-        list-style: none;
-        padding: 0;
-      }
-      .sidebar ul li {
-        margin-bottom: 20px;
-      }
-      .sidebar ul li a {
-        color: #fff;
-        text-decoration: none;
-        font-size: 16px;
-      }
-      .sidebar ul li a:hover {
-        text-decoration: underline;
-      }
-
-      .sidebar-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.4);
-        z-index: 1500;
-        display: none;
-      }
-      .sidebar-overlay.active {
-        display: block;
-      }
       /* ==========================
 HEADER LAYOUT
 ========================== */
@@ -176,32 +97,6 @@ HEADER LAYOUT
         }
       }
 
-      /* ===== CONTENU MESSAGERIE ===== */
-      .messagerie-container {
-        max-width: 1200px;
-        margin: 40px auto;
-        padding: 0 20px;
-        display: flex;
-        flex-direction: row;
-        gap: 20px;
-        color: #fff;
-      }
-      @media (max-width: 900px) {
-        .messagerie-container {
-          flex-direction: column;
-        }
-      }
-
-      /* ===== LISTE DE CONVERSATIONS ===== */
-      .conversations-list {
-        width: 320px;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 14px;
-        padding: 10px;
-        overflow-y: auto;
-        max-height: 70vh;
-        flex-shrink: 0;
-      }
       @media (max-width: 900px) {
         .conversations-list {
           width: 100%;
@@ -252,146 +147,6 @@ HEADER LAYOUT
         height: 12px;
         border-radius: 50%;
         margin-left: auto;
-      }
-
-      /* ===== ZONE DE CHAT ===== */
-      .chat-zone {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        height: 70vh;
-        min-height: 500px;
-      }
-      .chat-header {
-        font-weight: bold;
-        font-style: italic;
-        font-size: 20px;
-        border-bottom: 2px solid #000;
-        padding-bottom: 6px;
-
-        display: flex;
-        align-items: center;
-      }
-      #chat-with {
-        margin-right: auto;
-      }
-
-      /* =========================================================
-       STYLE SPÉCIFIQUE : RÉPONDRE / NOUVEAU MESSAGE (HEADER)
-       ========================================================= */
-      .chat-header .action-btn {
-        padding: 6px 14px;
-        border-radius: 18px;
-        font-size: 0.85rem;
-        font-weight: 600;
-
-        background: linear-gradient(
-          90deg,
-          rgba(210, 235, 255, 0.85),
-          rgba(140, 200, 255, 0.85)
-        );
-        color: #0b1e3d;
-
-        border: 1px solid rgba(255, 255, 255, 0.35);
-        backdrop-filter: blur(6px);
-
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-        transition: all 0.25s ease;
-      }
-
-      .chat-header .action-btn:hover {
-        background: linear-gradient(
-          90deg,
-          rgba(91, 141, 239, 0.75),
-          rgba(232, 162, 184, 0.75)
-        );
-        color: #ffffff;
-        transform: translateY(-1px);
-      }
-      /* ========================================================= */
-
-      .chat-messages {
-        flex: 1;
-        overflow-y: auto;
-        overflow-x: hidden;
-        padding: 10px;
-        display: flex;
-        flex-direction: column;
-        gap: 0.6rem;
-        background: rgba(0, 0, 0, 0.15);
-        border-radius: 14px;
-        backdrop-filter: blur(6px);
-        min-height: 0;
-      }
-      .bubble {
-        padding: 0.9rem 1.2rem;
-        border-radius: 20px;
-        font-weight: 500;
-        line-height: 1.45;
-        max-width: 75%;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-        backdrop-filter: blur(6px);
-      }
-      .bubble.user {
-        background: linear-gradient(135deg, #2446b8, #6aa7f5);
-        align-self: flex-end;
-      }
-      .bubble.contact {
-        background: linear-gradient(135deg, #1b4fa3, #4da3ff);
-        align-self: flex-start;
-      }
-
-      /* ===== FORMULAIRE MESSAGE ===== */
-      .chat-form {
-        display: flex;
-        gap: 0.5rem;
-      }
-      .chat-form input {
-        flex: 1;
-        padding: 0.8rem 1rem;
-        border-radius: 20px;
-        border: none;
-        font-size: 1rem;
-        background: rgba(0, 0, 0, 0.25);
-        color: #fff;
-        backdrop-filter: blur(6px);
-      }
-      .chat-form button {
-        padding: 0.8rem 1.5rem;
-        border-radius: 20px;
-        background: linear-gradient(90deg, #2563eb, #ec6ed9);
-        color: #fff;
-        font-weight: bold;
-        border: none;
-        cursor: pointer;
-        transition: all 0.25s ease;
-      }
-      .chat-form button:hover {
-        background: linear-gradient(90deg, #4f83e6, #d98aa8);
-        transform: translateY(-2px);
-      }
-
-      /* ===== ACTIONS CONTEXTUELLES ===== */
-      .chat-actions {
-        display: flex;
-        gap: 10px;
-        margin-top: 8px;
-      }
-      .chat-actions .action-btn {
-        flex: 1;
-        padding: 8px 16px;
-        border-radius: 20px;
-        background: linear-gradient(90deg, #1e3c72, #4b6cb7 #6a11cb);
-        color: #fff;
-        font-weight: bold;
-        border: none;
-        cursor: pointer;
-        transition: all 0.25s ease;
-      }
-      .chat-actions .action-btn:hover {
-        filter: brightness(1.08);
-        transform: translateY(-2px);
       }
 
       /* ==========================
@@ -709,20 +464,35 @@ FOOTER
           #f7f8fb;
         font-family: "Segoe UI", sans-serif;
       }
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+      }
 
       /* ========================== */
       /* ----- MESSAGERIE CONTAINER ----- */
       /* ========================== */
       .messagerie-container {
-        max-width: 1200px;
-        margin: 40px auto;
+        width: 100%;
+        height: calc(100vh - 80px); /* ajuste selon ton header */
+        margin: 0; /* ❌ enlève le centrage */
         display: flex;
         background: #ffffff;
-        border-radius: 18px;
-        box-shadow:
-          0 10px 30px rgba(0, 0, 0, 0.06),
-          0 2px 8px rgba(106, 92, 255, 0.05);
+        border-radius: 0; /* optionnel (plus pro en full screen) */
+        box-shadow: none; /* optionnel */
         overflow: hidden;
+      }
+      .messagerie-container {
+        flex: 1; /* 👈 IMPORTANT */
+      }
+      .messagerie-container {
+        flex: 1;
+        min-height: 100vh;
       }
 
       /* ========================== */
@@ -1229,6 +999,186 @@ FOOTER
       .bubble {
         animation: fadeInUp 0.25s ease;
       }
+      /* ================================
+   STYLES GLOBAUX DES ICONES SVG
+================================= */
+      .icon-btn,
+      .action-btn svg,
+      .chat-form button svg {
+        display: inline-block;
+        vertical-align: middle;
+        stroke: #333;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      /* Hover général pour tous les SVG */
+      .icon-btn:hover svg,
+      .action-btn:hover svg,
+      .chat-form button:hover svg {
+        transform: scale(1.1);
+      }
+
+      /* ================================
+   SPECIFIQUE PAR ICONE
+================================= */
+
+      /* 1. ARCHIVER (boîte + flèche) */
+      #btn-archive svg path {
+        stroke: #0369a1; /* couleur visible avant hover */
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+        transition:
+          stroke-dashoffset 0.5s ease,
+          stroke 0.3s ease;
+      }
+      #btn-archive:hover svg path {
+        stroke-dashoffset: 0;
+        stroke: #007bff;
+      }
+
+      /* 2. SUPPRIMER (trash) */
+      #btn-delete svg path {
+        stroke: #dc2626; /* couleur visible avant hover */
+        transform-origin: center;
+        transition:
+          transform 0.3s ease,
+          stroke 0.3s ease;
+      }
+      #btn-delete:hover svg path {
+        transform: rotate(-5deg) scale(1.1);
+        stroke: #ff4d4f;
+      }
+
+      /* 3. BLOQUER (shield + slash) */
+      #btn-block svg path {
+        stroke: #92400e; /* couleur visible avant hover */
+        stroke-dasharray: 50;
+        stroke-dashoffset: 0; /* apparait tout de suite */
+        transition:
+          stroke 0.3s ease,
+          transform 0.3s ease;
+      }
+      #btn-block:hover svg path {
+        stroke: #ffc107;
+        transform: scale(1.05);
+      }
+
+      /* 4. NOUVEAU MESSAGE (enveloppe + +) */
+      #btn-nouveau-message svg path {
+        stroke: #28a745; /* couleur visible avant hover */
+        stroke-dasharray: 60;
+        stroke-dashoffset: 0; /* visible immédiatement */
+        transition:
+          stroke-dashoffset 0.4s ease,
+          transform 0.3s ease,
+          stroke 0.3s ease;
+      }
+      #btn-nouveau-message:hover svg path {
+        stroke-dashoffset: 0;
+        transform: scale(1.1);
+        stroke: #22c55e;
+      }
+
+      /* 5. RÉPONDRE (flèche retour) */
+      #btn-reply svg path {
+        stroke: #17a2b8; /* couleur visible avant hover */
+        stroke-dasharray: 40;
+        stroke-dashoffset: 0;
+        transition:
+          transform 0.3s ease,
+          stroke 0.3s ease;
+      }
+      #btn-reply:hover svg path {
+        transform: translateX(-2px);
+        stroke: #0d6efd;
+      }
+
+      /* 6. NON LU (point + cercle) */
+      .icon-btn[title="Non lu"] svg circle:last-child {
+        fill: #007bff; /* visible avant hover */
+        transform-origin: center;
+        transition:
+          transform 0.3s ease,
+          fill 0.3s ease;
+      }
+      .icon-btn[title="Non lu"]:hover svg circle:last-child {
+        transform: scale(1.3);
+        fill: #0d6efd;
+      }
+
+      /* 7. ENVOYER (avion papier) */
+      .chat-form button svg path {
+        stroke: #007bff; /* couleur visible avant hover */
+        stroke-dasharray: 60;
+        stroke-dashoffset: 0;
+        transition:
+          stroke 0.3s ease,
+          transform 0.3s ease;
+      }
+      .chat-form button:hover svg path {
+        transform: translateX(2px) rotate(2deg);
+        stroke: #0d6efd;
+      }
+
+      /* 8. OPTIONS (3 points) */
+      .icon-btn[title="Options"] svg circle {
+        fill: #6c757d; /* visible avant hover */
+        transition:
+          transform 0.3s ease,
+          fill 0.3s ease;
+      }
+      .icon-btn[title="Options"]:hover svg circle {
+        transform: scale(1.2);
+        fill: #495057;
+      }
+
+      /* ================================
+   POSITIONNEMENT / ALIGNEMENT
+================================= */
+      .conversations-tools .tabs button,
+      .chat-header-actions .action-btn,
+      .chat-actions .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+      }
+
+      .chat-form button,
+      .action-btn,
+      .icon-btn {
+        background: transparent;
+        border: none;
+        padding: 6px;
+        border-radius: 6px;
+      }
+
+      .chat-form button:hover,
+      .action-btn:hover,
+      .icon-btn:hover {
+        background: rgba(0, 123, 255, 0.1);
+      }
+
+      /* ================================
+   ACCESSIBILITÉ / TRANSITION GLOBALE
+================================= */
+      svg {
+        pointer-events: none; /* pour que le bouton gère le hover */
+      }
+
+      .icon-btn:focus svg,
+      .action-btn:focus svg,
+      .chat-form button:focus svg {
+        outline: 2px solid #007bff;
+        outline-offset: 2px;
+      }
 
       @keyframes fadeInUp {
         from {
@@ -1399,7 +1349,14 @@ FOOTER
         </div>
 
         <div class="conv-actions">
-          <span>🗑</span>
+          <button class="icon-btn danger" title="Supprimer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M3 6h18"/>
+              <path d="M8 6V4h8v2"/>
+              <path d="M19 6l-1 14H6L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+            </svg>
+          </button>
         </div>
       </div>
       -->
@@ -1422,9 +1379,35 @@ FOOTER
           </div>
 
           <div class="chat-header-actions">
-            <button class="action-btn" id="btn-reply">Répondre</button>
-            <button class="action-btn primary" id="btn-nouveau-message">
-              Nouveau
+            <button class="action-btn" id="btn-reply" title="Répondre">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                width="18"
+                height="18"
+              >
+                <path d="M9 17l-5-5 5-5" />
+                <path d="M4 12h10a6 6 0 0 1 6 6v1" />
+              </svg>
+            </button>
+
+            <button
+              class="action-btn primary"
+              id="btn-nouveau-message"
+              title="Nouveau message"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                width="18"
+                height="18"
+              >
+                <path d="M4 4h16v16H4z" />
+                <path d="M22 6l-10 7L2 6" />
+                <path d="M12 11v6M9 14h6" />
+              </svg>
             </button>
           </div>
         </div>
@@ -1456,21 +1439,65 @@ FOOTER
             autocomplete="off"
             required
           />
-          <button type="submit">
-            <img
-              src="images/message.svg"
-              alt="Envoyer"
+
+          <button type="submit" title="Envoyer">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
               width="20"
               height="20"
-            />
+            >
+              <path d="M22 2L11 13" />
+              <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+            </svg>
           </button>
         </form>
 
         <!-- ACTIONS BAS -->
         <div class="chat-actions">
-          <button class="action-btn" id="btn-archive">Archiver</button>
-          <button class="action-btn danger" id="btn-delete">Supprimer</button>
-          <button class="action-btn" id="btn-block">Bloquer</button>
+          <button class="action-btn" id="btn-archive" title="Archiver">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              width="18"
+              height="18"
+            >
+              <path d="M3 7h18v13H3z" />
+              <path d="M1 3h22v4H1z" />
+              <path d="M12 10v6" />
+              <path d="M9 13l3 3 3-3" />
+            </svg>
+          </button>
+
+          <button class="action-btn danger" id="btn-delete" title="Supprimer">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              width="18"
+              height="18"
+            >
+              <path d="M3 6h18" />
+              <path d="M8 6V4h8v2" />
+              <path d="M19 6l-1 14H6L5 6" />
+              <path d="M10 11v6M14 11v6" />
+            </svg>
+          </button>
+
+          <button class="action-btn" id="btn-block" title="Bloquer">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              width="18"
+              height="18"
+            >
+              <path d="M12 3l8 4v5c0 5-3.5 9-8 9s-8-4-8-9V7l8-4z" />
+              <path d="M9 9l6 6" />
+            </svg>
+          </button>
         </div>
       </div>
     </main>
@@ -1479,15 +1506,17 @@ FOOTER
     <footer class="bottom-banner">
       <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
     </footer>
+
     <!-- ==========================
-       POPUP NOUVEAU MESSAGE
-       ========================== -->
+   POPUP NOUVEAU MESSAGE
+   ========================== -->
     <div id="newMsgOverlay" class="newmsg-overlay">
       <div class="newmsg-modal">
         <div class="newmsg-header">
           Nouveau message
           <span id="newMsgClose" class="newmsg-close">&times;</span>
         </div>
+
         <div class="newmsg-fields">
           <input
             type="text"
@@ -1501,16 +1530,31 @@ FOOTER
           />
           <input type="text" id="newMsgObjet" placeholder="Objet du message" />
         </div>
+
         <div class="newmsg-separator"></div>
+
         <textarea id="newMsgBody" placeholder="Écris ton message..."></textarea>
+
         <div class="newmsg-footer">
-          <button id="newMsgSend">Envoyer</button>
+          <button id="newMsgSend">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              width="18"
+              height="18"
+            >
+              <path d="M22 2L11 13" />
+              <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Leaflet JS -->
     <script src="/leaflet/leaflet.js" defer></script>
+
     <!-- JS EXTERNE MESSAGERIE -->
     <script src="/messagerie.js" defer></script>
   </body>
