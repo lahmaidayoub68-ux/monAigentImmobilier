@@ -537,6 +537,15 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
     const missingCriteria = ORDER.filter((k) => {
       if (k === "pieces") return session.criteria.piecesMin === undefined;
       if (k === "espace") return session.criteria.espaceMin === undefined;
+
+      if (k === "toleranceKm") {
+        return (
+          session.role === "buyer" &&
+          session.criteria.ville !== undefined &&
+          session.criteria.toleranceKm === undefined
+        );
+      }
+
       return session.criteria[k] === undefined;
     });
     const budgetIncomplete = session.criteria.budgetMin === undefined;
@@ -606,7 +615,12 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
         reply,
         matches,
         postReply,
-        criteria: session.criteria,
+        criteria: {
+          ...session.criteria,
+          surfaceMin: session.criteria.espaceMin,
+          surfaceMax: session.criteria.espaceMax,
+          surface: session.criteria.espaceMin, // 👈 CRUCIAL
+        },
       });
     }
 

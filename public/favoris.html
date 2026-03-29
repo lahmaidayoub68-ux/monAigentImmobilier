@@ -22,28 +22,36 @@
         overflow-y: auto; /* autorise le scroll vertical */
         -webkit-overflow-scrolling: touch; /* scroll fluide sur iOS */
       }
-      /* ===== BOUTON MENU FLOTTANT ===== */
       .menu-toggle {
         position: fixed;
         top: 90px;
         left: 20px;
-        width: 52px;
-        height: 52px;
+
+        width: 56px;
+        height: 56px;
+
         border-radius: 50%;
-        background: #ffffff;
-        color: #000000;
-        font-size: 26px;
-        cursor: pointer;
         border: none;
-        z-index: 3000;
+        cursor: pointer;
+
+        background: linear-gradient(135deg, #4f7cff, #9b6bff);
+        color: white;
+
+        font-size: 24px;
+
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+
+        z-index: 3000;
+
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+
+        transition: all 0.25s ease;
       }
 
       .menu-toggle:hover {
-        background: #f2f2f2;
+        transform: translateY(-3px) scale(1.05);
       }
 
       /* ===== SIDEBAR ===== */
@@ -230,6 +238,10 @@ HEADER LAYOUT
         font-size: 14px;
         border-top: 1px solid rgba(255, 255, 255, 0.12);
         z-index: 1000; /* au-dessus du reste */
+      }
+      .bottom-banner p {
+        color: white;
+        margin: 0;
       }
 
       /* SAFE AREA MOBILE */

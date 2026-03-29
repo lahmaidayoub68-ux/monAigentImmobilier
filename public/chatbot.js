@@ -15,9 +15,33 @@ const state = {
   sending: false,
   ready: false,
 };
+function normalizeCriteria(c) {
+  const surface = c.surface ?? c.surfaceMin ?? null;
+
+  return {
+    ville: c.ville ?? null,
+    budget: c.budget ?? c.budgetMax ?? c.budgetMin ?? null,
+    surface: surface,
+    surfaceMin: surface,
+    pieces: c.pieces ?? c.piecesMin ?? null,
+    toleranceKm: c.toleranceKm ?? 0,
+  };
+}
 
 // ================== DOM ==================
 const $ = (id) => document.getElementById(id);
+// ================== AI PANEL DOM ==================
+const AI = {
+  ville: () => document.querySelector(".ai-block:nth-child(1) li:nth-child(1)"),
+  budget: () =>
+    document.querySelector(".ai-block:nth-child(1) li:nth-child(2)"),
+  surface: () =>
+    document.querySelector(".ai-block:nth-child(1) li:nth-child(3)"),
+  pieces: () =>
+    document.querySelector(".ai-block:nth-child(1) li:nth-child(4)"),
+  statut: () => document.querySelector(".ai-block:nth-child(3) p"),
+  analyse: () => document.querySelector(".ai-block:nth-child(5) ul"),
+};
 
 // ================== LOG ==================
 const log = (...args) => console.log("[CHATBOT]", ...args);
@@ -82,19 +106,32 @@ function saveSession() {
   save("criteria", state.criteria);
   save("chat", state.history);
 }
-
 function logout() {
-  localStorage.clear();
-  Object.assign(state, {
-    user: null,
-    role: null,
-    criteria: {},
-    history: [],
-  });
-  render();
-  log("🚪 Déconnecté");
-}
+  // 🔥 animation fade out
+  document.body.style.transition = "opacity 0.3s ease";
+  document.body.style.opacity = "0";
 
+  setTimeout(() => {
+    // 🔥 nettoyage localStorage
+    localStorage.clear();
+
+    // 🔥 reset state
+    Object.assign(state, {
+      user: null,
+      role: null,
+      criteria: {},
+      history: [],
+    });
+
+    render();
+
+    // 🔥 redirection
+    window.location.href = "/login.html";
+  }, 300);
+}
+function isBuyer() {
+  return state.role === "buyer";
+}
 // ================== API ==================
 async function apiRequest(url, options = {}) {
   if (!state.user?.token) throw new Error("Non authentifié");
@@ -141,7 +178,6 @@ function renderUserInfo() {
   el.textContent = `Connecté : ${state.user.username} (${roleFr})`;
   btn?.classList.remove("hidden");
 }
-
 function addMessage({
   text,
   from = "bot",
@@ -151,62 +187,81 @@ function addMessage({
   if (!text) return;
 
   const box = $("chat-box");
-  const row = document.createElement("div");
-  row.className = `msg ${from} ${structured ? "structured" : ""}`;
 
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  if (from === "user" && state.user?.avatar) {
-    avatar.style.backgroundImage = `url(${state.user.avatar})`;
+  // --- User : on garde la bulle existante ---
+  if (from === "user") {
+    const row = document.createElement("div");
+    row.className = `msg user ${structured ? "structured" : ""}`;
+
+    // ✅ Avatar
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    avatar.style.backgroundImage = `url('${
+      state.user?.avatar || "/images/user-avatar.jpg"
+    }')`;
     avatar.style.backgroundSize = "cover";
     avatar.style.backgroundPosition = "center";
     avatar.style.backgroundRepeat = "no-repeat";
-  } else if (from === "bot") {
-    avatar.style.backgroundImage = "url('/images/bot-avatar.webp')"; // ton avatar bot
-    avatar.style.backgroundSize = "cover";
-    avatar.style.backgroundPosition = "center";
-    avatar.style.backgroundRepeat = "no-repeat";
+
+    // ✅ Bulle
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.innerHTML = text;
+
+    // ✅ Timestamp
+    const time = document.createElement("span");
+    time.className = "timestamp";
+    time.textContent = new Date().toLocaleTimeString().slice(0, 5);
+    bubble.appendChild(time);
+
+    // ✅ Ordre important pour affichage droite/gauche
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+
+    box.appendChild(row);
+    scrollBottom(box);
+
+    // ✅ Persist
+    if (persist && state.user) {
+      state.history.push({ role: "user", content: text, structured });
+      if (state.history.length > MAX_HISTORY) state.history.shift();
+      save("chat", state.history);
+    }
+
+    return;
   }
 
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
-  bubble.innerHTML = text;
+  // --- Bot / IA : texte simple, sans bulle ni avatar ---
+  const row = document.createElement("div");
+  row.className = "msg bot text-msg";
+  row.innerHTML = `<div class="ai-text">${text}</div>`;
 
-  const time = document.createElement("span");
-  time.className = "timestamp";
-  time.textContent = new Date().toLocaleTimeString().slice(0, 5);
-  bubble.appendChild(time);
+  // --- Ajouter le séparateur seulement si le précédent message est de l'utilisateur ---
+  const lastMsg = box.lastElementChild;
+  if (lastMsg && lastMsg.classList.contains("user")) {
+    row.style.borderTop = "1px solid #ccc"; // <-- le seul séparateur
+  }
 
-  from === "user" ? row.append(bubble, avatar) : row.append(avatar, bubble);
+  row.style.padding = "6px 0";
+  row.style.whiteSpace = "normal";
 
   box.appendChild(row);
-  requestAnimationFrame(() => (row.style.opacity = 1));
   scrollBottom(box);
 
   if (persist && state.user) {
-    state.history.push({
-      role: from === "user" ? "user" : "bot",
-      content: text,
-      structured,
-    });
+    state.history.push({ role: "bot", content: text });
     if (state.history.length > MAX_HISTORY) state.history.shift();
     save("chat", state.history);
   }
 }
 function showThinking() {
   const el = document.createElement("div");
-  el.className = "msg bot thinking"; // ← on ajoute 'thinking'
+  el.className = "msg bot thinking-msg"; // ← nouvelle classe
 
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  avatar.style.backgroundImage = "url('/images/bot-avatar.webp')";
-  avatar.style.backgroundSize = "cover";
-  avatar.style.backgroundPosition = "center";
-  avatar.style.backgroundRepeat = "no-repeat";
-
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
-  bubble.textContent = "Analyse en cours";
+  const content = document.createElement("span");
+  content.className = "thinking-text";
+  content.setAttribute("unselectable", "on"); // non copiable
+  content.textContent = "Analyse en cours";
 
   const dots = document.createElement("span");
   dots.className = "dots";
@@ -215,9 +270,9 @@ function showThinking() {
     dot.textContent = ".";
     dots.appendChild(dot);
   }
-  bubble.appendChild(dots);
+  content.appendChild(dots);
 
-  el.append(avatar, bubble);
+  el.append(content);
 
   const box = $("chat-box");
   box.appendChild(el);
@@ -227,6 +282,149 @@ function showThinking() {
     el,
     remove: () => el.remove(),
   };
+}
+function updateAIPanel(matches = []) {
+  if (!state.criteria) return;
+  console.log("ROLE:", state.role);
+  console.log("CRITERIA:", state.criteria);
+
+  const c = state.criteria;
+
+  // =========================
+  // 🎯 CRITÈRES USER
+  // =========================
+  AI.ville().innerHTML = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;">
+    <path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/>
+    <circle cx="12" cy="10" r="3"/>
+  </svg>
+  ${c.ville || "Non défini"}
+`;
+  AI.budget().innerHTML = `
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;">
+  <circle cx="12" cy="12" r="10"/>
+  <text x="12" y="16" text-anchor="middle" font-size="10" fill="white" font-family="Arial, sans-serif">€</text>
+</svg>
+${c.budget || c.budgetMax || "?"} €
+`;
+
+  // 2️⃣ affichage
+  AI.surface().innerHTML = `
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;">
+  <rect x="2" y="10" width="20" height="4" rx="1"/>
+  <line x1="4" y1="10" x2="4" y2="14"/>
+  <line x1="8" y1="10" x2="8" y2="14"/>
+  <line x1="12" y1="10" x2="12" y2="14"/>
+  <line x1="16" y1="10" x2="16" y2="14"/>
+  <line x1="20" y1="10" x2="20" y2="14"/>
+</svg>
+${c.surface || c.surfaceMin ? (c.surface || c.surfaceMin) + " m²" : "Non défini"}
+`;
+  console.log("SURFACE DEBUG", {
+    role: state.role,
+    surface: c.surface,
+    surfaceMin: c.surfaceMin,
+    typeSurface: typeof c.surface,
+  });
+
+  AI.pieces().innerHTML = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/>
+  </svg>
+  ${c.pieces || c.piecesMin || "?"} pièces
+`;
+
+  // =========================
+  // ⚡ SI PAS DE MATCHS
+  // =========================
+  if (!matches.length) {
+    AI.statut().textContent = "Aucun résultat";
+    AI.analyse().innerHTML = "<li>→ En attente de résultats</li>";
+    return;
+  }
+
+  // =========================
+  // 📊 AGGREGATION DATA
+  // =========================
+  let totalPrice = 0;
+  let totalSurface = 0;
+  let totalPieces = 0;
+  let totalCompat = 0;
+
+  const villes = {};
+
+  matches.forEach((m) => {
+    totalPrice += isBuyer() ? m.price || 0 : m.budget || m.budgetMax || 0;
+
+    totalSurface += isBuyer() ? m.surface || 0 : m.surfaceMin || 0;
+
+    totalPieces += isBuyer() ? m.pieces || 0 : m.piecesMin || 0;
+    totalCompat += m.compatibility || 0;
+
+    const v = m.villeOriginal || m.ville;
+    if (v) villes[v] = (villes[v] || 0) + 1;
+  });
+
+  const avgPrice = Math.round(totalPrice / matches.length);
+  const avgSurface = Math.round(totalSurface / matches.length);
+  const avgPieces = Math.round(totalPieces / matches.length);
+  const avgCompat = Math.round(totalCompat / matches.length);
+
+  const bestVille =
+    Object.entries(villes).sort((a, b) => b[1] - a[1])[0]?.[0] || "Non défini";
+
+  // =========================
+  // ⚡ STATUT
+  // =========================
+  AI.statut().textContent = `${matches.length} biens • ${avgCompat}% compatibilité moyenne`;
+
+  // =========================
+  // 🧠 ANALYSE INTELLIGENTE
+  // =========================
+  const analyse = [];
+
+  // 🔥 LOGIQUE SMART (basée sur tes vrais résultats)
+  if (avgPrice > c.budgetMax || avgPrice > c.budget) {
+    analyse.push("→ Marché au-dessus de votre budget");
+  }
+
+  if (avgSurface < c.surfaceMin) {
+    analyse.push("→ Biens trop petits en moyenne");
+  }
+
+  if (avgPieces < c.piecesMin) {
+    analyse.push("→ Peu de biens avec assez de pièces");
+  }
+
+  if (avgCompat > 75) {
+    analyse.push("→ Excellentes opportunités détectées");
+  } else if (avgCompat > 50) {
+    analyse.push("→ Marché intéressant");
+  } else {
+    analyse.push("→ Peu de correspondances idéales");
+  }
+
+  if (c.toleranceKm > 40) {
+    analyse.push(`→ Zone élargie (${c.toleranceKm}km)`);
+  }
+
+  // 💎 INSIGHT PREMIUM
+  analyse.push(`→ Zone dominante : ${bestVille}`);
+  analyse.push(`→ Moyenne : ${avgSurface}m² • ${avgPieces} pièces`);
+  if (avgPrice < c.budget * 0.8) {
+    analyse.push("→ Opportunités sous-évaluées détectées");
+  }
+
+  if (avgCompat > 80 && matches.length >= 3) {
+    analyse.push("🔥 Plusieurs matchs très pertinents");
+  }
+
+  // =========================
+  // 🔄 UPDATE DOM
+  // =========================
+  AI.analyse().innerHTML = analyse.map((a) => `<li>${a}</li>`).join("");
+
+  flashPanel();
 }
 async function renderMatches(matches, postReply) {
   if (!Array.isArray(matches) || matches.length === 0) {
@@ -260,12 +458,10 @@ async function renderMatches(matches, postReply) {
   }
 
   matches.forEach((m, index) => {
+    // Bot / IA
     const row = document.createElement("div");
-    row.className = "msg bot structured match-row";
-    row.style.display = "flex";
-    row.style.flexDirection = "column";
-    row.style.marginBottom = "18px";
-    row.style.opacity = 0;
+    row.className = "msg bot structured";
+    row.style.minHeight = "0";
 
     const bubble = document.createElement("div");
     bubble.className = "bubble match-card";
@@ -476,7 +672,46 @@ async function renderMatches(matches, postReply) {
 
   // ===== Post reply automatique =====
   if (postReply) addMessage({ text: postReply, from: "bot" });
+  updateAIPanel(matches);
 }
+// ======== Bouton customiser le chat ======
+const btn = document.getElementById("customize-btn");
+const panel = document.getElementById("customize-panel");
+const input = document.getElementById("bg-upload");
+const chat = document.getElementById("chat-box");
+
+btn.onclick = () => {
+  panel.classList.toggle("hidden");
+};
+
+input.onchange = () => {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = (e) => {
+    const url = e.target.result;
+
+    chat.style.backgroundImage = `url(${url})`;
+    chat.style.backgroundSize = "cover";
+    chat.style.backgroundPosition = "center";
+
+    localStorage.setItem("chatBg", url);
+  };
+
+  reader.readAsDataURL(file);
+};
+const closeBtn = document.getElementById("close-panel");
+
+closeBtn.onclick = () => {
+  panel.classList.add("hidden");
+};
+document.addEventListener("click", (e) => {
+  if (!panel.contains(e.target) && !btn.contains(e.target)) {
+    panel.classList.add("hidden");
+  }
+});
 //============== SEND ==================//
 async function sendMessage(text) {
   if (state.sending || !text) return;
@@ -491,45 +726,46 @@ async function sendMessage(text) {
 
   state.sending = true;
   addMessage({ text, from: "user" });
+
+  // Affiche le thinking
   const thinking = showThinking();
 
   try {
-    const data = await sendToAPI(text);
-    thinking?.remove?.();
+    const data = await sendToAPI(text); // <-- attend la vraie réponse de l'IA
 
-    console.log("API RESPONSE", data);
+    // Une fois la réponse reçue, supprime le thinking
+    thinking?.remove?.();
 
     if (!data) throw new Error("Réponse serveur vide");
 
-    if (!data.matches && data.reply) {
-      addMessage({ text: data.reply, from: "bot" });
+    const botText = data.reply || data.message;
+
+    if (botText) {
+      addMessage({ text: botText, from: "bot" });
     }
 
+    // Si l'IA renvoie des critères / rôle
     if (data.role) state.role = data.role;
-
     if (data.criteria) {
-      Object.assign(state.criteria, data.criteria);
+      Object.assign(state.criteria, normalizeCriteria(data.criteria));
       save("criteria", state.criteria);
+      updateAIPanel(data.matches || []);
     }
+
+    // Si l'IA renvoie des matchs
     if (Array.isArray(data.matches)) {
-      // Passer postReply à renderMatches
       renderMatches(data.matches, data.postReply);
     }
 
     renderUserInfo();
   } catch (e) {
-    thinking?.remove?.();
+    thinking?.remove?.(); // supprime aussi le thinking en cas d'erreur
     console.error("SEND ERROR", e);
-
-    addMessage({
-      text: "Erreur serveur ou connexion perdue.",
-      from: "bot",
-    });
+    addMessage({ text: "Erreur serveur ou connexion perdue.", from: "bot" });
   } finally {
     state.sending = false;
   }
 }
-
 function render() {
   const box = $("chat-box");
   const section = $("chat-section");
@@ -544,7 +780,7 @@ function render() {
     return;
   }
 
-  section.style.display = "block";
+  section.style.display = "flex";
   if (openBtn) openBtn.style.display = "flex"; // <-- réafficher si connecté
 
   state.history.forEach((m) =>
@@ -558,11 +794,22 @@ function render() {
 
   renderUserInfo();
   scrollBottom(box, false);
+  updateAIPanel([]);
+}
+function flashPanel() {
+  const panel = document.querySelector(".ai-panel");
+  if (!panel) return;
+
+  panel.style.boxShadow = "0 0 20px rgba(124, 58, 237, 0.6)";
+  setTimeout(() => {
+    panel.style.boxShadow = "";
+  }, 300);
 }
 // ================== INIT ==================
 export function initChatbot() {
   if (state.ready) return;
   state.ready = true;
+  document.body.classList.add("chat-page");
 
   const form = $("chat-form");
   const input = $("user-input");
@@ -577,6 +824,30 @@ export function initChatbot() {
     if (!msg) return;
     input.value = "";
     sendMessage(msg);
+  });
+  // ================== AI ACTIONS ==================
+  document.querySelector(".ai-btn.primary")?.addEventListener("click", () => {
+    addMessage({
+      text: "Je souhaite être mis en relation avec un agent.",
+      from: "user",
+    });
+    sendMessage("Je veux être mis en relation");
+  });
+
+  document.querySelectorAll(".ai-btn")[1]?.addEventListener("click", () => {
+    addMessage({
+      text: "Peux-tu analyser le marché immobilier pour moi ?",
+      from: "user",
+    });
+    sendMessage("Analyse le marché immobilier");
+  });
+
+  document.querySelector(".ai-btn.ghost")?.addEventListener("click", () => {
+    addMessage({
+      text: "Je souhaite modifier mes critères.",
+      from: "user",
+    });
+    sendMessage("Modifier mes critères");
   });
 
   logoutBtn?.addEventListener("click", logout);

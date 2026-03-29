@@ -410,7 +410,6 @@ chatForm.addEventListener("submit", async (e) => {
 // ==========================
 document.querySelectorAll(".chat-actions .action-btn").forEach((btn) => {
   btn.addEventListener("click", async () => {
-    const action = btn.textContent.toLowerCase();
     const pseudo = chatWithTitle.textContent.trim().toLowerCase();
 
     if (!pseudo) {
@@ -421,9 +420,10 @@ document.querySelectorAll(".chat-actions .action-btn").forEach((btn) => {
     const msgs = messagesStore[pseudo] || [];
     const receiverId = receiverIdStore[pseudo];
 
-    if (action.includes("archiver")) {
+    // ✅ IDENTIFICATION PAR ID
+    if (btn.id === "btn-archive") {
       alert(`Conversation avec ${pseudo} archivée.`);
-    } else if (action.includes("supprimer")) {
+    } else if (btn.id === "btn-delete") {
       if (!msgs.length) {
         alert("Aucune conversation à supprimer.");
         return;
@@ -434,53 +434,40 @@ document.querySelectorAll(".chat-actions .action-btn").forEach((btn) => {
           const token = getAuthToken();
           if (!token) throw new Error("Token manquant");
 
-          // Supprimer tous les messages un par un côté back
           for (const msg of msgs) {
-            const idToDelete = msg.id || receiverId; // utiliser msg.id si dispo, sinon receiverId
+            const idToDelete = msg.id || receiverId;
             if (!idToDelete) continue;
 
-            const res = await fetch(`/api/messages/${idToDelete}`, {
+            await fetch(`/api/messages/${idToDelete}`, {
               method: "DELETE",
               headers: {
                 Authorization: `Bearer ${token}`,
               },
             });
-
-            if (!res.ok) {
-              const data = await res.json().catch(() => ({}));
-              console.warn(
-                `Erreur suppression message ${idToDelete}:`,
-                data.error || res.status,
-              );
-            }
           }
 
-          // Mise à jour locale
           delete messagesStore[pseudo];
           conversationStore.delete(pseudo);
 
-          // Retirer la conversation du DOM
           const convoEl = document.querySelector(
             `.conversation[data-user='${pseudo}']`,
           );
           if (convoEl) convoEl.remove();
 
-          // Nettoyer la zone chat si c'était la conversation active
           chatBox.innerHTML = "";
           chatWithTitle.textContent = "";
 
-          alert(`Conversation entière avec ${pseudo} supprimée !`);
+          alert(`Conversation supprimée !`);
         } catch (err) {
-          console.error("[ERROR] Suppression conversation :", err);
-          alert(`Erreur lors de la suppression : ${err.message}`);
+          console.error(err);
+          alert("Erreur suppression");
         }
       }
-    } else if (action.includes("bloquer")) {
+    } else if (btn.id === "btn-block") {
       alert(`Utilisateur ${pseudo} bloqué.`);
     }
   });
 });
-
 // ==========================
 // REPONDRE / NOUVEAU MESSAGE
 // ==========================

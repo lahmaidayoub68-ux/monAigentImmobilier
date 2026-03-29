@@ -66,7 +66,10 @@ FOOTER
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   z-index: 1000;
 }
-
+.bottom-banner p {
+  color: white;
+  margin: 0;
+}
 /* ===== SIDEBAR ===== */
 .sidebar {
   position: fixed;

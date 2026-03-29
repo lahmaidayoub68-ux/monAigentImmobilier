@@ -38,17 +38,26 @@ body {
 FOOTER
 ========================= */
 .bottom-banner {
-  position: relative; /* ou supprimer cette ligne */
-  /* bottom: 0; <-- à supprimer */
   width: 100%;
   text-align: center;
   padding: 16px;
-  background: rgba(0, 0, 0, 0.65);
-  font-size: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  z-index: 1000;
-}
 
+  /* 🔥 EXACT même fond que les cards */
+  background: linear-gradient(
+    145deg,
+    rgba(20, 20, 30, 0.95),
+    rgba(35, 30, 45, 0.95)
+  );
+
+  color: #d3cfff;
+
+  font-size: 14px;
+
+  border-top: 1px solid rgba(80, 60, 120, 0.3);
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
 /* ================= CONTAINER ================= */
 .container {
   display: grid;
@@ -351,24 +360,6 @@ input:-moz-autofill {
 /* Maintien du focus normal */
 .card input:focus:-webkit-autofill {
   box-shadow: 0 0 12px rgba(123, 47, 247, 0.35) inset;
-}
-/* --------------------------
-FOOTER PREMIUM
--------------------------- */
-.bottom-banner {
-  width: 100%;
-  text-align: center;
-  padding: 16px;
-
-  background: rgba(10, 10, 15, 0.72);
-  color: white;
-
-  font-size: 14px;
-
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
 .bottom-banner p {
