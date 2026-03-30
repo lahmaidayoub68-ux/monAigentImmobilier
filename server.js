@@ -1,6 +1,6 @@
 //================ IMPORTS ==================//
 import express from "express";
-import Database from "better-sqlite3";
+import { db } from "./db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
@@ -35,7 +35,6 @@ if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET manquant");
 
 // ================== SETUP ==================
 const app = express();
-const db = new Database("data.db");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 3000;
@@ -161,59 +160,61 @@ app.use("/signup", apiLimiter);
 app.use("/chat", apiLimiter);
 
 // ================== DB ==================
-db.prepare(
-  `
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY,
-    username TEXT UNIQUE,
-    password TEXT,
-    role TEXT,
-    contact TEXT,
-    ville TEXT DEFAULT '',
-    region TEXT DEFAULT '',
-    type TEXT DEFAULT 'appartement',
-    price REAL DEFAULT 0,
-    pieces INTEGER DEFAULT 1,
-    surface REAL DEFAULT 10,
-    budget REAL DEFAULT 0,
-    budgetMin REAL DEFAULT 0,
-    budgetMax REAL DEFAULT 0,
-    piecesMin INTEGER DEFAULT 0,
-    piecesMax INTEGER DEFAULT 100,
-    surfaceMin REAL DEFAULT 0,
-    surfaceMax REAL DEFAULT 1000,
-    avatar TEXT DEFAULT '/images/user-avatar.jpg'
-  )
+await db
+  .prepare(
+    `
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password TEXT,
+  role TEXT,
+  contact TEXT,
+  ville TEXT DEFAULT '',
+  region TEXT DEFAULT '',
+  type TEXT DEFAULT 'appartement',
+  price REAL DEFAULT 0,
+  pieces INTEGER DEFAULT 1,
+  surface REAL DEFAULT 10,
+  budget REAL DEFAULT 0,
+  budgetMin REAL DEFAULT 0,
+  budgetMax REAL DEFAULT 0,
+  piecesMin INTEGER DEFAULT 0,
+  piecesMax INTEGER DEFAULT 100,
+  surfaceMin REAL DEFAULT 0,
+  surfaceMax REAL DEFAULT 1000,
+  avatar TEXT DEFAULT '/images/user-avatar.jpg'
+)
 `,
-).run();
-// ================== TABLE MESSAGES ==================
-db.prepare(
-  `
-  CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY,
-    sender_id INTEGER NOT NULL,
-    receiver_id INTEGER NOT NULL,
-    subject TEXT NOT NULL,
-    body TEXT NOT NULL,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (sender_id) REFERENCES users(id),
-    FOREIGN KEY (receiver_id) REFERENCES users(id)
   )
-`,
-).run();
+  .run();
 
-// ================== TABLE FAVORITES ==================
-db.prepare(
-  `
-  CREATE TABLE IF NOT EXISTS favorites (
-    id INTEGER PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    profile_data TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  )
+await db
+  .prepare(
+    `
+CREATE TABLE IF NOT EXISTS messages (
+  id SERIAL PRIMARY KEY,
+  sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
 `,
-).run();
+  )
+  .run();
+
+await db
+  .prepare(
+    `
+CREATE TABLE IF NOT EXISTS favorites (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  profile_data TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+`,
+  )
+  .run();
 
 // ================== INIT PROFILS MATCHING EN PROD ==================
 console.log("🔄 Initialisation des profils depuis la DB...");
@@ -222,7 +223,7 @@ console.log("🔄 Initialisation des profils depuis la DB...");
 resetProfiles();
 
 // Récupérer tous les utilisateurs avec les infos nécessaires
-const allUsers = db
+const allUsers = await db
   .prepare(
     `
   SELECT u.id, u.username, u.role, u.contact,
@@ -262,9 +263,8 @@ allUsers.forEach((u) => {
     addSeller(profileData);
   }
 });
-
 // ================== INIT FAVORITES ==================
-const allFavorites = db
+const allFavorites = await db
   .prepare(
     `
   SELECT f.id, f.user_id, f.profile_data, u.username AS ownerUsername
@@ -284,7 +284,7 @@ allFavorites.forEach((fav) => {
 });
 
 // ================== INIT MESSAGES ==================
-const allMessages = db
+const allMessages = await db
   .prepare(
     `
   SELECT m.id, m.sender_id, m.receiver_id, m.subject, m.body, m.timestamp,
@@ -302,6 +302,7 @@ console.log(
 console.log(
   `✅ Messages récupérés : ${allMessages.length}, favoris : ${allFavorites.length}`,
 );
+
 // ================== AUTH ==================
 const generateToken = (user) =>
   jwt.sign(
@@ -320,15 +321,16 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
+
 // ================== UPSERT PROFILE ==================
-function upsertProfile(user, normalized) {
+async function upsertProfile(user, normalized) {
   const { username, contact, role } = user;
 
   // Préparer le profil complet
   const profileData = {
     username,
     contact: contact || "",
-    role, // 🔥 AJOUTE ÇA
+    role,
     type: normalized.type || "",
     ville: normalized.ville || "",
     region: normalized.ville || "",
@@ -339,12 +341,14 @@ function upsertProfile(user, normalized) {
     surface: role === "seller" ? normalized.surface || 0 : 0,
     piecesMin: role === "buyer" ? normalized.piecesMin || 0 : 0,
     surfaceMin: role === "buyer" ? normalized.surfaceMin || 0 : 0,
+    piecesMax: normalized.piecesMax ?? Infinity,
+    surfaceMax: normalized.surfaceMax ?? Infinity,
+    budget: normalized.budget ?? 0,
   };
 
   // ================== MEMORY UPSERT ==================
   if (role === "buyer") {
     const existingIndex = BUYERS.findIndex((b) => b.username === username);
-
     const fullBuyer = {
       id: existingIndex >= 0 ? BUYERS[existingIndex].id : Date.now(),
       ...profileData,
@@ -353,75 +357,111 @@ function upsertProfile(user, normalized) {
           ? BUYERS[existingIndex].preferences
           : { typeWeights: {}, regionWeights: {} },
     };
-
     if (existingIndex >= 0) BUYERS[existingIndex] = fullBuyer;
     else BUYERS.push(fullBuyer);
   }
 
   if (role === "seller") {
     const existingIndex = SELLERS.findIndex((s) => s.username === username);
-
     const fullSeller = {
       id: existingIndex >= 0 ? SELLERS[existingIndex].id : Date.now(),
       ...profileData,
     };
-
     if (existingIndex >= 0) SELLERS[existingIndex] = fullSeller;
     else SELLERS.push(fullSeller);
   }
+
   // ================== DB UPSERT ==================
-  try {
-    db.prepare(
-      `
-  INSERT INTO users (
-    username, password, role, contact, type, ville, region,
-    price, budgetMin, budgetMax,
-    piecesMin, piecesMax,
-    surfaceMin, surfaceMax,
-    pieces, budget, surface
-  ) VALUES (?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  ON CONFLICT(username) DO UPDATE SET
-    role = excluded.role,
-    contact = excluded.contact,
-    type = excluded.type,
-    ville = excluded.ville,
-    region = excluded.region,
-    price = excluded.price,
-    pieces = excluded.pieces,
-    surface = excluded.surface,
-    budget = excluded.budget,
-    budgetMin = excluded.budgetMin,
-    budgetMax = excluded.budgetMax,
-    piecesMin = excluded.piecesMin,
-    piecesMax = excluded.piecesMax,
-    surfaceMin = excluded.surfaceMin,
-    surfaceMax = excluded.surfaceMax
-`,
-    ).run(
-      username,
-      role,
-      contact || "",
-      profileData.type,
-      profileData.ville,
-      profileData.region,
-      profileData.price,
-      profileData.budgetMin,
-      profileData.budgetMax,
-      profileData.piecesMin,
-      profileData.piecesMax,
-      profileData.surfaceMin,
-      profileData.surfaceMax,
-      profileData.pieces || 0,
-      profileData.budgetMin || 0,
-      profileData.surface || 0,
+  if (process.env.NODE_ENV === "production") {
+    // PostgreSQL
+    await db.prepare("users").upsert(
+      {
+        username,
+        role,
+        contact: profileData.contact,
+        type: profileData.type,
+        ville: profileData.ville,
+        region: profileData.region,
+        price: profileData.price,
+        pieces: profileData.pieces,
+        surface: profileData.surface,
+        budget: profileData.budget,
+        budgetMin: profileData.budgetMin,
+        budgetMax: profileData.budgetMax,
+        piecesMin: profileData.piecesMin,
+        piecesMax: profileData.piecesMax,
+        surfaceMin: profileData.surfaceMin,
+        surfaceMax: profileData.surfaceMax,
+      },
+      "username",
+      [
+        "role",
+        "contact",
+        "type",
+        "ville",
+        "region",
+        "price",
+        "pieces",
+        "surface",
+        "budget",
+        "budgetMin",
+        "budgetMax",
+        "piecesMin",
+        "piecesMax",
+        "surfaceMin",
+        "surfaceMax",
+      ],
     );
-  } catch (err) {
-    console.error("[UPSERT PROFILE DB ERROR] :", err);
+  } else {
+    // SQLite
+    await db
+      .prepare(
+        `
+      INSERT INTO users (
+        username, password, role, contact, type, ville, region,
+        price, pieces, surface, budget, budgetMin, budgetMax,
+        piecesMin, piecesMax, surfaceMin, surfaceMax
+      ) VALUES (?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(username) DO UPDATE SET
+        role = excluded.role,
+        contact = excluded.contact,
+        type = excluded.type,
+        ville = excluded.ville,
+        region = excluded.region,
+        price = excluded.price,
+        pieces = excluded.pieces,
+        surface = excluded.surface,
+        budget = excluded.budget,
+        budgetMin = excluded.budgetMin,
+        budgetMax = excluded.budgetMax,
+        piecesMin = excluded.piecesMin,
+        piecesMax = excluded.piecesMax,
+        surfaceMin = excluded.surfaceMin,
+        surfaceMax = excluded.surfaceMax
+    `,
+      )
+      .run(
+        username,
+        role,
+        profileData.contact,
+        profileData.type,
+        profileData.ville,
+        profileData.region,
+        profileData.price,
+        profileData.pieces,
+        profileData.surface,
+        profileData.budget,
+        profileData.budgetMin,
+        profileData.budgetMax,
+        profileData.piecesMin,
+        profileData.piecesMax,
+        profileData.surfaceMin,
+        profileData.surfaceMax,
+      );
   }
 
   return profileData;
 }
-
 // ================== IMPORT AI CHAT ==================
 import { aiChatWithCriteria } from "./services/aiParsee.js";
 // ================== CHAT SYSTEM ==================
@@ -537,7 +577,6 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
     const missingCriteria = ORDER.filter((k) => {
       if (k === "pieces") return session.criteria.piecesMin === undefined;
       if (k === "espace") return session.criteria.espaceMin === undefined;
-
       if (k === "toleranceKm") {
         return (
           session.role === "buyer" &&
@@ -545,7 +584,6 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           session.criteria.toleranceKm === undefined
         );
       }
-
       return session.criteria[k] === undefined;
     });
     const budgetIncomplete = session.criteria.budgetMin === undefined;
@@ -557,10 +595,9 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
         return res.json({ reply, criteria: session.criteria });
       }
 
-      // ===== Critères complets => création du profil =====
+      // ===== Critères complets => création du profil en mémoire & DB =====
       let profile;
       if (session.role === "buyer") {
-        // Acheteur : on garde les champs budget/pieces/surface min/max
         profile = addBuyer({
           username,
           type: normalized.type,
@@ -573,7 +610,6 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           surfaceMax: normalized.surfaceMax,
         });
       } else {
-        // Vendeur : mapper les champs IA (budgetMin → price, piecesMin → pieces, espaceMin → surface)
         profile = addSeller({
           username,
           type: normalized.type,
@@ -582,6 +618,16 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           pieces: normalized.piecesMin,
           surface: normalized.surfaceMin,
         });
+      }
+
+      // ===== UPSERT PROFIL EN DB =====
+      try {
+        await upsertProfile(
+          { username, role: session.role, contact: req.user.contact },
+          normalized,
+        );
+      } catch (err) {
+        console.error("[DB UPSERT PROFILE ERROR]:", err);
       }
 
       // ===== Matching =====
@@ -619,11 +665,10 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           ...session.criteria,
           surfaceMin: session.criteria.espaceMin,
           surfaceMax: session.criteria.espaceMax,
-          surface: session.criteria.espaceMin, // 👈 CRUCIAL
+          surface: session.criteria.espaceMin,
         },
       });
     }
-
     // ===== Phase results =====
     if (session.phase === "results") {
       let postResultAI = {};
@@ -655,6 +700,7 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
   }
 });
 // ================== AUTH ROUTES ==================
+// ================== SIGNUP ==================
 app.post("/signup", async (req, res) => {
   try {
     console.log("[SIGNUP] BODY RECEIVED:", req.body);
@@ -679,37 +725,48 @@ app.post("/signup", async (req, res) => {
 
     const { username, password, role, contact } = parsed;
 
-    if (db.prepare("SELECT 1 FROM users WHERE username=?").get(username))
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = await db
+      .prepare("SELECT 1 FROM users WHERE username=?")
+      .get(username);
+
+    if (existingUser)
       return res.status(409).json({ error: "Utilisateur déjà existant" });
+
     const hash = await bcrypt.hash(password, 10);
-    db.prepare(
-      `
-INSERT INTO users (
-  username, password, role, contact, ville, region, type, price,
-  budget, budgetMin, budgetMax, pieces, piecesMin, piecesMax,
-  surface, surfaceMin, surfaceMax, avatar
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`,
-    ).run(
-      username,
-      hash,
-      role,
-      contact,
-      "",
-      "",
-      "appartement",
-      0,
-      0,
-      0,
-      0,
-      1,
-      0,
-      100,
-      10,
-      0,
-      1000,
-      "/images/user-avatar.jpg", // avatar par défaut
-    );
+
+    // Insérer en DB
+    await db
+      .prepare(
+        `
+      INSERT INTO users (
+        username, password, role, contact, ville, region, type, price,
+        budget, budgetMin, budgetMax, pieces, piecesMin, piecesMax,
+        surface, surfaceMin, surfaceMax, avatar
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      )
+      .run(
+        username,
+        hash,
+        role,
+        contact,
+        "",
+        "",
+        "appartement",
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        100,
+        10,
+        0,
+        1000,
+        "/images/user-avatar.jpg",
+      );
+
     res.json({ token: generateToken({ username, role, contact }) });
   } catch (err) {
     console.error("[SIGNUP] ERREUR INATTENDUE:", err.stack);
@@ -717,6 +774,7 @@ INSERT INTO users (
   }
 });
 
+// ================== LOGIN ==================
 app.post("/login", async (req, res) => {
   try {
     console.log("[LOGIN] BODY RECEIVED:", req.body);
@@ -739,13 +797,17 @@ app.post("/login", async (req, res) => {
 
     const { username, password } = parsed;
 
-    const user = db
+    const user = await db
       .prepare("SELECT * FROM users WHERE username=?")
       .get(username);
-    if (!user || !(await bcrypt.compare(password, user.password)))
-      return res.sendStatus(401);
 
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.sendStatus(401);
+    }
+
+    // Supprimer la session si existante
     delete sessions[username];
+
     res.json({ token: generateToken(user) });
   } catch (err) {
     console.error("[LOGIN] ERREUR INATTENDUE:", err.stack);
@@ -754,9 +816,9 @@ app.post("/login", async (req, res) => {
 });
 
 // ================== PROFIL UTILISATEUR ==================
-app.get("/api/me", authenticateToken, (req, res) => {
+app.get("/api/me", authenticateToken, async (req, res) => {
   try {
-    const user = db
+    const user = await db
       .prepare(
         "SELECT username, role, contact, avatar FROM users WHERE username = ?",
       )
@@ -770,6 +832,7 @@ app.get("/api/me", authenticateToken, (req, res) => {
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
+
 // ================== CHANGER MOT DE PASSE ==================
 app.post("/api/change-password", authenticateToken, async (req, res) => {
   try {
@@ -779,26 +842,22 @@ app.post("/api/change-password", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Données invalides" });
     }
 
-    // Récupération utilisateur depuis DB
-    const user = db
+    const user = await db
       .prepare("SELECT id, password FROM users WHERE username=?")
       .get(req.user.username);
 
-    if (!user) {
+    if (!user)
       return res.status(404).json({ error: "Utilisateur introuvable" });
-    }
 
-    // Vérifier mot de passe actuel
     const match = await bcrypt.compare(currentPassword, user.password);
-    if (!match) {
+    if (!match)
       return res.status(401).json({ error: "Mot de passe actuel incorrect" });
-    }
 
-    // Hacher le nouveau mot de passe
     const newHash = await bcrypt.hash(newPassword, 10);
 
-    // Mettre à jour la DB
-    db.prepare("UPDATE users SET password=? WHERE id=?").run(newHash, user.id);
+    await db
+      .prepare("UPDATE users SET password=? WHERE id=?")
+      .run(newHash, user.id);
 
     console.log(`[PROFIL] Mot de passe changé pour ${req.user.username}`);
     res.json({ success: true });
@@ -810,17 +869,17 @@ app.post("/api/change-password", authenticateToken, async (req, res) => {
 // ================== MESSAGES ==================
 
 // Envoyer un message
-app.post("/api/messages", authenticateToken, (req, res) => {
+// ================== ENVOYER UN MESSAGE ==================
+app.post("/api/messages", authenticateToken, async (req, res) => {
   try {
     console.log("[API /messages POST] Requête reçue :", req.body);
 
-    // On accepte pseudo/email pour nouveau message, ou receiverId pour réponse
     const schema = z.object({
       pseudo: z.string().min(1).optional(),
       email: z.string().email().optional(),
       subject: z.string().min(1),
       body: z.string().min(1),
-      receiverId: z.number().optional(), // ID du destinataire si c'est une réponse
+      receiverId: z.number().optional(),
     });
 
     const { pseudo, email, subject, body, receiverId } = schema.parse(req.body);
@@ -836,15 +895,9 @@ app.post("/api/messages", authenticateToken, (req, res) => {
     let receiver;
 
     if (receiverId) {
-      // Cas réponse : on connaît déjà le destinataire
-      receiver = db
-        .prepare(
-          `  
-    SELECT id, username, contact  
-    FROM users  
-    WHERE id=?  
-  `,
-        )
+      // Cas réponse
+      receiver = await db
+        .prepare(`SELECT id, username, contact FROM users WHERE id=?`)
         .get(receiverId);
 
       if (!receiver) {
@@ -855,14 +908,13 @@ app.post("/api/messages", authenticateToken, (req, res) => {
         return res.status(404).json({ error: "Utilisateur introuvable" });
       }
     } else {
-      // Cas nouveau message : pseudo + email obligatoires
+      // Cas nouveau message
       if (!pseudo || !email) {
         return res.status(400).json({
           error: "Pseudo et email obligatoires pour un nouveau message",
         });
       }
 
-      // Normalisation : trim et lowercase
       const normalizedPseudo = pseudo.trim().toLowerCase();
       const normalizedEmail = email.trim().toLowerCase();
 
@@ -871,15 +923,11 @@ app.post("/api/messages", authenticateToken, (req, res) => {
         normalizedEmail,
       });
 
-      // Vérifier destinataire
-      receiver = db
+      receiver = await db
         .prepare(
-          `  
-    SELECT id, username, contact  
-    FROM users  
-    WHERE LOWER(TRIM(username))=?  
-      AND LOWER(TRIM(contact))=?  
-  `,
+          `SELECT id, username, contact 
+           FROM users 
+           WHERE LOWER(TRIM(username))=? AND LOWER(TRIM(contact))=?`,
         )
         .get(normalizedPseudo, normalizedEmail);
 
@@ -894,14 +942,9 @@ app.post("/api/messages", authenticateToken, (req, res) => {
 
     console.log("[API /messages POST] Destinataire trouvé :", receiver);
 
-    // Vérifier l'expéditeur
-    const sender = db
+    const sender = await db
       .prepare(
-        `  
-  SELECT id, username, contact  
-  FROM users  
-  WHERE LOWER(TRIM(username))=?  
-`,
+        `SELECT id, username, contact FROM users WHERE LOWER(TRIM(username))=?`,
       )
       .get(req.user.username.trim().toLowerCase());
 
@@ -916,12 +959,9 @@ app.post("/api/messages", authenticateToken, (req, res) => {
     console.log("[API /messages POST] Expéditeur trouvé :", sender);
 
     // Insérer le message
-    const insert = db
+    const insert = await db
       .prepare(
-        `  
-  INSERT INTO messages (sender_id, receiver_id, subject, body)  
-  VALUES (?, ?, ?, ?)  
-`,
+        `INSERT INTO messages (sender_id, receiver_id, subject, body) VALUES (?, ?, ?, ?)`,
       )
       .run(sender.id, receiver.id, subject, body);
 
@@ -934,18 +974,14 @@ app.post("/api/messages", authenticateToken, (req, res) => {
   }
 });
 
-// Récupérer les messages
-app.get("/api/messages", authenticateToken, (req, res) => {
+// ================== RÉCUPÉRER LES MESSAGES ==================
+app.get("/api/messages", authenticateToken, async (req, res) => {
   try {
     console.log("[API /messages GET] Requête pour :", req.user.username);
 
-    const user = db
+    const user = await db
       .prepare(
-        `  
-  SELECT id, username, contact  
-  FROM users  
-  WHERE LOWER(TRIM(username))=?  
-`,
+        `SELECT id, username, contact FROM users WHERE LOWER(TRIM(username))=?`,
       )
       .get(req.user.username.trim().toLowerCase());
 
@@ -959,31 +995,28 @@ app.get("/api/messages", authenticateToken, (req, res) => {
 
     console.log("[API /messages GET] Utilisateur trouvé :", user);
 
-    // ✅ Modification : renvoyer senderId et senderEmail pour que le front puisse stocker receiverIdStore correctement
-    const messages = db
+    const messages = await db
       .prepare(
         `
 SELECT
-m.id,
-m.sender_id,
-m.receiver_id,
+  m.id,
+  m.sender_id,
+  m.receiver_id,
 
-su.username AS sender,
-su.contact AS senderEmail,
-su.avatar AS senderAvatar,
+  su.username AS sender,
+  su.contact AS senderEmail,
+  su.avatar AS senderAvatar,
 
-ru.username AS receiver,
-ru.contact AS receiverEmail,
-ru.avatar AS receiverAvatar,
+  ru.username AS receiver,
+  ru.contact AS receiverEmail,
+  ru.avatar AS receiverAvatar,
 
-m.subject,
-m.body,
-m.timestamp
-
+  m.subject,
+  m.body,
+  m.timestamp
 FROM messages m
 JOIN users su ON m.sender_id = su.id
 JOIN users ru ON m.receiver_id = ru.id
-
 WHERE m.receiver_id = ? OR m.sender_id = ?
 ORDER BY m.timestamp ASC
 `,
@@ -1043,12 +1076,12 @@ app.delete("/api/messages/:id", authenticateToken, (req, res) => {
   }
 });
 // ================== FAVORITES ==================
-app.get("/api/favorites", authenticateToken, (req, res) => {
+app.get("/api/favorites", authenticateToken, async (req, res) => {
   try {
     const usernameNormalized = req.user.username.trim().toLowerCase();
 
     // Récupération utilisateur
-    const user = db
+    const user = await db
       .prepare(`SELECT id FROM users WHERE LOWER(username)=?`)
       .get(usernameNormalized);
 
@@ -1058,7 +1091,7 @@ app.get("/api/favorites", authenticateToken, (req, res) => {
     if (!user) return res.sendStatus(404);
 
     // Récupération des favoris
-    const favorites = db
+    const favorites = await db
       .prepare(
         `
         SELECT id, profile_data
@@ -1071,7 +1104,13 @@ app.get("/api/favorites", authenticateToken, (req, res) => {
 
     // Parsing des favoris
     const parsed = favorites.map((f) => {
-      const data = JSON.parse(f.profile_data);
+      let data = {};
+      try {
+        data = JSON.parse(f.profile_data);
+      } catch (err) {
+        console.warn(`[FAVORITES] JSON invalide pour favorite ${f.id}`);
+      }
+
       return {
         dbId: f.id,
         type: data.type ?? "",
@@ -1097,12 +1136,12 @@ app.get("/api/favorites", authenticateToken, (req, res) => {
   }
 });
 
-app.post("/api/favorites", authenticateToken, (req, res) => {
+app.post("/api/favorites", authenticateToken, async (req, res) => {
   try {
     const usernameNormalized = req.user.username.trim().toLowerCase();
 
     // Récupération utilisateur
-    const user = db
+    const user = await db
       .prepare(`SELECT id FROM users WHERE LOWER(username)=?`)
       .get(usernameNormalized);
 
@@ -1113,25 +1152,28 @@ app.post("/api/favorites", authenticateToken, (req, res) => {
 
     const profile = req.body;
 
-    const info = db
+    const info = await db
       .prepare(`INSERT INTO favorites (user_id, profile_data) VALUES (?, ?)`)
       .run(user.id, JSON.stringify(profile));
 
     console.log("[DEBUG POST FAVORITES] FAVORITE INSERTED:", info);
 
-    res.json({ success: true, dbId: info.lastInsertRowid });
+    // PostgreSQL retourne `rows` et pas `lastInsertRowid` : utiliser `RETURNING id`
+    const insertedId = info.rows && info.rows[0] ? info.rows[0].id : null;
+
+    res.json({ success: true, dbId: insertedId });
   } catch (err) {
     console.error("[API /favorites POST] ERREUR :", err);
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
-app.delete("/api/favorites/:id", authenticateToken, (req, res) => {
+app.delete("/api/favorites/:id", authenticateToken, async (req, res) => {
   try {
     const usernameNormalized = req.user.username.trim().toLowerCase();
 
     // Récupération utilisateur
-    const user = db
+    const user = await db
       .prepare(`SELECT id FROM users WHERE LOWER(username)=?`)
       .get(usernameNormalized);
 
@@ -1142,16 +1184,17 @@ app.delete("/api/favorites/:id", authenticateToken, (req, res) => {
 
     const favId = Number(req.params.id);
 
-    const result = db
+    const result = await db
       .prepare(
         `
         DELETE FROM favorites
         WHERE id = ? AND user_id = ?
+        RETURNING id
       `,
       )
       .run(favId, user.id);
 
-    console.log("[DEBUG DELETE FAVORITES] ROWS AFFECTED:", result.changes);
+    console.log("[DEBUG DELETE FAVORITES] ROWS AFFECTED:", result);
 
     res.json({ success: true });
   } catch (err) {
@@ -1159,14 +1202,14 @@ app.delete("/api/favorites/:id", authenticateToken, (req, res) => {
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
-
-app.get("/api/stats", authenticateToken, (req, res) => {
+// ================== STATS ==================
+app.get("/api/stats", authenticateToken, async (req, res) => {
   try {
     const usernameNormalized = req.user.username.trim().toLowerCase();
 
     // ================== RÉCUPÉRATION USER DB ==================
-    const user = db
-      .prepare("SELECT id, username FROM users WHERE LOWER(TRIM(username))=?")
+    const user = await db
+      .prepare("SELECT id, username FROM users WHERE LOWER(TRIM(username)) = ?")
       .get(usernameNormalized);
 
     if (!user) {
@@ -1174,15 +1217,17 @@ app.get("/api/stats", authenticateToken, (req, res) => {
     }
 
     // ================== FAVORIS ==================
-    const favResult = db
-      .prepare("SELECT COUNT(*) as count FROM favorites WHERE user_id = ?")
+    const favResult = await db
+      .prepare("SELECT COUNT(*) AS count FROM favorites WHERE user_id = ?")
       .get(user.id);
     const totalFavoris = favResult?.count || 0;
 
     // ================== CONVERSATIONS ACTIVES ==================
-    const convoResult = db
+    const convoResult = await db
       .prepare(
-        "SELECT COUNT(DISTINCT CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END) as count FROM messages WHERE sender_id = ? OR receiver_id = ?",
+        `SELECT COUNT(DISTINCT CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END) AS count
+         FROM messages
+         WHERE sender_id = ? OR receiver_id = ?`,
       )
       .get(user.id, user.id, user.id);
     const activeConversations = convoResult?.count || 0;
@@ -1195,7 +1240,7 @@ app.get("/api/stats", authenticateToken, (req, res) => {
     const buyerProfile =
       buyerProfiles.length > 0 ? buyerProfiles[buyerProfiles.length - 1] : null;
 
-    // Seller (version corrigée et sécurisée)
+    // Seller
     const sellerProfiles = SELLERS.filter(
       (s) => s.username === req.user.username,
     );
@@ -1260,8 +1305,8 @@ app.get("/api/stats", authenticateToken, (req, res) => {
         villeScoreVal: m.villeScoreVal,
         lat: m.lat,
         lng: m.lng,
-        buyerLat: m.buyerLat != null ? m.buyerLat : null,
-        buyerLng: m.buyerLng != null ? m.buyerLng : null,
+        buyerLat: m.buyerLat ?? null,
+        buyerLng: m.buyerLng ?? null,
         price: m.price ?? m.budget ?? 0,
         pieces: m.pieces ?? m.piecesMin ?? 0,
         surface: m.surface ?? m.surfaceMin ?? 0,
@@ -1281,6 +1326,7 @@ app.get("/api/stats", authenticateToken, (req, res) => {
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
+// ================== IA ==================
 app.post("/api/ai", authenticateToken, async (req, res) => {
   try {
     let { message } = req.body;
@@ -1340,19 +1386,22 @@ app.post("/api/ai", authenticateToken, async (req, res) => {
   }
 });
 
+// ================== CHANGER AVATAR ==================
 app.post("/api/change-avatar", authenticateToken, async (req, res) => {
   try {
     const { avatar } = req.body;
     if (!avatar) return res.status(400).json({ error: "Avatar manquant" });
 
-    const user = db
-      .prepare("SELECT id FROM users WHERE username=?")
+    const user = await db
+      .prepare("SELECT id FROM users WHERE username = ?")
       .get(req.user.username);
 
     if (!user)
       return res.status(404).json({ error: "Utilisateur introuvable" });
 
-    db.prepare("UPDATE users SET avatar=? WHERE id=?").run(avatar, user.id);
+    await db
+      .prepare("UPDATE users SET avatar = ? WHERE id = ?")
+      .run(avatar, user.id);
 
     res.json({ success: true, avatar });
   } catch (err) {
@@ -1360,14 +1409,53 @@ app.post("/api/change-avatar", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
-// Vérifier si la colonne avatar existe, sinon l'ajouter
-const tableInfo = db.prepare("PRAGMA table_info(users)").all();
-if (!tableInfo.find((col) => col.name === "avatar")) {
-  console.log("⚡ Ajout de la colonne avatar à la table users...");
-  db.prepare(
-    "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT '/images/user-avatar.jpg'",
-  ).run();
-}
+
+// ================== AJOUT COLONNE AVATAR SI MANQUANTE ==================
+(async () => {
+  try {
+    if (!isProd) {
+      // SQLite
+      const tableInfo = await db.prepare("PRAGMA table_info(users)").all();
+      if (!tableInfo.find((col) => col.name === "avatar")) {
+        console.log(
+          "⚡ Ajout de la colonne avatar à la table users (SQLite)...",
+        );
+        await db
+          .prepare(
+            "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT '/images/user-avatar.jpg'",
+          )
+          .run();
+      }
+    } else {
+      // PostgreSQL
+      const res = await db
+        .prepare(
+          `
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name='users' AND column_name='avatar'
+      `,
+        )
+        .all();
+
+      if (!res.length) {
+        console.log(
+          "⚡ Ajout de la colonne avatar à la table users (PostgreSQL)...",
+        );
+        await db
+          .prepare(
+            `
+          ALTER TABLE users
+          ADD COLUMN avatar TEXT DEFAULT '/images/user-avatar.jpg'
+        `,
+          )
+          .run();
+      }
+    }
+  } catch (err) {
+    console.error("[INIT AVATAR COLUMN] ERREUR :", err);
+  }
+})();
 app.post("/api/support", async (req, res) => {
   console.log("[SUPPORT] Requête reçue");
 

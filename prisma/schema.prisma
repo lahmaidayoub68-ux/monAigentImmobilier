@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model favorites {
+  id           Int       @id @default(autoincrement())
+  user_id      Int
+  profile_data String
+  created_at   DateTime? @default(dbgenerated("'2026-03-29 17:06:21.639929'::timestamp without time zone")) @db.Timestamp(6)
+}
+
+model messages {
+  id          Int       @id @default(autoincrement())
+  sender_id   Int
+  receiver_id Int
+  subject     String
+  body        String
+  timestamp   DateTime? @default(dbgenerated("'2026-03-29 17:06:21.3144'::timestamp without time zone")) @db.Timestamp(6)
+}
+
+model users {
+  id         Int     @id @default(autoincrement())
+  username   String?
+  password   String?
+  role       String?
+  contact    String?
+  ville      String? @default("")
+  region     String? @default("")
+  type       String? @default("appartement")
+  price      Float?  @default(0) @db.Real
+  pieces     Int?    @default(1)
+  surface    Float?  @default(10) @db.Real
+  budget     Float?  @default(0) @db.Real
+  budgetmin  Float?  @default(0) @db.Real
+  budgetmax  Float?  @default(0) @db.Real
+  piecesmin  Int?    @default(0)
+  piecesmax  Int?    @default(100)
+  surfacemin Float?  @default(0) @db.Real
+  surfacemax Float?  @default(1000) @db.Real
+  avatar     String? @default("/images/user-avatar.jpg")
+}
