@@ -32,7 +32,7 @@ import { seedProfiles } from "./services/seedProfiles.js";
 
 dotenv.config();
 if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET manquant");
-
+const isProd = process.env.NODE_ENV === "production";
 // ================== SETUP ==================
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -220,7 +220,6 @@ CREATE TABLE IF NOT EXISTS favorites (
 console.log("🔄 Initialisation des profils depuis la DB...");
 
 // Reset des arrays pour éviter doublons si reload
-resetProfiles();
 
 // Récupérer tous les utilisateurs avec les infos nécessaires
 const allUsers = await db
@@ -252,9 +251,9 @@ allUsers.forEach((u) => {
     budgetMax: u.budgetMax ?? u.budget ?? 0,
     piecesMin: u.piecesMin ?? 0,
     departement: getDepartement(u.ville),
-    piecesMax: u.piecesMax ?? Infinity,
+    piecesMax: u.piecesMax ?? 999,
     surfaceMin: u.surfaceMin ?? 0,
-    surfaceMax: u.surfaceMax ?? Infinity,
+    surfaceMax: u.surfaceMax ?? 999,
   };
 
   if (u.role === "buyer") {
@@ -324,26 +323,30 @@ const authenticateToken = (req, res, next) => {
 
 // ================== UPSERT PROFILE ==================
 async function upsertProfile(user, normalized) {
-  const { username, contact, role } = user;
+  // ================== EXTRACTION ==================
+  const { username, contact = "", role } = user;
 
-  // Préparer le profil complet
+  // ================== PRÉPARATION DU PROFIL ==================
   const profileData = {
     username,
-    contact: contact || "",
+    contact,
     role,
     type: normalized.type || "",
     ville: normalized.ville || "",
-    region: normalized.ville || "",
+    region: normalized.region || normalized.ville || "",
     price: role === "seller" ? normalized.price || 0 : 0,
+    budget: role === "buyer" ? normalized.budget || 0 : 0,
     budgetMin: role === "buyer" ? normalized.budgetMin || 0 : 0,
     budgetMax: role === "buyer" ? normalized.budgetMax || 0 : 0,
-    pieces: role === "seller" ? normalized.pieces || 0 : 0,
-    surface: role === "seller" ? normalized.surface || 0 : 0,
+
+    // 🔴 C’EST ICI
+    pieces: role === "seller" ? normalized.piecesMin || 0 : 0,
+    surface: role === "seller" ? normalized.surfaceMin || 0 : 0,
+
     piecesMin: role === "buyer" ? normalized.piecesMin || 0 : 0,
+    piecesMax: normalized.piecesMax ?? 999,
     surfaceMin: role === "buyer" ? normalized.surfaceMin || 0 : 0,
-    piecesMax: normalized.piecesMax ?? Infinity,
-    surfaceMax: normalized.surfaceMax ?? Infinity,
-    budget: normalized.budget ?? 0,
+    surfaceMax: normalized.surfaceMax ?? 10000,
   };
 
   // ================== MEMORY UPSERT ==================
@@ -357,8 +360,12 @@ async function upsertProfile(user, normalized) {
           ? BUYERS[existingIndex].preferences
           : { typeWeights: {}, regionWeights: {} },
     };
-    if (existingIndex >= 0) BUYERS[existingIndex] = fullBuyer;
-    else BUYERS.push(fullBuyer);
+
+    if (existingIndex >= 0) {
+      BUYERS[existingIndex] = fullBuyer;
+    } else {
+      BUYERS.push(fullBuyer);
+    }
   }
 
   if (role === "seller") {
@@ -367,14 +374,19 @@ async function upsertProfile(user, normalized) {
       id: existingIndex >= 0 ? SELLERS[existingIndex].id : Date.now(),
       ...profileData,
     };
-    if (existingIndex >= 0) SELLERS[existingIndex] = fullSeller;
-    else SELLERS.push(fullSeller);
+
+    if (existingIndex >= 0) {
+      SELLERS[existingIndex] = fullSeller;
+    } else {
+      SELLERS.push(fullSeller);
+    }
   }
 
   // ================== DB UPSERT ==================
   if (process.env.NODE_ENV === "production") {
     // PostgreSQL
-    await db.prepare("users").upsert(
+    await db.prepare().upsert(
+      "users",
       {
         username,
         role,
@@ -417,28 +429,28 @@ async function upsertProfile(user, normalized) {
     await db
       .prepare(
         `
-      INSERT INTO users (
-        username, password, role, contact, type, ville, region,
-        price, pieces, surface, budget, budgetMin, budgetMax,
-        piecesMin, piecesMax, surfaceMin, surfaceMax
-      ) VALUES (?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(username) DO UPDATE SET
-        role = excluded.role,
-        contact = excluded.contact,
-        type = excluded.type,
-        ville = excluded.ville,
-        region = excluded.region,
-        price = excluded.price,
-        pieces = excluded.pieces,
-        surface = excluded.surface,
-        budget = excluded.budget,
-        budgetMin = excluded.budgetMin,
-        budgetMax = excluded.budgetMax,
-        piecesMin = excluded.piecesMin,
-        piecesMax = excluded.piecesMax,
-        surfaceMin = excluded.surfaceMin,
-        surfaceMax = excluded.surfaceMax
-    `,
+        INSERT INTO users (
+          username, password, role, contact, type, ville, region,
+          price, pieces, surface, budget, budgetMin, budgetMax,
+          piecesMin, piecesMax, surfaceMin, surfaceMax
+        ) VALUES (?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(username) DO UPDATE SET
+          role = excluded.role,
+          contact = excluded.contact,
+          type = excluded.type,
+          ville = excluded.ville,
+          region = excluded.region,
+          price = excluded.price,
+          pieces = excluded.pieces,
+          surface = excluded.surface,
+          budget = excluded.budget,
+          budgetMin = excluded.budgetMin,
+          budgetMax = excluded.budgetMax,
+          piecesMin = excluded.piecesMin,
+          piecesMax = excluded.piecesMax,
+          surfaceMin = excluded.surfaceMin,
+          surfaceMax = excluded.surfaceMax
+      `,
       )
       .run(
         username,
@@ -459,6 +471,22 @@ async function upsertProfile(user, normalized) {
         profileData.surfaceMax,
       );
   }
+
+  // ================== LOGGING ==================
+  console.log("=== PROFIL AJOUTÉ ===");
+  console.log({
+    username: profileData.username,
+    role: profileData.role,
+    villeOriginal: normalized.ville,
+    villeNormalized: normalize(normalized.ville),
+    departement: getDepartement(normalized.ville),
+    price: role === "buyer" ? normalized.budgetMax : normalized.price,
+    budgetMin: normalized.budgetMin,
+    budgetMax: normalized.budgetMax,
+    pieces: normalized.piecesMax,
+    surface: normalized.surfaceMax,
+    contact: profileData.contact,
+  });
 
   return profileData;
 }
@@ -565,9 +593,9 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       toleranceKm: parseNumber(session.criteria.toleranceKm, 0),
       ville: session.criteria.ville ? normalize(session.criteria.ville) : "",
       piecesMin: parseNumber(session.criteria.piecesMin, 0),
-      piecesMax: parseNumber(session.criteria.piecesMax, Infinity),
+      piecesMax: parseNumber(session.criteria.piecesMax, 9999),
       surfaceMin: parseNumber(session.criteria.espaceMin, 0),
-      surfaceMax: parseNumber(session.criteria.espaceMax, Infinity),
+      surfaceMax: parseNumber(session.criteria.espaceMax, 999999),
       budgetMin,
       budgetMax,
       price: budgetMin,
@@ -598,7 +626,7 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       // ===== Critères complets => création du profil en mémoire & DB =====
       let profile;
       if (session.role === "buyer") {
-        profile = addBuyer({
+        profile = await addBuyer({
           username,
           type: normalized.type,
           ville: normalized.ville,
@@ -610,14 +638,19 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           surfaceMax: normalized.surfaceMax,
         });
       } else {
-        profile = addSeller({
+        // ✅ Utiliser les vraies données du seller
+        const existingSeller = SELLERS.find((s) => s.username === username);
+        profile = await addSeller({
           username,
-          type: normalized.type,
-          ville: normalized.ville,
-          price: normalized.budgetMin,
-          pieces: normalized.piecesMin,
-          surface: normalized.surfaceMin,
+          type: normalized.type || "appartement",
+          ville: normalized.ville || "",
+          price: normalized.budgetMin, // prix fourni par le seller
+          pieces: normalized.piecesMin, // nombre de pièces
+          surface: normalized.surfaceMin, // surface du bien
+          contact: req.user.contact || "",
         });
+        console.log("DEBUG existingSeller:", existingSeller);
+        console.log("DEBUG profile after addSeller:", profile);
       }
 
       // ===== UPSERT PROFIL EN DB =====
@@ -868,7 +901,6 @@ app.post("/api/change-password", authenticateToken, async (req, res) => {
 });
 // ================== MESSAGES ==================
 
-// Envoyer un message
 // ================== ENVOYER UN MESSAGE ==================
 app.post("/api/messages", authenticateToken, async (req, res) => {
   try {
@@ -877,7 +909,7 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
     const schema = z.object({
       pseudo: z.string().min(1).optional(),
       email: z.string().email().optional(),
-      subject: z.string().min(1),
+      subject: z.string().min(0),
       body: z.string().min(1),
       receiverId: z.number().optional(),
     });
@@ -897,7 +929,7 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
     if (receiverId) {
       // Cas réponse
       receiver = await db
-        .prepare(`SELECT id, username, contact FROM users WHERE id=?`)
+        .prepare(`SELECT id, username, contact FROM users WHERE id = $1`)
         .get(receiverId);
 
       if (!receiver) {
@@ -925,9 +957,8 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
 
       receiver = await db
         .prepare(
-          `SELECT id, username, contact 
-           FROM users 
-           WHERE LOWER(TRIM(username))=? AND LOWER(TRIM(contact))=?`,
+          `SELECT id, username, contact FROM users 
+           WHERE LOWER(TRIM(username)) = $1 AND LOWER(TRIM(contact)) = $2`,
         )
         .get(normalizedPseudo, normalizedEmail);
 
@@ -944,7 +975,7 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
 
     const sender = await db
       .prepare(
-        `SELECT id, username, contact FROM users WHERE LOWER(TRIM(username))=?`,
+        `SELECT id, username, contact FROM users WHERE LOWER(TRIM(username)) = $1`,
       )
       .get(req.user.username.trim().toLowerCase());
 
@@ -961,13 +992,13 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
     // Insérer le message
     const insert = await db
       .prepare(
-        `INSERT INTO messages (sender_id, receiver_id, subject, body) VALUES (?, ?, ?, ?)`,
+        `INSERT INTO messages (sender_id, receiver_id, subject, body) VALUES ($1, $2, $3, $4) RETURNING id`,
       )
-      .run(sender.id, receiver.id, subject, body);
+      .get(sender.id, receiver.id, subject, body);
 
     console.log("[API /messages POST] Message inséré :", insert);
 
-    res.json({ success: true });
+    res.json({ success: true, messageId: insert.id });
   } catch (err) {
     console.error("[API /messages POST] ERREUR :", err);
     res.status(500).json({ error: "Erreur serveur" });
@@ -981,7 +1012,7 @@ app.get("/api/messages", authenticateToken, async (req, res) => {
 
     const user = await db
       .prepare(
-        `SELECT id, username, contact FROM users WHERE LOWER(TRIM(username))=?`,
+        `SELECT id, username, contact FROM users WHERE LOWER(TRIM(username)) = $1`,
       )
       .get(req.user.username.trim().toLowerCase());
 
@@ -1002,26 +1033,29 @@ SELECT
   m.id,
   m.sender_id,
   m.receiver_id,
+  REPLACE(LOWER(TRIM(su.username)), '"', '') AS sender,
+  REPLACE(LOWER(TRIM(ru.username)), '"', '') AS receiver,
 
-  su.username AS sender,
-  su.contact AS senderEmail,
-  su.avatar AS senderAvatar,
+  COALESCE(NULLIF(su.avatar, ''), '/images/user-avatar.jpg') AS "senderAvatar",
+  COALESCE(NULLIF(ru.avatar, ''), '/images/user-avatar.jpg') AS "receiverAvatar",
 
-  ru.username AS receiver,
-  ru.contact AS receiverEmail,
-  ru.avatar AS receiverAvatar,
+  su.contact AS "senderEmail",
+  ru.contact AS "receiverEmail",
 
   m.subject,
   m.body,
   m.timestamp
+
 FROM messages m
 JOIN users su ON m.sender_id = su.id
 JOIN users ru ON m.receiver_id = ru.id
-WHERE m.receiver_id = ? OR m.sender_id = ?
-ORDER BY m.timestamp ASC
-`,
+
+WHERE m.receiver_id = $1 OR m.sender_id = $1
+
+ORDER BY m.timestamp ASC, m.id ASC;
+      `,
       )
-      .all(user.id, user.id);
+      .all(user.id);
 
     console.log(
       `[API /messages GET] Messages récupérés pour ${user.username} :`,
@@ -1034,47 +1068,73 @@ ORDER BY m.timestamp ASC
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
-// ================== SUPPRESSION MESSAGE ==================
-app.delete("/api/messages/:id", authenticateToken, (req, res) => {
+app.delete("/api/messages/:id", authenticateToken, async (req, res) => {
   try {
     const msgId = Number(req.params.id);
-    if (!msgId)
-      return res.status(400).json({ error: "ID du message invalide" });
 
-    // Vérifier que le message existe et que l'utilisateur y est impliqué
-    const user = db
-      .prepare(
-        `  
-  SELECT id FROM users WHERE LOWER(TRIM(username))=?  
-`,
-      )
+    if (!msgId) return res.status(400).json({ error: "ID invalide" });
+
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
       .get(req.user.username.trim().toLowerCase());
 
     if (!user)
       return res.status(404).json({ error: "Utilisateur introuvable" });
 
-    const message = db
+    // ✅ IMPORTANT : suppression par ID UNIQUE
+    const result = await db
       .prepare(
-        `  
-  SELECT * FROM messages WHERE id=? AND (sender_id=? OR receiver_id=?)  
-`,
+        `
+        DELETE FROM messages
+        WHERE id = $1
+        AND (sender_id = $2 OR receiver_id = $2)
+      `,
       )
-      .get(msgId, user.id, user.id);
+      .run(msgId, user.id);
 
-    if (!message)
-      return res
-        .status(404)
-        .json({ error: "Message introuvable ou accès refusé" });
+    if (result.rowCount === 0)
+      return res.status(404).json({ error: "Message introuvable" });
 
-    // Supprimer le message
-    db.prepare("DELETE FROM messages WHERE id=?").run(msgId);
-
-    res.json({ success: true, message: "Message supprimé" });
+    res.json({ success: true });
   } catch (err) {
-    console.error("[API /messages DELETE] ERREUR :", err);
+    console.error(err);
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
+app.delete(
+  "/api/conversations/:userId",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const otherUserId = Number(req.params.userId);
+
+      const user = await db
+        .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+        .get(req.user.username.trim().toLowerCase());
+
+      if (!user)
+        return res.status(404).json({ error: "Utilisateur introuvable" });
+
+      const result = await db
+        .prepare(
+          `
+        DELETE FROM messages
+        WHERE (sender_id = $1 AND receiver_id = $2)
+           OR (sender_id = $2 AND receiver_id = $1)
+      `,
+        )
+        .run(user.id, otherUserId);
+
+      res.json({
+        success: true,
+        deleted: result.rowCount || result.changes,
+      });
+    } catch (err) {
+      console.error("[DELETE CONVERSATION ERROR]", err);
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  },
+);
 // ================== FAVORITES ==================
 app.get("/api/favorites", authenticateToken, async (req, res) => {
   try {
@@ -1391,16 +1451,21 @@ app.post("/api/change-avatar", authenticateToken, async (req, res) => {
   try {
     const { avatar } = req.body;
     if (!avatar) return res.status(400).json({ error: "Avatar manquant" });
-
     const user = await db
-      .prepare("SELECT id FROM users WHERE username = ?")
-      .get(req.user.username);
+      .prepare("SELECT id FROM users WHERE LOWER(TRIM(username)) = $1")
+      .get(req.user.username.trim().toLowerCase());
 
     if (!user)
       return res.status(404).json({ error: "Utilisateur introuvable" });
+    console.log("[DEBUG AVATAR UPDATE]", {
+      username: req.user.username,
+      trimmedLower: req.user.username.trim().toLowerCase(),
+      avatarReceived: avatar,
+      userId: user?.id,
+    });
 
     await db
-      .prepare("UPDATE users SET avatar = ? WHERE id = ?")
+      .prepare("UPDATE users SET avatar = $1 WHERE id = $2")
       .run(avatar, user.id);
 
     res.json({ success: true, avatar });

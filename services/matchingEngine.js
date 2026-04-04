@@ -259,8 +259,12 @@ export async function addBuyer(criteria = {}) {
     console.error("[ADD BUYER DB ERROR]:", err);
   }
 
+  // ================= LOG BUYERS =================
+
   return buyer;
-} // ================== SCORING ET MATCHING ==================
+}
+
+// ================== SCORING ET MATCHING ==================
 // Ici, tout reste identique à ton code original (scoreSellerForBuyer, scoreBuyerForSeller, matchUsers, matchSellerToBuyers)
 // Seule la persistance est modifiée pour PostgreSQL
 
@@ -462,6 +466,15 @@ export function matchUsers(buyerProfile, topN = 5) {
   });
 
   scored.sort((a, b) => b.compatibility - a.compatibility);
+  console.log(
+    "[MATCH USERS] SELLERS en mémoire:",
+    SELLERS.map((s) => s.username),
+  );
+  console.log(
+    "[MATCH USERS] buyerProfile:",
+    buyerProfile.username,
+    buyerProfile.ville,
+  );
   return scored.slice(0, topN);
 }
 // ================== MATCHING VENDEUR → ACHETEURS ==================
@@ -605,6 +618,15 @@ export function matchSellerToBuyers(sellerProfile, topN = 5) {
   });
 
   scored.sort((a, b) => b.compatibility - a.compatibility);
+  console.log(
+    "[MATCH SELLERS → BUYERS] BUYERS en mémoire:",
+    BUYERS.map((b) => b.username),
+  );
+  console.log(
+    "[MATCH SELLERS → BUYERS] sellerProfile:",
+    sellerProfile.username,
+    sellerProfile.ville,
+  );
   return scored.slice(0, topN);
 }
 // ================== APPRENTISSAGE ==================

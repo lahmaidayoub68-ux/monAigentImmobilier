@@ -33,8 +33,7 @@ function generateContact(username) {
   return `${username}@${contactsDomain}`;
 }
 
-// ================== FONCTION PRINCIPALE ==================
-export function seedProfiles(count = 50) {
+export async function seedProfiles(count = 50) {
   console.log(
     `🚀 Génération de ${count} vendeurs et ${count} acheteurs fictifs...`,
   );
@@ -42,10 +41,8 @@ export function seedProfiles(count = 50) {
   const sellersData = [];
   const buyersData = [];
 
-  // ===== VENDEURS =====
   for (let i = 1; i <= count; i++) {
     const villeObj = randomChoice(villesData);
-
     const type = randomChoice(types);
     const price = randomInt(100_000, 1_000_000);
     const surface = randomInt(20, 200);
@@ -54,30 +51,23 @@ export function seedProfiles(count = 50) {
 
     sellersData.push({
       username: `seller${i}`,
-
       ville: villeObj.ville,
       region: villeObj.ville,
-
-      // ✅ AJOUTS
       departement: villeObj.departement,
       code: villeObj.code,
-
       type: normalize(type),
       price,
       surface,
       pieces,
       contact,
-
       lat: villeObj.lat,
       lng: villeObj.lng,
     });
   }
 
-  // ===== ACHETEURS =====
   for (let i = 1; i <= count; i++) {
     const villeObj = randomChoice(villesData);
     const type = randomChoice(types);
-
     const referenceSeller = randomChoice(sellersData);
 
     const budgetBase = referenceSeller.price;
@@ -94,14 +84,10 @@ export function seedProfiles(count = 50) {
 
     buyersData.push({
       username: `buyer${i}`,
-
       ville: villeObj.ville,
       region: villeObj.ville,
-
-      // ✅ AJOUTS
       departement: villeObj.departement,
       code: villeObj.code,
-
       type: normalize(type),
       budgetMin,
       budgetMax,
@@ -110,24 +96,30 @@ export function seedProfiles(count = 50) {
       pieces,
       surface,
       contact,
-
       lat: villeObj.lat,
       lng: villeObj.lng,
     });
   }
 
   // ===== AJOUT EN BASE =====
-  const sellers = sellersData.map((s) => addSeller(s));
+  const sellers = [];
+  for (const s of sellersData) {
+    const sellerObj = await addSeller(s);
+    sellers.push(sellerObj); // contient role et ID correct
+  }
 
-  const buyers = buyersData.map((b) => {
-    const buyer = addBuyer(b);
+  const buyers = [];
+  for (const b of buyersData) {
+    const buyerObj = await addBuyer(b);
+    buyers.push(buyerObj); // contient role et ID correct
+  }
 
-    sellers.forEach((seller) => {
-      scoreVille(seller.ville, buyer.ville, 30, 150);
-    });
+  console.log(
+    "✅ Seed terminé. SELLERS en mémoire:",
+    sellers.length,
+    "BUYERS en mémoire:",
+    buyers.length,
+  );
 
-    return buyer;
-  });
-
-  console.log("✅ Seed terminé.");
+  return { sellers, buyers }; // utile si tu veux manipuler localement
 }

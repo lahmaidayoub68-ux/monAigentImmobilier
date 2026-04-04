@@ -149,14 +149,13 @@ async function loadAllConversations() {
     }
 
     const msgs = Array.isArray(data) ? data : [];
+    console.log("[DEBUG RAW MESSAGES]", msgs);
 
     // RESET
     Object.keys(messagesStore).forEach((k) => delete messagesStore[k]);
     conversationStore.clear();
 
-    // ==========================
     // REGROUPEMENT DES MESSAGES
-    // ==========================
     msgs.forEach((m) => {
       const pseudoNorm =
         m.sender.trim().toLowerCase() === currentUser
@@ -166,35 +165,39 @@ async function loadAllConversations() {
       if (!messagesStore[pseudoNorm]) messagesStore[pseudoNorm] = [];
       messagesStore[pseudoNorm].push(m);
       conversationStore.add(pseudoNorm);
-      // 🔥 NON LU (AJOUT ICI)
+
+      // NON LU
       if (m.receiver?.toLowerCase() === currentUser && !m.read) {
         unreadStore[pseudoNorm] = true;
       }
 
+      // Email
       if (m.senderEmail)
         userEmailStore[pseudoNorm] = m.senderEmail.trim().toLowerCase();
 
+      // ReceiverId
       receiverIdStore[pseudoNorm] =
         m.sender.trim().toLowerCase() === currentUser
           ? m.receiver_id
           : m.sender_id;
+      console.log("[DEBUG GROUPING]", {
+        sender: m.sender,
+        receiver: m.receiver,
+        senderAvatar: m.senderAvatar,
+        receiverAvatar: m.receiverAvatar,
+      });
     });
 
-    // ==========================
     // TRI DES CONVERSATIONS
-    // ==========================
     const recentes = [];
     const anciennes = [];
 
     conversationStore.forEach((pseudo) => {
       const msgs = messagesStore[pseudo];
       const lastMsg = msgs[msgs.length - 1];
-
       const date = new Date(lastMsg.timestamp);
       const now = new Date();
-
       const diffHours = (now - date) / (1000 * 60 * 60);
-
       if (diffHours < 24) {
         recentes.push({ pseudo, lastMsg });
       } else {
@@ -202,27 +205,34 @@ async function loadAllConversations() {
       }
     });
 
-    // ==========================
     // RENDER HTML
-    // ==========================
     const container = document.getElementById("conversations-container");
 
     function renderGroup(title, list) {
       if (!list.length) return "";
-
       return `
     <div class="conversation-group">
       <div class="group-title">${title}</div>
-
       ${list
         .map(({ pseudo, lastMsg }) => {
-          let avatarUrl =
-            lastMsg.sender?.trim().toLowerCase() === currentUser
+          const avatarUrl =
+            lastMsg.sender.trim().toLowerCase() === currentUser
               ? lastMsg.receiverAvatar
               : lastMsg.senderAvatar;
+          console.log("[DEBUG CONVERSATION AVATAR]", {
+            pseudo,
+            lastMsg,
+            sender: lastMsg.sender,
+            receiver: lastMsg.receiver,
+            senderAvatar: lastMsg.senderAvatar,
+            receiverAvatar: lastMsg.receiverAvatar,
+            chosenAvatar:
+              lastMsg.sender.trim().toLowerCase() === currentUser
+                ? lastMsg.receiverAvatar
+                : lastMsg.senderAvatar,
+          });
 
-          const date = new Date(lastMsg.timestamp);
-          const time = date.toLocaleTimeString([], {
+          const time = new Date(lastMsg.timestamp).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
           });
@@ -230,7 +240,7 @@ async function loadAllConversations() {
           return `
   <div class="conversation ${unreadStore[pseudo] ? "has-unread" : ""}" data-user="${pseudo}">
     ${unreadStore[pseudo] ? `<div class="unread new"></div>` : ""}
-    <div class="avatar" style="background-image:url('${avatarUrl || ""}')"></div>
+    <div class="avatar" style="background-image:url('${avatarUrl || "/images/user-avatar.jpg"}')"></div>
     <div class="info">
       <div class="top-line">
         <span class="name">${pseudo}</span>
@@ -248,15 +258,15 @@ async function loadAllConversations() {
     </div>
   `;
     }
+
     container.innerHTML =
       renderGroup("Récentes", recentes) + renderGroup("Anciennes", anciennes);
 
-    // ==========================
     // REBIND EVENTS
-    // ==========================
     const newConversations = document.querySelectorAll(".conversation");
     newConversations.forEach(attachConversationClick);
-    // ACTION DELETE HOVER
+
+    // DELETE BTN
     document.querySelectorAll(".conv-actions").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -266,6 +276,25 @@ async function loadAllConversations() {
         if (!confirm(`Supprimer la conversation avec ${pseudo} ?`)) return;
 
         try {
+          const token = getAuthToken();
+          if (!token) throw new Error("Token manquant");
+
+          const receiverId = Number(receiverIdStore[pseudo]);
+
+          if (!receiverId) {
+            alert("Erreur : utilisateur introuvable");
+            return;
+          }
+
+          // 🔥 SUPPRESSION BACKEND
+          await fetch(`/api/conversations/${receiverId}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          // 🔥 CLEAN FRONT
           delete messagesStore[pseudo];
           conversationStore.delete(pseudo);
 
@@ -278,12 +307,14 @@ async function loadAllConversations() {
             chatBox.innerHTML = "";
             chatWithTitle.textContent = "";
           }
+
+          console.log("Conversation supprimée :", pseudo);
         } catch (err) {
           console.error(err);
+          alert("Erreur suppression");
         }
       });
     });
-
     conversations = newConversations;
   } catch (err) {
     console.error("[ERROR] Erreur chargement conversations :", err);
@@ -294,36 +325,80 @@ async function loadAllConversations() {
 // ==========================
 async function loadConversation(name) {
   chatBox.innerHTML = "";
-  const pseudoNorm = name.trim().toLowerCase();
-  let msgs = messagesStore[pseudoNorm] || [];
 
+  const clean = (s) => (s || "").replace(/"/g, "").trim().toLowerCase();
+  const pseudoNorm = clean(name);
+  const currentUserClean = clean(currentUser);
+
+  let msgs = messagesStore[pseudoNorm] || [];
   msgs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
   msgs.forEach((msg) => {
-    const isContact = msg.sender.trim().toLowerCase() === pseudoNorm;
+    const isContact = clean(msg.sender) !== currentUserClean;
+
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("bubble-wrapper");
 
     const div = document.createElement("div");
     div.classList.add("bubble", isContact ? "contact" : "user");
 
-    const date = new Date(msg.timestamp);
+    const avatarUrl = isContact ? msg.senderAvatar : msg.receiverAvatar;
+    const date = msg.timestamp ? new Date(msg.timestamp) : new Date();
     const time = date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
 
     div.innerHTML = `
-  <span class="text">
-    <span class="subject">[${msg.subject}]</span> ${msg.body}
-  </span>
-  <span class="timestamp">${time}</span>
-`;
+      <div class="bubble-content">
+        <div class="avatar" style="background-image:url('${avatarUrl}')"></div>
+        <div class="message-body">
+          <span class="text">
+  ${msg.subject ? `[${msg.subject}] ` : ""}${msg.body}
+</span>
+        </div>
+      </div>
+      <div class="msg-menu-btn" data-id="${msg.id}">
+        <svg viewBox="0 0 24 24">
+          <defs>
+            <linearGradient id="gradientDots" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#7b5cff"/>
+              <stop offset="100%" stop-color="#ff4ecd"/>
+            </linearGradient>
+          </defs>
+          <circle cx="5" cy="12" r="2"/>
+          <circle cx="12" cy="12" r="2"/>
+          <circle cx="19" cy="12" r="2"/>
+        </svg>
+      </div>
+    `;
 
-    chatBox.appendChild(div);
+    const timestampDiv = document.createElement("div");
+    timestampDiv.classList.add(
+      "timestamp-container",
+      isContact ? "left" : "right",
+    );
+    timestampDiv.textContent = time;
+
+    wrapper.appendChild(div);
+    wrapper.appendChild(timestampDiv);
+
+    chatBox.appendChild(wrapper); // ✅ uniquement le wrapper
+  });
+  document.querySelectorAll(".msg-menu-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+
+      selectedMessageId = btn.dataset.id;
+
+      msgMenu.style.top = e.pageY + "px";
+      msgMenu.style.left = e.pageX + "px";
+      msgMenu.classList.remove("hidden");
+    });
   });
 
   chatBox.scrollTop = chatBox.scrollHeight;
-}
-// ==========================
+} // ==========================
 // ENVOI DE MESSAGE RAPIDE
 // ==========================
 const chatForm = document.getElementById("chat-form");
@@ -336,48 +411,22 @@ chatForm.addEventListener("submit", async (e) => {
   if (!text) return;
 
   const pseudo = chatWithTitle.textContent.trim().toLowerCase();
-  const subject = "Message rapide";
 
-  // Vérifier si on connaît déjà le receiverId
-  const receiverId = receiverIdStore[pseudo];
+  const receiverId = Number(receiverIdStore[pseudo]);
   const email = userEmailStore[pseudo];
 
-  const payload = receiverId
-    ? { receiverId, subject, body: text }
-    : { pseudo, email, subject, body: text };
+  const payload =
+    receiverId && !isNaN(receiverId)
+      ? { receiverId, body: text, subject: "" } // subject vide
+      : { pseudo, email, body: text, subject: "" }; // subject vide
 
   if (!receiverId && !email) {
     alert(`Impossible d'envoyer : email du destinataire ${pseudo} inconnu`);
     return;
   }
 
-  const div = document.createElement("div");
-  div.classList.add("bubble", "user");
-  div.textContent = text;
-
-  const time = document.createElement("span");
-  time.classList.add("timestamp");
-  time.textContent = formatTime(new Date());
-
-  div.appendChild(time);
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
-  userInput.value = "";
-
-  /* ==========================
-    ✅ CORRECTION UNIQUE ICI
-    ========================== */
-  if (!messagesStore[pseudo]) messagesStore[pseudo] = [];
-  messagesStore[pseudo].push({
-    sender: "me",
-    subject,
-    body: text,
-    timestamp: new Date().toISOString(),
-  });
-
   try {
     const token = getAuthToken();
-    if (!token) throw new Error("Token manquant");
 
     const res = await fetch("/api/messages", {
       method: "POST",
@@ -389,19 +438,20 @@ chatForm.addEventListener("submit", async (e) => {
     });
 
     const data = await res.json();
+
     if (!res.ok) {
-      alert(`Erreur lors de l'envoi du message : ${data.error || res.status}`);
+      alert("Erreur : " + data.error);
       return;
     }
 
+    // reset input
+    userInput.value = "";
+
+    // refresh clean
     await loadAllConversations();
+    await loadConversation(pseudo);
   } catch (err) {
     console.error("[ERROR] Erreur envoi message :", err);
-    const errorDiv = document.createElement("div");
-    errorDiv.classList.add("bubble", "contact");
-    errorDiv.textContent = "Erreur lors de l'envoi du message";
-    chatBox.appendChild(errorDiv);
-    chatBox.scrollTop = chatBox.scrollHeight;
   }
 });
 
@@ -418,7 +468,7 @@ document.querySelectorAll(".chat-actions .action-btn").forEach((btn) => {
     }
 
     const msgs = messagesStore[pseudo] || [];
-    const receiverId = receiverIdStore[pseudo];
+    const receiverId = Number(receiverIdStore[pseudo]);
 
     // ✅ IDENTIFICATION PAR ID
     if (btn.id === "btn-archive") {
@@ -434,18 +484,16 @@ document.querySelectorAll(".chat-actions .action-btn").forEach((btn) => {
           const token = getAuthToken();
           if (!token) throw new Error("Token manquant");
 
-          for (const msg of msgs) {
-            const idToDelete = msg.id || receiverId;
-            if (!idToDelete) continue;
+          const receiverId = receiverIdStore[pseudo];
 
-            await fetch(`/api/messages/${idToDelete}`, {
-              method: "DELETE",
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
-          }
+          await fetch(`/api/conversations/${receiverId}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
+          // nettoyage front
           delete messagesStore[pseudo];
           conversationStore.delete(pseudo);
 
@@ -604,6 +652,9 @@ document.querySelectorAll(".tabs button").forEach((btn) => {
     });
   });
 });
+//Menu 3 points//
+const msgMenu = document.getElementById("msgMenu");
+let selectedMessageId = null;
 function updateOnlineStatus() {
   const status = document.getElementById("chat-status");
   if (!status) return;
@@ -613,6 +664,53 @@ function updateOnlineStatus() {
   status.textContent = isOnline ? "En ligne" : "Hors ligne";
   status.style.opacity = isOnline ? "1" : "0.6";
 }
+msgMenu.addEventListener("click", async (e) => {
+  const action = e.target.closest(".menu-item")?.dataset.action;
+
+  if (!action) return;
+
+  const pseudo = chatWithTitle.textContent.trim().toLowerCase();
+  const msgs = messagesStore[pseudo] || [];
+
+  const msg = msgs.find((m) => String(m.id) === String(selectedMessageId));
+
+  if (!msg) return;
+
+  if (action === "copy") {
+    navigator.clipboard.writeText(msg.body);
+    alert("Message copié !");
+  }
+
+  if (action === "delete") {
+    try {
+      const token = getAuthToken();
+
+      await fetch(`/api/messages/${msg.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // remove local
+      messagesStore[pseudo] = msgs.filter((m) => m.id !== msg.id);
+
+      await loadConversation(pseudo);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  if (action === "save") {
+    console.log("Message sauvegardé :", msg);
+    alert("Message enregistré (à implémenter)");
+  }
+
+  msgMenu.classList.add("hidden");
+});
+document.addEventListener("click", () => {
+  msgMenu.classList.add("hidden");
+});
 
 setInterval(updateOnlineStatus, 5000);
 // ==========================
