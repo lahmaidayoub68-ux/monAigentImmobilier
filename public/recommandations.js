@@ -513,12 +513,11 @@ async function initRecommendations() {
     tab.addEventListener("click", async () => {
       currentTab = tab.dataset.tab;
 
-      // Gestion classe active
       tabsEls.forEach((t) => t.classList.remove("active"));
       tab.classList.add("active");
 
-      // Mise à jour du contenu central avec rôle correct
       await updateCentralContent(role);
+      refreshProgressBars(); // <-- animate bars
     });
   });
 
@@ -634,6 +633,24 @@ async function updateCentralContent(role = "buyer") {
 
     // Correction grammaticale / orthographique LanguageTool
     const corrected = await correctWithLanguageToolPreserveHTML(aiText);
+    const minimalReportSVG = `
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="24" height="24" viewBox="0 0 24 24"
+     style="vertical-align: middle; margin-right: 6px;">
+  <defs>
+    <linearGradient id="gradientReport" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9b59ff"/>
+      <stop offset="100%" stop-color="#4e73df"/>
+    </linearGradient>
+  </defs>
+  <!-- Cercle autour -->
+  <circle cx="12" cy="12" r="10" fill="url(#gradientReport)"/>
+  <!-- Trois barres à l'intérieur pour symboliser le constat -->
+  <rect x="9" y="8" width="1.5" height="8" rx="0.3" fill="url(#gradientReport)" />
+  <rect x="12" y="10" width="1.5" height="6" rx="0.3" fill="url(#gradientReport)" />
+  <rect x="15" y="6" width="1.5" height="10" rx="0.3" fill="url(#gradientReport)" />
+</svg>
+`;
 
     // Découpage en paragraphes et reconstitution propre
     const paragraphs = corrected
@@ -646,8 +663,10 @@ async function updateCentralContent(role = "buyer") {
       );
 
     // Affichage final
-    centralEl.innerHTML = `<h4>🧠 Constat global</h4>
-                           <div>${paragraphs.join("")}</div>`;
+    centralEl.innerHTML = `
+  <h4>${minimalReportSVG} Constat global</h4>
+  <div>${paragraphs.join("")}</div>
+`;
   } else if (currentTab === "criteria") {
     centralEl.innerHTML = generateCriteriaHTML(globalStatsCache.top30);
     updateMap(globalStatsCache.top30);
@@ -690,9 +709,25 @@ function generateCriteriaHTML(matches) {
   });
 
   var total = matches.length;
-  var html =
-    "<h4>📊 Constat par critère</h4><table class='criteria-table'>" +
-    "<tr><th>Critère</th><th>Compatibilité</th><th>Observation</th></tr>";
+  const criteriaSVG = `
+<svg class="icon-report" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+     width="24" height="24" style="vertical-align: middle; margin-right:6px;">
+  <defs>
+    <linearGradient id="gradientBars" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9b59ff"/>
+      <stop offset="100%" stop-color="#4e73df"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="10" width="3" height="10" fill="url(#gradientBars)" rx="0.5"/>
+  <rect x="10.5" y="6" width="3" height="14" fill="url(#gradientBars)" rx="0.5"/>
+  <rect x="17" y="2" width="3" height="18" fill="url(#gradientBars)" rx="0.5"/>
+</svg>
+`;
+
+  // Puis tu l’intègres dans ton header
+  var html = `<h4>${criteriaSVG} Constat par critère</h4>
+     <table class='criteria-table'>
+       <tr><th>Critère</th><th>Compatibilité</th><th>Observation</th></tr>`;
 
   ["surface", "ville", "type", "budget", "pieces"].forEach(function (crit) {
     var percent = Math.round((stats[crit] / total) * 100);
@@ -754,10 +789,25 @@ function generateSuggestionsHTML(matches) {
       stats.pieces++;
   });
 
-  var html =
-    "<h4>🚀 Suggestions concrètes</h4><table class='criteria-table'>" +
-    "<tr><th>Critère</th><th>Changement proposé</th><th>Compatibilité après</th></tr>";
+  const suggestionSVG = `
+<svg class="icon-suggestion" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+     width="24" height="24" style="vertical-align: middle; margin-right:6px;">
+  <defs>
+    <linearGradient id="gradientBulb" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9b59ff"/>
+      <stop offset="100%" stop-color="#4e73df"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 2C8.13 2 5 5.13 5 9c0 3.25 2.11 5.98 5 6.73V21h2v-5.27c2.89-.75 5-3.48 5-6.73 0-3.87-3.13-7-7-7z"
+        fill="url(#gradientBulb)"/>
+  <rect x="11" y="21" width="2" height="2" fill="url(#gradientBulb)"/>
+</svg>
+`;
 
+  // Intégration dans ton header
+  var html = `<h4>${suggestionSVG} Suggestions concrètes</h4>
+     <table class='criteria-table'>
+       <tr><th>Critère</th><th>Changement proposé</th><th>Compatibilité après</th></tr>`;
   ["surface", "ville", "type", "budget", "pieces"].forEach(function (crit) {
     var percent = Math.round((stats[crit] / total) * 100);
     var suggestion =
@@ -779,7 +829,28 @@ function generateSuggestionsHTML(matches) {
   html += "</table>";
   return html;
 }
+/* =======================================================
+ANIMATION BARRES DE PROGRESSION
+======================================================= */
+function animateProgressBars() {
+  // Sélectionne toutes les barres
+  const bars = document.querySelectorAll(".progress-fill");
+  bars.forEach((bar) => {
+    const value = parseInt(bar.dataset.value || 0, 10); // récupération du % cible
+    bar.style.width = "0%"; // reset
+    // animation fluide avec delay léger pour effet cascade si plusieurs
+    setTimeout(() => {
+      bar.style.transition = "width 1.2s ease-in-out";
+      bar.style.width = `${value}%`;
+    }, 50);
+  });
+}
 
+// Appeler à chaque mise à jour de tab avec les progress bars visibles
+function refreshProgressBars() {
+  // petit timeout pour s'assurer que le DOM est mis à jour
+  setTimeout(animateProgressBars, 100);
+}
 /* =======================================================
 MAP LEAFLET
 ======================================================= */
@@ -835,3 +906,5 @@ function capitalize(str) {
 INIT
 ======================================================= */
 document.addEventListener("DOMContentLoaded", initRecommendations);
+await updateCentralContent(role);
+refreshProgressBars(); // animate bars sur le contenu initial

@@ -1665,3 +1665,70 @@ FIX MATCH CARD — FORCE MODE
     border-radius: 999px;
   }
 }
+@media (max-width: 600px) {
+  .chat-section {
+    padding: 0; /* ❌ supprime le padding autour */
+  }
+
+  .chat-container {
+    max-width: 100%; /* ❌ enlève la limite */
+    margin: 0; /* ❌ enlève centrage auto */
+
+    width: 100vw; /* 🔥 prend toute la largeur écran */
+    height: 100vh;
+
+    border-radius: 0; /* 🔥 full screen clean */
+  }
+}
+@media (max-width: 600px) {
+  .app-layout {
+    display: block; /* évite les restes de flex */
+  }
+}
+/* ==========================
+HEADER RESPONSIVE FINAL
+========================= */
+@media (max-width: 600px) {
+  /* Logo + texte */
+  .logo-container {
+    display: flex;
+    align-items: center;
+    gap: 6px; /* espace réduit pour optimiser l'espace */
+    flex: 1 1 auto; /* permet au container de s'étendre */
+    min-width: 0; /* nécessaire pour que l'ellipsis fonctionne */
+  }
+
+  .logo-img {
+    width: 42px; /* ajuste légèrement l'image */
+  }
+
+  .logo-text {
+    font-size: clamp(18px, 4vw, 22px); /* s'adapte à la largeur de l'écran */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1 1 auto; /* prend l'espace disponible sans casser le layout */
+    min-width: 0; /* clé pour ellipsis */
+  }
+
+  /* bouton logout */
+  #btn-logout {
+    white-space: nowrap;
+    flex-shrink: 0; /* empêche l'écrasement */
+    min-width: 38px; /* garantit largeur minimale */
+    font-size: 12px;
+    padding: 6px 10px;
+    margin-top: 0; /* recentre verticalement */
+  }
+
+  /* cache le texte du bouton mais pas l'icon si besoin */
+  #btn-logout span {
+    display: none;
+  }
+
+  /* top-banner padding + espacement */
+  .top-banner {
+    padding: 10px 14px;
+    gap: 8px; /* espace propre entre logo et bouton */
+  }
+}

@@ -102,11 +102,8 @@
         display: block;
       }
 
-      /* Body et background léger */
       body {
-        background: linear-gradient(270deg, #659cef33, #d194ed33, #8fbafc33);
-        background-size: 400% 400%;
-        animation: gradientBG 40s ease infinite;
+        background: #f8f9fa; /* blanc cassé clair type dashboard */
         font-family: "Arial", sans-serif;
         margin: 0;
         color: #222;
@@ -132,12 +129,18 @@
         gap: 30px;
       }
       .section-title {
+        display: inline-block; /* ou inline si tu veux sans retour à la ligne */
         font-size: 26px;
         font-weight: 700;
         margin-bottom: 20px;
         text-align: center;
-        color: #fff;
-        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+
+        background: linear-gradient(90deg, #4e73df, #9b59ff);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
       }
       .reco-container {
         display: flex;
@@ -162,56 +165,123 @@
         flex-direction: column;
         gap: 15px;
       }
-      .reco-tab {
-        background: rgba(255, 255, 255, 0.35);
-        backdrop-filter: blur(10px);
-        border-radius: 15px;
-        padding: 18px;
-        box-shadow: 0 5px 18px rgba(0, 0, 0, 0.1);
-        min-height: 120px;
-        transition: all 0.3s ease;
-        cursor: pointer;
-      }
-      .reco-tab.active {
-        background: rgba(255, 255, 255, 0.55);
-        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
-      }
-      .reco-tab h3 {
-        margin: 0 0 8px 0;
-        font-size: 17px;
-        font-weight: 600;
-      }
-      .reco-tab p {
-        margin: 0;
-        font-size: 14px;
-        line-height: 1.4;
-      }
-      .criteria-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-      }
-      .criteria-table th,
-      .criteria-table td {
-        padding: 6px 10px;
-        text-align: left;
-      }
-      .criteria-table th {
-        background: rgba(0, 0, 0, 0.03);
-        font-weight: 600;
-        font-size: 14px;
-      }
-      .criteria-table td {
-        background: rgba(255, 255, 255, 0.7);
-        border-radius: 6px;
-        font-size: 14px;
+      /* Taille uniforme des icônes dans les tabs */
+      .reco-tab .tab-header .tab-icon {
+        width: 20px; /* taille fixe */
+        height: 20px;
+        flex-shrink: 0; /* empêche le flex d’étirer l’icône */
+        margin-right: 8px; /* espace entre icône et texte */
+        stroke-width: 2; /* s'assure que le trait reste visible */
       }
 
-      /* Carte Leaflet */
-      #criteria-map {
-        margin-top: 10px;
+      /* ===== RECO TAB STYLE PROFESSIONNEL ===== */
+      .reco-tab {
+        background: rgba(245, 230, 250, 0.45); /* léger rose-violet */
+        backdrop-filter: blur(12px);
+        border-radius: 16px;
+        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12);
+        padding: 0;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .reco-tab:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+      }
+
+      /* ===== TAB HEADER ===== */
+      .reco-tab .tab-header {
+        background: linear-gradient(135deg, #659cef, #9b59ff, #5cd6ff);
+        background-size: 300% 300%;
+        padding: 14px 20px;
+        color: #fff;
+        font-weight: 600;
+        font-size: 17px;
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+        transition: background 0.4s ease;
+      }
+
+      .reco-tab:hover .tab-header {
+        background-position: 100% 50%;
+      }
+
+      /* ===== TAB CONTENT ===== */
+      .reco-tab .tab-content {
+        padding: 18px 20px;
+        color: #222;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .reco-tab.active {
+        background: rgba(245, 230, 250, 0.65);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+      }
+
+      /* ===== TABLE DANS LES TABS ===== */
+      .reco-tab .criteria-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+      }
+
+      .reco-tab .criteria-table th,
+      .reco-tab .criteria-table td {
+        padding: 8px 12px;
+        font-size: 14px;
+        text-align: left;
+      }
+
+      .reco-tab .criteria-table th {
+        background: rgba(101, 156, 239, 0.2);
+        font-weight: 600;
+      }
+
+      .reco-tab .criteria-table td {
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 6px;
+      }
+
+      /* ===== CARTE ===== */
+      .reco-tab #criteria-map {
+        margin-top: 12px;
         height: 250px;
-        border-radius: 10px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      }
+
+      /* ===== RESPONSIVE ===== */
+      @media (max-width: 900px) {
+        .reco-right {
+          flex-direction: row;
+          overflow-x: auto;
+        }
+        .reco-tab {
+          min-width: 220px;
+        }
+      }
+      @media (max-width: 450px) {
+        .reco-tab .tab-header {
+          font-size: 15px;
+          padding: 12px 14px;
+        }
+        .reco-tab .tab-content {
+          padding: 14px 12px;
+          font-size: 13px;
+        }
+        .reco-tab .criteria-table th,
+        .reco-tab .criteria-table td {
+          padding: 4px 6px;
+          font-size: 12px;
+        }
+        .reco-tab #criteria-map {
+          height: 180px;
+        }
       }
 
       .bottom-banner {
@@ -245,6 +315,27 @@
           flex: 1;
           min-width: 200px;
         }
+      }
+      /* ===== PROGRESS BAR STYLE ===== */
+      .progress-bar {
+        width: 100%;
+        height: 12px;
+        background: rgba(200, 200, 200, 0.3); /* gris clair */
+        border-radius: 8px;
+        overflow: hidden;
+        margin: 4px 0;
+      }
+
+      .progress-fill {
+        height: 100%;
+        width: 0%; /* animation JS définira la largeur */
+        background: linear-gradient(
+          90deg,
+          #4e73df,
+          #9b59ff
+        ); /* dégradé violet-bleu */
+        border-radius: 8px;
+        transition: width 1.2s ease-in-out;
       }
       .loader {
         display: inline-block;
@@ -473,69 +564,142 @@
         <div class="reco-right">
           <!-- Constat global -->
           <div class="reco-tab active" data-tab="global">
-            <h3>Constat</h3>
-            <p id="tab-global">
+            <div class="tab-header">
+              <svg
+                class="tab-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12" y2="16" />
+              </svg>
+              Constat
+            </div>
+            <div class="tab-content" id="tab-global">
               Votre recherche est actuellement
               <strong>très restrictive</strong>.<br />
               2 critères limitent fortement vos résultats.
-            </p>
+            </div>
           </div>
 
           <!-- Constat par critère -->
           <div class="reco-tab" data-tab="criteria">
-            <h3>Constat par critère</h3>
-            <p>Compatibilité moyenne par critère :</p>
-            <table class="criteria-table">
-              <tr>
-                <th>Critère</th>
-                <th>Compatibilité</th>
-                <th>Observation</th>
-              </tr>
-              <tr>
-                <td>Surface</td>
-                <td>14%</td>
-                <td>Très restrictif</td>
-              </tr>
-              <tr>
-                <td>Ville</td>
-                <td>47%</td>
-                <td>Modérément restrictif</td>
-              </tr>
-              <tr>
-                <td>Type</td>
-                <td>87%</td>
-                <td>Large</td>
-              </tr>
-            </table>
-            <div id="criteria-map">Carte des zones majoritaires</div>
+            <div class="tab-header">
+              <svg
+                class="tab-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="12" y1="3" x2="12" y2="21" />
+              </svg>
+              Constat par critère
+            </div>
+            <div class="tab-content">
+              Compatibilité moyenne par critère :
+              <table class="criteria-table">
+                <tr>
+                  <th>Critère</th>
+                  <th>Compatibilité</th>
+                  <th>Observation</th>
+                </tr>
+                <tr>
+                  <td>Surface</td>
+                  <td>
+                    <div class="progress-bar">
+                      <div class="progress-fill" data-value="14"></div>
+                    </div>
+                  </td>
+                  <td>Très restrictif</td>
+                </tr>
+                <tr>
+                  <td>Ville</td>
+                  <td>
+                    <div class="progress-bar">
+                      <div class="progress-fill" data-value="47"></div>
+                    </div>
+                  </td>
+                  <td>Modérément restrictif</td>
+                </tr>
+                <tr>
+                  <td>Type</td>
+                  <td>
+                    <div class="progress-bar">
+                      <div class="progress-fill" data-value="87"></div>
+                    </div>
+                  </td>
+                  <td>Large</td>
+                </tr>
+              </table>
+              <div id="criteria-map">Carte des zones majoritaires</div>
+            </div>
           </div>
 
           <!-- Recommandations concrètes -->
           <div class="reco-tab" data-tab="actions">
-            <h3>Suggestions concrètes</h3>
-            <p>Impact sur la compatibilité si vous ajustez vos critères :</p>
-            <table class="criteria-table">
-              <tr>
-                <th>Critère</th>
-                <th>Changement proposé</th>
-                <th>Compatibilité après</th>
-              </tr>
-              <tr>
-                <td>Surface</td>
-                <td>80–90m² → 75–100m²</td>
-                <td>5 → 18 profils (+260%)</td>
-              </tr>
-              <tr>
-                <td>Ville</td>
-                <td>Ajouter communes voisines</td>
-                <td>14 → 22 profils (+57%)</td>
-              </tr>
-              <tr>
-                <td>Type</td>
-                <td>Pas de changement</td>
-                <td>inchangé</td>
-              </tr>
-            </table>
+            <div class="tab-header">
+              <svg
+                class="tab-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+              Suggestions concrètes
+            </div>
+            <div class="tab-content">
+              Impact sur la compatibilité si vous ajustez vos critères :
+              <table class="criteria-table">
+                <tr>
+                  <th>Critère</th>
+                  <th>Changement proposé</th>
+                  <th>Compatibilité après</th>
+                </tr>
+                <tr>
+                  <td>Surface</td>
+                  <td>80–90m² → 75–100m²</td>
+                  <td>
+                    <div class="progress-bar">
+                      <div class="progress-fill" data-value="75"></div>
+                    </div>
+                    5 → 18 profils (+260%)
+                  </td>
+                </tr>
+                <tr>
+                  <td>Ville</td>
+                  <td>Ajouter communes voisines</td>
+                  <td>
+                    <div class="progress-bar">
+                      <div class="progress-fill" data-value="80"></div>
+                    </div>
+                    14 → 22 profils (+57%)
+                  </td>
+                </tr>
+                <tr>
+                  <td>Type</td>
+                  <td>Pas de changement</td>
+                  <td>
+                    <div class="progress-bar">
+                      <div class="progress-fill" data-value="87"></div>
+                    </div>
+                    inchangé
+                  </td>
+                </tr>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -549,7 +713,6 @@
     <script src="/leaflet/leaflet.js"></script>
     <!-- Script externe pour IA + Leaflet -->
     <script src="js/lodash.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/chance@1.1.11/dist/chance.min.js"></script>
     <script type="module" src="recommandations.js"></script>
   </body>

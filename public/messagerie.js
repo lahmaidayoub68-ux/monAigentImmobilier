@@ -115,12 +115,24 @@ function attachConversationClick(convo) {
     // 🔥 RESET NON LU
     unreadStore[name.toLowerCase()] = false;
     convo.querySelector(".unread")?.remove();
-    convo.classList.remove("has-unread"); // ← IMPORTANT pour le filtre
+    convo.classList.remove("has-unread");
 
     chatWithTitle.textContent = name;
 
     console.log(`[CONVERSATION] Ouverture de ${name}`);
     await loadConversation(name);
+
+    // ==========================
+    // 🔥 AJOUT ICI (TRÈS IMPORTANT)
+    // ==========================
+    if (window.innerWidth <= 768) {
+      const wrapper = document.querySelector(".mobile-wrapper");
+
+      if (wrapper) {
+        wrapper.classList.remove("conversations-active");
+        wrapper.classList.add("chat-active");
+      }
+    }
   });
 }
 conversations.forEach(attachConversationClick);
@@ -713,6 +725,78 @@ document.addEventListener("click", () => {
 });
 
 setInterval(updateOnlineStatus, 5000);
+//SWIPE MOBILE//
+function initMobileSwipe() {
+  if (window.innerWidth > 768) return;
+
+  const wrapper = document.querySelector(".mobile-wrapper");
+  const indicator = document.querySelector(".swipe-indicator");
+  const line = indicator.querySelector(".line");
+
+  if (!wrapper || !indicator) return;
+
+  let startX = 0,
+    currentX = 0,
+    isSwiping = false;
+
+  wrapper.addEventListener("touchstart", (e) => {
+    startX = e.touches[0].clientX;
+    isSwiping = false;
+  });
+
+  wrapper.addEventListener("touchmove", (e) => {
+    currentX = e.touches[0].clientX;
+    const diffX = currentX - startX;
+    if (Math.abs(e.touches[0].clientY - e.touches[0].clientY) > Math.abs(diffX))
+      return;
+
+    isSwiping = true;
+
+    let translate = wrapper.classList.contains("conversations-active")
+      ? 0
+      : -window.innerWidth;
+
+    wrapper.style.transition = "none";
+    wrapper.style.transform = `translateX(${translate + diffX}px)`;
+
+    // montre et étire la ligne seulement pendant swipe
+    line.style.width = `${Math.min(Math.abs(diffX), 150)}px`;
+    line.style.opacity = "1";
+  });
+
+  wrapper.addEventListener("touchend", () => {
+    wrapper.style.transition = "transform 0.3s ease";
+    if (!isSwiping) return;
+
+    const diff = currentX - startX;
+
+    if (diff > 80) {
+      wrapper.classList.remove("chat-active");
+      wrapper.classList.add("conversations-active");
+    } else if (diff < -80) {
+      wrapper.classList.remove("conversations-active");
+      wrapper.classList.add("chat-active");
+    } else {
+      wrapper.style.transform = wrapper.classList.contains("chat-active")
+        ? "translateX(-100vw)"
+        : "translateX(0)";
+    }
+
+    // 🔹 cache seulement la ligne, **pas les flèches**
+    line.style.width = "0";
+    line.style.opacity = "0";
+
+    // 🔹 les flèches restent toujours visibles, pas de display:none
+  });
+}
+
+window.addEventListener("load", initMobileSwipe);
+window.addEventListener("load", () => {
+  initMobileSwipe();
+
+  // 🔥 INDICATEUR FADE
+  const indicator = document.querySelector(".swipe-indicator");
+});
 // ==========================
 // CHECK SESSION
 // ==========================
