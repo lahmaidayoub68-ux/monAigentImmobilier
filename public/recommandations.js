@@ -6,6 +6,44 @@ let tabsEls; // Tous les onglets
 let globalStatsCache; // Cache des stats récupérées
 let currentTab = "global"; // Onglet courant
 let mapInstance; // Instance de la carte Leaflet
+async function fetchAIAnalysis(prompt, data) {
+  try {
+    const tokenRaw = localStorage.getItem("agent_user");
+    if (!tokenRaw) throw new Error("Token manquant");
+    const { token } = JSON.parse(tokenRaw);
+
+    const res = await fetch("/api/ai-analysis", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ prompt, data }),
+    });
+
+    if (!res.ok) throw new Error("Erreur IA: " + res.status);
+    const json = await res.json();
+    return json.analysis; // texte brut IA
+  } catch (err) {
+    console.error("[fetchAIAnalysis]", err);
+    return null;
+  }
+}
+
+function buildAIFrontPrompt(matches, criteriaOrder = CRITERIA_ORDER) {
+  let prompt =
+    "Tu es un expert analyste immobilier. Analyse les 30 meilleurs biens :\n\n";
+  criteriaOrder.forEach((crit) => {
+    prompt += `Critère: ${crit}\n`;
+    prompt += `Données: ${JSON.stringify(matches)}\n`;
+    prompt +=
+      "Rédige un paragraphe clair, structuré avec analyse et recommandations pour ce critère.\n\n";
+  });
+  prompt +=
+    "Le texte final doit être en français, professionnel, lisible et concis.\n";
+  return prompt;
+}
+
 // =======================================================
 // CONFIGURATION CRITÈRES ET POIDS
 // =======================================================
@@ -555,59 +593,61 @@ async function correctWithLanguageToolPreserveHTML(html) {
 /* =======================================================
 UPDATE CENTRAL CONTENT (intégration LanguageTool + variantes)
 ======================================================= */
+/* =======================================================
+UPDATE CENTRAL CONTENT AVEC IA
+======================================================= */
 async function updateCentralContent(role = "buyer") {
   if (!globalStatsCache) return;
 
   if (currentTab === "global") {
-    // Détermination des critères exacts selon le rôle
-    const userCriteria =
-      role === "buyer"
-        ? {
-            budgetMax: globalStatsCache.userBudget ?? 0,
-            surfaceMax: globalStatsCache.userSurface ?? 0,
-            piecesMax: globalStatsCache.userPieces ?? 0,
-          }
-        : {
-            budget: globalStatsCache.userBudget ?? 0,
-            surface: globalStatsCache.userSurface ?? 0,
-            pieces: globalStatsCache.userPieces ?? 0,
-          };
+    centralEl.innerHTML = `<div class="loader"></div> Chargement des analyses IA...`;
 
-    // 1️⃣ Génération du diagnostic
-    const diagnosticBlocks = generateDiagnostic(
-      globalStatsCache.top30,
-      userCriteria,
-      role,
-    );
+    // Préparer le prompt IA
+    const prompt = buildAIFrontPrompt(globalStatsCache.top30, CRITERIA_ORDER);
 
-    // 2️⃣ Correction avec LanguageTool et variantes
-    const correctedParagraphs = await Promise.all(
-      diagnosticBlocks.map(async (html) => {
-        // Correction grammaticale et orthographique
-        let corrected = await correctWithLanguageToolPreserveHTML(html);
+    // Appel à l'IA via OpenRouter
+    let aiText = await fetchAIAnalysis(prompt, globalStatsCache.top30);
 
-        // Découper en phrases, nettoyer et filtrer
-        let sentences = corrected
-          .split(/(?<=\.)\s+/)
-          .map((s) => s.trim())
-          .filter(Boolean);
+    // Fallback sur ton ancien système si IA échoue
+    if (!aiText) {
+      console.warn(
+        "[updateCentralContent] IA non disponible, fallback generateDiagnostic",
+      );
+      const userCriteria =
+        role === "buyer"
+          ? {
+              budgetMax: globalStatsCache.userBudget ?? 0,
+              surfaceMax: globalStatsCache.userSurface ?? 0,
+              piecesMax: globalStatsCache.userPieces ?? 0,
+            }
+          : {
+              budget: globalStatsCache.userBudget ?? 0,
+              surface: globalStatsCache.userSurface ?? 0,
+              pieces: globalStatsCache.userPieces ?? 0,
+            };
+      aiText = generateDiagnostic(
+        globalStatsCache.top30,
+        userCriteria,
+        role,
+      ).join("");
+    }
 
-        // Shuffle léger pour éviter répétitions et créer variantes naturelles
-        sentences = sentences
-          .map((s) => [s, Math.random()])
-          .sort((a, b) => a[1] - b[1])
-          .map((x) => x[0]);
+    // Correction grammaticale / orthographique LanguageTool
+    const corrected = await correctWithLanguageToolPreserveHTML(aiText);
 
-        // Reconstitution du paragraphe avec alinéa et <span> conservé
-        return `<p style="text-indent:0.8em; margin-bottom:1em;">
-                  <span>${sentences.join(" ")}</span>
-                </p>`;
-      }),
-    );
+    // Découpage en paragraphes et reconstitution propre
+    const paragraphs = corrected
+      .split(/\n{1,2}/) // sépare les paragraphes par saut de ligne
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map(
+        (p) =>
+          `<p style="text-indent:0.8em; margin-bottom:1em;"><span>${p}</span></p>`,
+      );
 
-    // 3️⃣ Affichage final
+    // Affichage final
     centralEl.innerHTML = `<h4>🧠 Constat global</h4>
-                           <div>${correctedParagraphs.join("")}</div>`;
+                           <div>${paragraphs.join("")}</div>`;
   } else if (currentTab === "criteria") {
     centralEl.innerHTML = generateCriteriaHTML(globalStatsCache.top30);
     updateMap(globalStatsCache.top30);

@@ -1,5 +1,6 @@
 import "dotenv/config";
 import Together from "together-ai";
+import OpenAI from "openai";
 
 /* =========================
    Helpers
@@ -29,11 +30,12 @@ function extractJSON(text) {
 }
 
 /* =========================
-   Together Client
+   Groq Client
 ========================= */
 
-const aiClient = new Together({
-  apiKey: process.env.TOGETHER_API_KEY,
+const aiClient = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
 });
 
 /* =========================
@@ -201,7 +203,7 @@ Message utilisateur :
 
   try {
     const response = await aiClient.chat.completions.create({
-      model: "ServiceNow-AI/Apriel-1.6-15b-Thinker",
+      model: "llama-3.1-8b-instant",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },

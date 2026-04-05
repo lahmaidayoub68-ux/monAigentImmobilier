@@ -14,6 +14,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
 import fs from "fs";
+import OpenAI from "openai";
 import levenshtein from "fast-levenshtein";
 const HOST = "0.0.0.0";
 import {
@@ -1445,7 +1446,113 @@ app.post("/api/ai", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Erreur serveur lors de l'appel à l'IA" });
   }
 });
+app.post("/api/ai-analysis", authenticateToken, async (req, res) => {
+  try {
+    let { data } = req.body;
+    if (!data || !Array.isArray(data) || data.length === 0)
+      return res.status(400).json({ error: "Données manquantes ou invalides" });
 
+    const username = req.user.username;
+
+    // Crée la session si besoin (optionnel)
+    if (!sessions[username]) sessions[username] = {};
+
+    // ======== Construction du prompt ========
+    const buildAIPrompt = (
+      data,
+      criteriaOrder = ["budget", "surface", "pieces", "ville", "type"],
+    ) => {
+      let prompt =
+        "Analyse des 30 meilleurs biens immobiliers selon les critères suivants :\n\n";
+      criteriaOrder.forEach((crit) => {
+        prompt += `Critère: ${crit}\n`;
+        prompt += `Données: ${JSON.stringify(data)}\n`;
+        prompt +=
+          "Indique un paragraphe clair, structuré avec analyse et recommandations pour ce critère.\n\n";
+      });
+      prompt +=
+        "Le texte final doit être en français, lisible, professionnel et concis.\n";
+      return prompt;
+    };
+
+    const fullPrompt = buildAIPrompt(data);
+
+    // ======== Appel OpenRouter ========
+    const aiClient = new OpenAI({
+      apiKey: process.env.ROUTER,
+      baseURL: "https://openrouter.ai/api/v1", // URL corrigée
+    });
+
+    const aiResponse = await aiClient.chat.completions.create({
+      model: "openai/gpt-4o-mini", // modèle valide et gratuit
+      messages: [
+        {
+          role: "system",
+          content:
+            "Tu es un expert analyste immobilier. Tu rédiges un paragraphe structuré pour chaque critère, avec analyse + recommandations.",
+        },
+        { role: "user", content: fullPrompt },
+      ],
+      temperature: 0.2,
+      max_tokens: 2500,
+    });
+
+    const aiText = aiResponse?.choices?.[0]?.message?.content?.trim();
+
+    // ======== Fallback NLP si IA ne répond pas ========
+    if (!aiText) {
+      console.warn("[AI] IA ne renvoie pas de texte, fallback activé");
+
+      const fallback = generateDiagnostic(
+        data,
+        {
+          budgetMax: 0,
+          surfaceMax: 0,
+          piecesMax: 0,
+        },
+        "buyer",
+      );
+
+      const corrected = await Promise.all(
+        fallback.map(
+          async (html) => await correctWithLanguageToolPreserveHTML(html),
+        ),
+      );
+
+      return res.json({ analysis: corrected.join("") });
+    }
+
+    // ======== Réponse finale ========
+    res.json({ analysis: aiText });
+  } catch (err) {
+    console.error("[/api/ai-analysis] Error:", err);
+
+    // Fallback sur LanguageTool pour sécurité
+    if (req.body.data) {
+      const fallback = generateDiagnostic(
+        req.body.data,
+        {
+          budgetMax: 0,
+          surfaceMax: 0,
+          piecesMax: 0,
+        },
+        "buyer",
+      );
+
+      const corrected = await Promise.all(
+        fallback.map(
+          async (html) => await correctWithLanguageToolPreserveHTML(html),
+        ),
+      );
+
+      return res.json({ analysis: corrected.join("") });
+    }
+
+    res
+      .status(500)
+      .json({ error: "Erreur serveur lors de l'appel à l'IA d'analyse" });
+  }
+});
 // ================== CHANGER AVATAR ==================
 app.post("/api/change-avatar", authenticateToken, async (req, res) => {
   try {
