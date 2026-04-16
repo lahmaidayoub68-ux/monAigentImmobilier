@@ -19,6 +19,7 @@ import {
 // ================== CONFIG ==================
 const types = ["appartement", "maison"];
 const contactsDomain = "test.com";
+const ETATS_BIEN = ["neuf", "renove", "bon", "a_rafraichir", "travaux"];
 
 // ================== UTILS ==================
 function randomInt(min, max) {
@@ -33,6 +34,7 @@ function generateContact(username) {
   return `${username}@${contactsDomain}`;
 }
 
+// ================== SEED ==================
 export async function seedProfiles(count = 50) {
   console.log(
     `🚀 Génération de ${count} vendeurs et ${count} acheteurs fictifs...`,
@@ -41,6 +43,7 @@ export async function seedProfiles(count = 50) {
   const sellersData = [];
   const buyersData = [];
 
+  // ===== Sellers =====
   for (let i = 1; i <= count; i++) {
     const villeObj = randomChoice(villesData);
     const type = randomChoice(types);
@@ -48,6 +51,7 @@ export async function seedProfiles(count = 50) {
     const surface = randomInt(20, 200);
     const pieces = randomInt(1, 6);
     const contact = generateContact(`seller${i}`);
+    const etatBien = randomChoice(ETATS_BIEN); // <-- ajouté ici
 
     sellersData.push({
       username: `seller${i}`,
@@ -62,9 +66,11 @@ export async function seedProfiles(count = 50) {
       contact,
       lat: villeObj.lat,
       lng: villeObj.lng,
+      etatBien, // <-- clé ajoutée pour le front
     });
   }
 
+  // ===== Buyers =====
   for (let i = 1; i <= count; i++) {
     const villeObj = randomChoice(villesData);
     const type = randomChoice(types);

@@ -1,9 +1,3 @@
-/*
-matchingEngine.js
-Moteur de matching IMMOBILIER
-Scoring + compatibilité (%)
-Pondération : Budget 40 Ville 30 Pièces 20 Surface 10
-*/
 // ================== DONNÉES ==================
 let SELLERS = [];
 let BUYERS = [];
@@ -17,7 +11,7 @@ const MAX_SURFACE = 1000;
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { db } from "../db.js"; // pool PostgreSQL exporté depuis db.js
+import { db } from "../db.js";
 
 // ================== COORDONNÉES VILLES ==================
 const __filename = fileURLToPath(import.meta.url);
@@ -27,7 +21,6 @@ const villesCoordsArray = JSON.parse(
   fs.readFileSync(path.join(__dirname, "villes-france.json"), "utf-8"),
 );
 
-// Crée une Map pour accès rapide
 const villesMap = new Map();
 for (const v of villesCoordsArray) {
   villesMap.set(normalize(v.ville), {
@@ -51,9 +44,11 @@ export function normalize(value = "") {
 export function getCoords(ville) {
   return villesMap.get(normalize(ville)) || null;
 }
+
 export function getDepartement(ville) {
   return getCoords(ville)?.departement ?? null;
 }
+
 export function distanceKm(ville1, ville2) {
   const v1 = getCoords(ville1);
   const v2 = getCoords(ville2);
@@ -85,6 +80,19 @@ export function scoreVille(
   return Math.round(maxPoints * (1 - dist / maxDistance));
 }
 
+// ================== HELPERS CRITIQUES (FIX BUG 0) ==================
+function cleanBuyerNumber(v, fallback = null) {
+  if (v === undefined || v === null) return fallback;
+  const n = Number(v);
+  if (!Number.isFinite(n) || n === 0) return fallback; // 🔥 FIX IMPORTANT
+  return n;
+}
+
+function safeNumber(v, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 // ================== RESET ==================
 export function resetSellers() {
   SELLERS = [];
@@ -101,7 +109,7 @@ export function resetProfiles() {
   resetBuyers();
 }
 
-// ================== AJOUT / MISE À JOUR VENDEUR ==================
+// ================== ADD SELLER ==================
 export async function addSeller(criteria = {}) {
   const existingIndex = SELLERS.findIndex(
     (s) => s.username === criteria.username,
@@ -109,101 +117,78 @@ export async function addSeller(criteria = {}) {
 
   const seller = {
     id: existingIndex >= 0 ? SELLERS[existingIndex].id : NEXT_SELLER_ID++,
-    username: criteria.username || `seller_${NEXT_SELLER_ID}`,
+    username: criteria.username,
     role: "seller",
-    departement: getDepartement(criteria.ville),
     ville: criteria.ville || "",
-    region: criteria.region || criteria.ville || "",
     type: normalize(criteria.type || "appartement"),
-    price: Number(criteria.price ?? 0),
-    pieces: Math.min(Number(criteria.pieces ?? 0), MAX_PIECES),
-    surface: Math.min(Number(criteria.surface ?? 0), MAX_SURFACE),
+
+    price: safeNumber(criteria.price, 0),
+    pieces: safeNumber(criteria.pieces, 0),
+    surface: safeNumber(criteria.surface, 0),
+
     contact: criteria.contact || "",
+    etatBien:
+      criteria.etatBien !== undefined
+        ? criteria.etatBien
+        : existingIndex >= 0
+          ? SELLERS[existingIndex].etatBien
+          : null,
   };
 
   if (existingIndex >= 0) SELLERS[existingIndex] = seller;
   else SELLERS.push(seller);
 
-  try {
-    // ✅ db wrapper upsert
-    await db.prepare().upsert(
-      "users",
-      {
-        username: seller.username,
-        role: seller.role,
-        contact: seller.contact,
-        type: seller.type,
-        ville: seller.ville,
-        region: seller.region,
-        price: seller.price ?? 0,
-        pieces: seller.pieces ?? 0,
-        surface: seller.surface ?? 0,
-        budget: seller.budget ?? 0,
-        budgetMin: seller.budgetMin ?? 0,
-        budgetMax: seller.budgetMax ?? 0,
-        piecesMin: seller.piecesMin ?? 0,
-        piecesMax: seller.piecesMax ?? 100,
-        surfaceMin: seller.surfaceMin ?? 0,
-        surfaceMax: seller.surfaceMax ?? 1000,
-      },
-      "username",
-      [
-        "role",
-        "contact",
-        "type",
-        "ville",
-        "region",
-        "price",
-        "pieces",
-        "surface",
-        "budget",
-        "budgetMin",
-        "budgetMax",
-        "piecesMin",
-        "piecesMax",
-        "surfaceMin",
-        "surfaceMax",
-      ],
-    );
-  } catch (err) {
-    console.error("[ADD SELLER DB ERROR]:", err);
-  }
+  await db.prepare().upsert(
+    "users",
+    {
+      username: seller.username,
+      role: seller.role,
+      ville: seller.ville,
+      type: seller.type,
+      price: seller.price,
+      pieces: seller.pieces,
+      surface: seller.surface,
+      contact: seller.contact,
+      etatBien: seller.etatBien,
+    },
+    "username",
+    [
+      "role",
+      "ville",
+      "type",
+      "price",
+      "pieces",
+      "surface",
+      "contact",
+      "etatBien",
+    ],
+  );
 
   return seller;
 }
 
-// ================== AJOUT / MISE À JOUR ACHETEUR ==================
+// ================== ADD BUYER (FIX PRINCIPAL) ==================
 export async function addBuyer(criteria = {}) {
   const existingIndex = BUYERS.findIndex(
     (b) => b.username === criteria.username,
   );
 
-  const budget = criteria.budget != null ? Number(criteria.budget) : null;
-  const budgetMin =
-    criteria.budgetMin != null ? Number(criteria.budgetMin) : (budget ?? 0);
-  const budgetMax =
-    criteria.budgetMax != null ? Number(criteria.budgetMax) : budgetMin;
-
   const buyer = {
     id: existingIndex >= 0 ? BUYERS[existingIndex].id : NEXT_BUYER_ID++,
-    username: criteria.username || `buyer_${NEXT_BUYER_ID}`,
+    username: criteria.username,
     role: "buyer",
-    departement: getDepartement(criteria.ville),
     ville: criteria.ville || "",
-    region: criteria.region || criteria.ville || "",
     type: normalize(criteria.type || ""),
-    budget,
-    budgetMin,
-    budgetMax,
-    toleranceKm:
-      criteria.toleranceKm != null ? Number(criteria.toleranceKm) : 0,
-    piecesMin: Number(criteria.piecesMin ?? 0),
-    piecesMax: Math.min(Number(criteria.piecesMax ?? MAX_PIECES), MAX_PIECES),
-    surfaceMin: Number(criteria.surfaceMin ?? 0),
-    surfaceMax: Math.min(
-      Number(criteria.surfaceMax ?? MAX_SURFACE),
-      MAX_SURFACE,
-    ),
+
+    budgetMin: cleanBuyerNumber(criteria.budgetMin, null),
+    budgetMax: cleanBuyerNumber(criteria.budgetMax, null),
+
+    piecesMin: cleanBuyerNumber(criteria.piecesMin, null),
+    piecesMax: cleanBuyerNumber(criteria.piecesMax, MAX_PIECES),
+
+    surfaceMin: cleanBuyerNumber(criteria.surfaceMin, null),
+    surfaceMax: cleanBuyerNumber(criteria.surfaceMax, MAX_SURFACE),
+
     contact: criteria.contact || "",
     preferences:
       existingIndex >= 0
@@ -214,56 +199,49 @@ export async function addBuyer(criteria = {}) {
   if (existingIndex >= 0) BUYERS[existingIndex] = buyer;
   else BUYERS.push(buyer);
 
-  try {
-    // ✅ db wrapper upsert
-    await db.prepare().upsert(
-      "users",
-      {
-        username: buyer.username,
-        role: buyer.role,
-        contact: buyer.contact,
-        type: buyer.type,
-        ville: buyer.ville,
-        region: buyer.region,
-        price: 0,
-        pieces: buyer.pieces ?? 0,
-        surface: 0,
-        budget: buyer.budget ?? 0,
-        budgetMin: buyer.budgetMin ?? 0,
-        budgetMax: buyer.budgetMax ?? 0,
-        piecesMin: buyer.piecesMin ?? 0,
-        piecesMax: buyer.piecesMax ?? MAX_PIECES,
-        surfaceMin: buyer.surfaceMin ?? 0,
-        surfaceMax: buyer.surfaceMax ?? MAX_SURFACE,
-      },
-      "username",
-      [
-        "role",
-        "contact",
-        "type",
-        "ville",
-        "region",
-        "price",
-        "pieces",
-        "surface",
-        "budget",
-        "budgetMin",
-        "budgetMax",
-        "piecesMin",
-        "piecesMax",
-        "surfaceMin",
-        "surfaceMax",
-      ],
-    );
-  } catch (err) {
-    console.error("[ADD BUYER DB ERROR]:", err);
-  }
+  await db.prepare().upsert(
+    "users",
+    {
+      username: buyer.username,
+      role: buyer.role,
+      ville: buyer.ville,
+      type: buyer.type,
 
-  // ================= LOG BUYERS =================
+      budgetMin: buyer.budgetMin,
+      budgetMax: buyer.budgetMax,
+
+      piecesMin: buyer.piecesMin,
+      piecesMax: buyer.piecesMax,
+
+      surfaceMin: buyer.surfaceMin,
+      surfaceMax: buyer.surfaceMax,
+
+      contact: buyer.contact,
+    },
+    "username",
+    [
+      "role",
+      "ville",
+      "type",
+      "budgetMin",
+      "budgetMax",
+      "piecesMin",
+      "piecesMax",
+      "surfaceMin",
+      "surfaceMax",
+      "contact",
+    ],
+  );
 
   return buyer;
 }
+export async function getAllSellers() {
+  return await db.sellers.find({}); // ou la méthode de ta DB
+}
 
+export async function getAllBuyers() {
+  return await db.buyers.find({});
+}
 // ================== SCORING ET MATCHING ==================
 // Ici, tout reste identique à ton code original (scoreSellerForBuyer, scoreBuyerForSeller, matchUsers, matchSellerToBuyers)
 // Seule la persistance est modifiée pour PostgreSQL
@@ -462,6 +440,7 @@ export function matchUsers(buyerProfile, topN = 5) {
       // pour le front
       villeOriginal: seller.ville,
       departement: getDepartement(seller.ville) || "TEST",
+      etatBien: seller.etatBien, // <-- ajouté ici pour le front
     };
   });
 
@@ -607,10 +586,13 @@ export function matchSellerToBuyers(sellerProfile, topN = 5) {
       buyerLng: sellerCoords?.lng ?? null,
       lat: buyerCoords?.lat ?? null,
       lng: buyerCoords?.lng ?? null,
-
-      pieces: buyer.piecesMin,
-      surface: buyer.surfaceMin,
-      price: buyer.budgetMax,
+      piecesMin: buyer.piecesMin,
+      piecesMax: buyer.piecesMax,
+      surfaceMin: buyer.surfaceMin,
+      surfaceMax: buyer.surfaceMax,
+      budgetMin: buyer.budgetMin,
+      budgetMax: buyer.budgetMax,
+      price: sellerProfile.price,
 
       villeOriginal: buyer.ville,
       departement: getDepartement(buyer.ville),

@@ -61,6 +61,55 @@ const villesNormalized = villes.map((v) => ({
   original: v,
   norm: normalizeStr(v.ville),
 }));
+const normalizeSurface = (criteria = {}) => {
+  const raw = criteria.surfaceMin ?? criteria.espaceMin ?? null;
+  const val = raw == null ? null : Number(String(raw).replace(/[^\d.-]/g, ""));
+  return isNaN(val) ? null : val;
+};
+const toNumber = (v) => {
+  if (v === null || v === undefined) return null;
+  const n = Number(String(v).replace(/[^\d.-]/g, ""));
+  return isNaN(n) ? null : n;
+};
+const normalizePieces = (criteria = {}, mode = "min") => {
+  const raw =
+    mode === "max"
+      ? (criteria.piecesMax ?? criteria.pieces ?? criteria.rooms)
+      : (criteria.piecesMin ?? criteria.pieces ?? criteria.rooms);
+
+  const val = raw == null ? null : Number(String(raw).replace(/[^\d.-]/g, ""));
+
+  return Number.isFinite(val) ? val : null;
+};
+const DB_MAP = {
+  piecesMin: "piecesmin",
+  piecesMax: "piecesmax",
+  surfaceMin: "surfacemin",
+  surfaceMax: "surfacemax",
+  budgetMin: "budgetmin",
+  budgetMax: "budgetmax",
+};
+const toDB = (obj) => {
+  const out = {};
+  for (const key in obj) {
+    const dbKey = DB_MAP[key] || key;
+    out[dbKey] = obj[key];
+  }
+  return out;
+};
+const fromDB = (row) => ({
+  username: row.username,
+  role: row.role,
+
+  piecesMin: row.piecesMin ?? row.piecesmin ?? null,
+  piecesMax: row.piecesMax ?? row.piecesmax ?? null,
+
+  surfaceMin: row.surfaceMin ?? row.surfacemin ?? null,
+  surfaceMax: row.surfaceMax ?? row.surfacemax ?? null,
+
+  budgetMin: row.budgetMin ?? row.budgetmin ?? null,
+  budgetMax: row.budgetMax ?? row.budgetmax ?? null,
+});
 // ================== MIDDLEWARES ==================
 app.disable("x-powered-by");
 app.use(cors({ origin: true, credentials: true }));
@@ -159,7 +208,6 @@ app.use("/api/", apiLimiter);
 app.use("/login", apiLimiter);
 app.use("/signup", apiLimiter);
 app.use("/chat", apiLimiter);
-
 // ================== DB ==================
 await db
   .prepare(
@@ -177,12 +225,13 @@ CREATE TABLE IF NOT EXISTS users (
   pieces INTEGER DEFAULT 1,
   surface REAL DEFAULT 10,
   budget REAL DEFAULT 0,
-  budgetMin REAL DEFAULT 0,
-  budgetMax REAL DEFAULT 0,
-  piecesMin INTEGER DEFAULT 0,
-  piecesMax INTEGER DEFAULT 100,
-  surfaceMin REAL DEFAULT 0,
-  surfaceMax REAL DEFAULT 1000,
+  budgetmin REAL DEFAULT 0,
+budgetmax REAL DEFAULT 0,
+piecesmin INTEGER DEFAULT 0,
+piecesmax INTEGER DEFAULT 100,
+surfacemin REAL DEFAULT 0,
+surfacemax REAL DEFAULT 1000,
+etatbien TEXT DEFAULT '',
   avatar TEXT DEFAULT '/images/user-avatar.jpg'
 )
 `,
@@ -218,7 +267,7 @@ CREATE TABLE IF NOT EXISTS favorites (
   .run();
 
 // ================== INIT PROFILS MATCHING EN PROD ==================
-console.log("🔄 Initialisation des profils depuis la DB...");
+console.log(" Initialisation des profils depuis la DB...");
 
 // Reset des arrays pour éviter doublons si reload
 
@@ -226,15 +275,78 @@ console.log("🔄 Initialisation des profils depuis la DB...");
 const allUsers = await db
   .prepare(
     `
-  SELECT u.id, u.username, u.role, u.contact,
-         u.ville, u.region, u.type, u.price, u.pieces, u.surface,
-         u.budget, u.budgetMin, u.budgetMax,
-         u.piecesMin, u.piecesMax,
-         u.surfaceMin, u.surfaceMax
-  FROM users u
+ SELECT
+u.username,
+u.role,
+u.contact,
+ u.ville,
+ u.region,
+ u.type,
+u.price,
+ u.pieces,
+ u.surface,
+ u.budget,
+ u.etatbien AS "etatBien",
+ u.piecesmin  AS "piecesMin",
+ u.surfacemin AS "surfaceMin",
+ u.budgetmin  AS "budgetMin",
+ u.piecesmax  AS "piecesMax",
+  u.surfacemax AS "surfaceMax",
+ u.budgetmax  AS "budgetMax"
+FROM users u
 `,
   )
   .all();
+console.log(" RAW DB ROW (case sensitive check)");
+allUsers.forEach((u) => {
+  console.log({
+    username: u.username, // RAW EXACT DB KEYS
+
+    piecesMin_RAW: u.piecesMin,
+    piecesmin_RAW: u.piecesmin,
+
+    surfaceMin_RAW: u.surfaceMin,
+    surfacemin_RAW: u.surfacemin,
+
+    budgetMin_RAW: u.budgetMin,
+    budgetmin_RAW: u.budgetmin,
+  });
+});
+console.log(" CASE INSPECTION USERS TABLE");
+console.table(
+  allUsers.map((u) => ({
+    username: u.username,
+    piecesMin: u.piecesMin,
+    piecesmin: u.piecesmin,
+    surfaceMin: u.surfaceMin,
+    surfacemin: u.surfacemin,
+    budgetMin: u.budgetMin,
+    budgetmin: u.budgetmin,
+  })),
+);
+const brokenUsers = await db
+  .prepare(
+    `
+SELECT * FROM users
+`,
+  )
+  .all();
+
+console.log(" FULL DB DUMP (PROOF BUG)");
+console.table(
+  brokenUsers.map((u) => ({
+    username: u.username, // comparaison directe
+
+    piecesMin: u.piecesMin,
+    piecesmin: u.piecesmin,
+
+    surfaceMin: u.surfaceMin,
+    surfacemin: u.surfacemin,
+
+    budgetMin: u.budgetMin,
+    budgetmin: u.budgetmin,
+  })),
+);
 
 allUsers.forEach((u) => {
   const profileData = {
@@ -245,16 +357,17 @@ allUsers.forEach((u) => {
     region: u.region || u.ville || "",
     type: normalize(u.type || "appartement"),
     price: u.price ?? 0,
-    pieces: u.pieces ?? 1,
-    surface: u.surface ?? 10,
-    budget: u.budget ?? null,
-    budgetMin: u.budgetMin ?? u.budget ?? 0,
-    budgetMax: u.budgetMax ?? u.budget ?? 0,
-    piecesMin: u.piecesMin ?? 0,
-    departement: getDepartement(u.ville),
-    piecesMax: u.piecesMax ?? 999,
-    surfaceMin: u.surfaceMin ?? 0,
+    pieces: u.pieces > 0 ? u.pieces : 1,
+    surface: u.surface > 0 ? u.surface : 10,
+    budget: u.budget ?? null, //budgetMin: u.budgetMin ?? u.budget ?? 0, avant
+    budgetMax: u.budgetMax ?? u.budget ?? 0, //piecesMin: u.piecesMin ?? null, avant pour bug : lowerCase
+    piecesMax: u.piecesMax ?? 999, //surfaceMin: u.surfaceMin ?? null,//avant
     surfaceMax: u.surfaceMax ?? 999,
+    piecesMin: u.piecesMin ?? null,
+    surfaceMin: u.surfaceMin ?? null,
+    budgetMin: u.budgetMin ?? null,
+    etatBien: u.etatBien || "",
+    departement: getDepartement(u.ville),
   };
 
   if (u.role === "buyer") {
@@ -262,14 +375,36 @@ allUsers.forEach((u) => {
   } else if (u.role === "seller") {
     addSeller(profileData);
   }
+  console.log(" [DB LOAD RAW USER]", u.username, {
+    piecesMin: u.piecesMin,
+    surfaceMin: u.surfaceMin,
+    budgetMin: u.budgetMin,
+  });
+  console.log(" [PROFILE AFTER LOAD]", profileData.username, {
+    piecesMin: profileData.piecesMin,
+    surfaceMin: profileData.surfaceMin,
+  });
+  console.log("🚨 PROFILE DATA:", profileData.etatBien);
 });
+// ================== DEBUG DB STATE ==================
+const debugUsers = await db
+  .prepare(
+    `
+ SELECT username, role, piecesMin, surfaceMin, budgetMin
+ FROM users
+ `,
+  )
+  .all();
+
+console.log(" [DB DEBUG STATE USERS]");
+console.table(debugUsers);
 // ================== INIT FAVORITES ==================
 const allFavorites = await db
   .prepare(
     `
-  SELECT f.id, f.user_id, f.profile_data, u.username AS ownerUsername
-  FROM favorites f
-  JOIN users u ON f.user_id = u.id
+SELECT f.id, f.user_id, f.profile_data, u.username AS ownerUsername
+ FROM favorites f
+ JOIN users u ON f.user_id = u.id
 `,
   )
   .all();
@@ -287,20 +422,20 @@ allFavorites.forEach((fav) => {
 const allMessages = await db
   .prepare(
     `
-  SELECT m.id, m.sender_id, m.receiver_id, m.subject, m.body, m.timestamp,
-         su.username AS senderUsername, ru.username AS receiverUsername
-  FROM messages m
-  JOIN users su ON m.sender_id = su.id
-  JOIN users ru ON m.receiver_id = ru.id
+ SELECT m.id, m.sender_id, m.receiver_id, m.subject, m.body, m.timestamp,
+su.username AS senderUsername, ru.username AS receiverUsername
+FROM messages m
+JOIN users su ON m.sender_id = su.id
+ JOIN users ru ON m.receiver_id = ru.id
 `,
   )
   .all();
 
 console.log(
-  `✅ Initialisation terminée : ${BUYERS.length} buyers, ${SELLERS.length} sellers`,
+  ` Initialisation terminée : ${BUYERS.length} buyers, ${SELLERS.length} sellers`,
 );
 console.log(
-  `✅ Messages récupérés : ${allMessages.length}, favoris : ${allFavorites.length}`,
+  ` Messages récupérés : ${allMessages.length}, favoris : ${allFavorites.length}`,
 );
 
 // ================== AUTH ==================
@@ -324,33 +459,34 @@ const authenticateToken = (req, res, next) => {
 
 // ================== UPSERT PROFILE ==================
 async function upsertProfile(user, normalized) {
-  // ================== EXTRACTION ==================
+  console.log(
+    " [WRITE PRE-DB] normalized EXACT snapshot:",
+    JSON.stringify(normalized, null, 2),
+  );
   const { username, contact = "", role } = user;
 
-  // ================== PRÉPARATION DU PROFIL ==================
   const profileData = {
     username,
     contact,
     role,
     type: normalized.type || "",
     ville: normalized.ville || "",
-    region: normalized.region || normalized.ville || "",
-    price: role === "seller" ? normalized.price || 0 : 0,
-    budget: role === "buyer" ? normalized.budget || 0 : 0,
-    budgetMin: role === "buyer" ? normalized.budgetMin || 0 : 0,
-    budgetMax: role === "buyer" ? normalized.budgetMax || 0 : 0,
+    region: normalized.region || normalized.ville || "", // SELLER STRICT
 
-    // 🔴 C’EST ICI
-    pieces: role === "seller" ? normalized.piecesMin || 0 : 0,
-    surface: role === "seller" ? normalized.surfaceMin || 0 : 0,
+    price: role === "seller" ? (normalized.price ?? 0) : 0,
+    pieces: role === "seller" ? (normalized.pieces ?? null) : 0,
+    surface: role === "seller" ? (normalized.surface ?? null) : 0,
+    etatBien: normalized.etatBien ?? null, // BUYER STRICT
 
-    piecesMin: role === "buyer" ? normalized.piecesMin || 0 : 0,
-    piecesMax: normalized.piecesMax ?? 999,
-    surfaceMin: role === "buyer" ? normalized.surfaceMin || 0 : 0,
-    surfaceMax: normalized.surfaceMax ?? 10000,
+    budget: role === "buyer" ? (normalized.budgetMin ?? null) : 0,
+    budgetMin: role === "buyer" ? (normalized.budgetMin ?? null) : 0,
+    budgetMax: role === "buyer" ? (normalized.budgetMax ?? null) : 0,
+    piecesMax: role === "buyer" ? (normalized.piecesMax ?? 999) : 0,
+    piecesMin: role === "buyer" ? (normalized.piecesMin ?? null) : null,
+    surfaceMin: role === "buyer" ? (normalized.surfaceMin ?? null) : null,
+    surfaceMax: role === "buyer" ? (normalized.surfaceMax ?? 999) : 0,
   };
-
-  // ================== MEMORY UPSERT ==================
+  console.log(" UPSERT FINAL etatbien:", profileData.etatBien); // ================== MEMORY UPSERT ==================
   if (role === "buyer") {
     const existingIndex = BUYERS.findIndex((b) => b.username === username);
     const fullBuyer = {
@@ -382,10 +518,19 @@ async function upsertProfile(user, normalized) {
       SELLERS.push(fullSeller);
     }
   }
+  await db
+    .prepare(
+      `
+  UPDATE users
+  SET etatbien = ?
+  WHERE username = ?
+`,
+    )
+    .run(profileData.etatBien, username);
 
-  // ================== DB UPSERT ==================
+  console.log(" DIRECT UPDATE etatbien DONE"); // ================== DB UPSERT ==================
+
   if (process.env.NODE_ENV === "production") {
-    // PostgreSQL
     await db.prepare().upsert(
       "users",
       {
@@ -395,16 +540,18 @@ async function upsertProfile(user, normalized) {
         type: profileData.type,
         ville: profileData.ville,
         region: profileData.region,
+
         price: profileData.price,
         pieces: profileData.pieces,
         surface: profileData.surface,
-        budget: profileData.budget,
-        budgetMin: profileData.budgetMin,
-        budgetMax: profileData.budgetMax,
-        piecesMin: profileData.piecesMin,
-        piecesMax: profileData.piecesMax,
-        surfaceMin: profileData.surfaceMin,
-        surfaceMax: profileData.surfaceMax,
+
+        budgetmin: profileData.budgetMin,
+        budgetmax: profileData.budgetMax,
+        piecesmin: profileData.piecesMin,
+        piecesmax: profileData.piecesMax,
+        surfacemin: profileData.surfaceMin,
+        surfacemax: profileData.surfaceMax,
+        etatbien: profileData.etatBien,
       },
       "username",
       [
@@ -416,64 +563,22 @@ async function upsertProfile(user, normalized) {
         "price",
         "pieces",
         "surface",
-        "budget",
-        "budgetMin",
-        "budgetMax",
-        "piecesMin",
-        "piecesMax",
-        "surfaceMin",
-        "surfaceMax",
+        "budgetmin",
+        "budgetmax",
+        "piecesmin",
+        "piecesmax",
+        "surfacemin",
+        "surfacemax",
+        "etatbien",
       ],
     );
-  } else {
-    // SQLite
-    await db
-      .prepare(
-        `
-        INSERT INTO users (
-          username, password, role, contact, type, ville, region,
-          price, pieces, surface, budget, budgetMin, budgetMax,
-          piecesMin, piecesMax, surfaceMin, surfaceMax
-        ) VALUES (?, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(username) DO UPDATE SET
-          role = excluded.role,
-          contact = excluded.contact,
-          type = excluded.type,
-          ville = excluded.ville,
-          region = excluded.region,
-          price = excluded.price,
-          pieces = excluded.pieces,
-          surface = excluded.surface,
-          budget = excluded.budget,
-          budgetMin = excluded.budgetMin,
-          budgetMax = excluded.budgetMax,
-          piecesMin = excluded.piecesMin,
-          piecesMax = excluded.piecesMax,
-          surfaceMin = excluded.surfaceMin,
-          surfaceMax = excluded.surfaceMax
-      `,
-      )
-      .run(
-        username,
-        role,
-        profileData.contact,
-        profileData.type,
-        profileData.ville,
-        profileData.region,
-        profileData.price,
-        profileData.pieces,
-        profileData.surface,
-        profileData.budget,
-        profileData.budgetMin,
-        profileData.budgetMax,
-        profileData.piecesMin,
-        profileData.piecesMax,
-        profileData.surfaceMin,
-        profileData.surfaceMax,
-      );
   }
+  console.log(" FINAL DB WRITE:", {
+    etatbien: profileData.etatBien,
+    piecesmin: profileData.piecesMin,
+    surfacemin: profileData.surfaceMin,
+  }); // ================== LOGGING ==================
 
-  // ================== LOGGING ==================
   console.log("=== PROFIL AJOUTÉ ===");
   console.log({
     username: profileData.username,
@@ -486,8 +591,10 @@ async function upsertProfile(user, normalized) {
     budgetMax: normalized.budgetMax,
     pieces: normalized.piecesMax,
     surface: normalized.surfaceMax,
+    etatBien: normalized.etatBien,
     contact: profileData.contact,
   });
+  console.log("NORMALIZED:", normalized);
 
   return profileData;
 }
@@ -534,9 +641,8 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       .object({ message: z.string().min(1) })
       .parse(req.body);
     const username = req.user.username;
-    const userRole = req.user.role;
+    const userRole = req.user.role; // ===== Initialisation session =====
 
-    // ===== Initialisation session =====
     if (!sessions[username]) {
       sessions[username] = {
         started: false,
@@ -548,15 +654,18 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       };
     }
     const session = sessions[username];
-    session.role = userRole;
+    session.role = userRole; // ICI (et pas avant)
 
-    // ===== Appel IA pour parser les critères =====
+    if (req.body.etatBien !== undefined) {
+      session.criteria.etatBien = req.body.etatBien;
+    } // ===== Appel IA pour parser les critères =====
     let aiResponse = {};
     try {
       aiResponse = await aiChatWithCriteria(message, session.criteria, {
         phase: session.phase,
         matchingProfiles: session.matches,
       });
+      console.log(" [AI RESPONSE RAW]", JSON.stringify(aiResponse, null, 2));
     } catch (err) {
       console.error("[CHAT] Erreur AI :", err);
       aiResponse = {
@@ -565,10 +674,32 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       };
     }
 
-    // ===== Mise à jour critères =====
-    session.criteria = aiResponse.criteria || session.criteria;
+    console.log(" [SESSION BEFORE MERGE]", session.criteria);
+    console.log(" [AI CRITERIA]", aiResponse.criteria); //critères mis à jour//
+    const safeCriteria = Object.fromEntries(
+      Object.entries(aiResponse.criteria || {}).filter(
+        ([_, v]) => v !== null && v !== undefined,
+      ),
+    );
 
-    // ===== Préparation reply =====
+    session.criteria = {
+      ...session.criteria,
+      ...safeCriteria, // plus de null qui écrase
+
+      surfaceMin:
+        aiResponse.criteria?.surfaceMin ??
+        aiResponse.criteria?.espaceMin ??
+        session.criteria.surfaceMin,
+
+      piecesMin: aiResponse.criteria?.piecesMin ?? session.criteria.piecesMin,
+
+      etatBien: aiResponse.criteria?.etatBien ?? session.criteria.etatBien,
+    };
+
+    console.log(" [SESSION AFTER MERGE]", session.criteria);
+
+    console.log("CRITERIA MERGED:", session.criteria); // ===== Préparation reply =====
+
     let reply = "";
     if (!session.started) {
       reply +=
@@ -576,54 +707,93 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       session.started = true;
     } else if (aiResponse.message) {
       reply += aiResponse.message;
-    }
+    } // ===== Normalisation =====
 
-    // ===== Normalisation =====
-    const parseNumber = (value, fallback = 0) => {
-      if (value == null) return fallback;
+    const parseNumber = (value) => {
+      if (value == null) return undefined;
       const num = Number(String(value).replace(/[^\d.-]/g, ""));
-      return isNaN(num) ? fallback : num;
-    };
+      return isNaN(num) ? undefined : num;
+    }; // ===== EXTRACTION BRUTE =====
 
-    const budgetMin = parseNumber(session.criteria.budgetMin, 0);
-    let budgetMax = parseNumber(session.criteria.budgetMax, budgetMin);
-    if (budgetMax < budgetMin) budgetMax = budgetMin;
+    console.log(" [RAW FOR NORMALIZATION]", session.criteria);
 
+    console.log(" piecesMin RAW INPUT:", session.criteria.piecesMin);
+    console.log(" surfaceMin RAW INPUT:", session.criteria.surfaceMin);
+    console.log(" espaceMin RAW INPUT:", session.criteria.espaceMin);
+    console.log(" etatBien RAW INPUT:", session.criteria.etatBien); // ===== PARSE =====
+    const etatBien = session.criteria.etatBien || undefined;
+
+    const piecesMin = normalizePieces(session.criteria, "min") ?? null;
+    const piecesMax = normalizePieces(session.criteria, "max") ?? 999;
+
+    const surfaceMin = normalizeSurface(session.criteria) ?? null;
+    const surfaceMax =
+      session.criteria.surfaceMax != null
+        ? Number(session.criteria.surfaceMax)
+        : 9999;
+
+    const budgetMin = Number(session.criteria.budgetMin ?? 0);
+    let budgetMax = Number(session.criteria.budgetMax ?? budgetMin);
+    if (budgetMax < budgetMin) budgetMax = budgetMin; // ===== NORMALIZED FINAL =====
     const normalized = {
       type: session.criteria.type ? normalize(session.criteria.type) : "",
-      toleranceKm: parseNumber(session.criteria.toleranceKm, 0),
       ville: session.criteria.ville ? normalize(session.criteria.ville) : "",
-      piecesMin: parseNumber(session.criteria.piecesMin, 0),
-      piecesMax: parseNumber(session.criteria.piecesMax, 9999),
-      surfaceMin: parseNumber(session.criteria.espaceMin, 0),
-      surfaceMax: parseNumber(session.criteria.espaceMax, 999999),
+
       budgetMin,
       budgetMax,
-      price: budgetMin,
-    };
+      piecesMin,
+      piecesMax,
+      surfaceMin,
+      surfaceMax, // AJOUT ICI
 
-    // ===== Vérification critères complets =====
+      etatBien:
+        req.body.etatBien ??
+        aiResponse.criteria?.etatBien ??
+        session.criteria.etatBien, // SELLER ONLY
+
+      ...(session.role === "seller" && {
+        price: budgetMin,
+        pieces: piecesMin,
+        surface: surfaceMin,
+        etatBien:
+          req.body.etatBien ??
+          aiResponse.criteria?.etatBien ??
+          session.criteria.etatBien,
+      }),
+    };
+    console.log(" [NORMALIZED FINAL]", JSON.stringify(normalized, null, 2)); // ===== Vérification critères complets =====
+
     const missingCriteria = ORDER.filter((k) => {
       if (k === "pieces") return session.criteria.piecesMin === undefined;
-      if (k === "espace") return session.criteria.espaceMin === undefined;
-      if (k === "toleranceKm") {
-        return (
-          session.role === "buyer" &&
-          session.criteria.ville !== undefined &&
-          session.criteria.toleranceKm === undefined
-        );
-      }
-      return session.criteria[k] === undefined;
-    });
-    const budgetIncomplete = session.criteria.budgetMin === undefined;
+      if (k === "espace") return session.criteria.espaceMin === undefined; // toleranceKm géré à part (buyer only)
 
+      if (k === "toleranceKm") return false;
+
+      return session.criteria[k] === undefined;
+    }); // règle métier séparée (plus safe)
+    const etatBienMissing =
+      session.role === "seller" && session.criteria.etatBien === undefined;
+
+    const toleranceMissing =
+      session.role === "buyer" &&
+      session.criteria.ville !== undefined &&
+      session.criteria.toleranceKm === undefined;
+
+    const budgetIncomplete = session.criteria.budgetMin === undefined;
+    const isFinalTrigger = req.body.etatBien !== undefined;
     // ===== Phase collecting =====
+
     if (session.phase === "collecting") {
-      // ⚠️ si critères incomplets => juste réponse IA
-      if (budgetIncomplete || missingCriteria.length > 0) {
+      // si critères incomplets => juste réponse IA
+      if (
+        !isFinalTrigger &&
+        (budgetIncomplete ||
+          missingCriteria.length > 0 ||
+          toleranceMissing ||
+          etatBienMissing)
+      ) {
         return res.json({ reply, criteria: session.criteria });
       }
-
       // ===== Critères complets => création du profil en mémoire & DB =====
       let profile;
       if (session.role === "buyer") {
@@ -639,7 +809,7 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           surfaceMax: normalized.surfaceMax,
         });
       } else {
-        // ✅ Utiliser les vraies données du seller
+        // Utiliser les vraies données du seller
         const existingSeller = SELLERS.find((s) => s.username === username);
         profile = await addSeller({
           username,
@@ -648,13 +818,19 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           price: normalized.budgetMin, // prix fourni par le seller
           pieces: normalized.piecesMin, // nombre de pièces
           surface: normalized.surfaceMin, // surface du bien
+          etatBien: normalized.etatBien,
           contact: req.user.contact || "",
         });
         console.log("DEBUG existingSeller:", existingSeller);
         console.log("DEBUG profile after addSeller:", profile);
       }
+      console.log("🚨 JUST BEFORE UPSERT:", normalized.etatBien);
 
-      // ===== UPSERT PROFIL EN DB =====
+      await upsertProfile(
+        { username, role: session.role, contact: req.user.contact },
+        normalized,
+      ); // ===== UPSERT PROFIL EN DB =====
+
       try {
         await upsertProfile(
           { username, role: session.role, contact: req.user.contact },
@@ -662,9 +838,8 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
         );
       } catch (err) {
         console.error("[DB UPSERT PROFILE ERROR]:", err);
-      }
+      } // ===== Matching =====
 
-      // ===== Matching =====
       const matches =
         session.role === "buyer"
           ? matchUsers(profile, 5)
@@ -672,9 +847,8 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
 
       matches.forEach((m) => learnPreference(profile, m));
       session.matches = matches;
-      session.phase = "results";
+      session.phase = "results"; // ===== Appel IA postResult AVANT réponse =====
 
-      // ===== Appel IA postResult AVANT réponse =====
       let postReply = null;
       try {
         const postResultAI = await aiChatWithCriteria(
@@ -702,8 +876,7 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           surface: session.criteria.espaceMin,
         },
       });
-    }
-    // ===== Phase results =====
+    } // ===== Phase results =====
     if (session.phase === "results") {
       let postResultAI = {};
       try {
@@ -724,9 +897,8 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
         postReply: postResultAI.message,
         criteria: session.criteria,
       });
-    }
+    } // ===== Cas par défaut =====
 
-    // ===== Cas par défaut =====
     return res.json({ reply, criteria: session.criteria });
   } catch (err) {
     console.error("[CHAT] ERREUR INATTENDUE :", err);
@@ -1438,8 +1610,11 @@ app.post("/api/ai", authenticateToken, async (req, res) => {
     );
 
     // Mise à jour des critères côté session
-    session.criteria = response.criteria || session.criteria;
-
+    // ===== Mise à jour critères (FIX CRITIQUE) =====
+    session.criteria = {
+      ...session.criteria, // ancien état
+      ...(response.criteria || {}), // nouvelles données
+    };
     res.json(response);
   } catch (err) {
     console.error("[/api/ai] Error:", err);
@@ -1724,10 +1899,31 @@ ${message}
     res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
 });
-//Reset//
-resetProfiles();
-seedProfiles(50);
+
 // ================== START ==================
+const dbColumns = await db
+  .prepare(
+    `
+  SELECT column_name, data_type
+  FROM information_schema.columns
+  WHERE table_name = 'users'
+`,
+  )
+  .all();
+
+console.log("🧨 [DB COLUMNS USERS]");
+console.table(dbColumns);
+const debugCheck = await db
+  .prepare(
+    `
+  SELECT username, piecesmin, surfacemin, budgetmin
+  FROM users
+`,
+  )
+  .all();
+
+console.log("🧨 [RAW DB STATE]");
+console.table(debugCheck);
 app.listen(PORT, HOST, () => {
   console.log(`🚀 Serveur lancé sur http://${HOST}:${PORT}`);
 });

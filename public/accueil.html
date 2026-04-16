@@ -120,6 +120,167 @@ MENU FLOTTANT (SIGNATURE FIXÉE)
       .sidebar-overlay.active {
         display: block;
       }
+      /* ==========================
+POP-UP ÉTAT BIEN (PRO VERSION)
+========================== */
+
+      .etat-inline {
+        width: 100%;
+        margin-top: 10px;
+        display: flex;
+        justify-content: flex-start;
+        animation: fadeIn 0.25s ease;
+      }
+
+      .etat-card {
+        background: #ffffff;
+        border-radius: 16px;
+        max-width: 340px;
+        width: 100%;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+        border: 1px solid rgba(99, 102, 241, 0.15);
+        overflow: hidden;
+        animation: popupIn 0.22s ease;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+
+      /* HEADER PRO GRADIENT */
+      .etat-header {
+        background: linear-gradient(135deg, #6366f1, #7c3aed);
+        padding: 14px 16px;
+        color: white;
+      }
+
+      .etat-header h3 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .etat-header p {
+        margin: 4px 0 0;
+        font-size: 12px;
+        opacity: 0.85;
+      }
+
+      /* OPTIONS */
+      .etat-options {
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        gap: 8px;
+        background: #fafafa;
+      }
+
+      /* BADGES MODERNES */
+      .etat-badge {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        font-size: 13.5px;
+        background: white;
+      }
+
+      .etat-badge:hover {
+        transform: translateY(-1px);
+        border-color: #7c3aed;
+        box-shadow: 0 6px 18px rgba(124, 58, 237, 0.12);
+      }
+
+      .etat-badge.active {
+        background: linear-gradient(135deg, #6366f1, #7c3aed);
+        color: white;
+        border: none;
+      }
+
+      /* CHECK STYLE PRO */
+      .etat-check {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px solid #d1d5db;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+
+      .etat-badge.active .etat-check {
+        border-color: white;
+        background: white;
+      }
+
+      .etat-badge.active .etat-check::after {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #7c3aed;
+      }
+
+      /* ANIMATION */
+      @keyframes popupIn {
+        from {
+          transform: translateY(10px) scale(0.97);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* MOBILE CLEAN */
+      @media (max-width: 480px) {
+        .etat-card {
+          max-width: 92%;
+        }
+      }
+      /* ============================= */
+      /* BOUTON SUBMIT */
+      #etatSubmit {
+        padding: 12px 20px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #ffffff;
+        background: linear-gradient(135deg, #4f46e5, #6366f1);
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      }
+
+      #etatSubmit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+      }
+
+      #etatSubmit:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        opacity: 0.95;
+      }
+
+      /* RESPONSIVE */
+      @media (max-width: 480px) {
+        .etat-card {
+          padding: 20px;
+          width: 90%;
+          max-width: 320px;
+        }
+      }
+      .bubble .etat-card {
+        margin-top: 8px;
+      }
     </style>
   </head>
 

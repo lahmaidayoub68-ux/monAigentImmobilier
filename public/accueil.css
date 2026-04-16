@@ -1469,6 +1469,254 @@ FIX MATCH CARD — FORCE MODE
 .hidden {
   display: none;
 }
+.details-popup {
+  display: none;
+  position: absolute;
+  top: 10px;
+  right: -300px;
+  width: 280px;
+  background: #f7f7ff;
+  border: 2px solid #6c5ce7;
+  border-radius: 10px;
+  padding: 15px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.details-header {
+  font-weight: bold;
+  color: #6c5ce7;
+  margin-bottom: 10px;
+}
+
+.details-body div {
+  margin-bottom: 8px;
+}
+
+.details-btn {
+  background: #6c5ce7;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 25px;
+  height: 25px;
+  cursor: pointer;
+  font-weight: bold;
+}
+/* BULLE SaaS premium */
+.searching-bubble {
+  position: relative;
+
+  /* blanc SaaS premium */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(250, 252, 255, 0.96)
+    ),
+    linear-gradient(135deg, #ffffff, #f8fbff);
+
+  border: 1px solid rgba(124, 92, 255, 0.08);
+
+  color: #0b4e91;
+
+  padding: 15px 20px;
+  border-radius: 20px;
+
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+
+  /* détaché du fond blanc */
+  box-shadow:
+    0 14px 38px rgba(124, 92, 255, 0.12),
+    0 6px 18px rgba(124, 92, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+
+  backdrop-filter: blur(10px);
+
+  animation: pulseBubble 2.6s ease-in-out infinite;
+
+  overflow: hidden;
+}
+
+/* liseré lumineux discret premium */
+.searching-bubble::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+
+  background: linear-gradient(
+    135deg,
+    rgba(124, 92, 255, 0.18),
+    rgba(255, 255, 255, 0.65),
+    rgba(90, 170, 255, 0.16)
+  );
+
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+
+  pointer-events: none;
+}
+
+/* reflet haut de gamme */
+.searching-bubble::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -35%;
+  width: 40%;
+  height: 100%;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+
+  transform: skewX(-18deg);
+  animation: bubbleShine 4.8s linear infinite;
+
+  pointer-events: none;
+}
+
+@keyframes bubbleShine {
+  0% {
+    left: -45%;
+  }
+
+  100% {
+    left: 130%;
+  }
+}
+
+/* texte */
+.searching-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  white-space: nowrap;
+
+  /* Dégradé animé premium */
+  background: linear-gradient(
+    90deg,
+    #0a84ff 0%,
+    #69c8ff 20%,
+    #ffffff 45%,
+    #69c8ff 70%,
+    #0a84ff 100%
+  );
+
+  background-size: 220% auto;
+  background-position: 0% center;
+
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+
+  animation:
+    textFlow 4s ease-in-out infinite,
+    softGlow 2.8s ease-in-out infinite;
+}
+
+/* dots EXCLUSIFS au loader profils */
+.search-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* petits points fins premium */
+.search-dots span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #6ec6ff, #0a84ff);
+  box-shadow: 0 0 6px rgba(10, 132, 255, 0.22);
+  opacity: 0.45;
+  transform: translateY(0) scale(0.9);
+  animation: searchDotWave 1.2s infinite ease-in-out;
+}
+
+.search-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.search-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* animation douce style SaaS */
+@keyframes searchDotWave {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0) scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.15);
+  }
+}
+/* légère respiration bulle */
+@keyframes pulseBubble {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow:
+      0 8px 24px rgba(0, 140, 255, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  50% {
+    transform: translateY(-1px);
+    box-shadow:
+      0 12px 30px rgba(0, 140, 255, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 1);
+  }
+}
+
+/* dégradé texte fluide gauche -> droite */
+@keyframes textFlow {
+  0% {
+    background-position: 0% center;
+  }
+
+  50% {
+    background-position: 100% center;
+  }
+
+  100% {
+    background-position: 0% center;
+  }
+}
+
+/* halo léger premium */
+@keyframes softGlow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(10, 132, 255, 0));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 8px rgba(105, 200, 255, 0.35));
+  }
+}
+
 /* =========================================================
 📱 MOBILE — CLEAN CHATGPT STYLE (ULTRA PRO)
 ========================================================= */

@@ -3,7 +3,29 @@ import Together from "together-ai";
 import OpenAI from "openai";
 
 /* =========================
-   Helpers
+   MISTRAL CLIENT
+========================= */
+
+const mistralClient = new OpenAI({
+  apiKey: process.env.MISTRAL,
+  baseURL: "https://api.mistral.ai/v1",
+});
+
+async function callMistral(systemPrompt, userMessage) {
+  const response = await mistralClient.chat.completions.create({
+    model: "mistral-small-latest",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userMessage },
+    ],
+    temperature: 0.2,
+  });
+
+  return response?.choices?.[0]?.message?.content || "";
+}
+
+/* =========================
+   HELPERS
 ========================= */
 
 function normalizeNumber(value) {
@@ -30,7 +52,7 @@ function extractJSON(text) {
 }
 
 /* =========================
-   Groq Client
+   GROQ CLIENT
 ========================= */
 
 const aiClient = new OpenAI({
@@ -39,7 +61,7 @@ const aiClient = new OpenAI({
 });
 
 /* =========================
-   Main Function
+   MAIN FUNCTION
 ========================= */
 
 export async function aiChatWithCriteria(
@@ -48,13 +70,15 @@ export async function aiChatWithCriteria(
   context = {},
 ) {
   const phase = context.phase || "collecting";
+
   const matchingProfiles = Array.isArray(context.matchingProfiles)
     ? context.matchingProfiles
     : [];
 
   /* =========================
-     PROMPT COMPLET
+     SYSTEM PROMPT
   ========================== */
+
   const systemPrompt = `
 Tu es un assistant immobilier.
 Tu es dans la peau d’un agent immobilier humain.
@@ -112,6 +136,7 @@ Tu enregistres uniquement ces critères :
 - piecesMin
 - espaceMin
 - toleranceKm
+- etatBien
 
 Règles générales :
 - Si l’utilisateur donne une valeur unique, tu l’enregistres comme minimum.
@@ -129,6 +154,14 @@ CAS VENDEUR
 - Tu n’envoies la validation finale que lorsque tout est connu.
 - Tu restes strictement dans le cadre de la vente du bien.
 
+Tu dois aussi obligatoirement collecter l'état du bien (etatBien).
+
+Règles STRICTES :
+- C’est une information obligatoire.
+- Tu poses cette question uniquement une fois que tous les autres critères vendeur sont connus.
+- Tu poses une question ouverte et naturelle, sans proposer de choix (le choix sera géré par l’interface).
+- Exemple : "Comment décririez-vous l’état général du bien ?"
+
 ────────────────────────
 APRÈS AFFICHAGE DES PROFILS
 ────────────────────────
@@ -138,61 +171,50 @@ Uniquement si la phase est "results" :
 - Tu sais que les profils suivants ont été affichés :
 ${JSON.stringify(matchingProfiles, null, 2)}
 
-- Juste après l’affichage, tu proposes naturellement ton aide
-  pour comparer ou choisir, sans phrase figée.
-
-- Pour aider :
-  - tu compares les profils selon les critères connus,
-  - tu expliques les compromis,
-  - tu peux recommander au maximum un ou deux profils,
-  - si les profils sont proches, tu poses une seule question de priorité.
-
-- Message type à envoyer : tu formules naturellement quelque chose comme
-  "Parmi ces profils, souhaitez-vous que je vous aide à choisir celui qui correspond le mieux à vos critères, ou préférez-vous que je vous donne des éclaircissements sur un aspect du marché immobilier ?"
-- Adapte toujours ce message au contexte et au ton de l’utilisateur.
-
+- Tu aides à comparer et choisir sans phrase figée.
+- Tu proposes 1 à 2 profils maximum si pertinent.
 - Tu n’inventes jamais d’informations.
 - Tu ne modifies pas les critères sauf demande explicite.
 
-La tolérance autour de la ville (toleranceKm) :
-- uniquement pour les acheteurs
-- elle correspond à une distance maximale autour de la ville en kilomètres
-- tu poses cette question uniquement après avoir obtenu la ville
-- exemple de question naturelle :
-"Quel rayon maximum autour de cette ville vous conviendrait ? (en km)"
 ────────────────────────
-STYLE
+TOLÉRANCE KM
 ────────────────────────
 
-- Tu reformules régulièrement ce que l’utilisateur dit.
-- Tu poses des questions naturelles.
-- En phase "collecting", tu termines par la question du critère manquant.
-- En phase "results", tu ne poses une question que si elle aide à trancher.
-- Tu restes humain, fluide, non pressant.
+- uniquement pour les acheteurs
+- obligatoire après la ville
+
+Règles STRICTES :
+- Dès que ville connue + acheteur → demander toleranceKm obligatoirement
+- Impossible de continuer sans cette info
+- Priorité absolue
+
+────────────────────────
+PRIORITÉ QUESTIONS ACHETEUR
+────────────────────────
+1. ville
+2. toleranceKm
+3. budget
+4. surface / pièces
 
 ────────────────────────
 FORMAT DE RÉPONSE (OBLIGATOIRE)
 ────────────────────────
 
-Tu réponds toujours avec :
 {
-  "message": "message naturel et humain",
+  "message": "message naturel",
   "criteria": {
-  "intent": null,
-  "type": null,
-  "ville": null,
-  "toleranceKm": null,
-  "budgetMin": null,
-  "piecesMin": null,
-  "espaceMin": null
+    "intent": null,
+    "type": null,
+    "ville": null,
+    "toleranceKm": null,
+    "budgetMin": null,
+    "piecesMin": null,
+    "espaceMin": null,
+    "etatBien": null
+  }
 }
-}
-- Les critères doivent conserver les valeurs existantes.
-- Ne modifier que ce que l’utilisateur dit explicitement.
-- Aucun texte dans les critères.
-IMPORTANT :
-Ne produis absolument aucun texte hors du JSON, pas de balises JSON
-Si tu ajoutes du texte en dehors du JSON, la réponse sera invalide.
+
+Aucun texte hors JSON.
 
 Critères déjà connus :
 ${JSON.stringify(existingCriteria)}
@@ -200,6 +222,8 @@ ${JSON.stringify(existingCriteria)}
 Message utilisateur :
 "${userMessage}"
 `;
+
+  let aiText = "";
 
   try {
     const response = await aiClient.chat.completions.create({
@@ -211,50 +235,67 @@ Message utilisateur :
       temperature: 0.2,
     });
 
-    const aiText = response?.choices?.[0]?.message?.content || "";
-    console.log("AI TEXT RAW:", aiText);
+    aiText = response?.choices?.[0]?.message?.content || "";
+  } catch (err) {
+    console.warn("⚠️ Groq failed → fallback Mistral", err?.code);
+    console.log("🔁 fallback Mistral");
 
-    const raw = extractJSON(aiText);
+    try {
+      const mistralResponse = await mistralClient.chat.completions.create({
+        model: "mistral-small-latest",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage },
+        ],
+        temperature: 0.2,
+      });
 
-    const normalized = { ...existingCriteria };
+      aiText = mistralResponse?.choices?.[0]?.message?.content || "";
+    } catch (err2) {
+      console.error("❌ Mistral failed", err2);
 
-    if (raw.criteria && typeof raw.criteria === "object") {
-      for (const key of Object.keys(raw.criteria)) {
-        if (
-          ["budgetMin", "piecesMin", "espaceMin", "toleranceKm"].includes(key)
-        ) {
-          const n = normalizeNumber(raw.criteria[key]);
-          // ✅ Nouveau fix pour toleranceKm
-          if (key === "toleranceKm") {
-            if (n !== undefined && n > 0) normalized[key] = n;
-          } else {
-            if (n !== undefined) normalized[key] = n;
-          }
+      return {
+        message:
+          "Je rencontre un problème temporaire. Vos critères sont bien enregistrés.",
+        criteria: { ...existingCriteria },
+        readyForMatching: false,
+      };
+    }
+  }
+
+  console.log("AI TEXT RAW:", aiText);
+
+  const raw = extractJSON(aiText);
+  const normalized = { ...existingCriteria };
+
+  if (raw.criteria && typeof raw.criteria === "object") {
+    for (const key of Object.keys(raw.criteria)) {
+      if (
+        ["budgetMin", "piecesMin", "espaceMin", "toleranceKm"].includes(key)
+      ) {
+        const n = normalizeNumber(raw.criteria[key]);
+
+        if (key === "toleranceKm") {
+          if (n !== undefined && n > 0) normalized[key] = n;
         } else {
-          normalized[key] = raw.criteria[key];
+          if (n !== undefined) normalized[key] = n;
         }
+      } else {
+        normalized[key] = raw.criteria[key];
       }
     }
-
-    const readyForMatching =
-      !!normalized.ville ||
-      !!normalized.type ||
-      !!normalized.budgetMin ||
-      !!normalized.piecesMin ||
-      !!normalized.espaceMin;
-
-    return {
-      message: raw.message || "",
-      criteria: normalized,
-      readyForMatching,
-    };
-  } catch (err) {
-    console.error("[AI CHAT ERROR]", err);
-
-    return {
-      message: "Désolé, je n'ai pas compris. Pouvez-vous reformuler ?",
-      criteria: { ...existingCriteria },
-      readyForMatching: false,
-    };
   }
+
+  const readyForMatching =
+    !!normalized.ville ||
+    !!normalized.type ||
+    !!normalized.budgetMin ||
+    !!normalized.piecesMin ||
+    !!normalized.espaceMin;
+
+  return {
+    message: raw.message || "",
+    criteria: normalized,
+    readyForMatching,
+  };
 }

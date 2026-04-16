@@ -15,6 +15,7 @@ const state = {
   sending: false,
   ready: false,
 };
+let etatPopupOpened = false;
 function normalizeCriteria(c) {
   const surface = c.surface ?? c.surfaceMin ?? null;
 
@@ -25,6 +26,8 @@ function normalizeCriteria(c) {
     surfaceMin: surface,
     pieces: c.pieces ?? c.piecesMin ?? null,
     toleranceKm: c.toleranceKm ?? 0,
+    etatBien: c.etatBien ?? null,
+    type: c.type ?? null,
   };
 }
 
@@ -434,6 +437,22 @@ async function renderMatches(matches, postReply) {
     });
     return;
   }
+  const formatEtatBien = (etat) => {
+    switch (etat) {
+      case "neuf":
+        return "Neuf";
+      case "renove":
+        return "Rénové";
+      case "bon":
+        return "Bon état";
+      case "a_rafraichir":
+        return "À rafraîchir";
+      case "travaux":
+        return "Travaux à prévoir";
+      default:
+        return "Non renseigné";
+    }
+  };
 
   addMessage({
     text: `${matches.length} profil${matches.length > 1 ? "s" : ""} correspondant${matches.length > 1 ? "s" : ""} à vos critères :`,
@@ -478,6 +497,7 @@ async function renderMatches(matches, postReply) {
         ? `${m.surface ?? m.surfaceMin} m²`
         : "Surface inconnue";
     const pct = Number(m.compatibility ?? 0);
+    const etatLabel = formatEtatBien(m.etatBien);
 
     const commonHTML = (m.common ?? []).length
       ? m.common
@@ -494,60 +514,111 @@ async function renderMatches(matches, postReply) {
       : `<span class="pill pill-neutral">Aucune différence</span>`;
 
     let priceLabel = "N/A";
-    if (m.price != null) priceLabel = `${m.price} €`;
-    else if (m.budget != null) priceLabel = `${m.budget} €`;
-    else if (m.budgetMin != null && m.budgetMax != null)
-      priceLabel =
-        m.budgetMin === m.budgetMax
-          ? `${m.budgetMin} €`
-          : `${m.budgetMin} – ${m.budgetMax} €`;
+
+    // ✅ PRIORITÉ AU ROLE
+    if (m.role === "buyer") {
+      if (m.budgetMin != null && m.budgetMax != null) {
+        priceLabel =
+          m.budgetMin === m.budgetMax
+            ? `${m.budgetMin} €`
+            : `${m.budgetMin} – ${m.budgetMax} €`;
+      } else if (m.budgetMin != null) {
+        priceLabel = `${m.budgetMin} €`;
+      }
+    } else {
+      if (m.price != null) {
+        priceLabel = `${m.price} €`;
+      }
+    }
 
     const alreadyFav = existingFavs.some((p) => p.contact === m.contact);
-
     // ===== HTML de la carte premium =====
     bubble.innerHTML = `
-      <div class="match-header">
-        <div class="match-title"><strong>${m.type}</strong> – ${villeLabel}</div>
-        <button class="fav-btn" data-index="${index}">${alreadyFav ? "★" : "☆"}</button>
-      </div>
+  <div class="match-header">
+    <div class="match-title"><strong>${m.type}</strong> – ${villeLabel}</div>
 
-      <div class="match-details">
-        <div class="detail-row"><span class="label">Prix</span><span class="value">${priceLabel}</span></div>
-        <div class="detail-row"><span class="label">Pièces</span><span class="value">${piecesLabel}</span></div>
-        <div class="detail-row"><span class="label">Surface</span><span class="value">${surfaceLabel}</span></div>
-        <div class="detail-row"><span class="label">Contact</span><span class="value">${m.contact ?? "N/A"}</span></div>
-      </div>
+    <!-- Bouton détails (seller uniquement) -->
+    ${
+      m.role === "seller"
+        ? `<button class="details-btn" data-index="${index}">!</button>`
+        : ""
+    }
 
-      <div class="match-criteria">
-        <div class="criteria-group">
-          <div class="criteria-title">Points communs</div>
-          <div class="criteria-list">${commonHTML}</div>
-        </div>
-        <div class="criteria-group">
-          <div class="criteria-title">Différences</div>
-          <div class="criteria-list">${differentHTML}</div>
-        </div>
-      </div>
+    <button class="fav-btn" data-index="${index}">${alreadyFav ? "★" : "☆"}</button>
+  </div>
 
-      <div class="match-footer">
-        <div class="compat-container">
-          <div class="compat-label">Compatibilité : <strong>${pct}%</strong></div>
-          <div class="compat-bar"><div class="compat-bar-inner"></div></div>
-        </div>
-        <button class="voir-carte-btn"
-          data-lat="${m.lat ?? m.buyerLat ?? 48.8566}"
-          data-lng="${m.lng ?? m.buyerLng ?? 2.3522}"
-          data-buyer-lat="${m.buyerLat ?? 48.8566}"
-          data-buyer-lng="${m.buyerLng ?? 2.3522}"
-          data-tolerance="${state.criteria.toleranceKm ?? 0}"
-          data-ville="${villeLabel}">
-          Voir la carte
-        </button>
-      </div>
-    `;
+  <div class="match-details">
+    <div class="detail-row"><span class="label">Prix</span><span class="value">${priceLabel}</span></div>
+    <div class="detail-row"><span class="label">Pièces</span><span class="value">${piecesLabel}</span></div>
+    <div class="detail-row"><span class="label">Surface</span><span class="value">${surfaceLabel}</span></div>
+    <div class="detail-row"><span class="label">Contact</span><span class="value">${m.contact ?? "N/A"}</span></div>
+  </div>
 
+  <div class="match-criteria">
+    <div class="criteria-group">
+      <div class="criteria-title">Points communs</div>
+      <div class="criteria-list">${commonHTML}</div>
+    </div>
+    <div class="criteria-group">
+      <div class="criteria-title">Différences</div>
+      <div class="criteria-list">${differentHTML}</div>
+    </div>
+  </div>
+
+  <div class="match-footer">
+    <div class="compat-container">
+      <div class="compat-label">Compatibilité : <strong>${pct}%</strong></div>
+      <div class="compat-bar"><div class="compat-bar-inner"></div></div>
+    </div>
+
+  
+      <button class="voir-carte-btn"
+        data-lat="${m.lat ?? m.buyerLat ?? 48.8566}"
+        data-lng="${m.lng ?? m.buyerLng ?? 2.3522}"
+        data-buyer-lat="${m.buyerLat ?? 48.8566}"
+        data-buyer-lng="${m.buyerLng ?? 2.3522}"
+        data-tolerance="${state.criteria.toleranceKm ?? 0}"
+        data-ville="${villeLabel}">
+        Voir la carte
+      </button>
+    
+  </div>
+
+  <!-- Pop-up détails pour seller uniquement -->
+  ${
+    m.role === "seller"
+      ? `
+    <div class="details-popup" id="details-${index}">
+      <div class="details-header">Détails de l'annonce</div>
+      <div class="details-body">
+       <div class="details-body">
+       <div><strong>État du bien :</strong> ${etatLabel}</div>
+</div>
+        <!-- Ici, tu pourras ajouter d'autres infos (taxe foncière, images, etc.) -->
+      </div>
+    </div>
+  `
+      : ""
+  }
+`;
     row.appendChild(bubble);
     $("chat-box").appendChild(row);
+    if (m.role === "seller") {
+      const detailsBtn = bubble.querySelector(".details-btn");
+      const detailsPopup = bubble.querySelector(".details-popup");
+
+      if (detailsBtn && detailsPopup) {
+        detailsBtn.addEventListener("click", () => {
+          // fermer les autres popups
+          document.querySelectorAll(".details-popup").forEach((p) => {
+            if (p !== detailsPopup) p.style.display = "none";
+          });
+          // toggle popup courant
+          detailsPopup.style.display =
+            detailsPopup.style.display === "block" ? "none" : "block";
+        });
+      }
+    }
 
     // ===== Favoris =====
     const favBtn = bubble.querySelector(".fav-btn");
@@ -751,10 +822,29 @@ async function sendMessage(text) {
       save("criteria", state.criteria);
       updateAIPanel(data.matches || []);
     }
+    // ===== TRIGGER POPUP ETAT BIEN =====
+    if (
+      state.role === "seller" &&
+      state.criteria.ville &&
+      state.criteria.type &&
+      state.criteria.surfaceMin &&
+      state.criteria.pieces &&
+      state.criteria.budget &&
+      !state.criteria.etatBien &&
+      !etatPopupOpened
+    ) {
+      etatPopupOpened = true;
+      openEtatPopup();
+    }
 
     // Si l'IA renvoie des matchs
     if (Array.isArray(data.matches)) {
-      renderMatches(data.matches, data.postReply);
+      if (!etatPopupOpened) {
+        renderMatches(data.matches, data.postReply);
+      } else {
+        // stocker en attente
+        state.pendingMatches = data.matches;
+      }
     }
 
     renderUserInfo();
@@ -796,6 +886,133 @@ function render() {
   scrollBottom(box, false);
   updateAIPanel([]);
 }
+
+const ETATS_BIEN = [
+  { value: "neuf", label: "Neuf" },
+  { value: "renove", label: "Rénové" },
+  { value: "bon", label: "Bon état" },
+  { value: "a_rafraichir", label: "À rafraîchir" },
+  { value: "travaux", label: "Travaux à prévoir" },
+];
+function openEtatPopup() {
+  const chatBox = document.getElementById("chat-box");
+
+  const row = document.createElement("div");
+  row.className = "msg bot structured";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+
+  bubble.innerHTML = `
+    <div class="etat-card">
+      <div class="etat-header">
+        <h3>État du bien</h3>
+        <p>Sélectionnez l’état général</p>
+      </div>
+
+      <div class="etat-options">
+        ${ETATS_BIEN.map(
+          (e) => `
+          <div class="etat-badge" data-value="${e.value}">
+            <span>${e.label}</span>
+            <div class="etat-check"></div>
+          </div>
+        `,
+        ).join("")}
+      </div>
+    </div>
+  `;
+
+  row.appendChild(bubble);
+  chatBox.appendChild(row);
+  scrollBottom(chatBox);
+
+  // ===== CLICK HANDLER =====
+  bubble.querySelectorAll(".etat-badge").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const value = btn.dataset.value;
+
+      // UI active
+      bubble
+        .querySelectorAll(".etat-badge")
+        .forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      // réponse utilisateur
+      addMessage({ text: btn.innerText, from: "user" });
+
+      // supprimer le bloc
+      row.remove();
+
+      // envoyer
+      sendEtat(value);
+
+      // afficher les matchs si en attente
+      if (state.pendingMatches) {
+        renderMatches(state.pendingMatches);
+        state.pendingMatches = null;
+      }
+    });
+  });
+}
+
+async function sendEtat(value) {
+  etatPopupOpened = false;
+  state.criteria.etatBien = value;
+
+  // Sauvegarde locale immédiate
+  save("criteria", state.criteria);
+
+  // Message loading premium
+  const loadingRow = document.createElement("div");
+  loadingRow.className = "msg bot structured";
+
+  loadingRow.innerHTML = `
+    <div class="bubble searching-bubble">
+      <div class="searching-text">
+        Je suis en train de rechercher des profils compatibles
+        <span class="search-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("chat-box").appendChild(loadingRow);
+  scrollBottom(document.getElementById("chat-box"));
+
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + state.user.token,
+      },
+      body: JSON.stringify({
+        message: "etatBien",
+        etatBien: value,
+      }),
+    });
+
+    const data = await res.json();
+
+    // retire loading
+    loadingRow.remove();
+
+    if (data.criteria) {
+      Object.assign(state.criteria, data.criteria);
+    }
+
+    if (data.matches) {
+      renderMatches(data.matches, data.postReply);
+    }
+  } catch (err) {
+    loadingRow.remove();
+    console.error(err);
+  }
+}
 function flashPanel() {
   const panel = document.querySelector(".ai-panel");
   if (!panel) return;
@@ -805,6 +1022,7 @@ function flashPanel() {
     panel.style.boxShadow = "";
   }, 300);
 }
+
 // ================== INIT ==================
 export function initChatbot() {
   if (state.ready) return;
