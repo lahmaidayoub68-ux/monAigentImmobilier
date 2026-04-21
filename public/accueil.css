@@ -21,6 +21,10 @@ RESET + DESIGN SYSTEM
 
   --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.04);
   --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.08);
+  /* ✅ AJOUT POPUPS PREMIUM */
+  --violet: #6c5ce7;
+  --violet-glow: rgba(108, 92, 231, 0.35);
+  --bg-popup: #f7f7ff;
 }
 html,
 body {
@@ -1472,20 +1476,21 @@ FIX MATCH CARD — FORCE MODE
 .details-popup {
   display: none;
   position: absolute;
+  right: -320px;
   top: 10px;
-  right: -300px;
-  width: 280px;
-  background: #f7f7ff;
-  border: 2px solid #6c5ce7;
-  border-radius: 10px;
-  padding: 15px;
-  z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  width: 320px;
+  background: #fff;
+  border: 2px solid var(--violet-glow);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+  z-index: 20;
 }
 
 .details-header {
-  font-weight: bold;
-  color: #6c5ce7;
+  font-weight: 700;
+  color: var(--violet);
+  font-size: 15px;
   margin-bottom: 10px;
 }
 
@@ -1494,14 +1499,19 @@ FIX MATCH CARD — FORCE MODE
 }
 
 .details-btn {
-  background: #6c5ce7;
+  background: var(--violet);
   color: white;
-  border: none;
   border-radius: 50%;
-  width: 25px;
-  height: 25px;
+  width: 26px;
+  height: 26px;
+  border: none;
   cursor: pointer;
-  font-weight: bold;
+  transition: 0.2s;
+}
+
+.details-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px var(--violet-glow);
 }
 /* BULLE SaaS premium */
 .searching-bubble {
@@ -1716,7 +1726,553 @@ FIX MATCH CARD — FORCE MODE
     filter: drop-shadow(0 0 8px rgba(105, 200, 255, 0.35));
   }
 }
+.popup-card {
+  background: white;
+  border: 2px solid var(--violet-glow);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
 
+.popup-header h3 {
+  color: var(--violet);
+  margin-bottom: 4px;
+}
+
+.popup-header p {
+  font-size: 13px;
+  color: #555;
+}
+
+.upload-zone {
+  margin-top: 12px;
+  display: block;
+  cursor: pointer;
+}
+
+.upload-inner {
+  border: 2px dashed var(--violet-glow);
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  transition: 0.2s;
+}
+
+.upload-inner:hover {
+  background: rgba(108, 92, 231, 0.05);
+}
+
+.upload-icon {
+  font-size: 26px;
+  color: var(--violet);
+}
+
+.upload-text {
+  font-size: 13px;
+  color: #666;
+  margin-top: 5px;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn-gradient {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-weight: bold;
+  background: linear-gradient(135deg, #6c5ce7, #ff6ec7);
+  cursor: pointer;
+}
+
+.btn-ghost {
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: var(--violet);
+  cursor: pointer;
+}
+.details-carousel {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.carousel-track {
+  display: flex;
+  transition: transform 0.3s ease;
+}
+
+.carousel-img {
+  min-width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(108, 92, 231, 0.8);
+  border: none;
+  color: white;
+  font-size: 18px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.carousel-nav.left {
+  left: 5px;
+}
+.carousel-nav.right {
+  right: 5px;
+}
+.separator {
+  height: 1px;
+  background: #000;
+  opacity: 0.1;
+  margin: 10px 0;
+}
+
+.details-section h4 {
+  color: var(--violet);
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.details-grid span {
+  color: #777;
+}
+
+.details-grid strong {
+  color: #111;
+}
+.etat-badge-static {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(108, 92, 231, 0.1);
+  color: var(--violet);
+  font-weight: bold;
+  font-size: 12px;
+}
+.preview-mode {
+  position: relative;
+  min-height: 220px;
+  overflow: hidden;
+}
+
+.preview-img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.upload-placeholder {
+  padding: 30px 10px;
+}
+
+.preview-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: white;
+  font-weight: bold;
+  background: rgba(108, 92, 231, 0.85);
+}
+
+.preview-arrow.left {
+  left: 10px;
+}
+
+.preview-arrow.right {
+  right: 10px;
+}
+
+.preview-count {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.hidden {
+  display: none;
+}
+.add-more-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #6c5ce7;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  z-index: 5;
+}
+.thumb {
+  position: relative;
+  display: inline-block;
+  margin: 4px;
+}
+
+.thumb img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.remove-thumb {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: red;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+/* ================== POPUP NIVEAU ENERGETIQUE ================== */
+
+.niveau-energie-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px 18px 18px;
+  box-shadow: 0 12px 40px rgba(108, 92, 231, 0.13);
+  min-width: 280px;
+  max-width: 340px;
+}
+
+.niveau-energie-header {
+  margin-bottom: 18px;
+}
+
+.niveau-energie-header h3 {
+  color: #6c5ce7;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  letter-spacing: 0.2px;
+}
+
+.niveau-energie-header p {
+  font-size: 12px;
+  color: #888;
+  margin: 0;
+}
+
+/* ===== PYRAMIDE ===== */
+
+.niveau-energie-pyramid {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  margin-bottom: 18px;
+}
+
+.niveau-row {
+  width: 100%;
+  cursor: pointer;
+}
+
+/* La flèche : chaque bande est plus large que la précédente */
+.niveau-band {
+  display: flex;
+  align-items: center;
+  padding: 0 14px 0 10px;
+  height: 32px;
+  border-radius: 2px;
+  clip-path: polygon(
+    0 0,
+    calc(100% - 12px) 0,
+    100% 50%,
+    calc(100% - 12px) 100%,
+    0 100%
+  );
+  transition:
+    filter 0.15s ease,
+    transform 0.15s ease;
+  position: relative;
+}
+
+/* Largeurs progressives A → G (pyramide qui s'élargit) */
+.niveau-row:nth-child(1) .niveau-band {
+  width: 38%;
+}
+.niveau-row:nth-child(2) .niveau-band {
+  width: 48%;
+}
+.niveau-row:nth-child(3) .niveau-band {
+  width: 58%;
+}
+.niveau-row:nth-child(4) .niveau-band {
+  width: 68%;
+}
+.niveau-row:nth-child(5) .niveau-band {
+  width: 78%;
+}
+.niveau-row:nth-child(6) .niveau-band {
+  width: 88%;
+}
+.niveau-row:nth-child(7) .niveau-band {
+  width: 100%;
+}
+
+.niveau-letter {
+  color: white;
+  font-weight: 800;
+  font-size: 14px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  letter-spacing: 0.5px;
+}
+
+/* ===== HOVER ===== */
+.niveau-row:hover .niveau-band {
+  filter: brightness(1.08);
+  transform: translateX(3px);
+}
+
+/* ===== SELECTED ===== */
+.niveau-row.selected .niveau-band {
+  outline: 3px solid #a855f7;
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 3px rgba(168, 85, 247, 0.25),
+    0 0 14px rgba(168, 85, 247, 0.55);
+  filter: brightness(1.07);
+  transform: translateX(4px);
+}
+
+/* ===== BOUTON VALIDER ===== */
+.btn-valider-energie {
+  width: 100%;
+  padding: 11px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #6c5ce7, #ff6ec7);
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    transform 0.15s ease;
+  letter-spacing: 0.3px;
+}
+
+.btn-valider-energie:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-valider-energie:not(:disabled):hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+/* ================== DPE PYRAMID (details popup) ================== */
+
+.dpe-pyramid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.dpe-row {
+  width: 100%;
+}
+
+.dpe-band {
+  display: flex;
+  align-items: center;
+  padding: 0 10px 0 8px;
+  height: 22px;
+  border-radius: 2px;
+  clip-path: polygon(
+    0 0,
+    calc(100% - 8px) 0,
+    100% 50%,
+    calc(100% - 8px) 100%,
+    0 100%
+  );
+  transition:
+    filter 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+/* Largeurs progressives A → G */
+.dpe-row:nth-child(1) .dpe-band {
+  width: 30%;
+}
+.dpe-row:nth-child(2) .dpe-band {
+  width: 38%;
+}
+.dpe-row:nth-child(3) .dpe-band {
+  width: 50%;
+}
+.dpe-row:nth-child(4) .dpe-band {
+  width: 62%;
+}
+.dpe-row:nth-child(5) .dpe-band {
+  width: 74%;
+}
+.dpe-row:nth-child(6) .dpe-band {
+  width: 86%;
+}
+.dpe-row:nth-child(7) .dpe-band {
+  width: 100%;
+}
+
+/* Couleurs officielles DPE */
+.dpe-a {
+  background: #2d9e2d;
+}
+.dpe-b {
+  background: #4caf50;
+}
+.dpe-c {
+  background: #8bc34a;
+}
+.dpe-d {
+  background: #ffeb3b;
+}
+.dpe-e {
+  background: #ff9800;
+}
+.dpe-f {
+  background: #f44336;
+}
+.dpe-g {
+  background: #b71c1c;
+}
+
+.dpe-letter {
+  color: white;
+  font-weight: 800;
+  font-size: 11px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== NIVEAU SÉLECTIONNÉ ===== */
+.dpe-row.dpe-selected .dpe-band {
+  position: relative;
+  filter: brightness(1.08);
+  transform: translateX(4px);
+  box-shadow:
+    0 0 0 2px rgba(168, 85, 247, 0.95),
+    0 0 8px rgba(168, 85, 247, 0.45),
+    0 0 18px rgba(168, 85, 247, 0.25);
+}
+.dpe-row:hover .dpe-band {
+  transform: translateX(2px);
+  filter: brightness(1.04);
+}
+/* =======================================
+   MOBILE MODE
+======================================= */
+
+@media (max-width: 768px) {
+  .details-popup {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+
+    transform: translate(-50%, -50%) scale(0.96);
+    width: 92vw;
+    max-width: 520px;
+    height: 78vh;
+    max-height: 78vh;
+
+    overflow-y: auto;
+    border-radius: 18px;
+    background: #fff;
+    z-index: 9999;
+
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+
+    animation: detailsMobileIn 0.22s ease forwards;
+  }
+
+  .details-popup::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .details-popup::-webkit-scrollbar-thumb {
+    background: rgba(108, 92, 231, 0.35);
+    border-radius: 20px;
+  }
+
+  .details-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: white;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+}
+
+@keyframes detailsMobileIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+.details-mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+
+.details-mobile-overlay.active {
+  display: flex;
+}
 /* =========================================================
 📱 MOBILE — CLEAN CHATGPT STYLE (ULTRA PRO)
 ========================================================= */
@@ -1978,5 +2534,66 @@ HEADER RESPONSIVE FINAL
   .top-banner {
     padding: 10px 14px;
     gap: 8px; /* espace propre entre logo et bouton */
+  }
+}
+/* =========================================================
+📱 MOBILE — RESPIRATION PREMIUM (cards moins serrées)
+========================================================= */
+@media (max-width: 600px) {
+  /* espace vertical entre cartes/messages */
+  #chat-box {
+    gap: 16px !important;
+    padding: 82px 16px 18px !important;
+  }
+
+  /* espace entre messages successifs */
+  .msg + .msg {
+    margin-top: 8px !important;
+  }
+
+  .msg.user + .msg.bot,
+  .msg.bot + .msg.user {
+    margin-top: 14px !important;
+  }
+
+  /* carte elle-même */
+  .msg.structured .bubble.match-card {
+    border-radius: 16px;
+    margin: 0 2px;
+  }
+
+  /* zones internes carte */
+  .match-header {
+    padding: 14px 16px;
+  }
+
+  .match-details {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .match-criteria {
+    padding: 12px 16px;
+    gap: 14px;
+  }
+
+  .match-footer {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  /* pills plus aérées */
+  .criteria-list {
+    gap: 8px;
+  }
+
+  .pill {
+    padding: 4px 8px;
+  }
+
+  /* bouton map plus clean */
+  .voir-carte-btn {
+    height: 42px;
+    border-radius: 12px;
   }
 }

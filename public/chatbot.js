@@ -1,3 +1,4 @@
+import { openNiveauEnergetiquePopup } from "./niveauEnergetiquePopup.js";
 // ================== CONFIG ==================
 const API_BASE = window.location.origin;
 const MAX_HISTORY = 50;
@@ -15,7 +16,10 @@ const state = {
   sending: false,
   ready: false,
 };
-let etatPopupOpened = false;
+let etatPopupOpened = false; //pour etatBien
+let imagesPopupOpened = false;
+let niveauEnergetiquePopupOpened = false;
+
 function normalizeCriteria(c) {
   const surface = c.surface ?? c.surfaceMin ?? null;
 
@@ -28,6 +32,9 @@ function normalizeCriteria(c) {
     toleranceKm: c.toleranceKm ?? 0,
     etatBien: c.etatBien ?? null,
     type: c.type ?? null,
+    niveauEnergetique: c.niveauEnergetique ?? null,
+    imagesbien: c.imagesbien ?? null,
+    images: c.images ?? [],
   };
 }
 
@@ -70,6 +77,19 @@ const load = (key) => {
   if (!k) return null;
   const raw = localStorage.getItem(k);
   return raw ? JSON.parse(raw) : null;
+};
+const parseImages = (img) => {
+  if (!img) return [];
+  if (Array.isArray(img)) return img;
+  if (typeof img === "string") {
+    try {
+      const parsed = JSON.parse(img);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
 };
 
 // ================== SESSION ==================
@@ -362,7 +382,8 @@ ${c.surface || c.surfaceMin ? (c.surface || c.surfaceMin) + " m²" : "Non défin
     totalSurface += isBuyer() ? m.surface || 0 : m.surfaceMin || 0;
 
     totalPieces += isBuyer() ? m.pieces || 0 : m.piecesMin || 0;
-    totalCompat += m.compatibility || 0;
+
+    totalCompat += m.compatibility || 0; // 🔥 FIX ICI
 
     const v = m.villeOriginal || m.ville;
     if (v) villes[v] = (villes[v] || 0) + 1;
@@ -477,6 +498,14 @@ async function renderMatches(matches, postReply) {
   }
 
   matches.forEach((m, index) => {
+    console.log("MATCH RAW:", m);
+    console.log("IMAGES RAW:", m.imagesbien);
+    console.log("IMAGES RAW (type):", typeof m.imagesbien);
+    console.log("IMAGES DEBUG:", m.images, m.imagesbien);
+    const images = [
+      ...parseImages(m.imagesbien),
+      ...parseImages(m.images),
+    ].filter(Boolean);
     // Bot / IA
     const row = document.createElement("div");
     row.className = "msg bot structured";
@@ -551,7 +580,7 @@ async function renderMatches(matches, postReply) {
     <div class="detail-row"><span class="label">Prix</span><span class="value">${priceLabel}</span></div>
     <div class="detail-row"><span class="label">Pièces</span><span class="value">${piecesLabel}</span></div>
     <div class="detail-row"><span class="label">Surface</span><span class="value">${surfaceLabel}</span></div>
-    <div class="detail-row"><span class="label">Contact</span><span class="value">${m.contact ?? "N/A"}</span></div>
+    <div class="detail-row"><span class="label">Contact</span><span class="value"> ${m.contact ?? "N/A"}</span></div>
   </div>
 
   <div class="match-criteria">
@@ -585,22 +614,97 @@ async function renderMatches(matches, postReply) {
   </div>
 
   <!-- Pop-up détails pour seller uniquement -->
-  ${
-    m.role === "seller"
-      ? `
+${
+  m.role === "seller"
+    ? `
     <div class="details-popup" id="details-${index}">
-      <div class="details-header">Détails de l'annonce</div>
-      <div class="details-body">
-       <div class="details-body">
-       <div><strong>État du bien :</strong> ${etatLabel}</div>
-</div>
-        <!-- Ici, tu pourras ajouter d'autres infos (taxe foncière, images, etc.) -->
+
+  <div class="details-header">
+     Annonce détaillée
+  </div>
+
+  <!-- CAROUSEL IMAGES -->
+  <div class="details-carousel">
+    ${
+      Array.isArray(images) && images.length > 0
+        ? `
+      <div class="carousel-track">
+        ${images
+          .slice(0, 3)
+          .map(
+            (img) => `
+          <img src="${img}" class="carousel-img" />
+        `,
+          )
+          .join("")}
       </div>
+
+      <button class="carousel-nav left">‹</button>
+      <button class="carousel-nav right">›</button>
+    `
+        : `<div class="no-images">Aucune image disponible</div>`
+    }
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- ETAT BIEN -->
+  <div class="details-section">
+    <h4>État du bien</h4>
+    <div class="etat-badge-static">${etatLabel}</div>
+  </div>
+
+  <div class="separator"></div>
+    <!-- DIAGNOSTIC ENERGETIQUE -->
+  <div class="details-section">
+    <h4>Diagnostic énergétique</h4>
+    <div class="dpe-pyramid">
+      ${["A", "B", "C", "D", "E", "F", "G"]
+        .map(
+          (letter) => `
+        <div class="dpe-row ${m.niveauEnergetique === letter ? "dpe-selected" : ""}">
+          <div class="dpe-band dpe-${letter.toLowerCase()}">
+            <span class="dpe-letter">${letter}</span>
+          </div>
+        </div>
+      `,
+        )
+        .join("")}
     </div>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- CARACTÉRISTIQUES (EXTENSIBLE UNIQUEMENT) -->
+  <div class="details-section">
+    <h4>Caractéristiques du bien</h4>
+
+    <div class="details-grid">
+
+      <!-- futur champs -->
+      <div class="feature-item">
+        <span>Taxe foncière</span>
+        <strong>${m.taxeFonciere ?? "Non renseignée"}</strong>
+      </div>
+
+      <div class="feature-item">
+        <span>Charges</span>
+        <strong>${m.charges ?? "Non renseignées"}</strong>
+      </div>
+
+      <div class="feature-item">
+        <span>Année construction</span>
+        <strong>${m.anneeConstruction ?? "Non renseignée"}</strong>
+      </div>
+
+    </div>
+  </div>
+
+</div>
   `
-      : ""
-  }
-`;
+    : ""
+}`;
+
     row.appendChild(bubble);
     $("chat-box").appendChild(row);
     if (m.role === "seller") {
@@ -608,14 +712,78 @@ async function renderMatches(matches, postReply) {
       const detailsPopup = bubble.querySelector(".details-popup");
 
       if (detailsBtn && detailsPopup) {
+        const track = detailsPopup.querySelector(".carousel-track");
+        const imgs = detailsPopup.querySelectorAll(".carousel-img");
+        const leftBtn = detailsPopup.querySelector(".carousel-nav.left");
+        const rightBtn = detailsPopup.querySelector(".carousel-nav.right");
+
+        let current = 0;
+
+        function updateCarousel() {
+          track.style.transform = `translateX(-${current * 100}%)`;
+        }
+
+        if (leftBtn && rightBtn && imgs.length > 1) {
+          leftBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            current = (current - 1 + imgs.length) % imgs.length;
+            updateCarousel();
+          };
+
+          rightBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            current = (current + 1) % imgs.length;
+            updateCarousel();
+          };
+        }
         detailsBtn.addEventListener("click", () => {
-          // fermer les autres popups
+          const isMobile = window.innerWidth <= 768;
+
+          // ferme les autres popups
           document.querySelectorAll(".details-popup").forEach((p) => {
             if (p !== detailsPopup) p.style.display = "none";
           });
-          // toggle popup courant
-          detailsPopup.style.display =
-            detailsPopup.style.display === "block" ? "none" : "block";
+
+          if (isMobile) {
+            let overlay = document.querySelector(".details-mobile-overlay");
+
+            // création overlay si absent
+            if (!overlay) {
+              overlay = document.createElement("div");
+              overlay.className = "details-mobile-overlay";
+              document.body.appendChild(overlay);
+            }
+
+            // toggle si déjà ouvert
+            if (
+              overlay.classList.contains("active") &&
+              overlay.contains(detailsPopup)
+            ) {
+              overlay.classList.remove("active");
+              detailsPopup.style.display = "none";
+              bubble.appendChild(detailsPopup);
+              return;
+            }
+
+            overlay.classList.add("active");
+            detailsPopup.style.display = "block";
+            overlay.appendChild(detailsPopup);
+
+            // fermeture clic extérieur
+            overlay.onclick = (e) => {
+              if (e.target === overlay) {
+                overlay.classList.remove("active");
+                detailsPopup.style.display = "none";
+                bubble.appendChild(detailsPopup);
+              }
+            };
+          } else {
+            // desktop = comportement normal inchangé
+            detailsPopup.style.display =
+              detailsPopup.style.display === "block" ? "none" : "block";
+          }
         });
       }
     }
@@ -836,14 +1004,33 @@ async function sendMessage(text) {
       etatPopupOpened = true;
       openEtatPopup();
     }
+    if (
+      data.triggerNiveauEnergetiquePopup &&
+      state.role === "seller" &&
+      !niveauEnergetiquePopupOpened
+    ) {
+      niveauEnergetiquePopupOpened = true;
+      openNiveauEnergetiquePopup({
+        state,
+        save,
+        addMessage,
+        sendNiveauEnergetique,
+      });
+    }
+
+    if (
+      data.triggerImagesPopup &&
+      state.role === "seller" &&
+      !imagesPopupOpened
+    ) {
+      imagesPopupOpened = true;
+      openImagesPopup();
+    }
 
     // Si l'IA renvoie des matchs
     if (Array.isArray(data.matches)) {
-      if (!etatPopupOpened) {
+      if (!etatPopupOpened && !imagesPopupOpened) {
         renderMatches(data.matches, data.postReply);
-      } else {
-        // stocker en attente
-        state.pendingMatches = data.matches;
       }
     }
 
@@ -946,42 +1133,320 @@ function openEtatPopup() {
 
       // envoyer
       sendEtat(value);
-
-      // afficher les matchs si en attente
-      if (state.pendingMatches) {
-        renderMatches(state.pendingMatches);
-        state.pendingMatches = null;
-      }
     });
   });
 }
+function openImagesPopup() {
+  const chatBox = document.getElementById("chat-box");
+  function renderThumbs() {
+    const thumbs = bubble.querySelector("#thumbs");
+    thumbs.innerHTML = "";
 
+    selectedImages.forEach((file, index) => {
+      const wrap = document.createElement("div");
+      wrap.className = "thumb";
+
+      wrap.innerHTML = `
+      <img src="${URL.createObjectURL(file)}" />
+      <button type="button" class="remove-thumb">×</button>
+    `;
+
+      wrap.querySelector(".remove-thumb").onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // 🔥 suppression image
+        selectedImages.splice(index, 1);
+
+        if (currentIndex >= selectedImages.length) {
+          currentIndex = Math.max(0, selectedImages.length - 1);
+        }
+
+        renderPreview();
+        renderThumbs();
+      };
+
+      thumbs.appendChild(wrap);
+    });
+  }
+
+  const row = document.createElement("div");
+  row.className = "msg bot structured";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.innerHTML = `
+<div class="popup-card upload-popup">
+
+  <div class="popup-header">
+    <h3>Ajoutez vos images</h3>
+    <p>Chargez jusqu’à 3 photos pour valoriser votre bien</p>
+  </div>
+
+  <div class="upload-zone">
+
+    <input type="file" id="images-input" accept="image/*" multiple hidden />
+
+    <div class="upload-inner preview-mode">
+
+      <!-- flèche gauche -->
+      <button type="button" class="preview-arrow left hidden" id="prev-img"><</button>
+
+      <!-- preview -->
+      <img id="preview-img" class="preview-img hidden" />
+
+      <!-- placeholder -->
+      <div class="upload-placeholder" id="upload-placeholder">
+        <div class="upload-icon">+</div>
+        <div class="upload-text">
+          Glissez ou cliquez pour ajouter vos images
+        </div>
+      </div>
+
+      <!-- flèche droite -->
+      <button type="button" class="preview-arrow right hidden" id="next-img">></button>
+
+      <!-- bouton ajout -->
+      <button type="button" class="add-more-btn hidden" id="add-more-btn">+</button>
+
+      <!-- compteur -->
+      <div class="preview-count hidden" id="preview-count">
+        1 / 1
+      </div>
+
+      <!-- 🔥 NOUVEAU : thumbnails avec suppression -->
+      <div class="thumbs" id="thumbs"></div>
+
+    </div>
+
+  </div>
+
+  <div class="popup-actions">
+    <button class="btn-gradient" id="upload-images-btn">
+      Valider les images
+    </button>
+
+    <button class="btn-ghost" id="skip-images-btn">
+      Plus tard
+    </button>
+  </div>
+
+</div>
+`;
+
+  row.appendChild(bubble);
+  chatBox.appendChild(row);
+  scrollBottom(chatBox);
+  bubble.querySelector("#skip-images-btn").onclick = async () => {
+    row.remove();
+    imagesPopupOpened = false;
+
+    state.criteria.imagesbien = [];
+    save("criteria", state.criteria);
+
+    try {
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + state.user.token,
+        },
+        body: JSON.stringify({
+          message: "__IMAGES_SKIPPED__",
+          skipImages: true,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.criteria) {
+        Object.assign(state.criteria, data.criteria);
+        save("criteria", state.criteria);
+      }
+
+      if (Array.isArray(data.matches)) {
+        renderMatches(data.matches, data.postReply);
+      }
+    } catch (err) {
+      console.error(err);
+      addMessage({
+        text: "Erreur lors du chargement des résultats.",
+        from: "bot",
+      });
+    }
+  };
+  let selectedImages = [];
+  const input = bubble.querySelector("#images-input");
+  const uploadBtn = bubble.querySelector("#upload-images-btn");
+  let currentIndex = 0;
+
+  const previewImg = bubble.querySelector("#preview-img");
+  const placeholder = bubble.querySelector("#upload-placeholder");
+  const count = bubble.querySelector("#preview-count");
+  const prevBtn = bubble.querySelector("#prev-img");
+  const nextBtn = bubble.querySelector("#next-img");
+  const addMoreBtn = bubble.querySelector("#add-more-btn");
+  const uploadZone = bubble.querySelector(".upload-zone");
+
+  uploadZone.addEventListener("click", (e) => {
+    if (
+      e.target.closest(".preview-arrow") ||
+      e.target.closest(".add-more-btn") ||
+      e.target.closest(".remove-thumb")
+    ) {
+      return;
+    }
+
+    input.click();
+  });
+
+  function renderPreview() {
+    if (!selectedImages.length) {
+      previewImg.classList.add("hidden");
+      placeholder.classList.remove("hidden");
+      count.classList.add("hidden");
+      addMoreBtn.classList.add("hidden");
+      return;
+    }
+
+    const file = selectedImages[currentIndex];
+    previewImg.src = URL.createObjectURL(file);
+
+    previewImg.classList.remove("hidden");
+    placeholder.classList.add("hidden");
+    count.classList.remove("hidden");
+
+    count.textContent = `${currentIndex + 1} / ${selectedImages.length}`;
+    renderThumbs();
+
+    if (selectedImages.length > 1) {
+      prevBtn.classList.remove("hidden");
+      nextBtn.classList.remove("hidden");
+    } else {
+      prevBtn.classList.add("hidden");
+      nextBtn.classList.add("hidden");
+    }
+
+    if (selectedImages.length < 3) {
+      addMoreBtn.classList.remove("hidden");
+    } else {
+      addMoreBtn.classList.add("hidden");
+    }
+  }
+
+  prevBtn.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation(); // 🔥 AJOUT
+    currentIndex =
+      (currentIndex - 1 + selectedImages.length) % selectedImages.length;
+    renderPreview();
+  };
+
+  nextBtn.onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation(); // 🔥 AJOUT
+    currentIndex = (currentIndex + 1) % selectedImages.length;
+    renderPreview();
+  };
+  addMoreBtn.onclick = (e) => {
+    e.preventDefault();
+    input.click();
+  };
+
+  input.addEventListener("change", (e) => {
+    const newFiles = [...e.target.files];
+
+    selectedImages = [...selectedImages, ...newFiles].slice(0, 3);
+
+    currentIndex = selectedImages.length - newFiles.length;
+    if (currentIndex < 0) currentIndex = 0;
+
+    const total = selectedImages.length;
+
+    uploadBtn.textContent =
+      total > 0
+        ? `Valider ${total} image${total > 1 ? "s" : ""}`
+        : "Valider les images";
+
+    renderPreview();
+    renderThumbs();
+    console.log("images selected:", selectedImages.length);
+  });
+
+  bubble.querySelector("#upload-images-btn").onclick = async () => {
+    if (!selectedImages.length) return;
+    const images = await uploadImages(selectedImages);
+
+    console.log("UPLOAD IMAGES:", images); // 🔥 ICI
+    console.log("CRITERIA BEFORE UPLOAD:", state.criteria); // 🔥 ICI
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + state.user.token,
+      },
+      body: JSON.stringify({
+        message: "__IMAGES_UPLOADED__",
+        imagesbien: images,
+      }),
+    });
+
+    const data = await res.json();
+
+    console.log("API RESPONSE:", data); // 🔥 ICI
+    console.log("CRITERIA BEFORE MERGE:", state.criteria); // 🔥 BONUS
+
+    // 🔥 DEBUG STRATÉGIQUE
+    console.log("IMAGES UPLOAD RESPONSE:", data);
+
+    // 🔥 UPDATE STATE
+    if (data.criteria) {
+      Object.assign(state.criteria, data.criteria);
+      save("criteria", state.criteria);
+    }
+
+    console.log("CRITERIA AFTER:", state.criteria); // 🔥 ICI
+
+    // 🔥 TRIGGER MATCHES
+    if (Array.isArray(data.matches)) {
+      renderMatches(data.matches, data.postReply);
+    }
+
+    row.remove();
+    imagesPopupOpened = false;
+  };
+}
+async function uploadImages(files) {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("images", file));
+
+  const res = await fetch("/api/upload-imagesbien", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + state.user.token,
+    },
+    body: formData,
+  });
+
+  const data = await res.json();
+
+  state.criteria.imagesbien = data.images;
+
+  addMessage({
+    text: "Vos photos ont bien été ajoutées.",
+    from: "bot",
+  });
+  return data.images;
+}
 async function sendEtat(value) {
   etatPopupOpened = false;
+
+  console.log("SEND ETAT:", value);
+  console.log("CRITERIA BEFORE:", state.criteria);
+
+  // 1. update local state
   state.criteria.etatBien = value;
-
-  // Sauvegarde locale immédiate
   save("criteria", state.criteria);
-
-  // Message loading premium
-  const loadingRow = document.createElement("div");
-  loadingRow.className = "msg bot structured";
-
-  loadingRow.innerHTML = `
-    <div class="bubble searching-bubble">
-      <div class="searching-text">
-        Je suis en train de rechercher des profils compatibles
-        <span class="search-dots">
-          <span></span>
-          <span></span>
-          <span></span>
-        </span>
-      </div>
-    </div>
-  `;
-
-  document.getElementById("chat-box").appendChild(loadingRow);
-  scrollBottom(document.getElementById("chat-box"));
 
   try {
     const res = await fetch("/chat", {
@@ -991,25 +1456,89 @@ async function sendEtat(value) {
         Authorization: "Bearer " + state.user.token,
       },
       body: JSON.stringify({
-        message: "etatBien",
+        message: "__ETAT_SELECTED__",
         etatBien: value,
       }),
     });
 
     const data = await res.json();
 
-    // retire loading
-    loadingRow.remove();
-
+    // 2. sync criteria backend
     if (data.criteria) {
       Object.assign(state.criteria, data.criteria);
+      save("criteria", state.criteria);
     }
 
-    if (data.matches) {
+    // 3. STEP 1 → niveau énergétique (backend décide)
+    if (
+      data.triggerNiveauEnergetiquePopup &&
+      state.role === "seller" &&
+      !niveauEnergetiquePopupOpened
+    ) {
+      niveauEnergetiquePopupOpened = true;
+      openNiveauEnergetiquePopup({
+        state,
+        save,
+        addMessage,
+        sendNiveauEnergetique,
+      });
+      return; // important : on stop ici
+    }
+
+    // 4. STEP 2 → images (backend décide)
+    if (
+      data.triggerImagesPopup &&
+      state.role === "seller" &&
+      !imagesPopupOpened
+    ) {
+      imagesPopupOpened = true;
+      openImagesPopup();
+      return; // important : stop ici aussi
+    }
+
+    // 5. STEP 3 → matches
+    if (Array.isArray(data.matches)) {
       renderMatches(data.matches, data.postReply);
     }
   } catch (err) {
-    loadingRow.remove();
+    console.error("sendEtat error:", err);
+  }
+}
+async function sendNiveauEnergetique(value) {
+  niveauEnergetiquePopupOpened = false;
+
+  state.criteria.niveauEnergetique = value;
+  save("criteria", state.criteria);
+
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + state.user.token,
+      },
+      body: JSON.stringify({
+        message: "__NIVEAU_ENERGETIQUE_SELECTED__",
+        niveauEnergetique: value,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.criteria) {
+      Object.assign(state.criteria, data.criteria);
+      save("criteria", state.criteria);
+    }
+
+    if (data.triggerImagesPopup && !imagesPopupOpened) {
+      imagesPopupOpened = true;
+      openImagesPopup();
+    }
+
+    if (Array.isArray(data.matches)) {
+      renderMatches(data.matches, data.postReply);
+    }
+  } catch (err) {
     console.error(err);
   }
 }

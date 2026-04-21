@@ -1,15 +1,61 @@
-import fs from "fs";
+import dotenv from "dotenv";
+import { db } from "./db.js";
 
-const file = "./server.js";
+dotenv.config();
 
-let content = fs.readFileSync(file, "utf8");
+async function runMigration() {
+  console.log("🚀 Migration SAFE niveauenergetique...");
 
-content = content
-  .replace(/\u00A0/g, " ")
-  .replace(/\u200B/g, "")
-  .replace(/\t/g, " ")
-  .replace(/\r/g, "");
+  try {
+    // =========================
+    // 1. ADD COLUMN IF NOT EXISTS
+    // =========================
+    await db
+      .prepare(
+        `
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS niveauenergetique TEXT DEFAULT '';
+      `,
+      )
+      .run();
 
-fs.writeFileSync(file, content);
+    // =========================
+    // 2. CLEAN EXISTING DATA (OPTIONNEL MAIS PROPRE)
+    // =========================
+    await db
+      .prepare(
+        `
+        UPDATE users
+        SET niveauenergetique = ''
+        WHERE niveauenergetique IS NULL;
+      `,
+      )
+      .run();
 
-console.log("CLEAN OK");
+    // =========================
+    // 3. VERIFY STRUCTURE
+    // =========================
+    const check = await db
+      .prepare(
+        `
+        SELECT column_name, data_type
+        FROM information_schema.columns
+        WHERE table_name = 'users'
+        AND column_name = 'niveauenergetique';
+      `,
+      )
+      .all();
+
+    console.log("🧠 CHECK niveauenergetique:");
+    console.table(check);
+
+    console.log("✅ Migration niveauenergetique terminée !");
+  } catch (err) {
+    console.error("❌ Migration error:", err);
+  } finally {
+    console.log("🏁 FIN");
+    process.exit(0);
+  }
+}
+
+runMigration();

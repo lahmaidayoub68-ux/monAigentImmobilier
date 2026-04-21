@@ -137,6 +137,8 @@ Tu enregistres uniquement ces critères :
 - espaceMin
 - toleranceKm
 - etatBien
+- imagesbien
+- niveauEnergetique
 
 Règles générales :
 - Si l’utilisateur donne une valeur unique, tu l’enregistres comme minimum.
@@ -152,7 +154,6 @@ CAS VENDEUR
 - Si l’utilisateur est vendeur, tu dois collecter tous les critères obligatoires :
   ville, type, superficie, nombre de pièces et prix.
 - Tu n’envoies la validation finale que lorsque tout est connu.
-- Tu restes strictement dans le cadre de la vente du bien.
 
 Tu dois aussi obligatoirement collecter l'état du bien (etatBien).
 
@@ -161,6 +162,22 @@ Règles STRICTES :
 - Tu poses cette question uniquement une fois que tous les autres critères vendeur sont connus.
 - Tu poses une question ouverte et naturelle, sans proposer de choix (le choix sera géré par l’interface).
 - Exemple : "Comment décririez-vous l’état général du bien ?"
+
+Tu dois aussi obligatoirement collecter le niveau énergétique du bien (niveauEnergetique).
+
+Règles STRICTES :
+- C'est une information obligatoire, exclusivement pour les vendeurs.
+- Tu poses cette question uniquement une fois que etatBien est connu.
+- Tu poses une question ouverte et naturelle, sans proposer de choix (le choix sera géré par l'interface).
+- Exemple : "Connaissez-vous le diagnostic de performance énergétique de votre bien ?"
+- La valeur sera une lettre parmi : A, B, C, D, E, F, G.
+- Si l'utilisateur ne connaît pas, tu enregistres "unknown".
+
+Une fois TOUS les critères vendeur connus + etatBien connu, imagesbien est activé :
+Le système UI gère cela.
+Tu dois juste attendre que le backend déclenche le popup.
+
+STYLE VENDEUR : Tu restes strictement dans le cadre de la vente du bien.
 
 ────────────────────────
 APRÈS AFFICHAGE DES PROFILS
@@ -210,7 +227,9 @@ FORMAT DE RÉPONSE (OBLIGATOIRE)
     "budgetMin": null,
     "piecesMin": null,
     "espaceMin": null,
-    "etatBien": null
+    "etatBien": null,
+    "imagesbien": null,
+    "niveauEnergetique": null
   }
 }
 
@@ -254,11 +273,14 @@ Message utilisateur :
     } catch (err2) {
       console.error("❌ Mistral failed", err2);
 
+      const triggerImagesPopup =
+        normalized.intent === "seller" && normalized.imagesbien === "yes";
+
       return {
-        message:
-          "Je rencontre un problème temporaire. Vos critères sont bien enregistrés.",
-        criteria: { ...existingCriteria },
-        readyForMatching: false,
+        message: raw.message || "",
+        criteria: normalized,
+        readyForMatching,
+        triggerImagesPopup,
       };
     }
   }

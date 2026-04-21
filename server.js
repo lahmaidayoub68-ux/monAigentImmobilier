@@ -56,7 +56,33 @@ const normalizeStr = (str) =>
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase()
     : "";
+export function safeImagesParse(input) {
+  try {
+    // cas null / undefined
+    if (!input) return [];
 
+    // déjà array
+    if (Array.isArray(input)) return input;
+
+    // string vide
+    if (typeof input !== "string") return [];
+
+    const trimmed = input.trim();
+
+    if (!trimmed) return [];
+
+    // tentative JSON parse
+    const parsed = JSON.parse(trimmed);
+
+    // valid array
+    if (Array.isArray(parsed)) return parsed;
+
+    return [];
+  } catch (err) {
+    console.warn("[safeImagesParse] invalid input:", input);
+    return [];
+  }
+}
 const villesNormalized = villes.map((v) => ({
   original: v,
   norm: normalizeStr(v.ville),
@@ -109,8 +135,7 @@ const fromDB = (row) => ({
 
   budgetMin: row.budgetMin ?? row.budgetmin ?? null,
   budgetMax: row.budgetMax ?? row.budgetmax ?? null,
-});
-// ================== MIDDLEWARES ==================
+}); // ================== MIDDLEWARES ==================
 app.disable("x-powered-by");
 app.use(cors({ origin: true, credentials: true }));
 app.use(
@@ -118,7 +143,7 @@ app.use(
     // 🔥 IMPORTANT pour Leaflet + tiles externes
     crossOriginResourcePolicy: false,
 
-    // 🔥 FIX PRINCIPAL → autorise l'envoi du Referer à OSM
+    // 🔥 FIX principal → gestion du referer
     referrerPolicy: {
       policy: "strict-origin-when-cross-origin",
     },
@@ -137,8 +162,8 @@ app.use(
         // ==========================
         scriptSrc: [
           "'self'",
-          "'unsafe-inline'", // ⚠️ nécessaire si tu as du JS inline
-          "'unsafe-eval'", // ⚠️ à retirer si possible en prod
+          "'unsafe-inline'",
+          "'unsafe-eval'",
           "https://cdn.jsdelivr.net",
           "https://cdnjs.cloudflare.com",
           "https://unpkg.com",
@@ -149,13 +174,13 @@ app.use(
         // ==========================
         styleSrc: [
           "'self'",
-          "'unsafe-inline'", // Leaflet en a besoin
+          "'unsafe-inline'",
           "https://cdn.jsdelivr.net",
           "https://cdnjs.cloudflare.com",
         ],
 
         // ==========================
-        // IMAGES (CRITIQUE POUR OSM)
+        // IMAGES
         // ==========================
         imgSrc: [
           "'self'",
@@ -164,6 +189,10 @@ app.use(
           "https://*.tile.openstreetmap.org",
           "https://api.dicebear.com",
           "https://unpkg.com",
+          "https://res.cloudinary.com",
+
+          "https://images.unsplash.com",
+          "https://plus.unsplash.com",
         ],
 
         // ==========================
@@ -187,7 +216,7 @@ app.use(
         frameSrc: ["'self'"],
         objectSrc: ["'none'"],
 
-        // 🔥 BONUS sécurité moderne
+        // 🔥 sécurité moderne
         upgradeInsecureRequests: [],
       },
     },
@@ -232,6 +261,8 @@ piecesmax INTEGER DEFAULT 100,
 surfacemin REAL DEFAULT 0,
 surfacemax REAL DEFAULT 1000,
 etatbien TEXT DEFAULT '',
+imagesbien TEXT DEFAULT '[]',
+niveauenergetique TEXT DEFAULT '',
   avatar TEXT DEFAULT '/images/user-avatar.jpg'
 )
 `,
@@ -287,6 +318,8 @@ u.price,
  u.surface,
  u.budget,
  u.etatbien AS "etatBien",
+u.imagesbien AS "imagesbien",
+u.niveauenergetique AS "niveauEnergetique",
  u.piecesmin  AS "piecesMin",
  u.surfacemin AS "surfaceMin",
  u.budgetmin  AS "budgetMin",
@@ -297,8 +330,18 @@ FROM users u
 `,
   )
   .all();
+console.log("🧪 [STEP 1 - DB FETCH] allUsers length =", allUsers.length);
+console.log("🧪 roles distribution =", {
+  buyers: allUsers.filter((u) => u.role === "buyer").length,
+  sellers: allUsers.filter((u) => u.role === "seller").length,
+});
 console.log(" RAW DB ROW (case sensitive check)");
 allUsers.forEach((u) => {
+  console.log("➡️ [STEP 2 - RAW USER]", {
+    username: u.username,
+    role: u.role,
+    imagesbien: u.imagesbien,
+  });
   console.log({
     username: u.username, // RAW EXACT DB KEYS
 
@@ -367,14 +410,28 @@ allUsers.forEach((u) => {
     surfaceMin: u.surfaceMin ?? null,
     budgetMin: u.budgetMin ?? null,
     etatBien: u.etatBien || "",
+    imagesbien: safeImagesParse(u.imagesbien),
+    niveauEnergetique: u.niveauEnergetique || "",
     departement: getDepartement(u.ville),
   };
+  console.log("⚠️ [STEP 6 - ROUTING CHECK]", {
+    username: u.username,
+    role: u.role,
+    willCall: u.role === "seller" ? "addSeller" : "addBuyer",
+  });
 
   if (u.role === "buyer") {
     addBuyer(profileData);
   } else if (u.role === "seller") {
     addSeller(profileData);
   }
+  console.log("🧱 [STEP 3 - PROFILE BUILT]", {
+    username: profileData.username,
+    role: profileData.role,
+    imagesbien: profileData.imagesbien,
+    piecesMin: profileData.piecesMin,
+    surfaceMin: profileData.surfaceMin,
+  });
   console.log(" [DB LOAD RAW USER]", u.username, {
     piecesMin: u.piecesMin,
     surfaceMin: u.surfaceMin,
@@ -476,7 +533,11 @@ async function upsertProfile(user, normalized) {
     price: role === "seller" ? (normalized.price ?? 0) : 0,
     pieces: role === "seller" ? (normalized.pieces ?? null) : 0,
     surface: role === "seller" ? (normalized.surface ?? null) : 0,
-    etatBien: normalized.etatBien ?? null, // BUYER STRICT
+    etatBien: normalized.etatBien ?? null,
+    imagesbien: normalized.imagesbien ?? null,
+    niveauEnergetique:
+      role === "seller" ? (normalized.niveauEnergetique ?? null) : null,
+    // BUYER STRICT
 
     budget: role === "buyer" ? (normalized.budgetMin ?? null) : 0,
     budgetMin: role === "buyer" ? (normalized.budgetMin ?? null) : 0,
@@ -521,14 +582,19 @@ async function upsertProfile(user, normalized) {
   await db
     .prepare(
       `
-  UPDATE users
-  SET etatbien = ?
-  WHERE username = ?
-`,
+    UPDATE users
+    SET etatbien = ?, imagesbien = ?, niveauenergetique = ?
+    WHERE username = ?
+  `,
     )
-    .run(profileData.etatBien, username);
-
-  console.log(" DIRECT UPDATE etatbien DONE"); // ================== DB UPSERT ==================
+    .run(
+      profileData.etatBien,
+      JSON.stringify(profileData.imagesbien || []),
+      profileData.niveauEnergetique ?? null,
+      username,
+    );
+  console.log(" DIRECT UPDATE etatbien DONE");
+  // ================== DB UPSERT ==================
 
   if (process.env.NODE_ENV === "production") {
     await db.prepare().upsert(
@@ -552,6 +618,8 @@ async function upsertProfile(user, normalized) {
         surfacemin: profileData.surfaceMin,
         surfacemax: profileData.surfaceMax,
         etatbien: profileData.etatBien,
+        imagesbien: JSON.stringify(profileData.imagesbien || []),
+        niveauenergetique: profileData.niveauEnergetique ?? null,
       },
       "username",
       [
@@ -570,6 +638,8 @@ async function upsertProfile(user, normalized) {
         "surfacemin",
         "surfacemax",
         "etatbien",
+        "imagesbien",
+        "niveauenergetique",
       ],
     );
   }
@@ -655,9 +725,15 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
     }
     const session = sessions[username];
     session.role = userRole; // ICI (et pas avant)
+    if (req.body.skipImages) {
+      session.criteria.imagesbien = [];
+    }
 
     if (req.body.etatBien !== undefined) {
       session.criteria.etatBien = req.body.etatBien;
+    }
+    if (req.body.niveauEnergetique !== undefined) {
+      session.criteria.niveauEnergetique = req.body.niveauEnergetique;
     } // ===== Appel IA pour parser les critères =====
     let aiResponse = {};
     try {
@@ -681,6 +757,9 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
         ([_, v]) => v !== null && v !== undefined,
       ),
     );
+    console.log("🤖 AI MESSAGE:", aiResponse.message);
+    console.log("🤖 AI CRITERIA RAW:", aiResponse.criteria);
+    console.log("🤖 SESSION BEFORE MERGE:", session.criteria);
 
     session.criteria = {
       ...session.criteria,
@@ -694,11 +773,18 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       piecesMin: aiResponse.criteria?.piecesMin ?? session.criteria.piecesMin,
 
       etatBien: aiResponse.criteria?.etatBien ?? session.criteria.etatBien,
+      imagesbien: Array.isArray(req.body.imagesbien)
+        ? req.body.imagesbien
+        : (session.criteria.imagesbien ?? null),
+      niveauEnergetique:
+        req.body.niveauEnergetique ??
+        aiResponse.criteria?.niveauEnergetique ??
+        session.criteria.niveauEnergetique,
     };
+    console.log("🔀 AFTER MERGE:", session.criteria);
 
-    console.log(" [SESSION AFTER MERGE]", session.criteria);
-
-    console.log("CRITERIA MERGED:", session.criteria); // ===== Préparation reply =====
+    console.log("CRITERIA MERGED:", session.criteria);
+    // ===== Préparation reply =====
 
     let reply = "";
     if (!session.started) {
@@ -734,10 +820,11 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
 
     const budgetMin = Number(session.criteria.budgetMin ?? 0);
     let budgetMax = Number(session.criteria.budgetMax ?? budgetMin);
-    if (budgetMax < budgetMin) budgetMax = budgetMin; // ===== NORMALIZED FINAL =====
+    if (budgetMax < budgetMin) budgetMax = budgetMin;
+    // ===== NORMALIZED FINAL =====
     const normalized = {
       type: session.criteria.type ? normalize(session.criteria.type) : "",
-      ville: session.criteria.ville ? normalize(session.criteria.ville) : "",
+      ville: session.criteria.ville || "",
 
       budgetMin,
       budgetMax,
@@ -746,10 +833,7 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       surfaceMin,
       surfaceMax, // AJOUT ICI
 
-      etatBien:
-        req.body.etatBien ??
-        aiResponse.criteria?.etatBien ??
-        session.criteria.etatBien, // SELLER ONLY
+      // SELLER ONLY
 
       ...(session.role === "seller" && {
         price: budgetMin,
@@ -759,41 +843,126 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           req.body.etatBien ??
           aiResponse.criteria?.etatBien ??
           session.criteria.etatBien,
+        niveauEnergetique:
+          req.body.niveauEnergetique ??
+          aiResponse.criteria?.niveauEnergetique ??
+          session.criteria.niveauEnergetique ??
+          null,
+        imagesbien: Array.isArray(session.criteria.imagesbien)
+          ? session.criteria.imagesbien
+          : [],
       }),
     };
+    if (Array.isArray(normalized.imagesbien)) {
+      // déjà bon
+    } else if (typeof normalized.imagesbien === "string") {
+      try {
+        const parsed = JSON.parse(normalized.imagesbien);
+        normalized.imagesbien = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        normalized.imagesbien = [];
+      }
+    } else {
+      normalized.imagesbien = [];
+    }
     console.log(" [NORMALIZED FINAL]", JSON.stringify(normalized, null, 2)); // ===== Vérification critères complets =====
 
+    // ================== MISSING GLOBAL CRITERIA ==================
     const missingCriteria = ORDER.filter((k) => {
-      if (k === "pieces") return session.criteria.piecesMin === undefined;
-      if (k === "espace") return session.criteria.espaceMin === undefined; // toleranceKm géré à part (buyer only)
+      if (k === "pieces") return session.criteria.piecesMin == null;
+      if (k === "espace") return session.criteria.surfaceMin == null;
 
-      if (k === "toleranceKm") return false;
+      return session.criteria[k] == null;
+    });
 
-      return session.criteria[k] === undefined;
-    }); // règle métier séparée (plus safe)
+    // ================== SELLER CHECKS ==================
     const etatBienMissing =
-      session.role === "seller" && session.criteria.etatBien === undefined;
+      session.role === "seller" &&
+      (session.criteria.etatBien == null || session.criteria.etatBien === "");
 
+    const niveauEnergetiqueMissing =
+      session.role === "seller" &&
+      session.criteria.etatBien &&
+      (session.criteria.niveauEnergetique == null ||
+        session.criteria.niveauEnergetique === "");
+
+    const imagesMissing =
+      session.role === "seller" &&
+      (!Array.isArray(session.criteria.imagesbien) ||
+        session.criteria.imagesbien.length === 0);
+
+    // ================== BUYER CHECKS ==================
     const toleranceMissing =
       session.role === "buyer" &&
-      session.criteria.ville !== undefined &&
-      session.criteria.toleranceKm === undefined;
+      session.criteria.ville &&
+      session.criteria.toleranceKm == null;
 
-    const budgetIncomplete = session.criteria.budgetMin === undefined;
-    const isFinalTrigger = req.body.etatBien !== undefined;
-    // ===== Phase collecting =====
+    const budgetIncomplete = session.criteria.budgetMin == null;
 
+    // ================== FINAL TRIGGER CONTROL ==================
+    const isFinalTrigger = req.body.etatBien != null;
+
+    // ================== PHASE COLLECTING ==================
     if (session.phase === "collecting") {
-      // si critères incomplets => juste réponse IA
-      if (
-        !isFinalTrigger &&
-        (budgetIncomplete ||
-          missingCriteria.length > 0 ||
-          toleranceMissing ||
-          etatBienMissing)
-      ) {
-        return res.json({ reply, criteria: session.criteria });
+      console.log("🚨 CHECK BLOCK:", {
+        missingCriteria,
+        budgetIncomplete,
+        toleranceMissing,
+        etatBienMissing,
+        niveauEnergetiqueMissing,
+        imagesMissing,
+      });
+
+      // =========================================================
+      // 1. GLOBAL CRITERIA (TOUJOURS PRIORITÉ ABSOLUE)
+      // =========================================================
+      const hasMissingGlobals =
+        missingCriteria.length > 0 ||
+        (session.role === "buyer" && budgetIncomplete) ||
+        toleranceMissing;
+
+      if (hasMissingGlobals) {
+        return res.json({
+          reply,
+          criteria: session.criteria,
+        });
       }
+
+      // =========================================================
+      // 2. SELLER FLOW ORDER STRICT
+      // =========================================================
+
+      // 2.1 état du bien
+      if (etatBienMissing) {
+        return res.json({
+          reply,
+          triggerEtatBienPopup: true,
+          criteria: session.criteria,
+        });
+      }
+
+      // 2.2 niveau énergétique
+      if (niveauEnergetiqueMissing) {
+        return res.json({
+          reply,
+          triggerNiveauEnergetiquePopup: true,
+          criteria: session.criteria,
+        });
+      }
+
+      // 2.3 images
+      if (imagesMissing && !req.body.skipImages) {
+        return res.json({
+          reply,
+          triggerImagesPopup: true,
+          criteria: session.criteria,
+        });
+      }
+
+      // =========================================================
+      // 3. MATCHING READY (TOUT EST COMPLET)
+      // =========================================================
+
       // ===== Critères complets => création du profil en mémoire & DB =====
       let profile;
       if (session.role === "buyer") {
@@ -819,17 +988,21 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           pieces: normalized.piecesMin, // nombre de pièces
           surface: normalized.surfaceMin, // surface du bien
           etatBien: normalized.etatBien,
+          imagesbien: normalized.imagesbien,
+          niveauEnergetique: normalized.niveauEnergetique,
           contact: req.user.contact || "",
+        });
+        console.log("🔥 [STEP 4 - addSeller CALLED]", {
+          username: normalized.username,
+          imagesbien: normalized.imagesbien,
+          SELLERS_BEFORE: SELLERS.length,
         });
         console.log("DEBUG existingSeller:", existingSeller);
         console.log("DEBUG profile after addSeller:", profile);
       }
       console.log("🚨 JUST BEFORE UPSERT:", normalized.etatBien);
 
-      await upsertProfile(
-        { username, role: session.role, contact: req.user.contact },
-        normalized,
-      ); // ===== UPSERT PROFIL EN DB =====
+      // ===== UPSERT PROFIL EN DB =====
 
       try {
         await upsertProfile(
@@ -838,6 +1011,38 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
         );
       } catch (err) {
         console.error("[DB UPSERT PROFILE ERROR]:", err);
+      }
+      if (
+        session.role === "seller" &&
+        !req.body.skipImages &&
+        (!Array.isArray(session.criteria.imagesbien) ||
+          session.criteria.imagesbien.length === 0)
+      ) {
+        console.log("📸 TRIGGER IMAGES POPUP CHECK:", {
+          role: session.role,
+          etatBien: session.criteria.etatBien,
+          imagesbien: session.criteria.imagesbien,
+        });
+
+        return res.json({
+          reply,
+          triggerImagesPopup: true,
+          criteria: session.criteria,
+        });
+      }
+      if (
+        session.role === "seller" &&
+        !req.body.skipImages &&
+        (!Array.isArray(session.criteria.imagesbien) ||
+          session.criteria.imagesbien.length === 0)
+      ) {
+        console.log("⛔ BLOCK MATCHING - waiting for images");
+
+        return res.json({
+          reply,
+          triggerImagesPopup: true,
+          criteria: session.criteria,
+        });
       } // ===== Matching =====
 
       const matches =
@@ -869,6 +1074,7 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
         reply,
         matches,
         postReply,
+        triggerImagesPopup: false,
         criteria: {
           ...session.criteria,
           surfaceMin: session.criteria.espaceMin,
@@ -905,6 +1111,61 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
+import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
+
+// ================== CLOUDINARY CONFIG ==================
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// ================== MULTER (memory) ==================
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+// ================== ROUTE UPLOAD IMAGES ==================
+app.post(
+  "/api/upload-imagesbien",
+  authenticateToken,
+  upload.array("images", 3),
+  async (req, res) => {
+    try {
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ error: "Aucune image reçue" });
+      }
+
+      // Upload parallèle vers Cloudinary
+      const images = await Promise.all(
+        req.files.map(
+          (file) =>
+            new Promise((resolve, reject) => {
+              const stream = cloudinary.uploader.upload_stream(
+                {
+                  folder: "imagesbien",
+                },
+                (error, result) => {
+                  if (error) return reject(error);
+                  resolve(result.secure_url);
+                },
+              );
+
+              stream.end(file.buffer);
+            }),
+        ),
+      );
+
+      return res.json({
+        success: true,
+        images, // tableau d’URLs Cloudinary
+      });
+    } catch (err) {
+      console.error("[UPLOAD IMAGES BIEN ERROR]", err);
+      return res.status(500).json({ error: "Upload failed" });
+    }
+  },
+);
 // ================== AUTH ROUTES ==================
 // ================== SIGNUP ==================
 app.post("/signup", async (req, res) => {
@@ -1899,7 +2160,8 @@ ${message}
     res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
 });
-
+resetProfiles();
+seedProfiles(40);
 // ================== START ==================
 const dbColumns = await db
   .prepare(

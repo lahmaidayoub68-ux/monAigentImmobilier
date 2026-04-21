@@ -29,7 +29,35 @@ for (const v of villesCoordsArray) {
     departement: v.departement,
   });
 }
+function safeImagesParse(v) {
+  if (!v) return [];
+  if (Array.isArray(v)) return v;
 
+  if (typeof v === "string") {
+    try {
+      const parsed = JSON.parse(v);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+const energieRank = {
+  A: 7,
+  B: 6,
+  C: 5,
+  D: 4,
+  E: 3,
+  F: 2,
+  G: 1,
+};
+
+function getEnergyScore(letter) {
+  if (!letter) return 3; // neutre (D/E)
+  return energieRank[letter] || 0;
+}
 // ================== UTILITAIRES ==================
 export function normalize(value = "") {
   return String(value)
@@ -133,6 +161,16 @@ export async function addSeller(criteria = {}) {
         : existingIndex >= 0
           ? SELLERS[existingIndex].etatBien
           : null,
+    imagesbien: Array.isArray(criteria.imagesbien)
+      ? criteria.imagesbien
+      : safeImagesParse(criteria.imagesbien),
+
+    niveauEnergetique:
+      criteria.niveauEnergetique !== undefined
+        ? criteria.niveauEnergetique
+        : existingIndex >= 0
+          ? SELLERS[existingIndex].niveauEnergetique
+          : null,
   };
 
   if (existingIndex >= 0) SELLERS[existingIndex] = seller;
@@ -150,6 +188,8 @@ export async function addSeller(criteria = {}) {
       surface: seller.surface,
       contact: seller.contact,
       etatBien: seller.etatBien,
+      imagesbien: JSON.stringify(seller.imagesbien || []),
+      niveauenergetique: seller.niveauEnergetique,
     },
     "username",
     [
@@ -161,6 +201,8 @@ export async function addSeller(criteria = {}) {
       "surface",
       "contact",
       "etatBien",
+      "imagesbien",
+      "niveauenergetique",
     ],
   );
 
@@ -440,7 +482,12 @@ export function matchUsers(buyerProfile, topN = 5) {
       // pour le front
       villeOriginal: seller.ville,
       departement: getDepartement(seller.ville) || "TEST",
-      etatBien: seller.etatBien, // <-- ajouté ici pour le front
+      etatBien: seller.etatBien,
+      niveauEnergetique: seller.niveauEnergetique, // <-- ajouté ici pour le front
+
+      imagesbien: Array.isArray(seller.imagesbien)
+        ? seller.imagesbien
+        : safeImagesParse(seller.imagesbien),
     };
   });
 
@@ -454,7 +501,27 @@ export function matchUsers(buyerProfile, topN = 5) {
     buyerProfile.username,
     buyerProfile.ville,
   );
-  return scored.slice(0, topN);
+
+  // ================== POOL ÉLARGI ==================
+  const poolSize = Math.max(topN * 3, 15); // ex: 15 si topN=5
+  const pool = scored.slice(0, poolSize);
+
+  // ================== BOOST DPE ==================
+  const boosted = pool.map((s) => {
+    const energy = getEnergyScore(s.niveauEnergetique);
+
+    // boost léger (max +5 points)
+    const energyBoost = energy * 0.7;
+
+    return {
+      ...s,
+      boostedScore: s.compatibility + energyBoost,
+    };
+  });
+
+  // ================== TRI FINAL ==================
+  boosted.sort((a, b) => b.boostedScore - a.boostedScore);
+  return boosted.slice(0, topN);
 }
 // ================== MATCHING VENDEUR → ACHETEURS ==================
 export function matchSellerToBuyers(sellerProfile, topN = 5) {
