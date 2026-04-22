@@ -17,11 +17,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================= */
   function forceVisibleTitle() {
     titleElement.textContent = TITLE_TEXT;
-
-    // 🔥 force couleur visible si gradient bug
-    titleElement.style.webkitTextFillColor = "initial";
-    titleElement.style.color = "#fff";
-    titleElement.style.background = "none";
   }
 
   /* =========================

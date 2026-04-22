@@ -12,109 +12,80 @@
     <title>AiGENT - Compatibilité des Matchs</title>
 
     <style>
-      /* ================================
-BASE
-================================ */
+      /* =====================================
+         BLOC 1 — VARIABLES GLOBALES
+      ===================================== */
+      :root {
+        --primary-grad: linear-gradient(135deg, #9b59ff, #ff71cd);
+        --secondary-grad: linear-gradient(135deg, #4f7cff, #9b6bff, #d194ed);
+        --bg-light: #f8faff;
+        --card-white: #ffffff;
+        --text-dark: #1a1a1a;
+        --radius-xl: 24px;
+        --radius-lg: 18px;
+        --radius-md: 14px;
+        --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.06);
+        --shadow-strong: 0 12px 32px rgba(155, 89, 255, 0.18);
+        /* BLOC 5 — spacing responsive */
+        --space-page-h: clamp(16px, 4vw, 48px);
+        --space-gap: clamp(20px, 3vw, 40px);
+      }
 
       * {
+        margin: 0;
+        padding: 0;
         box-sizing: border-box;
       }
 
       body {
-        margin: 0;
         font-family:
           "Segoe UI",
           system-ui,
           -apple-system,
           sans-serif;
-
-        background: #f8faff; /* fond blanc pro légèrement bleuté */
-        color: #1a1a1a;
+        background: var(--bg-light);
+        color: var(--text-dark);
+        overflow-x: hidden;
+        min-height: 100vh;
       }
-      /* ==========================
-HEADER LAYOUT
-========================== */
-      .top-banner {
-        background: rgba(10, 10, 15, 0.72);
-        padding: 14px 22px;
-
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-
-        position: relative;
-      }
-
-      /* ligne subtile premium */
-      .top-banner::after {
-        content: "";
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 1px;
-
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(122, 95, 255, 0.4),
-          transparent
-        );
-
-        opacity: 0.6;
-      }
-      /* ================================
-ACCENT GLOBAL DÉGRADÉ (STRATÉGIQUE)
-================================ */
 
       body::before {
         content: "";
         position: fixed;
         inset: 0;
         z-index: -1;
-
         background:
           radial-gradient(
             circle at 15% 20%,
-            rgba(79, 124, 255, 0.18),
+            rgba(79, 124, 255, 0.14),
             transparent 45%
           ),
           radial-gradient(
             circle at 85% 25%,
-            rgba(155, 107, 255, 0.16),
+            rgba(155, 107, 255, 0.12),
             transparent 45%
           ),
           radial-gradient(
             circle at 50% 95%,
-            rgba(209, 148, 237, 0.18),
+            rgba(209, 148, 237, 0.14),
             transparent 50%
           );
       }
-      /* ================================
-HEADER (INCHANGÉ MAIS CLEAN)
-================================ */
 
+      /* =====================================
+         HEADER
+      ===================================== */
       .top-banner {
-        background: rgba(10, 10, 15, 0.72);
+        background: rgba(10, 10, 15, 0.78);
         padding: 14px 22px;
-
         display: flex;
         align-items: center;
         justify-content: space-between;
-
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
-
         position: relative;
       }
-
       .top-banner::after {
         content: "";
         position: absolute;
@@ -122,51 +93,35 @@ HEADER (INCHANGÉ MAIS CLEAN)
         left: 0;
         width: 100%;
         height: 1px;
-
         background: linear-gradient(
           90deg,
           transparent,
           rgba(122, 95, 255, 0.4),
           transparent
         );
-
-        opacity: 0.6;
       }
-
       .logo-container {
         display: flex;
         align-items: center;
         gap: 14px;
       }
-
       .logo-img {
         width: 52px;
         transition: transform 0.3s ease;
       }
-
       .logo-container:hover .logo-img {
         transform: translateY(-1px) scale(1.04);
       }
-
       .logo-text {
         font-size: 28px;
         font-weight: 700;
-
         background: linear-gradient(270deg, #659cef, #d194ed, #8fbafc);
         background-size: 400% 400%;
-
         -webkit-background-clip: text;
         background-clip: text;
-
-        color: transparent; /* au lieu de -webkit-text-fill-color */
-
+        color: transparent;
         animation: gradientBG 30s ease infinite;
       }
-
-      /* ================================
-ANIMATION
-================================ */
-
       @keyframes gradientBG {
         0% {
           background-position: 0% 50%;
@@ -179,43 +134,35 @@ ANIMATION
         }
       }
 
-      /* ================================
-MENU FLOTTANT (SIGNATURE FIXÉE)
-================================ */
-
+      /* =====================================
+         MENU FLOTTANT
+      ===================================== */
       .menu-toggle {
         position: fixed;
         top: 90px;
         left: 20px;
-
-        width: 56px;
-        height: 56px;
-
-        border-radius: 50%;
+        width: 50px;
+        height: 50px;
         border: none;
+        border-radius: 50%;
         cursor: pointer;
-
         background: linear-gradient(135deg, #4f7cff, #9b6bff);
-        color: white;
-
-        font-size: 24px;
-
+        color: #fff;
+        font-size: 22px;
         display: flex;
         align-items: center;
         justify-content: center;
-
         z-index: 3000;
-
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-
-        transition: all 0.25s ease;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+        transition: 0.25s ease;
       }
-
       .menu-toggle:hover {
         transform: translateY(-3px) scale(1.05);
       }
 
-      /* ===== SIDEBAR ===== */
+      /* =====================================
+         SIDEBAR
+      ===================================== */
       .sidebar {
         position: fixed;
         top: 0;
@@ -228,12 +175,13 @@ MENU FLOTTANT (SIGNATURE FIXÉE)
         transition: transform 0.35s ease;
         z-index: 2000;
         padding: 20px;
-        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
       }
       .sidebar.open {
         transform: translateX(0);
       }
-      .sidebar .close-btn {
+      .close-btn {
         position: absolute;
         top: 15px;
         right: 15px;
@@ -245,22 +193,24 @@ MENU FLOTTANT (SIGNATURE FIXÉE)
         margin-bottom: 30px;
         font-size: 20px;
       }
-      .sidebar ul {
+      .menu-links {
         list-style: none;
-        padding: 0;
       }
-      .sidebar ul li {
+      .menu-links li {
         margin-bottom: 20px;
       }
-      .sidebar ul li a {
+      .menu-links a {
         color: #fff;
         text-decoration: none;
         font-size: 16px;
       }
-      .sidebar ul li a:hover {
+      .menu-links a:hover {
         text-decoration: underline;
       }
-
+      .menu-bottom {
+        margin-top: auto;
+        padding-top: 20px;
+      }
       .sidebar-overlay {
         position: fixed;
         inset: 0;
@@ -271,313 +221,682 @@ MENU FLOTTANT (SIGNATURE FIXÉE)
       .sidebar-overlay.active {
         display: block;
       }
-      .sidebar {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-      }
-
-      .menu-links {
-        list-style: none;
-        padding: 0;
-      }
-
-      .menu-bottom {
-        margin-top: auto;
-        padding: 20px;
-      }
-
       .home-link {
         display: flex;
         align-items: center;
         gap: 10px;
         text-decoration: none;
         color: inherit;
-        transition:
-          transform 0.3s ease,
-          opacity 0.3s ease;
+        transition: 0.3s ease;
       }
-
-      /* --- Animation porte --- */
-      .home-link svg {
-        transition: transform 0.4s ease;
-        transform-origin: left center; /* charnière côté gauche */
-      }
-
-      /* --- Animation flèche (3e path du SVG) --- */
-      .home-link svg path:last-child {
-        transition: transform 0.3s ease;
-      }
-
-      /* --- Hover --- */
       .home-link:hover {
         transform: translateX(4px);
       }
 
-      .home-link:hover svg {
-        transform: rotateY(-20deg); /* ouverture légère */
-      }
-
-      .home-link:hover svg path:last-child {
-        transform: translateX(-3px); /* flèche qui rentre un peu plus */
-      }
-
-      /* ================================
-LAYOUT
-================================ */
-
+      /* =====================================
+         BLOC 5 — LAYOUT PRINCIPAL (grid + clamp)
+      ===================================== */
       .content-wrapper {
-        max-width: 1200px;
-        margin: 70px auto 120px auto;
-        padding: 0 20px;
+        max-width: 1280px;
+        margin: 80px auto 140px;
+        padding: 0 var(--space-page-h);
       }
 
+      /* BLOC 3 — PAGE HEADER avec KPIs inline */
+      .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 36px;
+      }
+      .page-header-left {
+        flex: 1;
+      }
       .section-title {
         font-size: 26px;
-        font-weight: 700;
-        margin-bottom: 40px;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 6px;
+      }
+      .section-subtitle {
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 400;
       }
 
-      /* ================================
-LAYOUT GRAPHIQUE
-================================ */
-
-      .compat-layout {
+      /* BLOC 3 — KPI chips (remplace page-stat-badge) */
+      .kpi-chips {
         display: flex;
-        gap: 40px;
-        align-items: stretch;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      .kpi-chip {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.07);
+        border-radius: var(--radius-md);
+        padding: 10px 18px;
+        min-width: 110px;
+        box-shadow: var(--shadow-soft);
+        animation: fadeInChip 0.6s ease-out both;
+      }
+      .kpi-chip:nth-child(1) {
+        animation-delay: 0.1s;
+      }
+      .kpi-chip:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .kpi-chip:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      @keyframes fadeInChip {
+        from {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .kpi-chip-label {
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 4px;
+      }
+      .kpi-chip-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1;
+      }
+      .kpi-chip-value span {
+        font-size: 12px;
+        font-weight: 400;
+        color: #94a3b8;
+        margin-left: 2px;
       }
 
-      /* ================================
-GRAPHIQUE (BOOST PREMIUM)
-================================ */
+      /* BLOC 1 — COMPAT LAYOUT : grid 2 colonnes */
+      .compat-layout {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: var(--space-gap);
+        align-items: start;
+      }
 
+      /* =====================================
+         GRAPH CONTAINER
+      ===================================== */
       .graph-container {
-        flex: 1.2;
-
-        background: linear-gradient(180deg, #ffffff 0%, #f6f9ff 100%);
-
-        border-radius: 26px;
-        padding: 26px;
-
-        box-shadow:
-          0 20px 60px rgba(0, 0, 0, 0.08),
-          0 0 0 1px rgba(79, 124, 255, 0.06);
-
+        background: var(--card-white);
+        border-radius: var(--radius-xl);
+        padding: 32px;
         position: relative;
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow-soft);
         overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.05);
       }
-      /* dégradé subtil intégré */
       .graph-container::before {
         content: "";
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        height: 22px;
-
-        background: linear-gradient(90deg, #4f7cff, #9b6bff, #d194ed);
-
-        border-top-left-radius: 26px;
-        border-top-right-radius: 26px;
+        height: 4px;
+        background: var(--secondary-grad);
       }
       .graph-container h3 {
-        margin-bottom: 30px;
+        margin-bottom: 28px;
+        color: #1e293b;
+        font-weight: 700;
+        font-size: 1.25rem;
       }
-
-      canvas {
+      #graphTitle {
+        transition: all 0.4s ease;
+        position: relative;
+        display: inline-block;
+      }
+      #graphTitle::after {
+        content: "";
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        width: 36px;
+        height: 3px;
+        background: var(--primary-grad);
+        border-radius: 10px;
+      }
+      .chart-wrapper {
+        position: relative;
         width: 100%;
-        max-height: 420px;
-
-        filter: drop-shadow(0 12px 25px rgba(79, 124, 255, 0.15));
+        max-width: 520px;
+        margin: auto;
       }
-      /* ================================
-HEADER STATS CENTRÉ PREMIUM
-================================ */
+      canvas {
+        width: 100% !important;
+        transition: opacity 0.2s ease;
+      }
 
-      .stats-header-centered {
-        text-align: center;
+      /* =====================================
+         BLOC 1 — TABS redesignés
+      ===================================== */
+      .tabs-container {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
 
-        background: linear-gradient(135deg, #4f7cff, #9b6bff, #d194ed);
-        color: white;
+      .tab {
+        padding: 18px 20px;
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.07);
+        box-shadow: var(--shadow-soft);
+        transition: all 0.25s ease;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        text-decoration: none;
+      }
+      .tab:hover {
+        transform: translateX(5px);
+        border-color: rgba(155, 89, 255, 0.3);
+        box-shadow: 0 6px 20px rgba(155, 89, 255, 0.1);
+      }
+      .tab.active {
+        border: 1.5px solid rgba(155, 89, 255, 0.5);
+        background: linear-gradient(
+          135deg,
+          rgba(155, 89, 255, 0.07),
+          rgba(255, 113, 205, 0.05)
+        );
+        box-shadow: 0 8px 24px rgba(155, 89, 255, 0.12);
+        transform: none;
+      }
 
-        padding: 22px 20px;
-        border-radius: 20px;
+      /* Icône tab */
+      .tab-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+        transition: background 0.25s ease;
+      }
+      .tab.active .tab-icon {
+        background: linear-gradient(135deg, #9b59ff, #ff71cd);
+      }
 
-        margin-bottom: 35px;
+      /* Texte tab */
+      .tab-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .tab-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e293b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tab-sub {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 2px;
+        font-weight: 400;
+      }
+      .tab.active .tab-name {
+        color: #7c3aed;
+      }
 
-        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+      /* Chevron */
+      .tab-arrow {
+        font-size: 18px;
+        color: #cbd5e1;
+        flex-shrink: 0;
+        transition:
+          transform 0.2s ease,
+          color 0.2s ease;
+      }
+      .tab:hover .tab-arrow {
+        transform: translateX(3px);
+      }
+      .tab.active .tab-arrow {
+        color: #9b59ff;
+      }
 
+      /* =====================================
+         BLOC 2 — SCORE CARDS (pro-card-tile)
+      ===================================== */
+      #criteriaScoreCards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 14px;
+        margin-top: 28px;
+        width: 100%;
+      }
+
+      .pro-card-tile {
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.07);
+        padding: 16px 14px;
+        border-radius: var(--radius-lg);
+        transition: all 0.25s ease;
         position: relative;
         overflow: hidden;
+        text-align: center;
       }
-
-      /* petite ligne décorative en haut */
-      .stats-header-centered::before {
+      /* Liseré top signature */
+      .pro-card-tile::before {
         content: "";
         position: absolute;
         top: 0;
         left: 0;
-        height: 4px;
-        width: 100%;
-        background: rgba(255, 255, 255, 0.25);
+        right: 0;
+        height: 3px;
+        background: var(--primary-grad);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      }
+      .pro-card-tile:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(155, 89, 255, 0.12);
+        border-color: rgba(155, 89, 255, 0.25);
       }
 
-      .stats-title-centered {
-        font-size: 22px;
-        font-weight: 700;
-        letter-spacing: 0.4px;
-      }
-
-      .stats-subtitle {
-        margin-top: 6px;
-        font-size: 14px;
-        font-weight: 500;
-        opacity: 0.9;
-      }
-
-      /* ================================
-TABS (UPGRADE VISUEL)
-================================ */
-
-      .tabs-container {
-        flex: 0.6;
-        display: flex;
-        flex-direction: column;
-        gap: 25px;
-      }
-
-      .tab {
-        padding: 28px 30px;
-        border-radius: 22px;
-        cursor: pointer;
-
+      .pro-card-tile .card-label {
+        font-size: 10px;
+        color: #94a3b8;
         font-weight: 600;
-        font-size: 16px;
-
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-
-        color: #2a2a2a;
-
-        background: white;
-
-        border: 1px solid rgba(0, 0, 0, 0.06);
-
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-
-        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        margin-bottom: 8px;
+      }
+      .pro-card-tile .card-score {
+        font-size: 26px;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1;
+      }
+      .pro-card-tile .card-score-sub {
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 400;
+      }
+      /* Barre de progression */
+      .pro-card-tile .card-bar {
+        height: 4px;
+        background: #f1f5f9;
+        border-radius: 10px;
+        margin: 10px 0 8px;
+        overflow: hidden;
+      }
+      .pro-card-tile .card-bar-fill {
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.8s ease;
+      }
+      .pro-card-tile .card-level {
+        font-size: 11px;
+        font-weight: 600;
       }
 
-      .tab:hover {
-        transform: translateX(8px);
-      }
-
-      /* ACTIVE → GRADIENT SIGNATURE */
-      .tab.active {
-        color: white;
-
-        background: linear-gradient(135deg, #4f7cff, #9b6bff, #d194ed);
-
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-      }
-
-      .tab::after {
-        content: "›";
-        font-size: 22px;
-        opacity: 0.8;
-      }
-
-      /* ================================
-FOOTER (INCHANGÉ)
-================================ */
-
+      /* =====================================
+         FOOTER
+      ===================================== */
       .bottom-banner {
         text-align: center;
         padding: 16px;
-
         background: rgba(0, 0, 0, 0.65);
-
+        color: #fff;
         font-size: 14px;
-
         border-top: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      /* ACTIONS graphique */
+
+      .chart-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 520px;
+        margin: auto;
+        padding-bottom: 70px;
+      }
+
+      .chart-actions {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .pro-btn,
+      .pro-select {
+        height: 42px;
+        border: none;
+        border-radius: 14px;
+        padding: 0 16px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.25s ease;
+      }
+
+      .pro-btn {
+        background: linear-gradient(135deg, #9b59ff, #ff71cd);
+        color: white;
+        box-shadow: 0 8px 20px rgba(155, 89, 255, 0.22);
+      }
+
+      .pro-btn:hover {
+        transform: translateY(-2px);
+      }
+
+      .pro-btn.ghost {
+        background: white;
+        color: #7c3aed;
+        border: 1px solid rgba(155, 89, 255, 0.18);
+        box-shadow: none;
+      }
+
+      .pro-select {
+        background: white;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        color: #334155;
+      }
+
+      /* INSIGHTS */
+
+      #insightsBox {
+        margin-top: 22px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .insight {
+        background: linear-gradient(
+          135deg,
+          rgba(155, 89, 255, 0.05),
+          rgba(255, 113, 205, 0.03)
+        );
+        border: 1px solid rgba(155, 89, 255, 0.09);
+        border-radius: 18px;
+        padding: 14px 16px;
+      }
+
+      .insight-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+        margin-bottom: 6px;
+      }
+
+      .insight-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: #0f172a;
+        line-height: 1.5;
+      }
+      .graph-shell {
+        background: #ffffff;
+        border-radius: 28px;
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+      }
+
+      .graph-shell:before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          circle at top right,
+          rgba(155, 89, 255, 0.18),
+          transparent 35%
+        );
+        pointer-events: none;
+      }
+
+      .graph-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+      }
+
+      .graph-topbar h3 {
+        color: #fff;
+        font-size: 1.1rem;
+      }
+
+      .graph-tools {
+        display: flex;
+        gap: 10px;
+      }
+
+      .icon-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #111;
+        color: #fff;
+        cursor: pointer;
+        transition: 0.25s;
+      }
+
+      .icon-btn:hover {
+        transform: translateY(-2px);
+        background: #181818;
+      }
+
+      .chart-stage {
+        min-height: 520px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.35s;
+      }
+
+      .chart-stage canvas {
+        max-width: 100%;
+        max-height: 100%;
+        animation: fadein 0.45s ease;
+      }
+
+      .filters-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+      }
+
+      .filters-row select {
+        height: 44px;
+        padding: 0 14px;
+        border-radius: 14px;
+        background: #101010;
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: 0.25s;
+      }
+
+      .filters-row select:focus {
+        outline: none;
+        border-color: #9b59ff;
+      }
+
+      .details-menu {
+        position: absolute;
+        top: 72px;
+        right: 22px;
+        background: #0b0b0b;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        padding: 8px;
+        display: none;
+        min-width: 220px;
+        z-index: 20;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+      }
+
+      .details-menu.open {
+        display: block;
+        animation: fadein 0.18s ease;
+      }
+
+      .details-menu button {
+        width: 100%;
+        text-align: left;
+        padding: 12px 14px;
+        background: transparent;
+        border: none;
+        color: #fff;
+        border-radius: 12px;
+        cursor: pointer;
+      }
+
+      .details-menu button:hover {
+        background: rgba(155, 89, 255, 0.14);
+      }
+
+      .graph-shell.fullscreen {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        border-radius: 0;
+        background: #050505;
+        padding: 20px;
+
+        display: flex;
+        flex-direction: column;
+      }
+      .chart-stage {
+        flex: 1;
+        min-height: 0;
+      }
+      .graph-shell.fullscreen #graphTitle {
         color: white;
       }
 
-      /* ================================
-HOME LINK
-================================ */
-
-      .home-link {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-        color: inherit;
-        transition: transform 0.3s ease;
+      @keyframes fadein {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
       }
 
-      .home-link svg {
-        transition: transform 0.4s ease;
-      }
-
-      .home-link:hover {
-        transform: translateX(4px);
-      }
-
-      .home-link:hover svg {
-        transform: rotateY(-20deg);
-      }
-
-      /* ================================
-RESPONSIVE
-================================ */
-
-      @media (max-width: 768px) {
+      /* =====================================
+         BLOC 5 — RESPONSIVE
+      ===================================== */
+      @media (max-width: 900px) {
         .compat-layout {
-          flex-direction: column;
+          grid-template-columns: 1fr;
         }
-
-        .graph-container {
-          padding: 18px;
+        .tabs-container {
+          flex-direction: row;
+          overflow-x: auto;
+          padding-bottom: 8px;
+          gap: 10px;
         }
-
-        canvas {
-          max-height: 300px !important;
+        .tab {
+          flex: 0 0 auto;
+          min-width: 160px;
+          padding: 14px 16px;
+        }
+        .tab-sub {
+          display: none;
+        }
+      }
+      @media (max-width: 900px) {
+        .chart-stage {
+          height: 320px; /* PAS 60vh */
+        }
+      }
+      @media (max-width: 400px) {
+        .chart-stage {
+          height: 260px;
         }
       }
 
-      @media (max-width: 480px) {
+      @media (max-width: 600px) {
+        .page-header {
+          flex-direction: column;
+          gap: 16px;
+        }
+        .kpi-chips {
+          width: 100%;
+        }
+        .kpi-chip {
+          flex: 1;
+          min-width: 90px;
+        }
         .graph-container {
-          padding: 14px;
+          padding: 20px 16px;
+        }
+        .logo-text {
+          font-size: 20px;
+        }
+        .menu-toggle {
+          top: 20px;
+          left: 15px;
+        }
+        #criteriaScoreCards {
+          grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+          gap: 10px;
+        }
+      }
+
+      @media (max-width: 400px) {
+        .logo-img {
+          width: 40px;
+        }
+      }
+      @media (max-width: 900px) {
+        .graph-shell {
+          padding: 16px;
         }
 
-        canvas {
-          max-height: 240px !important;
+        .chart-wrapper {
+          max-width: 100%;
         }
       }
     </style>
   </head>
 
   <body>
-    <!-- ===== BOUTON MENU FLOTTANT ===== -->
     <button class="menu-toggle" id="openSidebar">☰</button>
 
-    <!-- ===== SIDEBAR ===== -->
     <nav id="sidebar" class="sidebar">
       <span class="close-btn" id="closeSidebar">&times;</span>
       <h2>Menu</h2>
-
-      <!-- Liens principaux -->
       <ul class="menu-links">
         <li><a href="profil.html">Profil & Compte</a></li>
         <li><a href="messagerie.html">Messagerie</a></li>
         <li><a href="favoris.html">Profils favoris</a></li>
         <li><a href="statistiques.html">Statistiques</a></li>
       </ul>
-
-      <!-- Retour accueil placé tout en bas -->
       <div class="menu-bottom">
         <a href="accueil.html" class="home-link">
           <svg
@@ -591,10 +910,8 @@ RESPONSIVE
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <!-- Porte -->
             <path d="M3 21h18"></path>
             <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"></path>
-            <!-- Flèche qui rentre -->
             <path d="M12 11l-3 3 3 3"></path>
           </svg>
           <span><i>Retour à l'accueil</i></span>
@@ -603,6 +920,7 @@ RESPONSIVE
     </nav>
 
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
     <header class="top-banner">
       <div class="logo-container">
         <img src="images/logo.png" class="logo-img" />
@@ -611,24 +929,85 @@ RESPONSIVE
     </header>
 
     <main class="content-wrapper">
-      <div class="section-title">Compatibilité des Matchs</div>
-
-      <div class="compat-layout">
-        <!-- CONTAINER UNIQUE QUI CHANGERA DE CONTENU -->
-        <div class="graph-container" id="mainGraphContainer">
-          <h3 id="graphTitle">Répartition des compatibilités</h3>
-          <canvas id="dynamicChart"></canvas>
+      <!-- BLOC 3 — PAGE HEADER + KPI chips -->
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="section-title">Analyse de Compatibilité</div>
+          <div class="section-subtitle">
+            Vue d'ensemble de vos matchs immobiliers
+          </div>
         </div>
-        <!-- BANDES À DROITE -->
-        <div class="tabs-container">
-          <div class="tab active" data-view="repartition">
-            Répartition des profils
+        <div class="kpi-chips">
+          <div class="kpi-chip">
+            <div class="kpi-chip-label">Matchs analysés</div>
+            <div class="kpi-chip-value"><span id="matchCounter">0</span></div>
+          </div>
+          <div class="kpi-chip">
+            <div class="kpi-chip-label">Compat. moyenne</div>
+            <div class="kpi-chip-value">
+              <span id="avgCompat">—</span><span>%</span>
+            </div>
+          </div>
+          <div class="kpi-chip">
+            <div class="kpi-chip-label">Meilleur profil</div>
+            <div class="kpi-chip-value">
+              <span id="topCompat">—</span><span>%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOC 1 — COMPAT LAYOUT grid -->
+      <div class="compat-layout">
+        <!-- Graphique principal -->
+
+        <div class="graph-shell" id="mainGraphContainer">
+          <div class="graph-topbar">
+            <h3 id="graphTitle">Analyse stratégique</h3>
+
+            <div class="graph-tools">
+              <button id="focusMode" class="icon-btn">👁</button>
+              <button id="detailsMenuBtn" class="icon-btn">⋮</button>
+            </div>
           </div>
 
-          <div class="tab" data-view="profil">Compatibilité par profil</div>
+          <div class="chart-stage" id="chartStage">
+            <canvas id="dynamicChart"></canvas>
+          </div>
 
-          <div class="tab" data-view="criteres">Compatibilité par critères</div>
+          <div class="filters-row" id="chartActions">
+            <select id="scoreFilter">
+              <option value="0">Tous scores</option>
+              <option value="40">40%+</option>
+              <option value="60">60%+</option>
+              <option value="80">80%+</option>
+            </select>
+
+            <select id="cityFilter">
+              <option value="all">Toutes villes</option>
+            </select>
+
+            <select id="typeFilter">
+              <option value="all">Tous biens</option>
+            </select>
+          </div>
+
+          <div class="details-menu" id="detailsMenu">
+            <button data-action="png">Exporter PNG</button>
+            <button data-action="csv">Exporter CSV</button>
+            <button data-action="refresh">Actualiser données</button>
+            <button data-action="pro">Vue avancée Pro</button>
+          </div>
+
+          <div id="insightsBox"></div>
+
+          <!-- boutons invisibles gardés pour JS export -->
+          <button id="exportPNG" hidden></button>
+          <button id="exportCSV" hidden></button>
         </div>
+
+        <!-- BLOC 1 — TABS avec icône + sous-titre (générés en JS) -->
+        <div class="tabs-container" id="tabsContainer"></div>
       </div>
     </main>
 

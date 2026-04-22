@@ -5,7 +5,12 @@ let centralEl; // Élément central pour le diagnostic
 let tabsEls; // Tous les onglets
 let globalStatsCache; // Cache des stats récupérées
 let currentTab = "global"; // Onglet courant
-let mapInstance; // Instance de la carte Leaflet
+let mapInstance;
+
+/* ===== MOBILE HELPERS ===== */
+const isMobileReco = () => window.innerWidth <= 900;
+const isMobile = () => window.innerWidth <= 900;
+const isSmallMobile = () => window.innerWidth <= 640; // Instance de la carte Leaflet
 async function fetchAIAnalysis(prompt, data) {
   try {
     const tokenRaw = localStorage.getItem("agent_user");
@@ -33,9 +38,9 @@ async function fetchAIAnalysis(prompt, data) {
 function buildAIFrontPrompt(matches, criteriaOrder = CRITERIA_ORDER) {
   let prompt =
     "Tu es un expert analyste immobilier. Analyse les 30 meilleurs biens :\n\n";
+  prompt += `Données: ${JSON.stringify(matches)}\n\n`;
   criteriaOrder.forEach((crit) => {
     prompt += `Critère: ${crit}\n`;
-    prompt += `Données: ${JSON.stringify(matches)}\n`;
     prompt +=
       "Rédige un paragraphe clair, structuré avec analyse et recommandations pour ce critère.\n\n";
   });
@@ -207,7 +212,8 @@ function analyzeMatches(matches, userCriteria, role = "buyer") {
     }
 
     /* --- Cartes d'Analyse (Staggered Animation) --- */
-    .analysis-card {
+    .analysis-card,
+.mobile-card {
       background: #ffffff;
       padding: 1.5rem;
       border-radius: 12px;
@@ -218,6 +224,9 @@ function analyzeMatches(matches, userCriteria, role = "buyer") {
       animation: fadeInUp 0.5s ease forwards;
       opacity: 0; /* Géré par l'animation */
     }
+      .mobile-card{
+  animation:fadeInUp .35s ease forwards;
+}
 
     .analysis-card:hover {
       transform: translateX(5px);
@@ -613,12 +622,25 @@ async function switchTab(tabName) {
   if (!tabsEls) return;
 
   tabsEls.forEach((t) => t.classList.remove("active"));
+
   const selected = document.querySelector(`.reco-tab[data-tab='${tabName}']`);
+
   if (selected) selected.classList.add("active");
 
-  await updateCentralContent();
-}
+  /* MOBILE = vrai mode app */
+  if (isMobileReco()) {
+    document.body.classList.add("mobile-tab-open");
 
+    if (tabName === "global") {
+      document.body.classList.remove("mobile-tab-open");
+    }
+  }
+  await updateCentralContent();
+
+  if (isMobileReco()) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
 /* =======================================================
 LANGUAGETOOL - CORRECTION GRAMMAIRE / ORTHOGRAPHE
 ======================================================= */
@@ -696,7 +718,11 @@ async function updateCentralContent(role = "buyer") {
       <div class="loader-container">
         <div class="custom-spinner"></div>
         <p style="margin-top:1.2rem; color:#4a5568; font-weight:500; font-size:0.95rem;">
-          Intelligence Artificielle en cours d'analyse sur ${analysisCount} profils...
+          ${
+            isMobileReco()
+              ? `Analyse IA de ${analysisCount} profils...`
+              : `Intelligence Artificielle en cours d'analyse sur ${analysisCount} profils...`
+          }
         </p>
       </div>`;
 
@@ -748,7 +774,7 @@ async function updateCentralContent(role = "buyer") {
         const badgeLabel = `Analyse critère : ${criterionKey}`;
 
         return `
-        <div class="analysis-card">
+<div class="analysis-card ${isMobileReco() ? "mobile-card" : ""}">
           <span class="criterion-badge">${badgeLabel}</span>
           <p><span>${cleanText}</span></p>
         </div>
@@ -770,8 +796,16 @@ async function updateCentralContent(role = "buyer") {
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="url(#grad1)"/>
       </svg>`;
 
-    centralEl.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; border-bottom: 1px solid #edf2f7; padding-bottom: 1rem;">
+    centralEl.innerHTML = `<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:10px;
+flex-wrap:${isMobileReco() ? "wrap" : "nowrap"};
+margin-bottom:${isMobileReco() ? "1rem" : "1.5rem"};
+border-bottom:1px solid #edf2f7;
+padding-bottom:1rem;
+">
         <h4 style="margin:0; display:flex; align-items:center; font-weight:700;">
           ${minimalReportSVG} Diagnostic stratégique
         </h4>
@@ -784,6 +818,12 @@ async function updateCentralContent(role = "buyer") {
   } else if (currentTab === "criteria") {
     centralEl.innerHTML = generateCriteriaHTML(matchesToAnalyze);
     updateMap(matchesToAnalyze);
+
+    if (isMobileReco() && mapInstance) {
+      setTimeout(() => {
+        mapInstance.invalidateSize();
+      }, 250);
+    }
   } else if (currentTab === "actions") {
     centralEl.innerHTML = generateSuggestionsHTML(matchesToAnalyze);
   }
@@ -972,7 +1012,11 @@ function initMap() {
   var mapContainer = document.getElementById("criteria-map");
   if (!mapContainer) return;
 
-  mapInstance = L.map(mapContainer).setView([48.8566, 2.3522], 12);
+  mapInstance = L.map(mapContainer, {
+    tap: !isMobileReco(),
+    dragging: true,
+    zoomControl: true,
+  }).setView([48.8566, 2.3522], 12);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap contributors",
   }).addTo(mapInstance);
@@ -1037,3 +1081,19 @@ function capitalize(str) {
 INIT
 ======================================================= */
 document.addEventListener("DOMContentLoaded", initRecommendations);
+document.addEventListener("DOMContentLoaded", () => {
+  initRecommendations();
+
+  tabsEls = document.querySelectorAll(".reco-tab");
+
+  tabsEls.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      switchTab(tab.dataset.tab);
+    });
+  });
+});
+window.addEventListener("resize", () => {
+  if (isMobileReco() && mapInstance) {
+    setTimeout(() => mapInstance.invalidateSize(), 250);
+  }
+});
