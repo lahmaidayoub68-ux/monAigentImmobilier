@@ -243,73 +243,196 @@ function generateBarChart(matches) {
    BARRES HORIZONTALES - Compatibilité par critère
    (Lecture directe de criteriaMatch - fidèle au back)
 ======================================================= */
+/* =======================================================
+   PALETTE NIVEAUX
+======================================================= */
+const LEVEL_COLOR = {
+  perfect: "#10b981", // vert
+  close: "#3b82f6", // bleu
+  tolerated: "#f59e0b", // orange
+  weak: "#f97316", // orange foncé
+  out: "#ef4444", // rouge
+  none: "#9ca3af", // gris
+};
+
+const LEVEL_LABEL = {
+  perfect: "Parfait",
+  close: "Proche",
+  tolerated: "Toléré",
+  weak: "Faible",
+  out: "Hors critère",
+  none: "Non défini",
+};
+
+/* =======================================================
+   HELPER — score moyen d'un critère sur tous les matches
+======================================================= */
+function avgCriteriaScore(matches, key) {
+  const values = matches
+    .map((m) => m.criteriaMatch?.detail?.[key]?.score)
+    .filter((v) => v != null);
+  if (!values.length) return null;
+  return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+}
+
+/* =======================================================
+   HELPER — distribution des niveaux pour un critère
+======================================================= */
+function levelDistribution(matches, key) {
+  const dist = { perfect: 0, close: 0, tolerated: 0, weak: 0, out: 0, none: 0 };
+  matches.forEach((m) => {
+    const level = m.criteriaMatch?.detail?.[key]?.level ?? "none";
+    dist[level] = (dist[level] || 0) + 1;
+  });
+  return dist;
+}
+
+/* =======================================================
+   GRAPHIQUE CRITÈRES — barres empilées par niveau
+======================================================= */
 function generateHorizontalBarChart(matches) {
   destroyCurrentChart();
 
   const ctx = getCanvasContext();
   const total = matches.length;
+  if (!total) return;
 
-  const stats = {
-    ville: 0,
-    budget: 0,
-    pieces: 0,
-    surface: 0,
-  };
-
-  matches.forEach((m) => {
-    if (!m.criteriaMatch) return;
-
-    if (m.criteriaMatch.ville) stats.ville++;
-    if (m.criteriaMatch.budget) stats.budget++;
-    if (m.criteriaMatch.pieces) stats.pieces++;
-    if (m.criteriaMatch.surface) stats.surface++;
-  });
-
-  const labels = ["Ville", "Prix / Budget", "Pièces", "Surface"];
-  const data = [
-    Math.round((stats.ville / total) * 100),
-    Math.round((stats.budget / total) * 100),
-    Math.round((stats.pieces / total) * 100),
-    Math.round((stats.surface / total) * 100),
+  const criteria = [
+    { key: "budget", label: "Budget" },
+    { key: "ville", label: "Localisation" },
+    { key: "pieces", label: "Pièces" },
+    { key: "surface", label: "Surface" },
+    { key: "type", label: "Type de bien" },
+    { key: "dpe", label: "DPE" },
+    { key: "etat", label: "État du bien" },
+    { key: "photos", label: "Photos" },
   ];
+
+  const levels = ["perfect", "close", "tolerated", "weak", "out"];
+
+  const datasets = levels.map((level) => ({
+    label: LEVEL_LABEL[level],
+    data: criteria.map(({ key }) => {
+      const dist = levelDistribution(matches, key);
+      return Math.round((dist[level] / total) * 100);
+    }),
+    backgroundColor: LEVEL_COLOR[level],
+    borderRadius: 4,
+    borderSkipped: false,
+  }));
 
   currentChartInstance = new Chart(ctx, {
     type: "bar",
     data: {
-      labels,
-      datasets: [
-        {
-          label: "Compatibilité (%)",
-          data,
-          backgroundColor: ["#6aace5", "#f59e0b", "#10b981", "#f43f5e"],
-        },
-      ],
+      labels: criteria.map((c) => c.label),
+      datasets,
     },
     options: {
       indexAxis: "y",
       responsive: true,
       scales: {
         x: {
+          stacked: true,
           beginAtZero: true,
           max: 100,
-          title: { display: true, text: "Compatibilité (%)" },
+          title: { display: true, text: "Répartition des profils (%)" },
+          ticks: { callback: (v) => `${v}%` },
         },
-        y: { title: { display: false } },
+        y: { stacked: true },
       },
       plugins: {
-        legend: { display: false },
+        legend: {
+          position: "bottom",
+          labels: { usePointStyle: true, pointStyle: "rectRounded" },
+        },
         tooltip: {
           callbacks: {
+            title: (items) => items[0].label,
             label: (ctx) => {
-              const percentage = ctx.raw;
-              return `Compatibilité sur ce critère: ${percentage}% des profils`;
+              const levelKey = levels[ctx.datasetIndex];
+              const criteriaKey = criteria[ctx.dataIndex].key;
+              const dist = levelDistribution(matches, criteriaKey);
+              const count = dist[levelKey] ?? 0;
+              return ` ${LEVEL_LABEL[levelKey]} : ${ctx.raw}% (${count} profil${count > 1 ? "s" : ""})`;
+            },
+            afterBody: (items) => {
+              const criteriaKey = criteria[items[0].dataIndex].key;
+              const avg = avgCriteriaScore(matches, criteriaKey);
+              return avg != null ? [`Score moyen : ${avg}/100`] : [];
             },
           },
         },
       },
-      animation: { duration: 1000, easing: "easeOutQuad" },
+      animation: { duration: 1000, easing: "easeOutQuart" },
     },
   });
+
+  // Inject scorecard sous le canvas
+  renderCriteriaScoreCards(matches, criteria);
+}
+
+/* =======================================================
+   SCORECARDS sous le graphique
+======================================================= */
+function renderCriteriaScoreCards(matches, criteria) {
+  const existing = document.getElementById("criteriaScoreCards");
+  if (existing) existing.remove();
+
+  const container = document.createElement("div");
+  container.id = "criteriaScoreCards";
+  container.style.cssText = `
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: center;
+  `;
+
+  criteria.forEach(({ key, label }) => {
+    const avg = avgCriteriaScore(matches, key);
+    const dist = levelDistribution(matches, key);
+    const topLevel =
+      ["perfect", "close", "tolerated", "weak", "out"].find(
+        (l) => dist[l] > 0,
+      ) ?? "none";
+
+    const color =
+      avg == null
+        ? "#9ca3af"
+        : avg >= 75
+          ? "#10b981"
+          : avg >= 50
+            ? "#3b82f6"
+            : avg >= 25
+              ? "#f59e0b"
+              : "#ef4444";
+
+    const card = document.createElement("div");
+    card.style.cssText = `
+      background: #1e293b;
+      border: 1px solid ${color}44;
+      border-left: 4px solid ${color};
+      border-radius: 10px;
+      padding: 10px 16px;
+      min-width: 130px;
+      text-align: center;
+      flex: 1 1 130px;
+      max-width: 160px;
+    `;
+
+    card.innerHTML = `
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">${label}</div>
+      <div style="font-size:26px;font-weight:700;color:${color}">${avg != null ? avg : "—"}</div>
+      <div style="font-size:11px;color:#64748b">/ 100</div>
+      <div style="margin-top:6px;font-size:11px;color:${LEVEL_COLOR[topLevel] ?? "#9ca3af"}">${LEVEL_LABEL[topLevel]}</div>
+    `;
+
+    container.appendChild(card);
+  });
+
+  // Insérer après le canvas
+  const canvas = document.getElementById("dynamicChart");
+  canvas.parentNode.insertBefore(container, canvas.nextSibling);
 }
 /* =======================================================
    SWITCH VIEW

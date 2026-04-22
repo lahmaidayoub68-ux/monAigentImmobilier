@@ -27,6 +27,7 @@ import {
   normalize,
   SELLERS,
   BUYERS,
+  getStatsMatches,
 } from "./services/matchingEngine.js";
 import { getDepartement } from "./services/matchingEngine.js";
 import { seedProfiles } from "./services/seedProfiles.js";
@@ -260,6 +261,7 @@ piecesmin INTEGER DEFAULT 0,
 piecesmax INTEGER DEFAULT 100,
 surfacemin REAL DEFAULT 0,
 surfacemax REAL DEFAULT 1000,
+tolerancekm REAL DEFAULT NULL,
 etatbien TEXT DEFAULT '',
 imagesbien TEXT DEFAULT '[]',
 niveauenergetique TEXT DEFAULT '',
@@ -325,6 +327,7 @@ u.niveauenergetique AS "niveauEnergetique",
  u.budgetmin  AS "budgetMin",
  u.piecesmax  AS "piecesMax",
   u.surfacemax AS "surfaceMax",
+u.tolerancekm AS "toleranceKm",
  u.budgetmax  AS "budgetMax"
 FROM users u
 `,
@@ -409,6 +412,7 @@ allUsers.forEach((u) => {
     piecesMin: u.piecesMin ?? null,
     surfaceMin: u.surfaceMin ?? null,
     budgetMin: u.budgetMin ?? null,
+    toleranceKm: u.toleranceKm ?? null,
     etatBien: u.etatBien || "",
     imagesbien: safeImagesParse(u.imagesbien),
     niveauEnergetique: u.niveauEnergetique || "",
@@ -546,6 +550,7 @@ async function upsertProfile(user, normalized) {
     piecesMin: role === "buyer" ? (normalized.piecesMin ?? null) : null,
     surfaceMin: role === "buyer" ? (normalized.surfaceMin ?? null) : null,
     surfaceMax: role === "buyer" ? (normalized.surfaceMax ?? 999) : 0,
+    toleranceKm: role === "buyer" ? (normalized.toleranceKm ?? null) : null,
   };
   console.log(" UPSERT FINAL etatbien:", profileData.etatBien); // ================== MEMORY UPSERT ==================
   if (role === "buyer") {
@@ -617,6 +622,7 @@ async function upsertProfile(user, normalized) {
         piecesmax: profileData.piecesMax,
         surfacemin: profileData.surfaceMin,
         surfacemax: profileData.surfaceMax,
+        tolerancekm: profileData.toleranceKm,
         etatbien: profileData.etatBien,
         imagesbien: JSON.stringify(profileData.imagesbien || []),
         niveauenergetique: profileData.niveauEnergetique ?? null,
@@ -637,6 +643,7 @@ async function upsertProfile(user, normalized) {
         "piecesmax",
         "surfacemin",
         "surfacemax",
+        "tolerancekm",
         "etatbien",
         "imagesbien",
         "niveauenergetique",
@@ -811,6 +818,10 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
 
     const piecesMin = normalizePieces(session.criteria, "min") ?? null;
     const piecesMax = normalizePieces(session.criteria, "max") ?? 999;
+    const toleranceKm =
+      session.role === "buyer"
+        ? Number(session.criteria.toleranceKm ?? 0)
+        : null;
 
     const surfaceMin = normalizeSurface(session.criteria) ?? null;
     const surfaceMax =
@@ -831,7 +842,8 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       piecesMin,
       piecesMax,
       surfaceMin,
-      surfaceMax, // AJOUT ICI
+      surfaceMax,
+      toleranceKm, // AJOUT ICI
 
       // SELLER ONLY
 
@@ -976,6 +988,7 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           piecesMax: normalized.piecesMax,
           surfaceMin: normalized.surfaceMin,
           surfaceMax: normalized.surfaceMax,
+          toleranceKm: normalized.toleranceKm,
         });
       } else {
         // Utiliser les vraies données du seller
@@ -999,7 +1012,11 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
         });
         console.log("DEBUG existingSeller:", existingSeller);
         console.log("DEBUG profile after addSeller:", profile);
+        console.log("🔥 SELLERS BEFORE PUSH:", SELLERS.length);
+
+        console.log("🔥 SELLERS AFTER PUSH:", SELLERS.length);
       }
+
       console.log("🚨 JUST BEFORE UPSERT:", normalized.etatBien);
 
       // ===== UPSERT PROFIL EN DB =====
@@ -1726,15 +1743,13 @@ app.get("/api/stats", authenticateToken, async (req, res) => {
       .get(user.id, user.id, user.id);
     const activeConversations = convoResult?.count || 0;
 
-    // ================== MATCHING (LOGIQUE EXISTANTE) ==================
-    // Buyer
+    // ================== PROFILS EN MÉMOIRE ==================
     const buyerProfiles = BUYERS.filter(
       (b) => b.username === req.user.username,
     );
     const buyerProfile =
       buyerProfiles.length > 0 ? buyerProfiles[buyerProfiles.length - 1] : null;
 
-    // Seller
     const sellerProfiles = SELLERS.filter(
       (s) => s.username === req.user.username,
     );
@@ -1743,11 +1758,13 @@ app.get("/api/stats", authenticateToken, async (req, res) => {
         ? sellerProfiles[sellerProfiles.length - 1]
         : null;
 
+    // ================== MATCHING ==================
     let allMatches = [];
+
     if (buyerProfile) {
-      allMatches = matchUsers(buyerProfile, Number.MAX_SAFE_INTEGER);
+      allMatches = getStatsMatches(buyerProfile, 30);
     } else if (sellerProfile) {
-      allMatches = matchSellerToBuyers(sellerProfile, Number.MAX_SAFE_INTEGER);
+      allMatches = matchSellerToBuyers(sellerProfile, 30);
     }
 
     // ================== SI AUCUN MATCH ==================
@@ -1801,16 +1818,25 @@ app.get("/api/stats", authenticateToken, async (req, res) => {
         lng: m.lng,
         buyerLat: m.buyerLat ?? null,
         buyerLng: m.buyerLng ?? null,
-        price: m.price ?? m.budget ?? 0,
+        price: m.price ?? m.budgetMax ?? 0,
         pieces: m.pieces ?? m.piecesMin ?? 0,
         surface: m.surface ?? m.surfaceMin ?? 0,
         type: m.type,
         ville: m.ville,
+        // criteriaMatch spread complet : detail intact pour le graphique critères
         criteriaMatch: m.criteriaMatch ?? {
-          ville: false,
           budget: false,
+          ville: false,
           pieces: false,
           surface: false,
+          detail: null,
+        },
+        // Dans la réponse res.json() de /api/stats, ajouter :
+        currentUser: {
+          role: buyerProfile ? "buyer" : "seller",
+          ville: buyerProfile?.ville || sellerProfile?.ville || null,
+          budgetMax: buyerProfile?.budgetMax || null,
+          price: sellerProfile?.price || null,
         },
       })),
       topMatch,
@@ -2160,8 +2186,6 @@ ${message}
     res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
 });
-resetProfiles();
-seedProfiles(40);
 // ================== START ==================
 const dbColumns = await db
   .prepare(

@@ -186,43 +186,130 @@ function analyzeMatches(matches, userCriteria, role = "buyer") {
 }
 // =======================================================
 // INJECTION CSS ULTRA-PRO (sobre et lisible)
-// =======================================================
 (function injectProCSS() {
   const style = document.createElement("style");
   style.innerHTML = `
-    #central-diagnostic p {
-      font-size: 1rem;           /* taille de texte standard */
-      line-height: 1.6;          /* interligne agréable */
-      text-align: justify;       /* justifié pour un rendu pro */
-      margin-bottom: 1em;        /* un seul espace entre paragraphes */
-      text-indent: 0.8em;        /* alinéa discret au début */
+    /* --- Animations --- */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    #central-diagnostic span {
-      display: inline;           /* inline pour phrases dans le paragraphe */
+
+    @keyframes spin { 
+      to { transform: rotate(360deg); } 
     }
-    #central-diagnostic b {
-      font-weight: 700;          /* gras pour mots clés seulement */
+
+    /* --- Conteneur Principal --- */
+    #central-diagnostic {
+      color: #2d3748;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 10px;
     }
-    /* Tableaux éventuels */
+
+    /* --- Cartes d'Analyse (Staggered Animation) --- */
+    .analysis-card {
+      background: #ffffff;
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid #edf2f7;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+      animation: fadeInUp 0.5s ease forwards;
+      opacity: 0; /* Géré par l'animation */
+    }
+
+    .analysis-card:hover {
+      transform: translateX(5px);
+      border-color: #cbd5e0;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Delays pour l'effet de cascade (stagger) */
+    .analysis-card:nth-child(1) { animation-delay: 0.1s; }
+    .analysis-card:nth-child(2) { animation-delay: 0.2s; }
+    .analysis-card:nth-child(3) { animation-delay: 0.3s; }
+    .analysis-card:nth-child(4) { animation-delay: 0.4s; }
+    .analysis-card:nth-child(5) { animation-delay: 0.5s; }
+    .analysis-card:nth-child(6) { animation-delay: 0.6s; }
+
+    /* --- Badges de Critères --- */
+    .criterion-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(118, 75, 162, 0.2);
+    }
+
+    /* --- Typographie Interne --- */
+    .analysis-card p {
+      margin: 0 !important;
+      line-height: 1.7;
+      font-size: 0.95rem;
+      text-align: left;
+      color: #4a5568;
+    }
+
+    .analysis-card b {
+      color: #2d3748;
+      background: #f1f5f9;
+      padding: 0 4px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    /* --- Loader Premium --- */
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+
+    .custom-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #9b59ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+
+    /* --- Tableaux (Onglet Critères/Actions) --- */
     .criteria-table {
       width: 100%;
-      border-collapse: collapse;
-      margin-top: 1em;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 1rem;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
     }
-    .criteria-table th, .criteria-table td {
-      padding: 0.5em 0.8em;
-      text-align: left;
-      border-bottom: 1px solid #ddd;
-      font-size: 0.95rem;
-    }
+
     .criteria-table th {
+      background: #f8fafc;
+      padding: 12px;
       font-weight: 700;
-      background-color: #f5f5f5;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      color: #64748b;
+      border-bottom: 1px solid #e2e8f0;
     }
-    .loader {
-      font-size: 1rem;
-      text-align: center;
-      margin: 2em 0;
+
+    .criteria-table td {
+      padding: 12px;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.9rem;
     }
   `;
   document.head.appendChild(style);
@@ -446,10 +533,7 @@ async function fetchStats() {
   try {
     const raw = localStorage.getItem("agent_user");
     if (!raw) throw new Error("Token manquant");
-
-    const user = JSON.parse(raw);
-    const token = user.token;
-    if (!token) throw new Error("Token JWT manquant");
+    const { token } = JSON.parse(raw);
 
     const res = await fetch("/api/stats", {
       headers: { Authorization: "Bearer " + token },
@@ -457,21 +541,17 @@ async function fetchStats() {
     if (!res.ok) throw new Error("Erreur API: " + res.status);
 
     const data = await res.json();
-    return { ...data, top30: data.matches.slice(0, 30) };
+
+    // VERIFICATION : Si le nombre total est inférieur à 20, on renvoie une erreur spécifique
+    if (data.totalMatches < 20) {
+      return { error: "insufficient_data", count: data.totalMatches };
+    }
+
+    return data; // Contient totalMatches, matches, etc.
   } catch (err) {
     console.error("[fetchStats]", err);
     return null;
   }
-}
-
-async function waitForTop30(retries = 5, delayMs = 300) {
-  for (let i = 0; i < retries; i++) {
-    const stats = await fetchStats();
-    if (stats?.top30?.length === 30) return stats;
-    await new Promise((r) => setTimeout(r, delayMs));
-  }
-  console.warn("[waitForTop30] Top30 incomplet après plusieurs tentatives");
-  return null;
 }
 
 /* =======================================================
@@ -482,46 +562,47 @@ INIT RECOMMANDATIONS
 // =======================================================
 async function initRecommendations() {
   centralEl = document.getElementById("central-diagnostic");
-  tabsEls = document.querySelectorAll(".reco-tab");
+  if (!centralEl) return;
 
-  if (!centralEl) {
-    console.error("Élément central-diagnostic introuvable !");
-    return;
+  centralEl.innerHTML = `<div class="loader"></div> Analyse du marché en cours...`;
+
+  globalStatsCache = await fetchStats();
+
+  // --- BLOCAGE SI < 20 MATCHS ---
+  if (globalStatsCache?.error === "insufficient_data") {
+    centralEl.innerHTML = `
+      <div style="padding: 30px; text-align: center; background: #fff5f5; border-radius: 12px; border: 1px solid #feb2b2;">
+        <h3 style="color: #c53030; margin-bottom: 15px;">📊 Constat indisponible</h3>
+        <p style="color: #4a5568; line-height: 1.6;">
+          Le diagnostic automatique nécessite au moins <b>20 profils compatibles</b> pour générer une analyse statistique fiable.
+        </p>
+        <p style="font-size: 1.2rem; font-weight: bold; margin: 15px 0;">
+          Actuellement : <span style="color: #c53030;">${globalStatsCache.count} / 20</span>
+        </p>
+        <p style="font-size: 0.9rem; color: #718096;">
+          💡 <i>Conseil : Essayez d'ajuster vos critères (élargir la zone géographique ou le budget) pour augmenter le nombre de résultats.</i>
+        </p>
+      </div>`;
+
+    // On met quand même à jour l'élément HTML totalMatches s'il existe sur cette page
+    const totalEl = document.getElementById("totalMatches");
+    if (totalEl) totalEl.textContent = globalStatsCache.count;
+
+    return; // On arrête l'initialisation ici
   }
 
-  centralEl.innerHTML = `<div class="loader"></div> Chargement des données...`;
-
-  // Récupérer les stats
-  globalStatsCache = await waitForTop30();
   if (!globalStatsCache) {
-    centralEl.innerHTML = "⚠️ Impossible de récupérer les données.";
+    centralEl.innerHTML = "⚠️ Erreur lors du chargement des statistiques.";
     return;
   }
 
-  // Déterminer le rôle : seller ou buyer
-  const role = globalStatsCache?.userRole || "buyer";
+  // --- SI >= 20, ON CONTINUE NORMALEMENT ---
+  const role = globalStatsCache.userRole || "buyer";
 
-  animateTotalMatches(globalStatsCache.totalMatches || 30);
+  // Mise à jour du texte d'en-tête dynamique
+  animateTotalMatches(globalStatsCache.totalMatches);
 
-  // Affichage initial
-  centralEl.innerHTML = `<p>🧠 Analyse des 30 meilleurs profils prête (${role}).</p>`;
-
-  initMap();
-
-  // Écoute des tabs avec passage du rôle
-  tabsEls.forEach((tab) => {
-    tab.addEventListener("click", async () => {
-      currentTab = tab.dataset.tab;
-
-      tabsEls.forEach((t) => t.classList.remove("active"));
-      tab.classList.add("active");
-
-      await updateCentralContent(role);
-      refreshProgressBars(); // <-- animate bars
-    });
-  });
-
-  // Affichage initial du diagnostic global
+  // Initialisation du contenu
   await updateCentralContent(role);
 }
 /* =======================================================
@@ -595,23 +676,45 @@ UPDATE CENTRAL CONTENT (intégration LanguageTool + variantes)
 /* =======================================================
 UPDATE CENTRAL CONTENT AVEC IA
 ======================================================= */
+/* =======================================================
+UPDATE CENTRAL CONTENT AVEC IA & STRUCTURE PAR CRITÈRES
+======================================================= */
 async function updateCentralContent(role = "buyer") {
   if (!globalStatsCache) return;
 
+  const analysisCount = globalStatsCache.totalMatches || 0;
+  const matchesToAnalyze = globalStatsCache.matches.slice(0, analysisCount);
+
+  if (matchesToAnalyze.length === 0) {
+    centralEl.innerHTML = `<p style="text-align:center; padding:2rem;">Aucune donnée pertinente à analyser pour le moment.</p>`;
+    return;
+  }
+
   if (currentTab === "global") {
-    centralEl.innerHTML = `<div class="loader"></div> Chargement des analyses IA...`;
+    // 1. Loader "Premium"
+    centralEl.innerHTML = `
+      <div class="loader-container">
+        <div class="custom-spinner"></div>
+        <p style="margin-top:1.2rem; color:#4a5568; font-weight:500; font-size:0.95rem;">
+          Intelligence Artificielle en cours d'analyse sur ${analysisCount} profils...
+        </p>
+      </div>`;
 
-    // Préparer le prompt IA
-    const prompt = buildAIFrontPrompt(globalStatsCache.top30, CRITERIA_ORDER);
+    // 2. Préparation et appel IA
+    const prompt = buildAIFrontPrompt(matchesToAnalyze, CRITERIA_ORDER);
+    let rawAiContent = await fetchAIAnalysis(prompt, matchesToAnalyze);
 
-    // Appel à l'IA via OpenRouter
-    let aiText = await fetchAIAnalysis(prompt, globalStatsCache.top30);
+    let paragraphsArray = [];
 
-    // Fallback sur ton ancien système si IA échoue
-    if (!aiText) {
-      console.warn(
-        "[updateCentralContent] IA non disponible, fallback generateDiagnostic",
-      );
+    // 3. Gestion du contenu (IA ou Fallback local)
+    if (rawAiContent) {
+      // Découpage propre par bloc de texte
+      paragraphsArray = rawAiContent
+        .split(/\n{1,2}/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+    } else {
+      console.warn("[updateCentralContent] Fallback vers diagnostic local.");
       const userCriteria =
         role === "buyer"
           ? {
@@ -624,54 +727,65 @@ async function updateCentralContent(role = "buyer") {
               surface: globalStatsCache.userSurface ?? 0,
               pieces: globalStatsCache.userPieces ?? 0,
             };
-      aiText = generateDiagnostic(
-        globalStatsCache.top30,
+
+      // On récupère le tableau de paragraphes générés localement
+      paragraphsArray = generateDiagnostic(
+        matchesToAnalyze,
         userCriteria,
         role,
-      ).join("");
+      );
     }
 
-    // Correction grammaticale / orthographique LanguageTool
-    const corrected = await correctWithLanguageToolPreserveHTML(aiText);
+    // 4. Reconstruction avec structure "Badge + Card"
+    // On s'assure que CRITERIA_ORDER et les paragraphes s'alignent
+    let formattedHTML = paragraphsArray
+      .map((text, index) => {
+        // Nettoyage des balises <p> résiduelles pour garder le contrôle total sur le style
+        const cleanText = text.replace(/<\/?[^>]+(>|$)/g, "");
+
+        // Détermination du nom du critère (Fallback sur "Analyse globale" pour la conclusion)
+        const criterionKey = CRITERIA_ORDER[index] || "Synthèse";
+        const badgeLabel = `Analyse critère : ${criterionKey}`;
+
+        return `
+        <div class="analysis-card">
+          <span class="criterion-badge">${badgeLabel}</span>
+          <p><span>${cleanText}</span></p>
+        </div>
+      `;
+      })
+      .join("");
+
+    // 5. Correction grammaticale finale sur le bloc complet
+    const finalContent =
+      await correctWithLanguageToolPreserveHTML(formattedHTML);
+
     const minimalReportSVG = `
-<svg xmlns="http://www.w3.org/2000/svg"
-     width="24" height="24" viewBox="0 0 24 24"
-     style="vertical-align: middle; margin-right: 6px;">
-  <defs>
-    <linearGradient id="gradientReport" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#9b59ff"/>
-      <stop offset="100%" stop-color="#4e73df"/>
-    </linearGradient>
-  </defs>
-  <!-- Cercle autour -->
-  <circle cx="12" cy="12" r="10" fill="url(#gradientReport)"/>
-  <!-- Trois barres à l'intérieur pour symboliser le constat -->
-  <rect x="9" y="8" width="1.5" height="8" rx="0.3" fill="url(#gradientReport)" />
-  <rect x="12" y="10" width="1.5" height="6" rx="0.3" fill="url(#gradientReport)" />
-  <rect x="15" y="6" width="1.5" height="10" rx="0.3" fill="url(#gradientReport)" />
-</svg>
-`;
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 10px;">
+        <defs>
+          <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#9b59ff"/><stop offset="100%" stop-color="#4e73df"/>
+          </linearGradient>
+        </defs>
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="url(#grad1)"/>
+      </svg>`;
 
-    // Découpage en paragraphes et reconstitution propre
-    const paragraphs = corrected
-      .split(/\n{1,2}/) // sépare les paragraphes par saut de ligne
-      .map((p) => p.trim())
-      .filter(Boolean)
-      .map(
-        (p) =>
-          `<p style="text-indent:0.8em; margin-bottom:1em;"><span>${p}</span></p>`,
-      );
-
-    // Affichage final
     centralEl.innerHTML = `
-  <h4>${minimalReportSVG} Constat global</h4>
-  <div>${paragraphs.join("")}</div>
-`;
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; border-bottom: 1px solid #edf2f7; padding-bottom: 1rem;">
+        <h4 style="margin:0; display:flex; align-items:center; font-weight:700;">
+          ${minimalReportSVG} Diagnostic stratégique
+        </h4>
+        <span style="font-size:0.75rem; font-weight:600; color:#718096; background:#f1f5f9; padding:4px 10px; border-radius:20px;">
+          ${analysisCount} profils traités
+        </span>
+      </div>
+      <div class="ai-content-fade-in">${finalContent}</div>
+    `;
   } else if (currentTab === "criteria") {
-    centralEl.innerHTML = generateCriteriaHTML(globalStatsCache.top30);
-    updateMap(globalStatsCache.top30);
+    centralEl.innerHTML = generateCriteriaHTML(matchesToAnalyze);
+    updateMap(matchesToAnalyze);
   } else if (currentTab === "actions") {
-    centralEl.innerHTML = generateSuggestionsHTML(globalStatsCache.top30);
+    centralEl.innerHTML = generateSuggestionsHTML(matchesToAnalyze);
   }
 }
 //=========================================
@@ -888,10 +1002,27 @@ function updateMap(matches) {
 ANIMATION TOTAL MATCHES
 ======================================================= */
 function animateTotalMatches(total) {
+  const old = document.getElementById("total-matches-header");
+  if (old) old.remove();
+
   const container = document.createElement("div");
-  container.style.cssText =
-    "font-size:24px;font-weight:700;text-align:center;margin-bottom:15px;color:#333";
-  container.innerText = `Analyse des ${total} meilleurs profils (par session)`;
+  container.id = "total-matches-header";
+  container.style.cssText = `
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid #e2e8f0;
+    text-align: center;
+    animation: fadeInUp 0.8s ease;
+  `;
+
+  container.innerHTML = `
+    <span style="color: #718096; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Volume de données</span>
+    <div style="font-size: 2rem; font-weight: 800; color: #1a202c; margin-top: 5px;">
+      ${total} <span style="font-size: 1rem; font-weight: 500; color: #4a5568;">Profils Qualifiés</span>
+    </div>
+  `;
   document.querySelector(".content-wrapper").prepend(container);
 }
 
@@ -906,5 +1037,3 @@ function capitalize(str) {
 INIT
 ======================================================= */
 document.addEventListener("DOMContentLoaded", initRecommendations);
-await updateCentralContent(role);
-refreshProgressBars(); // animate bars sur le contenu initial
