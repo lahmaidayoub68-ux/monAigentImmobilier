@@ -1,204 +1,215 @@
+// ================== LOGIQUE UI & THÈME ==================
+const html = document.documentElement;
+const btnTheme = document.getElementById("btn-theme");
+const sidebar = document.getElementById("sidebar");
+
+// Charger et appliquer le thème sauvegardé immédiatement
+const savedTheme = localStorage.getItem("aigent_theme") || "dark";
+html.setAttribute("data-theme", savedTheme);
+
+if (btnTheme) {
+  btnTheme.addEventListener("click", () => {
+    const current = html.getAttribute("data-theme");
+    const next = current === "dark" ? "light" : "dark";
+    html.setAttribute("data-theme", next);
+    localStorage.setItem("aigent_theme", next);
+  });
+}
+
+// Sidebar logic
+document.getElementById("openSidebar").onclick = () =>
+  sidebar.classList.add("open");
+document.getElementById("closeSidebar").onclick = () =>
+  sidebar.classList.remove("open");
+// ================== MODE FOCUS (PLEIN ÉCRAN) ==================
+const graphShell = document.getElementById("mainGraphContainer");
+
+document.getElementById("focusMode").onclick = () => {
+  graphShell.classList.toggle("fullscreen");
+};
+
+// Fermer le fullscreen avec la touche Echap
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && graphShell.classList.contains("fullscreen")) {
+    graphShell.classList.remove("fullscreen");
+  }
+});
 let currentChartInstance = null;
 let globalStatsCache = null;
 let currentView = "repartition";
 
-/* =======================================================
-   BLOC 1 — DÉFINITION DES TABS (icône + label + sous-titre)
-   Remplace les div statiques en HTML
-======================================================= */
-const TABS_CONFIG = [
-  {
-    view: "repartition",
-    icon: "◎",
-    label: "Aperçu Global",
-    subFn: (cache) => `${cache.top30.length} profils analysés`,
-  },
-  {
-    view: "profil",
-    icon: "▲",
-    label: "Top Profils",
-    subFn: (cache) => `Top ${cache.top30.length} par score`,
-  },
-  {
-    view: "criteres",
-    icon: "◈",
-    label: "Détail Critères",
-    subFn: () => "Score moyen par critère",
-  },
-];
+// Palette Signature Violet-Rose
+const SIG_COLORS = {
+  violet: "#8b5cf6",
+  pink: "#ec4899",
+  purple: "#a78bfa",
+  dark: "#1e293b",
+  glass: "rgba(255, 255, 255, 0.05)",
+  border: "rgba(139, 92, 246, 0.2)",
+};
 
 /* =======================================================
-   BLOC 1 — GÉNÉRATION DYNAMIQUE DES TABS
-   Injecte dans #tabsContainer avec icône, nom, sous-titre
+   BLOC 1 — CONFIGURATION DES VUES (CHART VIEWS)
 ======================================================= */
-function buildTabs(cache) {
+const VUES_CONFIG = [
+  {
+    id: "repartition",
+    icon: `
+      <svg class="vue-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-ai)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+        <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+      </svg>`,
+    label: "Répartition",
+    desc: "Segmentation du marché",
+  },
+  {
+    id: "profil",
+    icon: `
+      <svg class="vue-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-ai)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M19 8l2 2 4-4"></path>
+      </svg>`,
+    label: "Top Profils",
+    desc: "Performances et matching",
+  },
+  {
+    id: "criteres",
+    icon: `
+      <svg class="vue-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-ai)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" y1="21" x2="4" y2="14"></line>
+        <line x1="4" y1="10" x2="4" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12" y2="3"></line>
+        <line x1="20" y1="21" x2="20" y2="16"></line>
+        <line x1="20" y1="12" x2="20" y2="3"></line>
+        <line x1="2" y1="14" x2="6" y2="14"></line>
+        <line x1="10" y1="8" x2="14" y2="8"></line>
+        <line x1="18" y1="16" x2="22" y2="16"></line>
+      </svg>`,
+    label: "Critères",
+    desc: "Analyse granulaire",
+  },
+];
+/**
+ * Génère les onglets de navigation du Dashboard
+ */
+function buildDashboardTabs() {
   const container = document.getElementById("tabsContainer");
   if (!container) return;
   container.innerHTML = "";
 
-  TABS_CONFIG.forEach(({ view, icon, label, subFn }) => {
+  VUES_CONFIG.forEach((vue) => {
+    const activeClass = vue.id === currentView ? "active" : "";
     const tab = document.createElement("div");
-    tab.className = "tab" + (view === currentView ? " active" : "");
-    tab.dataset.view = view;
-
+    tab.className = `tab-item ${activeClass}`;
     tab.innerHTML = `
-      <div class="tab-icon">${icon}</div>
-      <div class="tab-body">
-        <div class="tab-name">${label}</div>
-        <div class="tab-sub">${subFn(cache)}</div>
-      </div>
-      <div class="tab-arrow">›</div>
-    `;
-
-    tab.addEventListener("click", () => {
+            <div class="tab-pct" style="background: ${SIG_COLORS.glass}">${vue.icon}</div>
+            <div class="tab-info">
+                <div class="tab-name">${vue.label}</div>
+                <div class="tab-loc">${vue.desc}</div>
+            </div>
+        `;
+    tab.onclick = () => {
       document
-        .querySelectorAll(".tab")
+        .querySelectorAll(".tab-item")
         .forEach((t) => t.classList.remove("active"));
       tab.classList.add("active");
-      switchView(view);
-    });
-
+      switchView(vue.id);
+    };
     container.appendChild(tab);
   });
 }
 
 /* =======================================================
-   MENU LATÉRAL
-======================================================= */
-const sidebar = document.getElementById("sidebar");
-const openBtn = document.getElementById("openSidebar");
-const closeBtn = document.getElementById("closeSidebar");
-const overlay = document.getElementById("sidebarOverlay");
-
-if (openBtn && sidebar && overlay) {
-  openBtn.addEventListener("click", () => {
-    sidebar.classList.add("open");
-    overlay.classList.add("active");
-    openBtn.style.display = "none";
-  });
-}
-if (closeBtn && sidebar && overlay) {
-  closeBtn.addEventListener("click", () => {
-    sidebar.classList.remove("open");
-    overlay.classList.remove("active");
-    openBtn.style.display = "flex";
-  });
-}
-if (overlay && sidebar) {
-  overlay.addEventListener("click", () => {
-    sidebar.classList.remove("open");
-    overlay.classList.remove("active");
-    openBtn.style.display = "flex";
-  });
-}
-
-/* =======================================================
-   FETCH STATS
+   API & DATA FETCHING
 ======================================================= */
 async function fetchStats() {
   try {
     const raw = localStorage.getItem("agent_user");
-    if (!raw) throw new Error("Token manquant dans le localStorage");
-
-    let token;
-    try {
-      const user = JSON.parse(raw);
-      token = user.token;
-      if (!token) throw new Error("Token JWT manquant");
-    } catch (parseErr) {
-      console.error("[fetchStats] Erreur parsing JSON:", parseErr);
-      throw new Error("Erreur parsing token localStorage");
-    }
+    if (!raw) return null;
+    const { token } = JSON.parse(raw);
 
     const res = await fetch("/api/stats", {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
-
-    const data = await res.json();
-    console.log("[fetchStats] Données reçues:", data);
-    return data;
+    return await res.json();
   } catch (err) {
-    console.error("[fetchStats] Error:", err);
+    console.error("Erreur Sync Stats:", err);
     return null;
   }
 }
 
 /* =======================================================
-   GESTION CANVAS
+   ENGINE : CHART RENDERING (BOOSTED)
 ======================================================= */
-function destroyCurrentChart() {
+function getCanvasCtx() {
+  return document.getElementById("dynamicChart").getContext("2d");
+}
+
+function destroyChart() {
   if (currentChartInstance) {
     currentChartInstance.destroy();
     currentChartInstance = null;
   }
 }
-function getCanvasContext() {
-  return document.getElementById("dynamicChart").getContext("2d");
-}
 
-/* =======================================================
-   DONUT - Répartition compatibilité
-======================================================= */
-function generateDonut(distribution) {
-  destroyCurrentChart();
-  const ctx = getCanvasContext();
+// --- VIEW 1 : DONUT (REPARTITION) ---
+function generateDonut(dist) {
+  destroyChart();
+  const ctx = getCanvasCtx();
 
   currentChartInstance = new Chart(ctx, {
     type: "doughnut",
     data: {
-      labels: [
-        "Forte (≥80%)",
-        "Bonne (60-79%)",
-        "Moyenne (40-59%)",
-        "Faible (<40%)",
-      ],
+      labels: ["Forte (≥80%)", "Bonne (60-79%)", "Moyenne (40-59%)", "Faible"],
       datasets: [
         {
-          data: [
-            distribution.forte,
-            distribution.bonne,
-            distribution.moyenne,
-            distribution.faible,
+          data: [dist.forte, dist.bonne, dist.moyenne, dist.faible],
+          backgroundColor: [
+            SIG_COLORS.pink,
+            SIG_COLORS.violet,
+            SIG_COLORS.purple,
+            "#1e1e2e",
           ],
-          backgroundColor: ["#9b59ff", "#ff71cd", "#d194ed", "#f1f5f9"],
-          borderColor: "#ffffff",
-          borderWidth: 3,
-          hoverOffset: 15,
+          borderWidth: 0,
+          hoverOffset: 20,
         },
       ],
     },
     options: {
       responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: 1.6,
+      maintainAspectRatio: false,
+      cutout: "75%",
       plugins: {
         legend: {
           position: "bottom",
-          labels: { padding: 20, font: { size: 12, weight: "600" } },
+          labels: {
+            color: "#94a3b8",
+            font: { size: 12, weight: "600" },
+            padding: 20,
+          },
         },
         tooltip: {
-          backgroundColor: "#1e293b",
-          padding: 12,
-          callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw} Matchs` },
+          backgroundColor: "#0f172a",
+          padding: 15,
+          titleFont: { size: 14 },
         },
       },
-      cutout: "70%",
-      animation: { animateRotate: true, animateScale: true },
+      animation: { animateScale: true, animateRotate: true },
     },
   });
 }
 
-/* =======================================================
-   BAR CHART VERTICAL - Top Profils
-======================================================= */
+// --- VIEW 2 : BAR CHART (TOP PROFILS) ---
 function generateBarChart(matches) {
-  destroyCurrentChart();
-  const ctx = getCanvasContext();
+  destroyChart();
+  const ctx = getCanvasCtx();
 
+  // Gradient Signature
   const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-  gradient.addColorStop(0, "#ff71cd");
-  gradient.addColorStop(1, "#9b59ff");
+  gradient.addColorStop(0, SIG_COLORS.pink);
+  gradient.addColorStop(1, SIG_COLORS.violet);
 
   currentChartInstance = new Chart(ctx, {
     type: "bar",
@@ -206,155 +217,61 @@ function generateBarChart(matches) {
       labels: matches.map((m) => m.username),
       datasets: [
         {
-          label: "Score de Compatibilité",
+          label: "Score %",
           data: matches.map((m) => m.compatibility),
           backgroundColor: gradient,
-          borderRadius: 10,
-          borderSkipped: false,
-          hoverBackgroundColor: "#9b59ff",
+          borderRadius: 12,
+          hoverBackgroundColor: SIG_COLORS.pink,
         },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: true,
-          position: "bottom",
-          labels: {
-            padding: 16,
-            color: "#94a3b8",
-            boxWidth: 12,
-            usePointStyle: true,
-            pointStyle: "rectRounded",
-          },
-        },
-        tooltip: {
-          backgroundColor: "#1e293b",
-          padding: 12,
-          callbacks: {
-            label: (ctx) => {
-              const m = matches[ctx.dataIndex];
-              return ` ${m.username} : ${m.compatibility}%`;
-            },
-          },
-        },
-      },
       scales: {
-        x: {
-          grid: { display: false },
-          ticks: {
-            color: "#94a3b8",
-            font: { size: 10 },
-            autoSkip: true,
-            maxRotation: 0,
-            minRotation: 0,
-          },
-        },
         y: {
           beginAtZero: true,
           max: 100,
-          grid: { color: "rgba(0,0,0,0.04)" },
-          ticks: {
-            callback: (v) => v + "%",
-            color: "#94a3b8",
-          },
+          grid: { color: "rgba(255,255,255,0.03)" },
+          ticks: { color: "#64748b" },
         },
+        x: { grid: { display: false }, ticks: { color: "#94a3b8" } },
       },
-      animation: { duration: 1500, easing: "easeOutQuart" },
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: "#0f172a" },
+      },
     },
   });
 }
 
-/* =======================================================
-   PALETTE NIVEAUX
-======================================================= */
-const LEVEL_COLOR = {
-  perfect: "#9b59ff", // violet signature
-  close: "#7c8cff", // bleu lavande
-  tolerated: "#f6a8d7", // rose doux
-  weak: "#f7b977", // pêche premium
-  out: "#ff8f9f", // rouge soft luxe
-  none: "#e8ecf5",
-};
-
-// Couleur de barre de progression selon score
-function barColorFromScore(score) {
-  if (score == null) return "#e2e8f0";
-  if (score >= 80) return "linear-gradient(90deg, #9b59ff, #ff71cd)";
-  if (score >= 60) return "linear-gradient(90deg, #3b82f6, #60a5fa)";
-  if (score >= 40) return "linear-gradient(90deg, #f59e0b, #fcd34d)";
-  return "linear-gradient(90deg, #ef4444, #f87171)";
-}
-
-const LEVEL_LABEL = {
-  perfect: "Parfait",
-  close: "Proche",
-  tolerated: "Toléré",
-  weak: "Faible",
-  out: "Hors critère",
-  none: "Non défini",
-};
-
-/* =======================================================
-   HELPERS
-======================================================= */
-function avgCriteriaScore(matches, key) {
-  const values = matches
-    .map((m) => m.criteriaMatch?.detail?.[key]?.score)
-    .filter((v) => v != null);
-  if (!values.length) return null;
-  return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-}
-
-function levelDistribution(matches, key) {
-  const dist = { perfect: 0, close: 0, tolerated: 0, weak: 0, out: 0, none: 0 };
-  matches.forEach((m) => {
-    const level = m.criteriaMatch?.detail?.[key]?.level ?? "none";
-    dist[level] = (dist[level] || 0) + 1;
-  });
-  return dist;
-}
-
-function topLevelOf(dist) {
-  return (
-    ["perfect", "close", "tolerated", "weak", "out"].find((l) => dist[l] > 0) ??
-    "none"
-  );
-}
-
-/* =======================================================
-   GRAPHIQUE CRITÈRES — barres empilées
-======================================================= */
-function generateHorizontalBarChart(matches) {
-  destroyCurrentChart();
-  const ctx = getCanvasContext();
+// --- VIEW 3 : HORIZONTAL STACKED (CRITERES) ---
+function generateCriteriaChart(matches) {
+  destroyChart();
+  const ctx = getCanvasCtx();
   const total = matches.length;
-  if (!total) return;
 
   const criteria = [
     { key: "budget", label: "Budget" },
+    { key: "surface", label: "Surface" },
     { key: "ville", label: "Localisation" },
     { key: "pieces", label: "Pièces" },
-    { key: "surface", label: "Surface" },
-    { key: "type", label: "Type de bien" },
-    { key: "dpe", label: "DPE" },
-    { key: "etat", label: "État du bien" },
-    { key: "photos", label: "Photos" },
   ];
 
-  const levels = ["perfect", "close", "tolerated", "weak", "out"];
-
-  const datasets = levels.map((level) => ({
-    label: LEVEL_LABEL[level],
-    data: criteria.map(({ key }) => {
-      const dist = levelDistribution(matches, key);
-      return Math.round((dist[level] / total) * 100);
+  const datasets = [
+    { label: "Parfait", color: SIG_COLORS.pink, level: "perfect" },
+    { label: "Proche", color: SIG_COLORS.violet, level: "close" },
+    { label: "Hors-sujet", color: "#1e1e2e", level: "out" },
+  ].map((conf) => ({
+    label: conf.label,
+    backgroundColor: conf.color,
+    data: criteria.map((c) => {
+      const count = matches.filter(
+        (m) => m.criteriaMatch?.[c.key] === (conf.level === "perfect"),
+      ).length;
+      return Math.round((count / total) * 100);
     }),
-    backgroundColor: LEVEL_COLOR[level],
-    borderRadius: 4,
-    borderSkipped: false,
+    borderRadius: 6,
   }));
 
   currentChartInstance = new Chart(ctx, {
@@ -365,140 +282,95 @@ function generateHorizontalBarChart(matches) {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        x: {
+        x: { stacked: true, max: 100, grid: { display: false } },
+        y: {
           stacked: true,
-          beginAtZero: true,
-          max: 100,
-          title: { display: true, text: "Répartition des profils (%)" },
-          ticks: { callback: (v) => `${v}%` },
-        },
-        y: { stacked: true },
-      },
-      plugins: {
-        legend: {
-          position: "bottom",
-          labels: { usePointStyle: true, pointStyle: "rectRounded" },
-        },
-        tooltip: {
-          callbacks: {
-            title: (items) => items[0].label,
-            label: (ctx) => {
-              const levelKey = levels[ctx.datasetIndex];
-              const criteriaKey = criteria[ctx.dataIndex].key;
-              const dist = levelDistribution(matches, criteriaKey);
-              const count = dist[levelKey] ?? 0;
-              return ` ${LEVEL_LABEL[levelKey]} : ${ctx.raw}% (${count} profil${count > 1 ? "s" : ""})`;
-            },
-            afterBody: (items) => {
-              const criteriaKey = criteria[items[0].dataIndex].key;
-              const avg = avgCriteriaScore(matches, criteriaKey);
-              return avg != null ? [`Score moyen : ${avg}/100`] : [];
-            },
-          },
+          grid: { display: false },
+          ticks: { color: "#fff", font: { weight: "600" } },
         },
       },
-      animation: { duration: 1000, easing: "easeOutQuart" },
+      plugins: { legend: { position: "bottom", labels: { color: "#94a3b8" } } },
     },
   });
 
-  renderCriteriaScoreCards(matches, criteria);
+  renderBreakdownTiles(matches);
 }
 
 /* =======================================================
-   BLOC 2 — SCORECARDS redesignées
-   Liseré top gradient, barre de progression dynamique
+   UI COMPONENTS : TILES & INSIGHTS
 ======================================================= */
-function renderCriteriaScoreCards(matches, criteria) {
-  const existing = document.getElementById("criteriaScoreCards");
-  if (existing) existing.remove();
+function renderBreakdownTiles(matches) {
+  const container = document.getElementById("criteriaScoreCards");
+  if (!container) return;
 
-  const container = document.createElement("div");
-  container.id = "criteriaScoreCards";
-
-  criteria.forEach(({ key, label }, i) => {
-    const avg = avgCriteriaScore(matches, key);
-    const dist = levelDistribution(matches, key);
-    const topLevel = topLevelOf(dist);
-    const barColor = barColorFromScore(avg);
-    const barWidth = avg != null ? avg : 0;
-
-    const card = document.createElement("div");
-    card.className = "pro-card-tile";
-    // Délai d'animation décalé
-    card.style.animation = `fadeInCard 0.4s ease-out ${i * 0.05}s both`;
-
-    card.innerHTML = `
-      <style>
-        @keyframes fadeInCard {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      </style>
-      <div class="card-label">${label}</div>
-      <div class="card-score">${avg != null ? avg : "—"}<span class="card-score-sub">/100</span></div>
-      <div class="card-bar">
-        <div class="card-bar-fill" style="width:${barWidth}%; background:${barColor};"></div>
-      </div>
-      <div class="card-level" style="color:${LEVEL_COLOR[topLevel]};">${LEVEL_LABEL[topLevel]}</div>
-    `;
-
-    container.appendChild(card);
-  });
-
-  document.getElementById("mainGraphContainer").appendChild(container);
+  const keys = ["budget", "surface", "ville", "pieces"];
+  container.innerHTML = keys
+    .map((key) => {
+      const score = Math.round(
+        matches.reduce(
+          (acc, m) => acc + (m.criteriaMatch?.[key] ? 100 : 30),
+          0,
+        ) / matches.length,
+      );
+      return `
+            <div class="tile">
+                <div class="tile-label">${key}</div>
+                <div class="tile-score">${score}%</div>
+                <div class="tile-bar"><div class="tile-bar-fill" style="width: ${score}%"></div></div>
+            </div>
+        `;
+    })
+    .join("");
 }
-function animateChartSwap(callback) {
-  const stage = document.getElementById("chartStage");
 
+function generateInsights(matches) {
+  const box = document.getElementById("insightsBox");
+  if (!box || !matches.length) return;
+
+  const avg = Math.round(
+    matches.reduce((a, b) => a + (b.compatibility || 0), 0) / matches.length,
+  );
+  const best = matches[0].username;
+
+  box.innerHTML = `
+        <div class="insight" style="margin-top:20px;">
+            <div class="insight-label">💡 IA Insight</div>
+            <div class="insight-value">
+                Le profil <strong>${best}</strong> domine votre segment avec <strong>${matches[0].compatibility}%</strong> de match. 
+                Optimisation suggérée : focalisez-vous sur les biens avec une moyenne de <strong>${avg}%</strong>.
+            </div>
+        </div>
+    `;
+}
+
+/* =======================================================
+   NAVIGATION LOGIC
+======================================================= */
+function switchView(view) {
+  currentView = view;
+  const stage = document.querySelector(".chart-stage");
+
+  // Animation de transition
   stage.style.opacity = "0";
-  stage.style.transform = "translateY(8px)";
+  stage.style.transform = "translateY(10px)";
 
   setTimeout(() => {
-    callback();
-
-    setTimeout(() => {
-      currentChartInstance?.resize();
-
-      stage.style.opacity = "1";
-      stage.style.transform = "translateY(0)";
-    }, 60);
-  }, 180);
-}
-/* =======================================================
-   SWITCH VIEW
-======================================================= */
-function switchView(view, force = false) {
-  if (view === currentView && !force) return;
-
-  const oldView = currentView;
-  currentView = view;
-
-  const existing = document.getElementById("criteriaScoreCards");
-  if (existing) existing.remove();
-
-  const actions = document.getElementById("chartActions");
-  actions.style.display = view === "profil" ? "flex" : "none";
-
-  animateChartSwap(() => {
     if (view === "repartition") {
-      graphTitle.innerText = "Répartition Stratégique";
+      document.getElementById("graphTitle").innerText = "Répartition du Marché";
       generateDonut(globalStatsCache.distribution);
-    }
-
-    if (view === "profil") {
-      graphTitle.innerText = "Performance du Top 30";
+    } else if (view === "profil") {
+      document.getElementById("graphTitle").innerText = "Performance du Top 30";
       generateBarChart(globalStatsCache.top30);
+    } else if (view === "criteres") {
+      document.getElementById("graphTitle").innerText = "Analyse par Critères";
+      generateCriteriaChart(globalStatsCache.top30);
     }
-
-    if (view === "criteres") {
-      graphTitle.innerText = "Analyse par Critères";
-      generateHorizontalBarChart(globalStatsCache.top30);
-    }
-  });
+    stage.style.opacity = "1";
+    stage.style.transform = "translateY(0)";
+    generateInsights(globalStatsCache.top30);
+  }, 300);
 }
-/* =======================================================
-   BLOC 3 — ANIMATE VALUES (KPI chips)
-======================================================= */
+
 function animateValue(id, start, end, duration) {
   const obj = document.getElementById(id);
   if (!obj) return;
@@ -506,198 +378,89 @@ function animateValue(id, start, end, duration) {
   const step = (timestamp) => {
     if (!startTimestamp) startTimestamp = timestamp;
     const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-    obj.innerHTML = Math.floor(progress * (end - start) + start);
+    obj.innerText = Math.floor(progress * (end - start) + start);
     if (progress < 1) window.requestAnimationFrame(step);
   };
   window.requestAnimationFrame(step);
 }
 
-// ACTIONS //
-document.getElementById("exportPNG")?.addEventListener("click", () => {
-  const link = document.createElement("a");
-  link.download = "dashboard-aigent.png";
-  link.href = document.getElementById("dynamicChart").toDataURL("image/png");
-  link.click();
-});
-document.getElementById("exportCSV")?.addEventListener("click", () => {
-  const rows = globalStatsCache.top30.map((m) => [
-    m.username,
-    m.compatibility,
-    m.score,
-    m.ville || "",
-  ]);
-
-  let csv = "Nom,Compatibilite,Score,Ville\n";
-
-  rows.forEach((r) => (csv += r.join(",") + "\n"));
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "matchs-aigent.csv";
-  a.click();
-});
-document
-  .getElementById("scoreFilter")
-  ?.addEventListener("change", applyFilters);
-document.getElementById("cityFilter")?.addEventListener("change", applyFilters);
-document.getElementById("typeFilter")?.addEventListener("change", applyFilters);
-
+/* =======================================================
+   CONTROLS & FILTERS
+======================================================= */
 function applyFilters() {
-  const minScore = Number(document.getElementById("scoreFilter").value);
-
+  const minScore = parseInt(document.getElementById("scoreFilter").value);
   const city = document.getElementById("cityFilter").value;
   const type = document.getElementById("typeFilter").value;
 
   const filtered = globalStatsCache.matches.filter((m) => {
-    const scoreOk = (m.compatibility || 0) >= minScore;
+    const scoreOk = m.compatibility >= minScore;
     const cityOk = city === "all" || m.ville === city;
     const typeOk = type === "all" || m.type === type;
-
     return scoreOk && cityOk && typeOk;
   });
 
   globalStatsCache.top30 = filtered.slice(0, 30);
-  switchView(currentView, true);
-  generateInsights(filtered);
+  switchView(currentView);
 }
-function generateInsights(matches) {
-  const box = document.getElementById("insightsBox");
-  if (!box) return;
 
-  if (!matches.length) {
-    box.innerHTML = "";
-    return;
-  }
-
-  const avg = Math.round(
-    matches.reduce((a, b) => a + (b.compatibility || 0), 0) / matches.length,
-  );
-
-  const best = matches[0]?.username || "N/A";
-
-  const strong = matches.filter((m) => m.compatibility >= 80).length;
-
-  box.innerHTML = `
-      <div class="insight">
-         <div class="insight-label">Top opportunité</div>
-         <div class="insight-value">${best} affiche actuellement le meilleur potentiel.</div>
-      </div>
-
-      <div class="insight">
-         <div class="insight-label">Performance moyenne</div>
-         <div class="insight-value">${avg}% de compatibilité moyenne sur les profils filtrés.</div>
-      </div>
-
-      <div class="insight">
-         <div class="insight-label">Segment premium</div>
-         <div class="insight-value">${strong} profils dépassent le seuil stratégique des 80%.</div>
-      </div>
-   `;
-}
 function buildSmartFilters(matches) {
-  const citySelect = document.getElementById("cityFilter");
-  const typeSelect = document.getElementById("typeFilter");
+  const citySel = document.getElementById("cityFilter");
+  const typeSel = document.getElementById("typeFilter");
 
-  if (!citySelect || !typeSelect) return;
+  const cities = [...new Set(matches.map((m) => m.ville))].sort();
+  const types = [...new Set(matches.map((m) => m.type))].sort();
 
-  const cities = [
-    ...new Set(matches.map((m) => m.ville).filter(Boolean)),
-  ].sort();
-
-  const types = [...new Set(matches.map((m) => m.type).filter(Boolean))].sort();
-
-  cities.forEach((city) => {
-    citySelect.innerHTML += `<option value="${city}">${city}</option>`;
-  });
-
-  types.forEach((type) => {
-    typeSelect.innerHTML += `<option value="${type}">${type}</option>`;
-  });
+  cities.forEach(
+    (c) => (citySel.innerHTML += `<option value="${c}">${c}</option>`),
+  );
+  types.forEach(
+    (t) => (typeSel.innerHTML += `<option value="${t}">${t}</option>`),
+  );
 }
-const focusBtn = document.getElementById("focusMode");
-const menuBtn = document.getElementById("detailsMenuBtn");
-const menu = document.getElementById("detailsMenu");
-const shell = document.getElementById("mainGraphContainer");
 
-focusBtn?.addEventListener("click", () => {
-  shell.classList.toggle("fullscreen");
+// Export PNG Boosté
+document.getElementById("exportPNG").onclick = () => {
+  const link = document.createElement("a");
+  link.download = "AiGENT-Analysis.png";
+  link.href = document.getElementById("dynamicChart").toDataURL("image/png");
+  link.click();
+};
 
-  setTimeout(() => {
-    currentChartInstance?.resize();
-    currentChartInstance?.update("none");
-  }, 350);
-});
+document.getElementById("refreshData").onclick = () => init();
 
-menuBtn?.addEventListener("click", (e) => {
-  e.stopPropagation();
-  menu.classList.toggle("open");
-});
-
-document.addEventListener("click", () => {
-  menu?.classList.remove("open");
-});
-
-menu?.addEventListener("click", (e) => {
-  e.stopPropagation();
-
-  const action = e.target.dataset.action;
-  if (!action) return;
-
-  if (action === "png") {
-    document.getElementById("exportPNG")?.click();
-  }
-
-  if (action === "csv") {
-    document.getElementById("exportCSV")?.click();
-  }
-
-  if (action === "refresh") {
-    init();
-  }
-
-  if (action === "pro") {
-    alert("Vue avancée Pro bientôt disponible");
-  }
-
-  menu.classList.remove("open");
-});
 /* =======================================================
-   INIT
+   INITIALIZATION
 ======================================================= */
 async function init() {
-  const stats = await fetchStats();
-  if (!stats) return;
+  const data = await fetchStats();
+  if (!data) return;
 
   globalStatsCache = {
-    ...stats,
-    top30: stats.matches.slice(0, 30),
+    ...data,
+    top30: data.matches.slice(0, 30),
   };
 
-  // BLOC 3 — Calcul des KPIs pour les chips
-  const compatValues = stats.matches
-    .map((m) => m.compatibility)
-    .filter((v) => v != null);
-  const avgCompat = compatValues.length
-    ? Math.round(compatValues.reduce((a, b) => a + b, 0) / compatValues.length)
-    : 0;
-  const topCompat = compatValues.length ? Math.max(...compatValues) : 0;
+  // KPIs Animations
+  animateValue("matchCounter", 0, data.totalMatches, 1500);
+  animateValue("avgCompat", 0, data.averageCompatibility, 1500);
+  animateValue("topCompat", 0, data.topMatch?.compatibility || 0, 1500);
 
-  // Animer les 3 KPI chips
-  animateValue("matchCounter", 0, stats.totalMatches, 1800);
-  animateValue("avgCompat", 0, avgCompat, 1800);
-  animateValue("topCompat", 0, topCompat, 1800);
+  // Sidebar & Filters
+  buildDashboardTabs();
+  buildSmartFilters(data.matches);
 
-  // BLOC 1 — Génération dynamique des tabs
-  buildTabs(globalStatsCache);
-  buildSmartFilters(globalStatsCache.matches);
+  // Listeners
+  document.getElementById("scoreFilter").onchange = applyFilters;
+  document.getElementById("cityFilter").onchange = applyFilters;
+  document.getElementById("typeFilter").onchange = applyFilters;
 
-  // Vue initiale
-  document.getElementById("graphTitle").innerText = "Répartition Stratégique";
-  generateDonut(stats.distribution);
-  generateInsights(globalStatsCache.top30);
+  // View par défaut
+  switchView("repartition");
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
+// Responsive Chart Update
+window.addEventListener("resize", () => {
+  if (currentChartInstance) currentChartInstance.resize();
+});

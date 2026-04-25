@@ -1,46 +1,118 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="192x192"
-      href="/images/favicon.ico"
-    />
+    <link rel="icon" type="image/png" href="/images/favicon.ico" />
+    <title>AiGENT - Mon Compte Premium</title>
 
-    <title>AiGENT - Profil & Compte</title>
-
-    <link rel="stylesheet" href="accueil.css" />
-    <link rel="stylesheet" href="/profil.css" />
-    <link rel="stylesheet" href="/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="profil.css" />
   </head>
 
   <body>
-    <!-- ===== BOUTON MENU FLOTTANT ===== -->
-    <button class="menu-toggle" id="openSidebar">☰</button>
+    <!-- BACKGROUND SIGNATURE -->
+    <div class="ambient-bg"></div>
 
-    <!-- ===== SIDEBAR ===== -->
-    <nav id="sidebar" class="sidebar">
-      <span class="close-btn" id="closeSidebar">&times;</span>
+    <!-- BOUTON MENU FLOTTANT -->
+    <!-- APRÈS -->
+    <!-- APRÈS -->
+    <button class="menu-toggle" id="openSidebar" aria-label="Ouvrir le menu">
+      <svg
+        width="22"
+        height="18"
+        viewBox="0 0 22 18"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <line x1="0" y1="2" x2="22" y2="2" />
+        <line x1="0" y1="9" x2="16" y2="9" />
+        <line x1="0" y1="16" x2="10" y2="16" />
+      </svg>
+    </button>
+
+    <!-- SIDEBAR -->
+    <!-- APRÈS -->
+    <nav id="sidebar" class="sidebar-nav" aria-label="Navigation principale">
+      <span class="close-btn" id="closeSidebar" aria-label="Fermer"
+        >&times;</span
+      >
       <h2>Menu</h2>
-
-      <!-- Liens principaux -->
       <ul class="menu-links">
-        <li><a href="profil.html">Profil & Compte</a></li>
-        <li><a href="messagerie.html">Messagerie</a></li>
-        <li><a href="favoris.html">Profils favoris</a></li>
-        <li><a href="statistiques.html">Statistiques</a></li>
+        <li>
+          <a href="profil.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+            Profil &amp; Compte
+          </a>
+        </li>
+        <li>
+          <a href="messagerie.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
+              />
+            </svg>
+            Messagerie
+          </a>
+        </li>
+        <li>
+          <a href="favoris.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
+              />
+            </svg>
+            Profils favoris
+          </a>
+        </li>
+        <li>
+          <a href="statistiques.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+            Statistiques
+          </a>
+        </li>
       </ul>
-
-      <!-- Retour accueil placé tout en bas -->
       <div class="menu-bottom">
         <a href="accueil.html" class="home-link">
           <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -48,305 +120,341 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <!-- Porte -->
-            <path d="M3 21h18"></path>
-            <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"></path>
-            <!-- Flèche qui rentre -->
-            <path d="M12 11l-3 3 3 3"></path>
+            <path d="M3 21h18" />
+            <path d="M7 21V5a2 2 0 012-2h6a2 2 0 012 2v16" />
+            <path d="M12 11l-3 3 3 3" />
           </svg>
-          <span><i>Retour à l'accueil</i></span>
+          <span>Retour à l'accueil</span>
         </a>
       </div>
     </nav>
-
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
-
-    <!-- ===== HEADER ===== -->
+    <!-- HEADER PRO -->
     <header class="top-banner">
       <div class="logo-container">
-        <img
-          src="images/logo.png"
-          alt="Logo AiGENT Immobilier"
-          class="logo-img"
-        />
-        <h1 class="logo-text" id="animated-title">Mon AiGENT Immobilier</h1>
+        <img src="images/logo.png" class="logo-img" alt="Logo" />
+        <h1 class="logo-text">Centre de Profil</h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-theme" aria-label="Changer le thème">
+          <svg
+            class="icon-sun"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          <svg
+            class="icon-moon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+          </svg>
+        </button>
+        <button id="btn-logout" class="hidden">
+          <svg
+            class="logout-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Déconnexion</span>
       </div>
     </header>
 
-    <!-- ================================================= -->
-    <!-- ================= PROFIL ======================== -->
-    <!-- ================================================= -->
-
-    <main class="profil-container" aria-label="Profil utilisateur">
-      <!-- ================= HEADER PROFIL ================= -->
-
-      <section class="profile-header">
-        <div class="profile-avatar">
-          <div class="avatar" id="mainAvatar"></div>
-
-          <button class="edit-avatar-btn" id="openAvatarPopup">
-            <img src="images/plus.svg" alt="Modifier avatar" />
-          </button>
-        </div>
-
-        <div class="profile-user-info">
-          <!-- HEADER -->
-          <h2 class="profile-username">Utilisateur123</h2>
-          <p class="user-email profile-email">email@exemple.com</p>
-
-          <div class="user-meta">
-            <span class="user-role profile-role">Acheteur</span>
-
-            <span class="user-last-login">
-              Dernière connexion :
-              <strong id="profile-last-login">2026-01-29 10:35</strong>
-            </span>
+    <main class="profil-wrapper">
+      <!-- SECTION HERO (AVATAR) -->
+      <section class="profile-hero">
+        <div class="hero-main">
+          <div class="avatar-container">
+            <div class="main-avatar" id="mainAvatar"></div>
+            <button class="edit-avatar-trigger" id="openAvatarPopup">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+              >
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="hero-info">
+            <h2 class="profile-username" id="hero-user">Utilisateur</h2>
+            <div class="badge-group">
+              <span class="user-role profile-role">Chargement...</span>
+              <span class="login-time"
+                >Dernière connexion :
+                <strong id="profile-last-login">--:--</strong></span
+              >
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- ================= GRID PARAMÈTRES ================= -->
-
-      <section class="profile-grid">
-        <!-- ===== CARD INFOS ===== -->
-
-        <div class="profile-card">
-          <h3 class="card-title">👤 Informations personnelles</h3>
-
-          <ul class="info-list">
+      <!-- GRILLE DES PARAMÈTRES -->
+      <div class="settings-grid">
+        <!-- Informations -->
+        <div class="glass-card">
+          <div class="card-header">
+            <span class="card-icon">👤</span>
+            <h3>Informations personnelles</h3>
+          </div>
+          <ul class="settings-list">
             <li>
-              <span class="label">Pseudo</span>
-              <span class="profile-username">Utilisateur123</span>
+              <span class="s-label">Pseudo</span
+              ><span class="profile-username">...</span>
             </li>
-
             <li>
-              <span class="label">Email</span>
-              <span class="profile-email">email@exemple.com</span>
+              <span class="s-label">Email</span
+              ><span class="profile-email">...</span>
             </li>
-
             <li>
-              <span class="label">Mot de passe</span>
-              <span id="profile-password">••••••••</span>
+              <span class="s-label">Mot de passe</span><span>••••••••</span>
             </li>
-
             <li>
-              <span class="label">Profil</span>
-              <span class="profile-role">Acheteur</span>
+              <span class="s-label">Rôle Profil</span
+              ><span class="profile-role">...</span>
             </li>
           </ul>
         </div>
 
-        <!-- ===== CARD SÉCURITÉ ===== -->
-
-        <div class="profile-card">
-          <h3 class="card-title">🔐 Sécurité du compte</h3>
-
-          <ul class="info-list">
-            <li>
-              <span class="label">Changer le mot de passe</span>
-              <button id="openPasswordModal" class="change-password-btn">
-                Modifier
-              </button>
-            </li>
-
-            <li>
-              <span class="label">Se déconnecter</span>
-              <button id="btnDeconnexion" class="change-password-btn">
-                Déconnexion
-              </button>
-            </li>
-          </ul>
+        <!-- Sécurité -->
+        <div class="glass-card">
+          <div class="card-header">
+            <span class="card-icon">🔐</span>
+            <h3>Sécurité & Compte</h3>
+          </div>
+          <p class="card-text">
+            Gérez vos accès et la confidentialité de vos données immobilières.
+          </p>
+          <div class="card-btn-group">
+            <button id="openPasswordModal" class="btn-secondary">
+              Changer le mot de passe
+            </button>
+            <button id="btnDeconnexion" class="btn-ghost-red">
+              Déconnexion complète
+            </button>
+          </div>
         </div>
-      </section>
 
-      <!-- ================= ACTIONS ================= -->
-
-      <section class="profile-actions">
-        <h3 class="card-title">⚠ Actions importantes</h3>
-
-        <div class="actions-list">
-          <button id="openSupportModal" class="action-btn">
+        <!-- Support -->
+        <div class="glass-card">
+          <div class="card-header">
+            <span class="card-icon">💬</span>
+            <h3>Centre d'assistance</h3>
+          </div>
+          <p class="card-text">
+            Besoin d'aide ou d'une nouvelle fonctionnalité ? Notre équipe vous
+            répond.
+          </p>
+          <button id="openSupportModal" class="btn-primary">
             Contacter le support
           </button>
         </div>
-      </section>
+      </div>
 
-      <!-- ================= ZONE DANGER ================= -->
-
-      <section class="danger-zone">
-        <h3>⚠ Zone sensible</h3>
-        <p>Ces actions sont irréversibles.</p>
-        <button class="delete-account-btn">Supprimer le compte</button>
+      <!-- DANGER ZONE -->
+      <section class="danger-section">
+        <div class="danger-text">
+          <h3>Suppression du compte</h3>
+          <p>
+            Cette action est irréversible et supprimera tous vos matchs et
+            favoris.
+          </p>
+        </div>
+        <button class="btn-danger" id="btnDeleteAccount">
+          Supprimer mon compte
+        </button>
       </section>
     </main>
 
-    <!-- ================= POPUPS ================= -->
-    <!-- ================= SUPPORT POPUP ================= -->
-
-    <div id="supportOverlay" class="support-overlay">
-      <div class="support-modal">
-        <div class="support-header">
-          <h2>Contacter le support</h2>
-          <p>Nous vous répondrons dans les plus brefs délais.</p>
+    <!-- POPUPS / MODALS -->
+    <!-- MODAL MOT DE PASSE -->
+    <div id="passwordOverlay" class="modal-overlay">
+      <div class="modal-content glass">
+        <div class="modal-header">Changer le mot de passe</div>
+        <div class="modal-body">
+          <input
+            id="currentPassword"
+            type="password"
+            placeholder="Mot de passe actuel"
+            class="pro-input"
+          />
+          <input
+            id="newPassword"
+            type="password"
+            placeholder="Nouveau mot de passe"
+            class="pro-input"
+          />
+          <input
+            id="confirmPassword"
+            type="password"
+            placeholder="Confirmer le nouveau mot de passe"
+            class="pro-input"
+          />
         </div>
+        <div class="modal-footer">
+          <button id="btnChangePassword" class="btn-primary">
+            Mettre à jour
+          </button>
+          <button class="btn-close-modal">Annuler</button>
+        </div>
+      </div>
+    </div>
 
-        <div class="support-body">
-          <select id="supportSubject" class="support-input">
+    <!-- MODAL SUPPORT -->
+    <div id="supportOverlay" class="modal-overlay">
+      <div class="modal-content glass">
+        <div class="modal-header">Contacter le support</div>
+        <div class="modal-body">
+          <select id="supportSubject" class="pro-input">
             <option value="">Choisir un sujet</option>
             <option value="Bug">Bug technique</option>
             <option value="Compte">Problème de compte</option>
-            <option value="Sécurité">Sécurité</option>
             <option value="Suggestion">Suggestion</option>
           </select>
-
           <textarea
             id="supportMessage"
-            class="support-textarea"
-            placeholder="Décrivez votre problème..."
+            placeholder="Comment pouvons-nous vous aider ?"
+            class="pro-input textarea"
           ></textarea>
         </div>
-
-        <div class="support-footer">
-          <button id="btnSendSupport" class="support-send-btn">Envoyer</button>
-
-          <button id="closeSupportModal" class="support-cancel-btn">
-            Annuler
+        <div class="modal-footer">
+          <button id="btnSendSupport" class="btn-primary">
+            Envoyer le message
           </button>
-        </div>
-      </div>
-    </div>
-    <!-- MOT DE PASSE -->
-    <div id="passwordOverlay" class="password-overlay">
-      <div class="password-modal">
-        <div class="password-header">
-          <h2>Changer le mot de passe</h2>
-        </div>
-
-        <div class="password-body">
-          <div class="password-fields">
-            <input
-              id="currentPassword"
-              type="password"
-              placeholder="Mot de passe actuel"
-            />
-            <input
-              id="newPassword"
-              type="password"
-              placeholder="Nouveau mot de passe"
-            />
-            <input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirmer le nouveau mot de passe"
-            />
-          </div>
-        </div>
-
-        <div class="password-footer">
-          <button id="btnChangePassword">Valider</button>
+          <button id="closeSupportModal" class="btn-close-modal">Fermer</button>
         </div>
       </div>
     </div>
 
-    <!-- AVATAR -->
-    <div class="avatar-popup" id="avatarPopup">
-      <div class="popup-content">
-        <h3><i>Choisir un avatar</i></h3>
+    <!-- MODAL AVATAR -->
+    <div id="avatarPopup" class="modal-overlay">
+      <div class="modal-content glass avatar-modal">
+        <h3>Choisir un avatar</h3>
 
-        <div class="avatar-list">
+        <div class="avatar-grid" id="avatarList">
           <div class="avatar-item">
             <img
               src="https://api.dicebear.com/9.x/avataaars/svg?seed=Mackenzie"
-              alt="avatar"
+              alt="Avatar Mackenzie"
             />
           </div>
 
           <div class="avatar-item">
             <img
               src="https://api.dicebear.com/9.x/avataaars/svg?seed=Luis"
-              alt="avatar"
+              alt="Avatar Luis"
             />
           </div>
 
           <div class="avatar-item">
             <img
               src="https://api.dicebear.com/9.x/avataaars/svg?seed=Maria"
-              alt="avatar"
+              alt="Avatar Maria"
             />
           </div>
 
           <div class="avatar-item">
             <img
               src="https://api.dicebear.com/9.x/avataaars/svg?seed=Amaya"
-              alt="avatar"
+              alt="Avatar Amaya"
             />
           </div>
 
           <div class="avatar-item">
             <img
               src="https://api.dicebear.com/9.x/avataaars/svg?seed=Destiny"
-              alt="avatar"
+              alt="Avatar Destiny"
             />
           </div>
 
           <div class="avatar-item">
             <img
               src="https://api.dicebear.com/9.x/avataaars/svg?seed=Eden"
-              alt="avatar"
+              alt="Avatar Eden"
             />
           </div>
 
           <div class="avatar-item">
             <img
               src="https://api.dicebear.com/9.x/avataaars/svg?seed=Easton"
-              alt="avatar"
+              alt="Avatar Easton"
             />
           </div>
 
           <div class="avatar-item">
             <img
               src="https://api.dicebear.com/9.x/avataaars/svg?seed=Christian"
-              alt="avatar"
+              alt="Avatar Christian"
             />
           </div>
 
           <div class="avatar-item">
             <img
               src="https://api.dicebear.com/9.x/bottts/svg?seed=Alexander"
-              alt="avatar"
+              alt="Avatar Alexander"
             />
           </div>
 
           <div class="avatar-item">
             <img
               src="https://api.dicebear.com/9.x/bottts/svg?seed=Katherine"
-              alt="avatar"
+              alt="Avatar Katherine"
             />
           </div>
 
           <div class="avatar-item">
             <img
               src="https://api.dicebear.com/9.x/bottts/svg?seed=Brian"
-              alt="avatar"
+              alt="Avatar Brian"
             />
           </div>
 
           <div class="avatar-item">
             <img
               src="https://api.dicebear.com/9.x/bottts/svg?seed=Caleb"
-              alt="avatar"
+              alt="Avatar Caleb"
             />
           </div>
         </div>
       </div>
     </div>
 
-    <!-- FOOTER -->
     <footer class="bottom-banner">
-      <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
+      <p>© AiGENT Immobilier - Dashboard Utilisateur Premium</p>
     </footer>
 
-    <script src="/leaflet/leaflet.js" defer></script>
-    <script src="/profil.js" defer></script>
+    <script src="profil.js" type="module"></script>
   </body>
 </html>

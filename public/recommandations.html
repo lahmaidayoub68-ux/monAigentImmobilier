@@ -1,661 +1,141 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AiGENT - Recommandations IA</title>
-
-    <!-- CSS accueil -->
+    <title>AiGENT – Recommandations IA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="accueil.css" />
-
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="/leaflet/leaflet.css" />
-
-    <style>
-      /* ===== BOUTON MENU FLOTTANT ===== */
-      .menu-toggle {
-        position: fixed;
-        top: 90px;
-        left: 20px;
-        width: 52px;
-        height: 52px;
-        border-radius: 50%;
-        background: #ffffff;
-        color: #000000;
-        font-size: 26px;
-        cursor: pointer;
-        border: none;
-        z-index: 3000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-      }
-
-      .menu-toggle:hover {
-        background: #f2f2f2;
-      }
-
-      /* ===== SIDEBAR ===== */
-      .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 260px;
-        height: 100vh;
-        background: #000;
-        color: #fff;
-        transform: translateX(-100%);
-        transition: transform 0.35s ease;
-        z-index: 2000;
-        padding: 20px;
-        box-sizing: border-box;
-      }
-
-      .sidebar.open {
-        transform: translateX(0);
-      }
-
-      .sidebar .close-btn {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 22px;
-        cursor: pointer;
-      }
-
-      .sidebar h2 {
-        margin-top: 40px;
-        margin-bottom: 30px;
-        font-size: 20px;
-      }
-
-      .sidebar ul {
-        list-style: none;
-        padding: 0;
-      }
-
-      .sidebar ul li {
-        margin-bottom: 20px;
-      }
-
-      .sidebar ul li a {
-        color: #fff;
-        text-decoration: none;
-        font-size: 16px;
-      }
-
-      .sidebar ul li a:hover {
-        text-decoration: underline;
-      }
-
-      /* ===== OVERLAY ===== */
-      .sidebar-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.4);
-        z-index: 1500;
-        display: none;
-      }
-
-      .sidebar-overlay.active {
-        display: block;
-      }
-
-      body {
-        background: #f8f9fa; /* blanc cassé clair type dashboard */
-        font-family: "Arial", sans-serif;
-        margin: 0;
-        color: #222;
-      }
-      @keyframes gradientBG {
-        0% {
-          background-position: 0% 50%;
-        }
-        50% {
-          background-position: 100% 50%;
-        }
-        100% {
-          background-position: 0% 50%;
-        }
-      }
-
-      .content-wrapper {
-        max-width: 1200px;
-        margin: 50px auto 80px auto;
-        padding: 0 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 30px;
-      }
-      .section-title {
-        display: inline-block; /* ou inline si tu veux sans retour à la ligne */
-        font-size: 26px;
-        font-weight: 700;
-        margin-bottom: 20px;
-        text-align: center;
-
-        background: linear-gradient(90deg, #4e73df, #9b59ff);
-        background-clip: text;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-      }
-      .reco-container {
-        display: flex;
-        flex-direction: row;
-        gap: 20px;
-      }
-      .reco-central {
-        flex: 2;
-        background: rgba(255, 255, 255, 0.35);
-        backdrop-filter: blur(12px);
-        border-radius: 20px;
-        padding: 30px;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-        font-size: 17px;
-        line-height: 1.5;
-        min-height: 380px;
-        transition: all 0.3s ease;
-      }
-      .reco-right {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-      }
-      /* Taille uniforme des icônes dans les tabs */
-      .reco-tab .tab-header .tab-icon {
-        width: 20px; /* taille fixe */
-        height: 20px;
-        flex-shrink: 0; /* empêche le flex d’étirer l’icône */
-        margin-right: 8px; /* espace entre icône et texte */
-        stroke-width: 2; /* s'assure que le trait reste visible */
-      }
-
-      /* ===== RECO TAB STYLE PROFESSIONNEL ===== */
-      .reco-tab {
-        background: rgba(245, 230, 250, 0.45); /* léger rose-violet */
-        backdrop-filter: blur(12px);
-        border-radius: 16px;
-        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12);
-        padding: 0;
-        overflow: hidden;
-        cursor: pointer;
-        transition: all 0.25s ease;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .reco-tab:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
-      }
-
-      /* ===== TAB HEADER ===== */
-      .reco-tab .tab-header {
-        background: linear-gradient(135deg, #659cef, #9b59ff, #5cd6ff);
-        background-size: 300% 300%;
-        padding: 14px 20px;
-        color: #fff;
-        font-weight: 600;
-        font-size: 17px;
-        border-top-left-radius: 16px;
-        border-top-right-radius: 16px;
-        transition: background 0.4s ease;
-      }
-
-      .reco-tab:hover .tab-header {
-        background-position: 100% 50%;
-      }
-
-      /* ===== TAB CONTENT ===== */
-      .reco-tab .tab-content {
-        padding: 18px 20px;
-        color: #222;
-        font-size: 14px;
-        line-height: 1.5;
-      }
-
-      .reco-tab.active {
-        background: rgba(245, 230, 250, 0.65);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
-      }
-
-      /* ===== TABLE DANS LES TABS ===== */
-      .reco-tab .criteria-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 12px;
-      }
-
-      .reco-tab .criteria-table th,
-      .reco-tab .criteria-table td {
-        padding: 8px 12px;
-        font-size: 14px;
-        text-align: left;
-      }
-
-      .reco-tab .criteria-table th {
-        background: rgba(101, 156, 239, 0.2);
-        font-weight: 600;
-      }
-
-      .reco-tab .criteria-table td {
-        background: rgba(255, 255, 255, 0.7);
-        border-radius: 6px;
-      }
-
-      /* ===== CARTE ===== */
-      .reco-tab #criteria-map {
-        margin-top: 12px;
-        height: 250px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-      }
-
-      /* ===== RESPONSIVE ===== */
-      @media (max-width: 900px) {
-        .reco-right {
-          flex-direction: row;
-          overflow-x: auto;
-        }
-        .reco-tab {
-          min-width: 220px;
-        }
-      }
-      @media (max-width: 450px) {
-        .reco-tab .tab-header {
-          font-size: 15px;
-          padding: 12px 14px;
-        }
-        .reco-tab .tab-content {
-          padding: 14px 12px;
-          font-size: 13px;
-        }
-        .reco-tab .criteria-table th,
-        .reco-tab .criteria-table td {
-          padding: 4px 6px;
-          font-size: 12px;
-        }
-        .reco-tab #criteria-map {
-          height: 180px;
-        }
-      }
-
-      .bottom-banner {
-        text-align: center;
-        padding: 14px;
-        background: rgba(0, 0, 0, 0.55);
-        font-size: 13px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        color: #fff;
-      }
-      .logo-text {
-        font-size: 28px;
-        font-weight: 700;
-        background: linear-gradient(270deg, #659cef, #d194ed, #8fbafc);
-        background-size: 400% 400%;
-        background-clip: text;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: gradientBG 30s ease infinite;
-      }
-
-      @media (max-width: 900px) {
-        .reco-container {
-          flex-direction: column;
-        }
-        .reco-right {
-          flex-direction: row;
-          overflow-x: auto;
-        }
-        .reco-tab {
-          flex: 1;
-          min-width: 200px;
-        }
-      }
-      /* ===== PROGRESS BAR STYLE ===== */
-      .progress-bar {
-        width: 100%;
-        height: 12px;
-        background: rgba(200, 200, 200, 0.3); /* gris clair */
-        border-radius: 8px;
-        overflow: hidden;
-        margin: 4px 0;
-      }
-
-      .progress-fill {
-        height: 100%;
-        width: 0%; /* animation JS définira la largeur */
-        background: linear-gradient(
-          90deg,
-          #4e73df,
-          #9b59ff
-        ); /* dégradé violet-bleu */
-        border-radius: 8px;
-        transition: width 1.2s ease-in-out;
-      }
-      .loader {
-        display: inline-block;
-        width: 30px;
-        height: 30px;
-        border: 4px solid rgba(128, 128, 128, 0.3); /* anneau gris clair */
-        border-top: 4px solid #808080; /* segment gris plus foncé */
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-right: 10px;
-        vertical-align: middle;
-      }
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-
-      .sidebar {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-      }
-
-      .menu-links {
-        list-style: none;
-        padding: 0;
-      }
-
-      .menu-bottom {
-        margin-top: auto;
-        padding: 20px;
-      }
-
-      .home-link {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-        color: inherit;
-        transition:
-          transform 0.3s ease,
-          opacity 0.3s ease;
-      }
-
-      /* --- Animation porte --- */
-      .home-link svg {
-        transition: transform 0.4s ease;
-        transform-origin: left center; /* charnière côté gauche */
-      }
-
-      /* --- Animation flèche (3e path du SVG) --- */
-      .home-link svg path:last-child {
-        transition: transform 0.3s ease;
-      }
-
-      /* --- Hover --- */
-      .home-link:hover {
-        transform: translateX(4px);
-      }
-
-      .home-link:hover svg {
-        transform: rotateY(-20deg); /* ouverture légère */
-      }
-
-      .home-link:hover svg path:last-child {
-        transform: translateX(-3px); /* flèche qui rentre un peu plus */
-      }
-      /* ===== OPTIMISATION MOBILE PETIT ÉCRAN (<400px) ===== */
-      @media (max-width: 400px) {
-        /* Body : désactiver animation pour performance */
-        body {
-          animation: none;
-        }
-
-        /* Content wrapper : réduire marges */
-        .content-wrapper {
-          margin: 30px 10px 50px 10px;
-          gap: 20px;
-        }
-
-        /* Titres : taille plus petite */
-        .section-title {
-          font-size: 22px;
-          margin-bottom: 15px;
-        }
-
-        /* Reco container : déjà en column sur <900px, rien à changer */
-
-        /* Reco central : réduire padding et min-height */
-        .reco-central {
-          padding: 20px;
-          font-size: 16px;
-          min-height: 250px;
-        }
-
-        /* Reco right : onglets droits en row overflow auto, déjà géré */
-
-        /* Reco tab : réduire padding et min-height */
-        .reco-tab {
-          padding: 14px;
-          min-height: 100px;
-        }
-
-        .reco-tab h3 {
-          font-size: 15px;
-        }
-
-        .reco-tab p {
-          font-size: 13px;
-        }
-
-        /* Tables : scroll horizontal si besoin */
-        .criteria-table-wrapper {
-          overflow-x: auto;
-        }
-        .criteria-table {
-          min-width: 280px; /* permet scroll sur petit écran */
-          font-size: 13px;
-        }
-        .criteria-table th,
-        .criteria-table td {
-          padding: 4px 6px;
-        }
-
-        /* Carte Leaflet : réduire hauteur */
-        #criteria-map {
-          height: 200px;
-        }
-
-        /* Footer : texte plus petit et padding réduit */
-        .bottom-banner {
-          font-size: 11px;
-          padding: 10px;
-        }
-
-        /* Sidebar : largeur plus petite sur mobile */
-        .sidebar {
-          width: 220px;
-          padding: 15px;
-        }
-
-        /* Menu toggle : taille légèrement réduite */
-        .menu-toggle {
-          width: 46px;
-          height: 46px;
-          font-size: 24px;
-          top: 70px;
-          left: 15px;
-        }
-
-        /* Logo texte : réduire taille */
-        .logo-text {
-          font-size: 22px;
-        }
-      }
-      @media (max-width: 768px) {
-        .content-wrapper {
-          margin: 16px auto 28px auto;
-          padding: 0 8px;
-          gap: 12px;
-        }
-      }
-      @media (max-width: 768px) {
-        .reco-container {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-      }
-      @media (max-width: 768px) {
-        .reco-central {
-          padding: 14px;
-          min-height: auto;
-          border-radius: 16px;
-          font-size: 15px;
-          line-height: 1.5;
-          margin-bottom: 0;
-        }
-      }
-      @media (max-width: 768px) {
-        .reco-right {
-          display: flex;
-          flex-direction: row;
-          gap: 8px;
-          overflow-x: auto;
-          position: sticky;
-          top: 70px;
-          z-index: 999;
-          padding-bottom: 6px;
-          margin-bottom: 8px;
-          scrollbar-width: none;
-        }
-
-        .reco-right::-webkit-scrollbar {
-          display: none;
-        }
-      }
-      @media (max-width: 768px) {
-        .reco-tab {
-          flex: 1;
-          min-width: max-content;
-          border-radius: 14px;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-        }
-      }
-      @media (max-width: 768px) {
-        .reco-tab .tab-header {
-          padding: 10px 12px;
-          font-size: 13px;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          white-space: nowrap;
-        }
-
-        .reco-tab .tab-icon {
-          width: 16px;
-          height: 16px;
-          margin-right: 6px;
-        }
-      }
-      @media (max-width: 768px) {
-        .reco-tab .tab-content {
-          display: none;
-        }
-      }
-      @media (max-width: 768px) {
-        .analysis-card {
-          padding: 14px;
-          margin-bottom: 10px;
-          border-radius: 14px;
-        }
-
-        .analysis-card p {
-          font-size: 14px;
-          line-height: 1.55;
-        }
-      }
-      @media (max-width: 768px) {
-        .criterion-badge {
-          font-size: 10px;
-          padding: 4px 8px;
-          margin-bottom: 8px;
-        }
-      }
-      @media (max-width: 768px) {
-        .criteria-table {
-          display: block;
-          width: 100%;
-          overflow-x: auto;
-          white-space: nowrap;
-          border-radius: 12px;
-        }
-
-        .criteria-table th,
-        .criteria-table td {
-          font-size: 12px;
-          padding: 8px;
-        }
-      }
-      @media (max-width: 768px) {
-        #criteria-map {
-          height: 220px !important;
-          border-radius: 14px;
-          margin-top: 10px;
-        }
-      }
-      @media (max-width: 768px) {
-        .section-title {
-          font-size: 20px;
-          margin-bottom: 4px;
-          line-height: 1.2;
-        }
-      }
-      @media (max-width: 768px) {
-        .reco-central {
-          animation: fadeInUp 0.35s ease;
-        }
-      }
-      @media (max-width: 768px) {
-        body {
-          overflow-x: hidden;
-        }
-
-        * {
-          max-width: 100%;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="recommandations.css" />
   </head>
 
   <body>
-    <!-- ===== BOUTON MENU FLOTTANT ===== -->
-    <button class="menu-toggle" id="openSidebar">☰</button>
+    <!-- Définition du Gradient Premium AiGENT (Invisible) -->
+    <svg
+      width="0"
+      height="0"
+      style="position: absolute; pointer-events: none"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient
+          id="grad-violet-rose"
+          x1="0%"
+          y1="0%"
+          x2="100%"
+          y2="100%"
+        >
+          <stop offset="0%" style="stop-color: #8b5cf6; stop-opacity: 1" />
+          <stop offset="100%" style="stop-color: #ec4899; stop-opacity: 1" />
+        </linearGradient>
+      </defs>
+    </svg>
+
+    <!-- ===== MENU TOGGLE ===== -->
+    <button class="menu-toggle" id="openSidebar" aria-label="Ouvrir le menu">
+      <svg
+        width="22"
+        height="18"
+        viewBox="0 0 22 18"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <line x1="0" y1="2" x2="22" y2="2" />
+        <line x1="0" y1="9" x2="16" y2="9" />
+        <line x1="0" y1="16" x2="10" y2="16" />
+      </svg>
+    </button>
 
     <!-- ===== SIDEBAR ===== -->
     <nav id="sidebar" class="sidebar">
       <span class="close-btn" id="closeSidebar">&times;</span>
       <h2>Menu</h2>
-
-      <!-- Liens principaux -->
       <ul class="menu-links">
-        <li><a href="profil.html">Profil & Compte</a></li>
-        <li><a href="messagerie.html">Messagerie</a></li>
-        <li><a href="favoris.html">Profils favoris</a></li>
-        <li><a href="statistiques.html">Statistiques</a></li>
+        <li>
+          <a href="profil.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+            Profil &amp; Compte
+          </a>
+        </li>
+        <li>
+          <a href="messagerie.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              />
+            </svg>
+            Messagerie
+          </a>
+        </li>
+        <li>
+          <a href="favoris.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+              />
+            </svg>
+            Profils favoris
+          </a>
+        </li>
+        <li>
+          <a href="statistiques.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+            Statistiques
+          </a>
+        </li>
       </ul>
-
-      <!-- Retour accueil placé tout en bas -->
       <div class="menu-bottom">
         <a href="accueil.html" class="home-link">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -663,191 +143,399 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <!-- Porte -->
-            <path d="M3 21h18"></path>
-            <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"></path>
-            <!-- Flèche qui rentre -->
-            <path d="M12 11l-3 3 3 3"></path>
+            <path d="M3 21h18" />
+            <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" />
+            <path d="M12 11l-3 3 3 3" />
           </svg>
-          <span><i>Retour à l'accueil</i></span>
+          <span>Retour à l'accueil</span>
         </a>
       </div>
     </nav>
-
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- ===== HEADER ===== -->
     <header class="top-banner">
       <div class="logo-container">
-        <img src="images/logo.png" class="logo-img" />
-        <h1 class="logo-text">Mon AiGENT Immobilier</h1>
+        <img src="images/logo.png" class="logo-img" alt="AiGENT" />
+        <h1 class="logo-text">Nos Recommandations</h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-theme" aria-label="Changer le thème">
+          <svg
+            class="icon-sun"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          <svg
+            class="icon-moon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        </button>
       </div>
     </header>
 
-    <main class="content-wrapper">
-      <div class="section-title">Recommandations Personnalisées</div>
+    <!-- ===== QUICKNAV MOBILE — hors du main, fixed sous le header ===== -->
+    <nav class="mobile-quicknav" id="mobileQuicknav">
+      <a href="#anchor-score" class="qnav-pill active">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+        Score
+      </a>
+      <a href="#anchor-actions" class="qnav-pill">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
+        Actions
+      </a>
+      <a href="#anchor-diagnostic" class="qnav-pill">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        Diagnostic
+      </a>
+      <a href="#anchor-criteres" class="qnav-pill">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <line x1="8" y1="6" x2="21" y2="6" />
+          <line x1="8" y1="12" x2="21" y2="12" />
+          <line x1="8" y1="18" x2="21" y2="18" />
+          <line x1="3" y1="6" x2="3.01" y2="6" />
+        </svg>
+        Critères
+      </a>
+      <a href="#anchor-marche" class="qnav-pill">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+        </svg>
+        Marché
+      </a>
+    </nav>
 
-      <div class="reco-container">
-        <!-- Zone centrale : Diagnostic -->
-        <div class="reco-central" id="central-diagnostic">
-          <div class="loader"></div>
-          Analyse en cours...<br />
-          L’intelligence artificielle examine vos matchs et votre activité pour
-          générer un diagnostic clair et actionnable.
-        </div>
-
-        <!-- Bande droite : onglets -->
-        <div class="reco-right">
-          <!-- Constat global -->
-          <div class="reco-tab active" data-tab="global">
-            <div class="tab-header">
-              <svg
-                class="tab-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12" y2="16" />
-              </svg>
-              Constat
-            </div>
-            <div class="tab-content" id="tab-global">
-              Votre recherche est actuellement
-              <strong>très restrictive</strong>.<br />
-              2 critères limitent fortement vos résultats.
-            </div>
+    <!-- ===== PAGE PRINCIPALE ===== -->
+    <main class="reco-layout">
+      <!-- ===== COLONNE GAUCHE : ANALYSE IA ===== -->
+      <section class="reco-left">
+        <!-- En-tête section -->
+        <div class="section-header">
+          <div class="section-icon">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path
+                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+              />
+            </svg>
           </div>
-
-          <!-- Constat par critère -->
-          <div class="reco-tab" data-tab="criteria">
-            <div class="tab-header">
-              <svg
-                class="tab-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="12" y1="3" x2="12" y2="21" />
-              </svg>
-              Constat par critère
-            </div>
-            <div class="tab-content">
-              Compatibilité moyenne par critère :
-              <table class="criteria-table">
-                <tr>
-                  <th>Critère</th>
-                  <th>Compatibilité</th>
-                  <th>Observation</th>
-                </tr>
-                <tr>
-                  <td>Surface</td>
-                  <td>
-                    <div class="progress-bar">
-                      <div class="progress-fill" data-value="14"></div>
-                    </div>
-                  </td>
-                  <td>Très restrictif</td>
-                </tr>
-                <tr>
-                  <td>Ville</td>
-                  <td>
-                    <div class="progress-bar">
-                      <div class="progress-fill" data-value="47"></div>
-                    </div>
-                  </td>
-                  <td>Modérément restrictif</td>
-                </tr>
-                <tr>
-                  <td>Type</td>
-                  <td>
-                    <div class="progress-bar">
-                      <div class="progress-fill" data-value="87"></div>
-                    </div>
-                  </td>
-                  <td>Large</td>
-                </tr>
-              </table>
-              <div id="criteria-map">Carte des zones majoritaires</div>
-            </div>
+          <div>
+            <h2 class="section-title">Analyse IA de votre recherche</h2>
+            <p class="section-sub">
+              Diagnostic personnalisé · Mis à jour il y a 2 min
+            </p>
           </div>
-
-          <!-- Recommandations concrètes -->
-          <div class="reco-tab" data-tab="actions">
-            <div class="tab-header">
-              <svg
-                class="tab-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M5 13l4 4L19 7" />
-              </svg>
-              Suggestions concrètes
-            </div>
-            <div class="tab-content">
-              Impact sur la compatibilité si vous ajustez vos critères :
-              <table class="criteria-table">
-                <tr>
-                  <th>Critère</th>
-                  <th>Changement proposé</th>
-                  <th>Compatibilité après</th>
-                </tr>
-                <tr>
-                  <td>Surface</td>
-                  <td>80–90m² → 75–100m²</td>
-                  <td>
-                    <div class="progress-bar">
-                      <div class="progress-fill" data-value="75"></div>
-                    </div>
-                    5 → 18 profils (+260%)
-                  </td>
-                </tr>
-                <tr>
-                  <td>Ville</td>
-                  <td>Ajouter communes voisines</td>
-                  <td>
-                    <div class="progress-bar">
-                      <div class="progress-fill" data-value="80"></div>
-                    </div>
-                    14 → 22 profils (+57%)
-                  </td>
-                </tr>
-                <tr>
-                  <td>Type</td>
-                  <td>Pas de changement</td>
-                  <td>
-                    <div class="progress-bar">
-                      <div class="progress-fill" data-value="87"></div>
-                    </div>
-                    inchangé
-                  </td>
-                </tr>
-              </table>
-            </div>
+          <div class="analysis-status" id="analysisStatus">
+            <span class="status-dot"></span>
+            <span>En analyse</span>
           </div>
         </div>
-      </div>
+
+        <!-- SCORE GLOBAL -->
+        <span
+          id="anchor-score"
+          style="display: block; height: 0; visibility: hidden"
+        ></span>
+        <div class="score-card" id="scoreCard">
+          <div class="score-visual">
+            <svg class="score-ring" viewBox="0 0 120 120">
+              <circle class="ring-bg" cx="60" cy="60" r="50" />
+              <circle class="ring-fill" cx="60" cy="60" r="50" id="ringFill" />
+            </svg>
+            <div class="score-inner">
+              <span class="score-value" id="scoreValue">—</span>
+              <span class="score-label">Score</span>
+            </div>
+          </div>
+          <div class="score-meta">
+            <h3 class="score-title" id="scoreTitle">Calcul en cours…</h3>
+            <p class="score-desc" id="scoreDesc">
+              L'IA analyse vos critères et les compare au marché actuel.
+            </p>
+            <div class="score-chips" id="scoreChips"></div>
+          </div>
+        </div>
+
+        <!-- DIAGNOSTIC IA -->
+        <span
+          id="anchor-diagnostic"
+          style="display: block; height: 0; visibility: hidden"
+        ></span>
+        <div class="diagnostic-card" id="diagnosticCard">
+          <div class="diag-header">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            Diagnostic détaillé
+          </div>
+          <div class="diag-body" id="diagBody">
+            <div class="ai-thinking">
+              <span class="loader-pulse"></span>
+              <span>L'IA examine vos 7 matchs récents et votre activité…</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CRITÈRES : BARRES D'IMPACT -->
+        <span
+          id="anchor-criteres"
+          style="display: block; height: 0; visibility: hidden"
+        ></span>
+        <div class="criteria-card">
+          <div class="criteria-header">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+              <line x1="3" y1="6" x2="3.01" y2="6" />
+              <line x1="3" y1="12" x2="3.01" y2="12" />
+              <line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
+            Compatibilité par critère
+          </div>
+          <div class="criteria-list" id="criteriaList">
+            <!-- injecté par JS -->
+          </div>
+        </div>
+
+        <!-- OPPORTUNITÉS MANQUÉES -->
+        <div class="missed-card">
+          <div class="missed-header">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path
+                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+              />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            Opportunités manquées
+            <span class="badge-alert" id="missedCount">—</span>
+          </div>
+          <div class="missed-list" id="missedList">
+            <!-- injecté par JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== COLONNE DROITE : DÉCISIONS & ACTIONS ===== -->
+      <aside class="reco-right">
+        <!-- SUGGESTIONS D'AJUSTEMENT -->
+        <span
+          id="anchor-actions"
+          style="display: block; height: 0; visibility: hidden"
+        ></span>
+        <div class="action-card">
+          <div class="action-header">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+            Ajustements recommandés
+          </div>
+          <div class="action-list" id="actionList">
+            <!-- injecté par JS -->
+          </div>
+        </div>
+
+        <!-- TENDANCES MARCHÉ -->
+        <span
+          id="anchor-marche"
+          style="display: block; height: 0; visibility: hidden"
+        ></span>
+        <div class="market-card">
+          <div class="market-header">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+              <polyline points="17 6 23 6 23 12" />
+            </svg>
+            Tendances du marché
+          </div>
+          <div class="market-body" id="marketBody">
+            <!-- injecté par JS -->
+          </div>
+        </div>
+
+        <!-- PROFILS SIMILAIRES -->
+        <div class="similar-card">
+          <div class="similar-header">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Profils acheteurs similaires
+          </div>
+          <div class="similar-body" id="similarBody">
+            <!-- injecté par JS -->
+          </div>
+        </div>
+
+        <!-- CTA DÉCISION -->
+        <div class="cta-block">
+          <button class="btn-cta-primary" id="btnApplyReco">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Appliquer les recommandations
+          </button>
+          <button class="btn-cta-ghost" id="btnExportReco">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Exporter le rapport
+          </button>
+        </div>
+      </aside>
     </main>
 
+    <!-- ===== TOAST NOTIFICATION ===== -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ===== FOOTER ===== -->
     <footer class="bottom-banner">
-      © Mon AiGENT Immobilier - Tous droits réservés
+      © Mon AiGENT Immobilier – Tous droits réservés
     </footer>
 
-    <!-- Leaflet JS -->
-    <script src="/leaflet/leaflet.js"></script>
-    <!-- Script externe pour IA + Leaflet -->
-    <script src="js/lodash.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chance@1.1.11/dist/chance.min.js"></script>
-    <script type="module" src="recommandations.js"></script>
+    <script src="recommandations.js" type="module"></script>
   </body>
 </html>

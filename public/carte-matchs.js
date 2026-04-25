@@ -1,330 +1,213 @@
-// carte-matchs.js - version animée + heatmap + filtres interactif
-// ==========================
-// MENU LATÉRAL
-// ==========================
-const sidebar = document.getElementById("sidebar");
-const openBtn = document.getElementById("openSidebar");
-const closeBtn = document.getElementById("closeSidebar");
-const overlay = document.getElementById("sidebarOverlay");
+/**
+ * carte-matchs.js - Dashboard Premium
+ */
 
-if (openBtn && sidebar && overlay) {
-  openBtn.addEventListener("click", () => {
-    console.log("[SIDEBAR] Ouverture menu");
-    sidebar.classList.add("open");
-    overlay.classList.add("active");
-    openBtn.style.display = "none";
+let map, heatLayer, markersLayer;
+let allMatches = [];
+let currentUser = null;
+
+document.addEventListener("DOMContentLoaded", async () => {
+  currentUser = JSON.parse(localStorage.getItem("agent_user"));
+  if (!currentUser) return (window.location.href = "index.html");
+
+  initTheme();
+  initSidebar();
+  await initMapDashboard();
+});
+
+function initTheme() {
+  const btn = document.getElementById("btn-theme");
+  const html = document.documentElement;
+  const update = (t) => html.setAttribute("data-theme", t);
+
+  btn.addEventListener("click", () => {
+    const next = html.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    update(next);
+    localStorage.setItem("aigent_theme", next);
   });
+  update(localStorage.getItem("aigent_theme") || "dark");
 }
 
-if (closeBtn && sidebar && overlay) {
-  closeBtn.addEventListener("click", () => {
-    console.log("[SIDEBAR] Fermeture menu");
-    sidebar.classList.remove("open");
-    overlay.classList.remove("active");
-    openBtn.style.display = "flex";
-  });
-}
-
-if (overlay && sidebar) {
-  overlay.addEventListener("click", () => {
-    console.log("[SIDEBAR] Fermeture menu via overlay");
-    sidebar.classList.remove("open");
-    overlay.classList.remove("active");
-    openBtn.style.display = "flex";
-  });
-}
-// ==========================
-// FETCH STATS
-// ==========================
-async function fetchStats() {
+async function initMapDashboard() {
+  // 1. Fetch data
   try {
-    const raw = localStorage.getItem("agent_user");
-    if (!raw) throw new Error("Token manquant");
-
-    let token;
-    let user;
-
-    try {
-      user = JSON.parse(raw);
-      token = user.token;
-      if (!token) throw new Error("Token JWT manquant");
-    } catch (e) {
-      throw new Error("Erreur parsing localStorage");
-    }
-
     const res = await fetch("/api/stats", {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${currentUser.token}` },
     });
-
-    if (!res.ok) throw new Error(`Erreur API: ${res.status}`);
-
     const data = await res.json();
+    allMatches = data.matches || [];
 
-    return {
-      ...data,
-      currentUser: user, // IMPORTANT → on injecte le user ici
-    };
-  } catch (err) {
-    console.error("[Carte Matchs] fetchStats error:", err);
-    return null;
+    // 2. Setup Leaflet
+    const center =
+      allMatches.length > 0
+        ? [allMatches[0].lat, allMatches[0].lng]
+        : [46.6, 2.5];
+    map = L.map("map", { zoomControl: false }).setView(center, 6);
+
+    // Style de carte sombre par défaut
+    // APRÈS — OSM France (labels français natifs)
+    L.tileLayer("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png", {
+      attribution:
+        '© <a href="https://www.openstreetmap.org/">OpenStreetMap</a> France',
+      subdomains: "abc",
+      maxZoom: 20,
+    }).addTo(map);
+    markersLayer = L.layerGroup().addTo(map);
+
+    // 3. Heatmap Style Signature (Rose/Violet)
+    // APRÈS — gradient progressif foncé→clair, style signature, visible mais subtil
+    if (typeof L.heatLayer === "function") {
+      heatLayer = L.heatLayer([], {
+        radius: 40,
+        blur: 28,
+        maxZoom: 12,
+        max: 1.0,
+        minOpacity: 0.25, // ← plancher de visibilité même zones peu denses
+        gradient: {
+          0.0: "#1e1b4b", // indigo très foncé — zones quasi vides
+          0.2: "#3730a3", // indigo foncé
+          0.4: "#6366f1", // indigo vif
+          0.6: "#8b5cf6", // violet
+          0.8: "#c084fc", // violet clair
+          1.0: "#f472b6", // rose — zones très denses
+        },
+      }).addTo(map);
+    } else {
+      console.warn("[MAP] leaflet.heat.js non chargé — heatmap désactivé");
+    }
+    renderData(allMatches);
+    initFilters();
+  } catch (e) {
+    console.error(e);
   }
 }
 
-// ==========================
-// COULEUR COMPATIBILITÉ
-// ==========================
-function getColorByCompatibility(c) {
-  if (c >= 80) return "#4caf50";
-  if (c >= 60) return "#2196f3";
-  if (c >= 40) return "#ff9800";
-  return "#f44336";
-}
+function renderData(matches) {
+  markersLayer.clearLayers();
+  const heatData = [];
 
-// ==========================
-// CARTE
-// ==========================
-function createMap(matches, currentUser) {
-  const role = currentUser?.role;
+  matches.forEach((m) => {
+    if (!m.lat || !m.lng) return;
 
-  // Valeurs perso importantes
-  const myBudget = currentUser?.budgetMax || currentUser?.budget || 0;
-  const myPrice = currentUser?.price || 0;
+    // Signature Marker: DivIcon SVG Pulsant
+    // APRÈS — marker SVG inline avec halo animé
+    const compat = m.compatibility || 50;
+    const markerColor =
+      compat >= 75 ? "#f472b6" : compat >= 50 ? "#8b5cf6" : "#6366f1";
 
-  const defaultLatLng = [46.6, 2.5];
-  const firstMatch = matches[0];
-
-  const mapCenter = firstMatch
-    ? [firstMatch.lat || defaultLatLng[0], firstMatch.lng || defaultLatLng[1]]
-    : defaultLatLng;
-
-  const map = L.map("map").setView(mapCenter, 6);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  }).addTo(map);
-
-  const markersGroup = L.markerClusterGroup();
-
-  const heatLayer = L.heatLayer([], {
-    radius: 25,
-    blur: 15,
-    maxZoom: 12,
-    gradient: { 0.3: "blue", 0.5: "lime", 0.7: "orange", 1: "red" },
-  }).addTo(map);
-
-  // ==========================
-  // PANEL DATA
-  // ==========================
-  const dataPanel = document.querySelector(".map-data-panel");
-
-  function updateDashboard(data) {
-    const total = data.length;
-
-    const avg =
-      total > 0
-        ? Math.round(
-            data.reduce((sum, m) => sum + (m.compatibility || 0), 0) / total,
-          )
-        : 0;
-
-    const cityCount = {};
-    data.forEach((m) => {
-      if (m.ville) {
-        cityCount[m.ville] = (cityCount[m.ville] || 0) + 1;
-      }
+    const icon = L.divIcon({
+      className: "",
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+      html: `
+    <div style="position:relative;width:28px;height:28px;display:flex;align-items:center;justify-content:center;">
+      <!-- Halo pulsant -->
+      <div style="
+        position:absolute;
+        width:28px;height:28px;
+        border-radius:50%;
+        background:${markerColor};
+        opacity:0.25;
+        animation:markerPulse 2s ease-out infinite;
+      "></div>
+      <!-- Point central -->
+      <div style="
+        width:12px;height:12px;
+        border-radius:50%;
+        background:${markerColor};
+        border:2px solid rgba(255,255,255,0.9);
+        box-shadow:0 0 8px ${markerColor};
+        position:relative;
+        z-index:1;
+      "></div>
+    </div>
+  `,
     });
 
-    let dominantCity = "N/A";
-    let max = 0;
+    const marker = L.marker([m.lat, m.lng], { icon }).addTo(markersLayer);
 
-    for (const city in cityCount) {
-      if (cityCount[city] > max) {
-        max = cityCount[city];
-        dominantCity = city;
-      }
-    }
-
-    if (dataPanel) {
-      dataPanel.innerHTML = `
-        <div class="data-card">
-          <h3>Matchs affichés</h3>
-          <p>${total}</p>
-        </div>
-        <div class="data-card">
-          <h3>Score moyen</h3>
-          <p>${avg}%</p>
-        </div>
-        <div class="data-card">
-          <h3>Zone dominante</h3>
-          <p>${dominantCity}</p>
-        </div>
-      `;
-    }
-  }
-
-  // ==========================
-  // NORMALISATION DONNÉES MATCH
-  // ==========================
-  function enrichMatch(m) {
-    return {
-      ...m,
-
-      // 🔥 valeur réelle selon rôle
-      displayPrice:
-        role === "buyer"
-          ? m.price // prix bien
-          : m.price, // budget acheteur (hack back)
-
-      // 🔥 type logique de valeur
-      isBuyerBudget: role === "seller",
-    };
-  }
-
-  function renderMap(filteredMatches) {
-    markersGroup.clearLayers();
-    heatLayer.setLatLngs([]);
-
-    filteredMatches.forEach((rawMatch, index) => {
-      const m = enrichMatch(rawMatch);
-
-      if (!m.lat || !m.lng) return;
-
-      heatLayer.addLatLng([m.lat, m.lng, m.compatibility || 0.5]);
-
-      setTimeout(() => {
-        const color = getColorByCompatibility(m.compatibility);
-
-        const marker = L.circleMarker([m.lat, m.lng], {
-          radius: 9,
-          fillColor: color,
-          color: "#fff",
-          weight: 1.5,
-          opacity: 0,
-          fillOpacity: 0.85,
-        }).addTo(markersGroup);
-
-        let opacity = 0;
-        const fadeInterval = setInterval(() => {
-          opacity += 0.05;
-          marker.setStyle({ opacity });
-          if (opacity >= 1) clearInterval(fadeInterval);
-        }, 20);
-
-        // 🔥 TEXTE ADAPTÉ AU ROLE
-        const priceLabel =
-          role === "buyer" ? "Prix du bien" : "Budget acheteur";
-
-        const popupContent = `
-          <b>${m.username}</b> (${m.type})<br/>
-          Ville: ${m.ville}<br/>
-          ${priceLabel}: ${m.displayPrice} €<br/>
-          Pièces: ${m.pieces}<br/>
-          Surface: ${m.surface} m²<br/>
-          Compatibilité: ${m.compatibility || 0}%<br/>
-          Score: ${m.score}<br/>
-          <b>Points communs:</b> ${m.common?.join(", ") || ""}<br/>
-          <b>Différences:</b> ${m.different?.join(", ") || ""}
-        `;
-
-        marker.bindPopup(popupContent);
-      }, index * 50);
-    });
-
-    updateDashboard(filteredMatches);
-    map.addLayer(markersGroup);
-  }
-
-  // Initial render
-  renderMap(matches);
-
-  // ==========================
-  // FILTRES
-  // ==========================
-  const scoreInput = document.getElementById("filterScore");
-  const typeInput = document.getElementById("filterType");
-  const budgetInput = document.getElementById("filterBudget");
-  const resetBtn = document.getElementById("resetFilters");
-  const scoreValue = document.getElementById("scoreValue");
-
-  // 🔥 UI dynamique selon rôle
-  if (budgetInput) {
-    const label = document.querySelector("label[for='filterBudget']");
-    if (label) {
-      label.textContent =
-        role === "buyer" ? "Budget maximum" : "Budget minimum acheteur";
-    }
-  }
-
-  scoreInput.addEventListener("input", () => {
-    scoreValue.textContent = scoreInput.value + "%";
-    applyFilters();
+    // Popup stylé
+    marker.bindPopup(`
+            <div style="font-family:'Segoe UI'; padding:10px;">
+                <strong style="color:#7c3aed; font-size:14px;">${m.type} - ${m.ville}</strong><br>
+                <div style="margin-top:5px; font-size:12px;">
+                    Score: <b>${m.compatibility}%</b><br>
+                    Prix: ${m.price || m.budgetMax} €
+                </div>
+            </div>
+        `);
+    heatData.push([
+      parseFloat(m.lat),
+      parseFloat(m.lng),
+      Math.max(0.4, m.compatibility / 100), // floor à 0.4 sinon invisible
+    ]);
   });
+  if (heatLayer && heatData.length > 0) {
+    heatLayer.setLatLngs(heatData);
+    heatLayer.redraw(); // force le rendu
+  }
+  updateStats(matches);
+}
 
-  typeInput.addEventListener("change", applyFilters);
-  budgetInput.addEventListener("input", applyFilters);
+function updateStats(list) {
+  document.getElementById("stat-count").textContent = list.length;
+  const avg =
+    list.length > 0
+      ? Math.round(
+          list.reduce((acc, m) => acc + m.compatibility, 0) / list.length,
+        )
+      : 0;
+  document.getElementById("stat-avg").textContent = `${avg}%`;
 
-  resetBtn.addEventListener("click", () => {
-    scoreInput.value = 0;
-    typeInput.value = "all";
-    budgetInput.value = "";
-    scoreValue.textContent = "0%";
+  // Zone dominante
+  const counts = {};
+  list.forEach((m) => (counts[m.ville] = (counts[m.ville] || 0) + 1));
+  const topZone = Object.keys(counts).reduce(
+    (a, b) => (counts[a] > counts[b] ? a : b),
+    "N/A",
+  );
+  document.getElementById("stat-zone").textContent = topZone;
+}
 
-    renderMap(matches);
-  });
+function initFilters() {
+  const scoreIn = document.getElementById("filterScore");
+  const typeIn = document.getElementById("filterType");
+  const scoreVal = document.getElementById("scoreValue");
 
-  // ==========================
-  // LOGIQUE FILTRAGE (ULTRA PROPRE)
-  // ==========================
-  function applyFilters() {
-    const compatMin = parseInt(scoreInput.value) || 0;
-    const type = typeInput.value;
-    const budgetValue = parseInt(budgetInput.value);
+  const apply = () => {
+    const min = parseInt(scoreIn.value);
+    const type = typeIn.value;
+    scoreVal.textContent = min + "%";
 
-    const filtered = matches.filter((m) => {
-      // base commune
-      if ((m.compatibility || 0) < compatMin) return false;
-      if (type !== "all" && m.type !== type) return false;
-
-      // ===== LOGIQUE MÉTIER =====
-
-      // 👤 ACHETEUR
-      if (role === "buyer") {
-        if (!budgetValue) return true;
-        return (m.price || 0) <= budgetValue;
-      }
-
-      // 🏠 VENDEUR
-      if (role === "seller") {
-        if (!budgetValue) return true;
-        return (m.price || 0) >= budgetValue;
-      }
-
-      return true;
+    const filtered = allMatches.filter((m) => {
+      return (
+        m.compatibility >= min &&
+        (type === "all" || m.type.toLowerCase() === type)
+      );
     });
+    renderData(filtered);
+  };
 
-    renderMap(filtered);
-  }
+  scoreIn.addEventListener("input", apply);
+  typeIn.addEventListener("change", apply);
+  document.getElementById("resetFilters").onclick = () => {
+    scoreIn.value = 0;
+    typeIn.value = "all";
+    apply();
+  };
 }
 
-// ==========================
-// INIT
-// ==========================
-async function init() {
-  const stats = await fetchStats();
+function initSidebar() {
+  const side = document.getElementById("sidebar");
+  const open = document.getElementById("openSidebar");
+  const close = document.getElementById("closeSidebar");
+  const over = document.getElementById("sidebarOverlay");
 
-  if (!stats || !stats.matches || stats.matches.length === 0) {
-    const msg = document.createElement("p");
-    msg.innerText = "Aucun match disponible pour affichage sur la carte.";
-    msg.style.textAlign = "center";
-    msg.style.fontSize = "18px";
-    msg.style.marginTop = "20px";
-
-    document.querySelector(".content-wrapper").appendChild(msg);
-    return;
-  }
-
-  createMap(stats.matches, stats.currentUser);
+  const toggle = (st) => {
+    side.classList.toggle("open", st);
+    over.classList.toggle("active", st);
+  };
+  open.onclick = () => toggle(true);
+  close.onclick = () => toggle(false);
+  over.onclick = () => toggle(false);
 }
-
-document.addEventListener("DOMContentLoaded", init);

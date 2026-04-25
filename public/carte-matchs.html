@@ -1,642 +1,115 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="/images/favicon.ico"
-    />
-    <title>AiGENT - Carte des Matchs</title>
+    <link rel="icon" type="image/png" href="/images/favicon.ico" />
+    <title>AiGENT - Map Intelligence</title>
 
-    <link rel="stylesheet" href="accueil.css" />
+    <link rel="stylesheet" href="carte-matchs.css" />
     <link rel="stylesheet" href="/leaflet/leaflet.css" />
-
-    <style>
-      /* ================================
-BASE
-================================ */
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        font-family:
-          "Segoe UI",
-          system-ui,
-          -apple-system,
-          sans-serif;
-
-        background: #f8faff;
-        color: #1a1a1a;
-      }
-
-      /* ================================
-ACCENT GLOBAL DÉGRADÉ
-================================ */
-
-      body::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        z-index: -1;
-
-        background:
-          radial-gradient(
-            circle at 15% 20%,
-            rgba(79, 124, 255, 0.18),
-            transparent 45%
-          ),
-          radial-gradient(
-            circle at 85% 25%,
-            rgba(155, 107, 255, 0.16),
-            transparent 45%
-          ),
-          radial-gradient(
-            circle at 50% 95%,
-            rgba(209, 148, 237, 0.18),
-            transparent 50%
-          );
-      }
-
-      /* ================================
-HEADER
-================================ */
-
-      .top-banner {
-        background: rgba(10, 10, 15, 0.72);
-        padding: 14px 22px;
-
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-
-        position: relative;
-      }
-
-      .top-banner::after {
-        content: "";
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 1px;
-
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(122, 95, 255, 0.4),
-          transparent
-        );
-
-        opacity: 0.6;
-      }
-
-      /* ================================
-LOGO
-================================ */
-
-      .logo-container {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-      }
-
-      .logo-img {
-        width: 52px;
-        transition: transform 0.3s ease;
-      }
-
-      .logo-container:hover .logo-img {
-        transform: translateY(-1px) scale(1.04);
-      }
-
-      .logo-text {
-        font-size: 28px;
-        font-weight: 700;
-
-        background: linear-gradient(270deg, #659cef, #d194ed, #8fbafc);
-        background-size: 400% 400%;
-
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-
-        animation: gradientBG 30s ease infinite;
-      }
-
-      @keyframes gradientBG {
-        0% {
-          background-position: 0% 50%;
-        }
-        50% {
-          background-position: 100% 50%;
-        }
-        100% {
-          background-position: 0% 50%;
-        }
-      }
-
-      /* ================================
-MENU FLOTTANT (SIGNATURE FIXÉE)
-================================ */
-
-      .menu-toggle {
-        position: fixed;
-        top: 90px;
-        left: 20px;
-
-        width: 56px;
-        height: 56px;
-
-        border-radius: 50%;
-        border: none;
-        cursor: pointer;
-
-        background: linear-gradient(135deg, #4f7cff, #9b6bff);
-        color: white;
-
-        font-size: 24px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        z-index: 3000;
-
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-
-        transition: all 0.25s ease;
-      }
-
-      .menu-toggle:hover {
-        transform: translateY(-3px) scale(1.05);
-      }
-
-      /* ================================
-SIDEBAR (IDENTITÉ CONSERVÉE)
-================================ */
-
-      .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-
-        width: 260px;
-        height: 100vh;
-
-        background: rgba(10, 10, 20, 0.95);
-        backdrop-filter: blur(18px);
-
-        color: #fff;
-
-        transform: translateX(-100%);
-        transition: transform 0.35s ease;
-
-        z-index: 2000;
-
-        padding: 20px;
-
-        display: flex;
-        flex-direction: column;
-
-        border-right: 1px solid rgba(155, 107, 255, 0.2);
-      }
-      .menu-bottom {
-        margin-top: auto;
-      }
-
-      .sidebar.open {
-        transform: translateX(0);
-      }
-
-      .sidebar h2 {
-        margin-top: 40px;
-        margin-bottom: 30px;
-        font-size: 20px;
-      }
-
-      .sidebar ul {
-        list-style: none;
-        padding: 0;
-      }
-
-      .sidebar ul li {
-        margin-bottom: 20px;
-      }
-
-      .sidebar ul li a {
-        color: rgba(255, 255, 255, 0.85);
-        text-decoration: none;
-      }
-
-      .sidebar ul li a:hover {
-        color: white;
-      }
-
-      .sidebar-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-        z-index: 1500;
-        display: none;
-      }
-
-      .sidebar-overlay.active {
-        display: block;
-      }
-      .sidebar .close-btn {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-      }
-      .sidebar {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-      }
-
-      .menu-links {
-        list-style: none;
-        padding: 0;
-      }
-
-      .menu-bottom {
-        margin-top: auto;
-        padding: 20px;
-      }
-
-      .home-link {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-        color: inherit;
-        transition:
-          transform 0.3s ease,
-          opacity 0.3s ease;
-      }
-
-      /* --- Animation porte --- */
-      .home-link svg {
-        transition: transform 0.4s ease;
-        transform-origin: left center; /* charnière côté gauche */
-      }
-
-      /* --- Animation flèche (3e path du SVG) --- */
-      .home-link svg path:last-child {
-        transition: transform 0.3s ease;
-      }
-
-      /* --- Hover --- */
-      .home-link:hover {
-        transform: translateX(4px);
-      }
-
-      .home-link:hover svg {
-        transform: rotateY(-20deg); /* ouverture légère */
-      }
-
-      .home-link:hover svg path:last-child {
-        transform: translateX(-3px); /* flèche qui rentre un peu plus */
-      }
-
-      /* ================================
-LAYOUT
-================================ */
-
-      .content-wrapper {
-        max-width: 1300px;
-        margin: 70px auto 120px auto;
-        padding: 0 20px;
-      }
-
-      /* ================================
-HEADER CARTE (ULTRA PREMIUM)
-================================ */
-
-      .map-header {
-        text-align: center;
-
-        background: linear-gradient(135deg, #4f7cff, #9b6bff, #d194ed);
-        color: white;
-
-        padding: 26px;
-        border-radius: 24px;
-
-        margin-bottom: 30px;
-
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
-
-        position: relative;
-        overflow: hidden;
-      }
-
-      .map-header::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 4px;
-        width: 100%;
-        background: rgba(255, 255, 255, 0.25);
-      }
-
-      .map-title {
-        font-size: 24px;
-        font-weight: 700;
-      }
-
-      .map-subtitle {
-        margin-top: 8px;
-        font-size: 14px;
-        opacity: 0.9;
-      }
-
-      /* ================================
-CARTE CONTAINER (BOOST)
-================================ */
-
-      .map-container {
-        width: 100%;
-        height: 65vh;
-
-        border-radius: 28px;
-
-        overflow: hidden;
-
-        box-shadow:
-          0 25px 80px rgba(0, 0, 0, 0.12),
-          0 0 0 1px rgba(79, 124, 255, 0.08);
-
-        position: relative;
-      }
-
-      /* gradient top line */
-      .map-container::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 6px;
-
-        background: linear-gradient(90deg, #4f7cff, #9b6bff, #d194ed);
-        z-index: 1000;
-      }
-
-      /* ================================
-FILTRES (PRÊTS POUR PLUS TARD)
-================================ */
-
-      .filters-bar {
-        margin-top: 20px;
-
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-
-      .filter {
-        padding: 10px 18px;
-        border-radius: 999px;
-
-        background: white;
-
-        border: 1px solid rgba(0, 0, 0, 0.08);
-
-        font-size: 14px;
-        cursor: pointer;
-
-        transition: all 0.25s ease;
-      }
-
-      .filter:hover {
-        background: linear-gradient(135deg, #4f7cff, #9b6bff);
-        color: white;
-      }
-
-      /* ================================
-DATA PANEL BAS (ULTRA PRO)
-================================ */
-
-      .map-data-panel {
-        margin-top: 30px;
-
-        display: flex;
-        gap: 20px;
-        justify-content: space-between;
-        flex-wrap: wrap;
-      }
-
-      .data-card {
-        flex: 1;
-        min-width: 220px;
-
-        background: white;
-        border-radius: 20px;
-
-        padding: 20px;
-
-        box-shadow:
-          0 10px 30px rgba(0, 0, 0, 0.06),
-          0 0 0 1px rgba(0, 0, 0, 0.04);
-
-        text-align: center;
-      }
-
-      .data-card h3 {
-        font-size: 14px;
-        margin-bottom: 10px;
-        opacity: 0.7;
-      }
-
-      .data-card p {
-        font-size: 22px;
-        font-weight: 700;
-
-        background: linear-gradient(135deg, #4f7cff, #9b6bff);
-        -webkit-background-clip: text;
-        background-clip: text;
-
-        color: transparent;
-      }
-      /* ================================
-FILTRES DASHBOARD PRO
-================================ */
-
-      .filters-dashboard {
-        margin-top: 25px;
-        padding: 25px;
-
-        background: white;
-        border-radius: 22px;
-
-        box-shadow:
-          0 15px 40px rgba(0, 0, 0, 0.06),
-          0 0 0 1px rgba(0, 0, 0, 0.04);
-      }
-
-      .filters-title {
-        background: linear-gradient(135deg, #4f7cff, #9b6bff);
-        -webkit-background-clip: text;
-        background-clip: text;
-
-        color: transparent;
-      }
-
-      .filters-grid {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-      }
-
-      /* Groupe */
-      .filter-group {
-        flex: 1;
-        min-width: 180px;
-
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      /* Labels */
-      .filter-group label {
-        font-size: 13px;
-        opacity: 0.7;
-      }
-
-      /* Inputs */
-      .filter-group input,
-      .filter-group select {
-        padding: 10px 12px;
-
-        border-radius: 10px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-
-        font-size: 14px;
-
-        transition: all 0.2s ease;
-      }
-
-      .filter-group input:focus,
-      .filter-group select:focus {
-        outline: none;
-        border-color: #7a5fff;
-        box-shadow: 0 0 0 3px rgba(122, 95, 255, 0.1);
-      }
-
-      /* Range stylé */
-      input[type="range"] {
-        padding: 0;
-      }
-
-      /* Score value */
-      #scoreValue {
-        font-size: 12px;
-        opacity: 0.6;
-      }
-
-      /* Bouton reset */
-      .reset-group {
-        justify-content: flex-end;
-      }
-
-      #resetFilters {
-        margin-top: auto;
-
-        padding: 10px 16px;
-        border-radius: 10px;
-
-        border: none;
-        cursor: pointer;
-
-        background: linear-gradient(135deg, #ff5f6d, #ff9966);
-        color: white;
-
-        font-size: 13px;
-
-        transition: all 0.25s ease;
-      }
-
-      #resetFilters:hover {
-        transform: translateY(-2px);
-      }
-
-      /* ================================
-FOOTER
-================================ */
-
-      .bottom-banner {
-        text-align: center;
-        padding: 16px;
-
-        background: rgba(0, 0, 0, 0.65);
-
-        font-size: 14px;
-
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
-        color: white;
-      }
-
-      /* ================================
-RESPONSIVE
-================================ */
-
-      @media (max-width: 768px) {
-        .map-container {
-          height: 50vh;
-        }
-
-        .map-header {
-          padding: 20px;
-        }
-      }
-
-      @media (max-width: 480px) {
-        .map-container {
-          height: 42vh;
-          border-radius: 18px;
-        }
-      }
-    </style>
   </head>
 
   <body>
+    <div class="ambient-bg"></div>
+
     <!-- ===== BOUTON MENU FLOTTANT ===== -->
-    <button class="menu-toggle" id="openSidebar">☰</button>
+    <button class="menu-toggle" id="openSidebar" aria-label="Ouvrir le menu">
+      <svg
+        width="22"
+        height="18"
+        viewBox="0 0 22 18"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <line x1="0" y1="2" x2="22" y2="2" />
+        <line x1="0" y1="9" x2="16" y2="9" />
+        <line x1="0" y1="16" x2="10" y2="16" />
+      </svg>
+    </button>
 
-    <!-- ===== SIDEBAR ===== -->
-    <nav id="sidebar" class="sidebar">
-      <span class="close-btn" id="closeSidebar">&times;</span>
+    <!-- ===== SIDEBAR NAV ===== -->
+    <nav id="sidebar" class="sidebar-nav" aria-label="Navigation principale">
+      <span class="close-btn" id="closeSidebar" aria-label="Fermer"
+        >&times;</span
+      >
       <h2>Menu</h2>
-
-      <!-- Liens principaux -->
       <ul class="menu-links">
-        <li><a href="profil.html">Profil & Compte</a></li>
-        <li><a href="messagerie.html">Messagerie</a></li>
-        <li><a href="favoris.html">Profils favoris</a></li>
-        <li><a href="statistiques.html">Statistiques</a></li>
+        <li>
+          <a href="profil.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+            Profil &amp; Compte
+          </a>
+        </li>
+        <li>
+          <a href="messagerie.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
+              />
+            </svg>
+            Messagerie
+          </a>
+        </li>
+        <li>
+          <a href="favoris.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
+              />
+            </svg>
+            Profils favoris
+          </a>
+        </li>
+        <li>
+          <a href="statistiques.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+            Statistiques Globales
+          </a>
+        </li>
       </ul>
-
-      <!-- Retour accueil placé tout en bas -->
       <div class="menu-bottom">
         <a href="accueil.html" class="home-link">
           <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -644,98 +117,113 @@ RESPONSIVE
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <!-- Porte -->
-            <path d="M3 21h18"></path>
-            <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"></path>
-            <!-- Flèche qui rentre -->
-            <path d="M12 11l-3 3 3 3"></path>
+            <path d="M3 21h18" />
+            <path d="M7 21V5a2 2 0 012-2h6a2 2 0 012 2v16" />
+            <path d="M12 11l-3 3 3 3" />
           </svg>
-          <span><i>Retour à l'accueil</i></span>
+          <span>Retour à l'accueil</span>
         </a>
       </div>
     </nav>
 
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
 
-    <!-- ===== HEADER ===== -->
+    <!-- HEADER PRO -->
+    <!-- ===== HEADER CORRIGÉ ===== -->
     <header class="top-banner">
       <div class="logo-container">
-        <img src="images/logo.png" class="logo-img" />
-        <h1 class="logo-text">Mon AiGENT Immobilier</h1>
+        <img src="images/logo.png" class="logo-img" alt="Logo" />
+        <h1 class="logo-text">Map Intelligence</h1>
+      </div>
+
+      <div class="header-actions">
+        <!-- Le bouton thème est maintenant bien placé avant la déconnexion -->
+        <button id="btn-theme" aria-label="Changer le thème">
+          <svg
+            class="icon-sun"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          <svg
+            class="icon-moon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+          </svg>
+        </button>
+
+        <button id="btn-logout" class="logout-btn-minimal">Déconnexion</button>
       </div>
     </header>
 
-    <!-- ===== CONTENU ===== -->
-    <main class="content-wrapper">
-      <!-- NOUVEAU HEADER MAP PREMIUM -->
-      <div class="map-header">
-        <div class="map-title">🗺️ Carte des 30 meilleurs matchs</div>
-        <div class="map-subtitle">Analyse géographique en temps réel</div>
-      </div>
-
-      <!-- MAP -->
-      <div id="map" class="map-container"></div>
-
-      <!-- PANEL DATA PREMIUM -->
-      <div class="map-data-panel">
-        <div class="data-card">
-          <h3>Matchs affichés</h3>
-          <p>30</p>
+    <main class="dashboard-layout">
+      <!-- STATS TOP BAR -->
+      <section class="stats-row">
+        <div class="stat-glass-card">
+          <span class="stat-label">Matchs identifiés</span>
+          <span class="stat-number" id="stat-count">0</span>
         </div>
-        <div class="data-card">
-          <h3>Score moyen</h3>
-          <p>74%</p>
+        <div class="stat-glass-card">
+          <span class="stat-label">Compatibilité Moyenne</span>
+          <span class="stat-number" id="stat-avg">0%</span>
         </div>
-        <div class="data-card">
-          <h3>Zone dominante (ville avec le + de matchs)</h3>
-          <p>Île-de-France</p>
+        <div class="stat-glass-card">
+          <span class="stat-label">Zone de tension</span>
+          <span class="stat-number" id="stat-zone">N/A</span>
         </div>
-      </div>
-      <div class="filters-dashboard">
-        <div class="filters-title">Filtres avancés</div>
+      </section>
 
-        <div class="filters-grid">
-          <!-- Score -->
-          <div class="filter-group">
-            <label>Score minimum</label>
+      <!-- MAP SECTION -->
+      <section class="map-section">
+        <div id="map" class="map-canvas"></div>
+
+        <!-- FLOATING FILTERS (GLASS) -->
+        <div class="map-filters-overlay">
+          <div class="filter-item">
+            <label>Score min.</label>
             <input type="range" id="filterScore" min="0" max="100" value="0" />
             <span id="scoreValue">0%</span>
           </div>
-
-          <!-- Type -->
-          <div class="filter-group">
-            <label>Type de bien</label>
+          <div class="filter-item">
+            <label>Type</label>
             <select id="filterType">
               <option value="all">Tous</option>
-              <option value="appartement">Appartement</option>
               <option value="maison">Maison</option>
+              <option value="appartement">Appartement</option>
             </select>
           </div>
-
-          <!-- Budget -->
-          <div class="filter-group">
-            <label>Budget max (€)</label>
-            <input type="number" id="filterBudget" placeholder="Ex: 500000" />
-          </div>
-
-          <!-- Bouton reset -->
-          <div class="filter-group reset-group">
-            <button id="resetFilters">Réinitialiser</button>
+          <div class="filter-item">
+            <button id="resetFilters" class="btn-reset-icon">↺</button>
           </div>
         </div>
-      </div>
+      </section>
     </main>
 
-    <!-- ===== FOOTER ===== -->
     <footer class="bottom-banner">
-      © Mon AiGENT Immobilier - Tous droits réservés
+      © Mon AiGENT Immobilier - Excellence Géographique
     </footer>
 
-    <!-- ===== SCRIPTS MAP ===== -->
-    <link rel="stylesheet" href="/leaflet/MarkerCluster.css" />
-    <link rel="stylesheet" href="/leaflet/MarkerCluster.Default.css" />
+    <!-- SCRIPTS -->
     <script src="/leaflet/leaflet.js"></script>
-    <script src="/leaflet/MarkerCluster.js"></script>
     <script src="/leaflet/leaflet.heat.js"></script>
     <script src="carte-matchs.js"></script>
   </body>

@@ -1,241 +1,188 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="192x192"
-      href="/images/favicon.ico"
-    />
-
-    <title>Mon AiGENT Immobilier – Matching immobilier intelligent</title>
-
-    <meta
-      name="description"
-      content="Mon AiGENT Immobilier est une plateforme intelligente qui connecte acheteurs et vendeurs grâce à un moteur de matching et des analyses statistiques avancées."
-    />
-
+    <link rel="icon" type="image/png" href="/images/favicon.ico" />
+    <title>AiGENT - L'Immobilier Propulsé par l'IA</title>
     <link rel="stylesheet" href="blog.css" />
   </head>
 
   <body>
-    <!-- HEADER -->
+    <!-- HEADER PRO -->
     <header class="top-banner">
       <div class="logo-container">
-        <img
-          src="images/logo.png"
-          class="logo-img"
-          alt="Logo Mon AiGENT Immobilier"
-        />
-        <h1 class="logo-text">Mon <strong>AiGENT Immobilier</strong></h1>
+        <img src="images/logo.png" class="logo-img" alt="Logo" />
+        <h1 class="logo-text">Mon AiGENT Immobilier</h1>
       </div>
-      <a href="login.html" class="cta-login">Inscription / Connexion</a>
+      <div class="header-nav">
+        <a href="login.html" class="nav-link">Connexion</a>
+        <a href="intro.html" class="cta-header">Démarrer l'expérience</a>
+      </div>
     </header>
 
-    <section class="hero">
-      <div class="hero-top">
+    <!-- HERO SECTION : IMPACT VISUEL -->
+    <section class="hero-premium">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="badge-new">Nouveau : Algorithme V3.0</div>
         <h1 class="hero-title">
-          La plateforme intelligente qui connecte acheteurs et vendeurs
-          immobiliers
+          Trouvez l'accord parfait,<br /><span>sans chercher.</span>
         </h1>
-
-        <a href="login.html" class="hero-btn">Commencer gratuitement</a>
-      </div>
-    </section>
-
-    <section class="hero-bottom">
-      <div class="hero-container">
-        <div class="hero-text">
-          <p class="hero-sub">
-            MonAiGENTImmobilier utilise un moteur de matching et des analyses
-            statistiques pour identifier les profils les plus compatibles selon
-            vos critères immobiliers.
-          </p>
-        </div>
-
-        <div class="hero-image">
-          <img
-            src="images/hero.png"
-            alt="Illustration plateforme intelligente"
-          />
+        <p class="hero-desc">
+          AiGENT révolutionne la rencontre immobilière. Notre IA analyse des
+          milliers de profils pour connecter instantanément les acheteurs
+          qualifiés et les vendeurs exclusifs.
+        </p>
+        <div class="hero-actions">
+          <a href="intro.html" class="btn-main pulse">Découvrir en vidéo</a>
+          <a href="#features" class="btn-outline">En savoir plus</a>
         </div>
       </div>
     </section>
 
-    <!-- FEATURES SECTIONS -->
-    <!-- FEATURES SECTIONS -->
-    <main>
-      <!-- Feature 1 -->
-      <section class="feature">
-        <div class="feature-header">
-          <h2>Matching</h2>
+    <!-- PROMISE SECTION -->
+    <section class="value-proposition">
+      <div class="container">
+        <div class="glass-box">
+          <div class="text-side">
+            <h2>Plus qu'un site, un <span>cerveau</span> immobilier.</h2>
+            <p>
+              Fini les listes interminables. Nous utilisons la
+              <strong>science des données</strong> pour extraire uniquement les
+              5% de profils qui correspondent réellement à votre projet de vie.
+            </p>
+          </div>
+          <div class="img-side">
+            <img
+              src="images/hero.png"
+              alt="Intelligence Artificielle Immobilière"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <main id="features">
+      <!-- FEATURE 1: LE MATCHING -->
+      <section class="feature-block">
+        <div class="section-tag">Technologie</div>
+        <h2 class="section-title">L'Algorithme de Matching</h2>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="step-num">01</div>
+            <h3>Filtrage Prédictif</h3>
+            <p>
+              Notre IA scanne la base de données en millisecondes pour isoler
+              les 30 profils ayant la plus forte affinité géographique et
+              financière.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="step-num">02</div>
+            <h3>Affinage Cognitif</h3>
+            <p>
+              Le moteur analyse ensuite la surface, les pièces et l'état du bien
+              pour ne conserver que les 10 profils à ultra-haute compatibilité.
+            </p>
+          </div>
+          <div class="feature-card highlighted">
+            <div class="step-num">03</div>
+            <h3>Score de Précision</h3>
+            <p>
+              Un score de 0 à 100% est généré. Vous recevez un Top 5 "Elite"
+              pour garantir une transaction fluide et rapide.
+            </p>
+          </div>
         </div>
 
-        <div class="feature-container">
-          <div class="feature-text">
-            <p>
-              Notre moteur de matching analyse les profils acheteurs et vendeurs
-              afin d'identifier les combinaisons les plus pertinentes selon
-              plusieurs critères immobiliers.
-            </p>
-
-            <p>
-              Le moteur compare notamment : prix, surface, nombre de pièces et
-              ville afin d'identifier les profils opposés les plus compatibles.
-            </p>
-
-            <div class="feature-steps">
-              <div class="step">
-                <h3>Étape 1 — Filtrage initial</h3>
-                <p>
-                  Un premier filtre identifie les profils les plus proches selon
-                  les critères principaux afin d'obtenir les 30 utilisateurs les
-                  plus pertinents.
-                </p>
-              </div>
-
-              <div class="step">
-                <h3>Étape 2 — Affinage des résultats</h3>
-                <p>
-                  Ces profils sont ensuite analysés plus précisément selon les
-                  critères restants afin de conserver 10 profils réellement
-                  compatibles.
-                </p>
-              </div>
-
-              <div class="step">
-                <h3>Étape 3 — Calcul de compatibilité</h3>
-                <p>
-                  Un score de compatibilité est ensuite calculé pour établir un
-                  top 5 des profils les plus pertinents.
-                  <br /><br />
-                  Remarque : Plus le nombre d'utilisateurs est important, plus
-                  les résultats sont intéressants.
-                </p>
-              </div>
-            </div>
-
-            <div class="note">
-              💡 Une tolérance intelligente est appliquée sur chaque critère
-              selon les tendances observées chez les utilisateurs.
-            </div>
-          </div>
-
-          <div class="feature-image">
-            <img src="images/matching.png" alt="Matching intelligent" />
-          </div>
+        <div class="ai-note">
+          <span>💡</span>
+          <strong>L'intelligence de la tolérance :</strong> Notre IA comprend
+          qu'un coup de cœur peut se jouer à 2m² près. Elle ajuste ses filtres
+          dynamiquement selon le marché.
         </div>
       </section>
 
-      <!-- Feature 2 -->
-      <section class="feature alt">
-        <div class="feature-header">
-          <h2>Statistiques</h2>
-        </div>
-
-        <div class="feature-container">
-          <div class="feature-image">
-            <img src="images/stats.png" alt="Statistiques avancées" />
+      <!-- FEATURE 2: LES STATS -->
+      <section class="feature-block alt-bg">
+        <div class="feature-split">
+          <div class="visual-side">
+            <div class="stats-glass">
+              <img src="images/stats.png" alt="Statistiques avancées" />
+            </div>
           </div>
-
-          <div class="feature-text">
+          <div class="text-side">
+            <div class="section-tag">Analyse</div>
+            <h2 class="section-title">Visualisez votre positionnement</h2>
             <p>
-              Après le filtrage initial par ville, les 30 profils les plus
-              proches sont analysés statistiquement afin d'offrir une vision
-              claire de votre positionnement.
+              Ne naviguez plus à vue. AiGENT transforme des milliers de points
+              de données en graphiques limpides pour comprendre le marché en
+              temps réel.
             </p>
-
-            <p>
-              Plusieurs visualisations permettent d'interpréter ces résultats.
-            </p>
-
-            <ul class="feature-charts">
+            <ul class="benefit-list">
               <li>
-                <strong>Graphique donut :</strong>
-                Répartition des profils selon leur pourcentage de compatibilité.
+                <strong>Répartition Donut :</strong> Visualisez la force de vos
+                matchs.
               </li>
-
               <li>
-                <strong>Barres verticales :</strong>
-                Scores précis de chaque profil parmi les 30 meilleurs
-                utilisateurs.
+                <strong>Heatmap Interactive :</strong> Identifiez les zones de
+                forte demande.
               </li>
-
               <li>
-                <strong>Barres horizontales :</strong>
-                Analyse des tendances de chaque critère immobilier.
+                <strong>Analyse de Tendances :</strong> Ajustez vos prix selon
+                la réalité du terrain.
               </li>
             </ul>
-
-            <p>
-              Vous pouvez également comparer ces profils directement sur la
-              carte interactive.
-            </p>
           </div>
         </div>
       </section>
 
-      <!-- Feature 3 -->
-      <section class="feature">
-        <div class="feature-header">
-          <h2>Recommandations</h2>
-        </div>
-
-        <div class="feature-container">
-          <div class="feature-text">
+      <!-- FEATURE 3: IA ADVISOR -->
+      <section class="feature-block">
+        <div class="feature-split reverse">
+          <div class="text-side">
+            <div class="section-tag">IA Advisor</div>
+            <h2 class="section-title">Votre conseiller 24/7</h2>
             <p>
-              À partir des 30 profils identifiés par le filtre principal,
-              l'intelligence artificielle analyse les tendances et établit un
-              diagnostic précis de votre positionnement.
+              L'IA AiGENT ne se contente pas de trier. Elle vous conseille. Si
+              un critère bloque vos chances de succès, elle vous alerte et vous
+              propose des alternatives intelligentes.
             </p>
-
-            <p>
-              Elle peut notamment identifier les critères trop restrictifs ou
-              les ajustements qui augmenteraient votre compatibilité globale.
-            </p>
-
-            <p>
-              Des tableaux permettent également de visualiser l'évolution des
-              résultats si certains critères sont modifiés.
-            </p>
+            <div class="impact-card">
+              "92% des utilisateurs trouvent leur match idéal après avoir suivi
+              nos recommandations IA."
+            </div>
           </div>
-
-          <div class="feature-image">
-            <img
-              src="images/recommandations.png"
-              alt="Recommandations intelligentes"
-            />
+          <div class="visual-side">
+            <div class="stats-glass">
+              <img src="images/recommandations.png" alt="Conseils IA" />
+            </div>
           </div>
         </div>
       </section>
     </main>
 
-    <!-- MESSAGING / CTA -->
-    <section class="messaging">
-      <div class="messaging-container">
-        <h2>Trouvez dès maintenant VOTRE profil correspondant</h2>
-        <p>
-          Nous avons intégré une messagerie afin de permettre aux utilisateurs
-          de prendre contact directement avec les profils qui les intéressent.
-        </p>
-        <p>
-          Contacter un utilisateur peut améliorer considérablement votre
-          expérience sur la plateforme et faciliter la recherche d'une solution
-          adaptée.
-        </p>
-        <p>
-          L'adresse email est disponible dans chaque card utilisateur afin de
-          faciliter les échanges.
-        </p>
-        <a href="login.html" class="cta-login">Se connecter pour contacter</a>
+    <!-- FINAL CTA -->
+    <section class="final-cta">
+      <div class="cta-glow"></div>
+      <h2>Prêt à trouver votre <span>match ?</span></h2>
+      <p>
+        Rejoignez la communauté et accédez à notre messagerie sécurisée pour
+        contacter directement les propriétaires et acheteurs.
+      </p>
+      <div class="cta-group">
+        <a href="login.html" class="btn-main">Se connecter / S'inscrire</a>
+        <a href="intro.html" class="btn-secondary">Voir la vidéo d'intro</a>
       </div>
     </section>
 
     <!-- FOOTER -->
     <footer class="bottom-banner">
-      <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
+      <p>
+        © AiGENT Immobilier - Intelligence Artificielle & Matching de Précision
+      </p>
     </footer>
   </body>
 </html>

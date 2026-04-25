@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chargement...</title>
+  </head>
+
+  <body style="margin: 0; background: black; overflow: hidden">
+    <video
+      id="introVideo"
+      autoplay
+      muted
+      playsinline
+      style="width: 100vw; height: 100vh; object-fit: cover"
+    >
+      <source src="videos/video.mp4" type="video/mp4" />
+    </video>
+
+    <script>
+      const video = document.getElementById("introVideo");
+
+      video.addEventListener("ended", () => {
+        window.location.href = "login.html";
+      });
+
+      // sécurité si vidéo bloquée / autoplay limité
+      setTimeout(() => {
+        window.location.href = "login.html";
+      }, 8000);
+    </script>
+  </body>
+</html>

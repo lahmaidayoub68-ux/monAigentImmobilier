@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,303 +10,108 @@
       href="/images/favicon.ico"
     />
 
-    <title>AiGENT - Chat</title>
+    <title>AiGENT - Chat Intelligence Artificielle</title>
 
     <link rel="stylesheet" href="accueil.css" />
-
-    <!-- Leaflet CSS (LOCAL – compatible CSP) -->
     <link rel="stylesheet" href="/leaflet/leaflet.css" />
-
-    <!-- ===== MENU LATÉRAL (STYLE ISOLÉ – NE TOUCHE PAS AU SITE) ===== -->
-    <style>
-      /* ================================
-MENU FLOTTANT (SIGNATURE FIXÉE)
-================================ */
-
-      .menu-toggle {
-        position: fixed;
-        top: 90px;
-        left: 20px;
-
-        width: 56px;
-        height: 56px;
-
-        border-radius: 50%;
-        border: none;
-        cursor: pointer;
-
-        background: linear-gradient(135deg, #4f7cff, #9b6bff);
-        color: white;
-
-        font-size: 24px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        z-index: 3000;
-
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-
-        transition: all 0.25s ease;
-      }
-
-      .menu-toggle:hover {
-        transform: translateY(-3px) scale(1.05);
-      }
-
-      /* ===== SIDEBAR ===== */
-      .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 260px;
-        height: 100vh;
-        background: #000;
-        color: #fff;
-        transform: translateX(-100%);
-        transition: transform 0.35s ease;
-        z-index: 2000;
-        padding: 20px;
-        box-sizing: border-box;
-      }
-
-      .sidebar.open {
-        transform: translateX(0);
-      }
-
-      .sidebar .close-btn {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 22px;
-        cursor: pointer;
-      }
-
-      .sidebar h2 {
-        margin-top: 40px;
-        margin-bottom: 30px;
-        font-size: 20px;
-      }
-
-      .sidebar ul {
-        list-style: none;
-        padding: 0;
-      }
-
-      .sidebar ul li {
-        margin-bottom: 20px;
-      }
-
-      .sidebar ul li a {
-        color: #fff;
-        text-decoration: none;
-        font-size: 16px;
-      }
-
-      .sidebar ul li a:hover {
-        text-decoration: underline;
-      }
-
-      /* ===== OVERLAY ===== */
-      .sidebar-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.4);
-        z-index: 1500;
-        display: none;
-      }
-
-      .sidebar-overlay.active {
-        display: block;
-      }
-      /* ==========================
-POP-UP ÉTAT BIEN (PRO VERSION)
-========================== */
-
-      .etat-inline {
-        width: 100%;
-        margin-top: 10px;
-        display: flex;
-        justify-content: flex-start;
-        animation: fadeIn 0.25s ease;
-      }
-
-      .etat-card {
-        background: #ffffff;
-        border-radius: 16px;
-        max-width: 340px;
-        width: 100%;
-        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
-        border: 1px solid rgba(99, 102, 241, 0.15);
-        overflow: hidden;
-        animation: popupIn 0.22s ease;
-        font-family:
-          system-ui,
-          -apple-system,
-          sans-serif;
-      }
-
-      /* HEADER PRO GRADIENT */
-      .etat-header {
-        background: linear-gradient(135deg, #6366f1, #7c3aed);
-        padding: 14px 16px;
-        color: white;
-      }
-
-      .etat-header h3 {
-        margin: 0;
-        font-size: 15px;
-        font-weight: 700;
-      }
-
-      .etat-header p {
-        margin: 4px 0 0;
-        font-size: 12px;
-        opacity: 0.85;
-      }
-
-      /* OPTIONS */
-      .etat-options {
-        display: flex;
-        flex-direction: column;
-        padding: 10px;
-        gap: 8px;
-        background: #fafafa;
-      }
-
-      /* BADGES MODERNES */
-      .etat-badge {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 12px 14px;
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
-        cursor: pointer;
-        transition: all 0.18s ease;
-        font-size: 13.5px;
-        background: white;
-      }
-
-      .etat-badge:hover {
-        transform: translateY(-1px);
-        border-color: #7c3aed;
-        box-shadow: 0 6px 18px rgba(124, 58, 237, 0.12);
-      }
-
-      .etat-badge.active {
-        background: linear-gradient(135deg, #6366f1, #7c3aed);
-        color: white;
-        border: none;
-      }
-
-      /* CHECK STYLE PRO */
-      .etat-check {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        border: 2px solid #d1d5db;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-      }
-
-      .etat-badge.active .etat-check {
-        border-color: white;
-        background: white;
-      }
-
-      .etat-badge.active .etat-check::after {
-        content: "";
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: #7c3aed;
-      }
-
-      /* ANIMATION */
-      @keyframes popupIn {
-        from {
-          transform: translateY(10px) scale(0.97);
-          opacity: 0;
-        }
-        to {
-          transform: translateY(0) scale(1);
-          opacity: 1;
-        }
-      }
-
-      /* MOBILE CLEAN */
-      @media (max-width: 480px) {
-        .etat-card {
-          max-width: 92%;
-        }
-      }
-      /* ============================= */
-      /* BOUTON SUBMIT */
-      #etatSubmit {
-        padding: 12px 20px;
-        font-size: 15px;
-        font-weight: 600;
-        color: #ffffff;
-        background: linear-gradient(135deg, #4f46e5, #6366f1);
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-      }
-
-      #etatSubmit:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
-      }
-
-      #etatSubmit:active {
-        transform: translateY(0);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-        opacity: 0.95;
-      }
-
-      /* RESPONSIVE */
-      @media (max-width: 480px) {
-        .etat-card {
-          padding: 20px;
-          width: 90%;
-          max-width: 320px;
-        }
-      }
-      .bubble .etat-card {
-        margin-top: 8px;
-      }
-    </style>
   </head>
 
   <body class="chat-page">
     <!-- ===== BOUTON MENU FLOTTANT ===== -->
+    <!-- APRÈS -->
     <button class="menu-toggle" id="openSidebar" aria-label="Ouvrir le menu">
-      ☰
+      <svg
+        width="22"
+        height="18"
+        viewBox="0 0 22 18"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <line x1="0" y1="2" x2="22" y2="2" />
+        <line x1="0" y1="9" x2="16" y2="9" />
+        <line x1="0" y1="16" x2="10" y2="16" />
+      </svg>
     </button>
 
     <!-- ===== MENU LATÉRAL ===== -->
     <nav id="sidebar" class="sidebar" aria-label="Menu principal">
       <span class="close-btn" id="closeSidebar">&times;</span>
-
       <h2>Menu</h2>
-
       <ul>
-        <li><a href="profil.html">Profil & Compte</a></li>
-        <li><a href="messagerie.html">Messagerie</a></li>
-        <li><a href="favoris.html">Profils favoris</a></li>
-        <li><a href="statistiques.html">Statistiques</a></li>
+        <li>
+          <a href="profil.html">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            Profil & Compte
+          </a>
+        </li>
+        <li>
+          <a href="messagerie.html">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              ></path>
+            </svg>
+            Messagerie
+          </a>
+        </li>
+        <li>
+          <a href="favoris.html">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+              ></polygon>
+            </svg>
+            Profils favoris
+          </a>
+        </li>
+        <li>
+          <a href="statistiques.html">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            Statistiques
+          </a>
+        </li>
       </ul>
     </nav>
-
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
 
-    <!-- HEADER -->
+    <!-- ===== HEADER ===== -->
     <header class="top-banner">
       <div class="logo-container">
         <img
@@ -314,325 +119,271 @@ POP-UP ÉTAT BIEN (PRO VERSION)
           alt="Logo AiGENT Immobilier"
           class="logo-img"
         />
-        <h1 class="logo-text" id="animated-title">AiGENT Immobilier</h1>
+        <h1 class="logo-text" id="animated-title">Mon AiGENT Immobilier</h1>
       </div>
 
-      <button id="btn-logout" class="hidden">
-        <svg class="logout-icon" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M10 17L15 12L10 7"
-            stroke="white"
+      <div class="header-actions">
+        <!-- Bouton Thème -->
+        <button id="btn-theme" aria-label="Changer le thème">
+          <svg
+            class="icon-sun"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          <svg
+            class="icon-moon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+          </svg>
+        </button>
+
+        <!-- Bouton Logout -->
+        <button id="btn-logout" class="hidden">
+          <svg
+            class="logout-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-          />
-          <path
-            d="M15 12H4"
-            stroke="white"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-          <path
-            d="M20 4V20"
-            stroke="white"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-        </svg>
-
-        <span>Se déconnecter</span>
-      </button>
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Déconnexion</span>
+        </button>
+      </div>
     </header>
 
-    <!-- CHAT SECTION -->
-    <!-- WRAPPER GLOBAL -->
+    <!-- ===== WRAPPER GLOBAL ===== -->
     <div class="app-layout">
-      <!-- CHAT SECTION -->
+      <!-- ZONE CHAT -->
       <main class="chat-section" id="chat-section" aria-label="Chat immobilier">
         <div class="chat-container">
-          <button id="customize-btn" class="customize-btn">
-            <svg
-              class="brush-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <!-- manche -->
-              <path
-                d="M3 21c3 0 5-2 5-5 0-1.5-1-2.5-2.5-2.5C3.5 13.5 2 15 2 17c0 2 1 4 1 4z"
-              />
-
-              <!-- corps pinceau -->
-              <path d="M14 4l6 6" />
-
-              <!-- pointe -->
-              <path d="M13 5l6 6-7 7-6-6 7-7z" />
-            </svg>
-          </button>
-          <div id="customize-panel" class="customize-panel hidden">
-            <div class="panel-header">
-              <h3>Personnaliser</h3>
-              <button id="close-panel" class="close-panel">✕</button>
-            </div>
-
-            <label class="upload-btn">
-              Importer une image
-              <input type="file" id="bg-upload" hidden />
-            </label>
-          </div>
           <div id="chat-box" class="chat-messages" aria-live="polite"></div>
 
-          <form
-            id="chat-form"
-            class="chat-form"
-            aria-label="Envoyer un message au chatbot"
-          >
-            <input
-              type="text"
-              id="user-input"
-              placeholder="Écris ton message..."
-              required
-            />
-            <button type="submit">
-              <img
-                src="images/energy.svg"
-                alt="Envoyer"
-                width="24"
-                height="24"
+          <!-- COMPOSER -->
+          <div class="composer-zone">
+            <!-- Suggestions rapides -->
+            <div class="chat-suggestions" id="chat-suggestions">
+              <button class="suggestion-btn">Je veux acheter une maison</button>
+              <button class="suggestion-btn">
+                Estimer mon bien pour vendre
+              </button>
+              <button class="suggestion-btn">
+                Recherche sur Paris avec 3 pièces
+              </button>
+              <button class="suggestion-btn">Analyse du marché actuel</button>
+            </div>
+            <form
+              id="chat-form"
+              class="chat-form"
+              aria-label="Envoyer un message au chatbot"
+            >
+              <input
+                type="text"
+                id="user-input"
+                placeholder="Décris ton projet immobilier..."
+                required
+                autocomplete="off"
               />
-            </button>
-          </form>
-
-          <div id="user-info" class="user-info"></div>
+              <button type="submit" class="send-btn" title="Envoyer">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+              </button>
+            </form>
+            <div id="user-info" class="user-info"></div>
+          </div>
         </div>
       </main>
-      <!-- 🔥 PANEL DROIT IA -->
+
+      <!-- ===== PANEL DROIT IA (MÉMOIRE & ANALYSE) ===== -->
       <aside class="ai-panel">
-        <!-- HEADER -->
-        <div class="ai-header">
-          <h2>
-            <!-- Brain SVG Mémoire IA -->
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#ffffff"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              style="vertical-align: middle; margin-right: 6px"
-            >
-              <path
-                d="M12 2c-5.5 0-10 4.5-10 10s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"
-              />
-              <path d="M12 6v6l4 2" />
-            </svg>
-            Mémoire IA
-          </h2>
-          <p>Analyse en temps réel</p>
-        </div>
-
-        <!-- CONTENU -->
-        <div class="ai-content">
-          <!-- RECHERCHE -->
-          <div class="ai-block">
-            <h3>
-              <!-- Target SVG Recherche -->
+        <div class="ai-panel-inner">
+          <div class="ai-header">
+            <h2>
               <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#ffffff"
+                stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                style="vertical-align: middle; margin-right: 6px"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <circle cx="12" cy="12" r="6" />
-                <circle cx="12" cy="12" r="2" />
-              </svg>
-              Recherche
-            </h3>
-            <ul>
-              <li>
-                <!-- Location SVG -->
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#4a90e2"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  style="vertical-align: middle; margin-right: 4px"
-                >
-                  <path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                Montpellier
-              </li>
-              <li>
-                <!-- Euro SVG -->
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#f5a623"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  style="vertical-align: middle; margin-right: 4px"
-                >
-                  <path d="M12 1v22" />
-                  <path d="M17 5H9.5a4.5 4.5 0 0 0 0 9H16" />
-                </svg>
-                200 000€
-              </li>
-              <li>
-                <!-- Ruler SVG -->
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#50e3c2"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  style="vertical-align: middle; margin-right: 4px"
-                >
-                  <path d="M3 21l18-18" />
-                  <path d="M6 6h.01M10 10h.01M14 14h.01M18 18h.01" />
-                </svg>
-                ≥ 56m²
-              </li>
-              <li>
-                <!-- Home SVG -->
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#ff6f61"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  style="vertical-align: middle; margin-right: 4px"
-                >
-                  <path
-                    d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"
-                  />
-                </svg>
-                4 pièces
-              </li>
-            </ul>
-          </div>
-
-          <div class="separator"></div>
-
-          <!-- STATUT -->
-          <div class="ai-block">
-            <h3>
-              <!-- Lightning SVG -->
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#ff9500"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                style="vertical-align: middle; margin-right: 6px"
-              >
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-              </svg>
-              Statut
-            </h3>
-            <p>5 biens trouvés</p>
-          </div>
-
-          <div class="separator"></div>
-
-          <!-- ANALYSE IA -->
-          <div class="ai-block">
-            <h3>
-              <!-- Brain SVG Analyse IA -->
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#ffffff"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                style="vertical-align: middle; margin-right: 6px"
               >
                 <path
                   d="M12 2c-5.5 0-10 4.5-10 10s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"
                 />
                 <path d="M12 6v6l4 2" />
               </svg>
-              Analyse IA (biens affichés)
-            </h3>
-            <ul>
-              <li>→ Recherche familiale</li>
-              <li>→ Zone élargie (60km)</li>
-            </ul>
+              Cerveau IA
+            </h2>
+            <p>Analyse cognitive en temps réel</p>
           </div>
-        </div>
-        <!-- ACTIONS -->
-        <div class="ai-actions">
-          <button class="ai-btn primary">Être mis en relation</button>
-          <button class="ai-btn">Analyser le marché</button>
-          <button class="ai-btn ghost">Modifier mes critères</button>
+
+          <div class="ai-content">
+            <div class="ai-block">
+              <h3>Critères actifs</h3>
+              <ul class="memory-list">
+                <li>
+                  <div class="icon-wrap">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"
+                      />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <span class="val" id="ai-ville">En attente</span>
+                </li>
+                <li>
+                  <div class="icon-wrap">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    >
+                      <path d="M18 6.5A7 7 0 1 0 18 17.5" />
+                      <line x1="4" y1="10" x2="15" y2="10" />
+                      <line x1="4" y1="14" x2="15" y2="14" />
+                    </svg>
+                  </div>
+                  <span class="val" id="ai-budget">En attente</span>
+                </li>
+                <li>
+                  <div class="icon-wrap">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <line x1="3" y1="9" x2="21" y2="9" />
+                      <line x1="9" y1="21" x2="9" y2="9" />
+                    </svg>
+                  </div>
+                  <span class="val" id="ai-surface">En attente</span>
+                </li>
+                <li>
+                  <div class="icon-wrap">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"
+                      />
+                    </svg>
+                  </div>
+                  <span class="val" id="ai-pieces">En attente</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="separator"></div>
+
+            <div class="ai-block">
+              <h3>Statut de la recherche</h3>
+              <div class="status-badge">
+                <span class="status-indicator"></span>
+                <span class="status-text" id="ai-statut"
+                  >Initialisation...</span
+                >
+              </div>
+            </div>
+
+            <div class="separator"></div>
+
+            <div class="ai-block">
+              <h3>Analyse du marché</h3>
+              <ul class="analyse-list" id="ai-analyse">
+                <li class="empty-state">En attente de données du marché...</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="ai-actions">
+            <button class="ai-btn primary">Être mis en relation</button>
+            <button class="ai-btn">Analyser le marché</button>
+            <button class="ai-btn ghost">Modifier mes critères</button>
+          </div>
         </div>
       </aside>
     </div>
 
-    <!-- MODAL CARTE -->
+    <!-- ===== MODAL CARTE LEAFLET ===== -->
     <div id="mapModal" class="modal" style="display: none">
       <div class="modal-content">
-        <span
-          id="closeModal"
-          style="cursor: pointer"
-          aria-label="Fermer la carte"
+        <span id="closeModal" class="modal-close" aria-label="Fermer la carte"
           >&times;</span
         >
-        <div id="map" style="height: 60vh; width: 100%"></div>
+        <div id="map" class="map-container"></div>
       </div>
     </div>
 
-    <!-- FOOTER -->
+    <!-- ===== FOOTER ===== -->
     <footer class="bottom-banner">
       <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
     </footer>
 
-    <!-- Leaflet JS -->
     <script src="/leaflet/leaflet.js" defer></script>
-
-    <!-- Scripts existants -->
     <script type="module" src="chatbot-init.js"></script>
-    <script type="module" src="animation.js"></script>
-
-    <!-- ===== SCRIPT MENU LATÉRAL (EXTERNE – CSP OK) ===== -->
     <script src="sidebar.js" defer></script>
   </body>
 </html>

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,44 +9,192 @@
       sizes="192x192"
       href="/images/favicon.ico"
     />
-
     <title>AiGENT - Messagerie</title>
-
     <link rel="stylesheet" href="/leaflet/leaflet.css" />
 
-    <!-- ===== MENU LATÉRAL & MESSAGERIE (STYLE ISOLÉ) ===== -->
     <style>
-      /* ==========================
-HEADER LAYOUT
-========================== */
-      html,
-      body {
+      /* ============================================================
+         CSS VARIABLES — DARK THEME (défaut)
+      ============================================================ */
+      :root,
+      [data-theme="dark"] {
+        --bg-root: #0d0d11;
+        --bg-panel: #111118;
+        --bg-surface: #1a1a26;
+        --bg-hover: #181826;
+        --bg-active: #1a0d2e;
+
+        --border-soft: #1e1e2e;
+        --border-mid: #2a2a3e;
+
+        --text-primary: #e0e0e0;
+        --text-muted: #888;
+        --text-faint: #444;
+        --text-label: #555570;
+        --text-time: #444460;
+
+        --bubble-them-bg: #1a1a26;
+        --bubble-them-color: #ccccdd;
+        --bubble-them-border: #2a2a3e;
+
+        --dot-color: #555;
+        --day-sep-line: #1e1e2e;
+        --day-sep-text: #333;
+
+        --composer-bg: #111118;
+        --search-icon: rgba(255, 255, 255, 0.35);
+
+        --tab-inactive: #444460;
+        --tab-active: #d070ff;
+
+        --scrollbar-thumb: #2a2a3e;
+
+        --sidebar-nav-bg: #0d0d11;
+        --sidebar-link-color: #ccc;
+        --sidebar-link-hover: #d070ff;
+
+        --menu-contextuel-bg: #1a1a26;
+        --menu-item-color: #ccc;
+        --menu-item-hover-bg: #251830;
+        --menu-item-icon: #aaa;
+
+        --popup-bg: #111118;
+        --popup-input-bg: #1a1a26;
+        --popup-sep: #2a2a3e;
+
+        --footer-bg: rgba(0, 0, 0, 0.65);
+        --footer-color: #ffffff;
+
+        --btn-logout-bg: linear-gradient(135deg, #7a5fff, #9c6bff, #f093ff);
+
+        --theme-icon-sun: none;
+        --theme-icon-moon: block;
+
+        --conv-section-label: #333;
+
+        --av-fallback: linear-gradient(135deg, #334155, #1e293b);
+
+        --group-title-color: #333;
+      }
+
+      /* ============================================================
+         CSS VARIABLES — LIGHT THEME
+      ============================================================ */
+      [data-theme="light"] {
+        --bg-root: #f7f8fb;
+        --bg-panel: #ffffff;
+        --bg-surface: #f1f3f8;
+        --bg-hover: #f0f0ff;
+        --bg-active: #ede9ff;
+
+        --border-soft: #e6e8ee;
+        --border-mid: #d8d8ee;
+
+        --text-primary: #0f172a;
+        --text-muted: #6b7280;
+        --text-faint: #bbb;
+        --text-label: #6b7280;
+        --text-time: #9ca3af;
+
+        --bubble-them-bg: #ffffff;
+        --bubble-them-color: #111827;
+        --bubble-them-border: #e5e7eb;
+
+        --dot-color: #bbb;
+        --day-sep-line: #e5e7eb;
+        --day-sep-text: #bbb;
+
+        --composer-bg: #ffffff;
+        --search-icon: rgba(0, 0, 0, 0.35);
+
+        --tab-inactive: #6b7280;
+        --tab-active: #b44fff;
+
+        --scrollbar-thumb: rgba(180, 79, 255, 0.2);
+
+        --sidebar-nav-bg: #fff;
+        --sidebar-link-color: #111;
+        --sidebar-link-hover: #b44fff;
+
+        --menu-contextuel-bg: #ffffff;
+        --menu-item-color: #111;
+        --menu-item-hover-bg: #f5f5ff;
+        --menu-item-icon: #555;
+
+        --popup-bg: #ffffff;
+        --popup-input-bg: #f1f3f8;
+        --popup-sep: #e5e7eb;
+
+        --footer-bg: rgba(255, 255, 255, 0.9);
+        --footer-color: #333;
+
+        --btn-logout-bg: linear-gradient(135deg, #7a5fff, #9c6bff, #f093ff);
+
+        --theme-icon-sun: block;
+        --theme-icon-moon: none;
+
+        --conv-section-label: #bbb;
+
+        --av-fallback: linear-gradient(135deg, #c7d2e8, #a8b4cc);
+
+        --group-title-color: #bbb;
+      }
+
+      /* ============================================================
+         RESET
+      ============================================================ */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
         margin: 0;
         padding: 0;
+      }
+      html,
+      body {
         height: 100%;
       }
 
       body {
+        font-family: "Segoe UI", system-ui, sans-serif;
         display: flex;
         flex-direction: column;
+        background:
+          radial-gradient(
+            circle at 20% 0%,
+            rgba(180, 79, 255, 0.06),
+            transparent 40%
+          ),
+          radial-gradient(
+            circle at 80% 100%,
+            rgba(255, 79, 163, 0.06),
+            transparent 40%
+          ),
+          var(--bg-root);
+        color: var(--text-primary);
+        transition:
+          background 0.3s ease,
+          color 0.3s ease;
       }
-      .top-banner {
-        background: rgba(10, 10, 15, 0.72);
-        padding: 14px 22px;
 
+      /* ============================================================
+         TOP BANNER
+      ============================================================ */
+      /* APRÈS — header noir SaaS identique aux autres pages */
+      .top-banner {
+        background: #000;
+        padding: 0 22px;
+        height: 56px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-
+        border-bottom: 1px solid #222;
+        flex-shrink: 0;
+        z-index: 100;
         position: relative;
       }
 
-      /* ligne subtile premium */
+      /* Conserve la ligne dégradée signature en bas */
       .top-banner::after {
         content: "";
         position: absolute;
@@ -54,194 +202,1128 @@ HEADER LAYOUT
         left: 0;
         width: 100%;
         height: 1px;
-
         background: linear-gradient(
           90deg,
           transparent,
-          rgba(122, 95, 255, 0.4),
+          rgba(180, 79, 255, 0.35),
           transparent
         );
+      }
 
-        opacity: 0.6;
+      /* Force noir en mode jour aussi */
+      [data-theme="light"] .top-banner {
+        background: #000 !important;
+        border-bottom: 1px solid #222;
       }
       .logo-container {
         display: flex;
         align-items: center;
         gap: 14px;
       }
-
       .logo-img {
-        width: 52px;
+        width: 44px;
         transition: transform 0.3s ease;
       }
-
       .logo-container:hover .logo-img {
         transform: translateY(-1px) scale(1.04);
       }
 
-      /* NOM DU PRODUIT */
       .logo-text {
-        font-size: 26px;
+        font-size: 22px;
         font-weight: 700;
-        letter-spacing: 0.4px;
-
+        letter-spacing: 0.3px;
         background: linear-gradient(135deg, #7a5fff, #b6a8ff, #f4a6ff);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-
         background-clip: text;
-        color: transparent;
-
+        background-size: 200% 200%;
+        animation: gradientShift 14s ease-in-out infinite;
         line-height: 1;
       }
-
-      /* Responsive mobile */
-      @media (max-width: 600px) {
-        .logo-img {
-          width: 42px;
+      @keyframes gradientShift {
+        0% {
+          background-position: 0% 50%;
         }
-        .logo-text {
-          font-size: 22px;
+        50% {
+          background-position: 100% 50%;
         }
-        .top-banner {
-          padding: 10px 14px;
+        100% {
+          background-position: 0% 50%;
         }
       }
 
-      @media (max-width: 900px) {
-        .conversations-list {
-          width: 100%;
-          max-height: 250px;
-        }
+      /* Header droite : theme toggle + logout */
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
-      /* ==========================
-LOGOUT BUTTON — AI PREMIUM
-========================= */
 
+      /* ---- BOUTON THÈME ---- */
+      #btn-theme {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        border: 1px solid var(--border-mid);
+        background: var(--bg-surface);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+      }
+      #btn-theme:hover {
+        border-color: #b44fff;
+        background: var(--bg-hover);
+      }
+      #btn-theme svg {
+        pointer-events: none;
+      }
+      .icon-sun {
+        display: var(--theme-icon-sun);
+      }
+      .icon-moon {
+        display: var(--theme-icon-moon);
+      }
+
+      /* ---- BOUTON LOGOUT ---- */
       #btn-logout {
         display: flex;
         align-items: center;
         gap: 8px;
-
         padding: 8px 18px;
-
         font-size: 0.85rem;
         font-weight: 600;
-
         color: white;
-
         border: none;
         border-radius: 10px;
-
         cursor: pointer;
-
-        background: linear-gradient(135deg, #7a5fff, #9c6bff, #f093ff);
-
+        background: var(--btn-logout-bg);
         box-shadow:
           0 4px 14px rgba(122, 95, 255, 0.35),
           inset 0 0 8px rgba(255, 255, 255, 0.08);
-
         transition:
           transform 0.18s ease,
           box-shadow 0.18s ease,
           filter 0.18s ease;
       }
-
-      /* icône */
-
-      .logout-icon {
-        width: 18px;
-        height: 18px;
-
-        transition: transform 0.25s ease;
-      }
-
-      /* hover */
-
       #btn-logout:hover {
         transform: translateY(-1px);
-
         filter: brightness(1.08);
-
         box-shadow: 0 6px 18px rgba(122, 95, 255, 0.45);
       }
-
-      /* animation icône */
-
-      #btn-logout:hover .logout-icon {
-        transform: translateX(4px);
-      }
-      #btn-logout {
-        background-size: 200% 200%;
-      }
-
-      #btn-logout:hover {
-        background-position: right center;
-      }
-      /* click */
-
       #btn-logout:active {
         transform: scale(0.96);
       }
-      @media (max-width: 600px) {
-        #btn-logout {
-          display: none; /* 🔥 bouton complètement caché */
-        }
+
+      /* ============================================================
+         SIDEBAR NAV (menu latéral overlay)
+      ============================================================ */
+      .menu-toggle {
+        position: fixed;
+        top: 82px;
+        left: 16px;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        background: linear-gradient(135deg, #b44fff, #ff4fa3);
+        color: white;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 3000;
+        box-shadow: 0 8px 24px rgba(180, 79, 255, 0.4);
+        transition: all 0.25s ease;
+      }
+      .menu-toggle:hover {
+        transform: translateY(-2px) scale(1.05);
       }
 
+      .sidebar-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 260px;
+        height: 100vh;
+        background: var(--sidebar-nav-bg);
+        border-right: 1px solid var(--border-soft);
+        transform: translateX(-100%);
+        transition: transform 0.35s ease;
+        z-index: 4000;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+      }
+      .sidebar-nav.open {
+        transform: translateX(0);
+      }
+      .sidebar-nav .close-btn {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        font-size: 22px;
+        cursor: pointer;
+        color: var(--text-muted);
+      }
+      .sidebar-nav h2 {
+        margin-top: 40px;
+        margin-bottom: 28px;
+        font-size: 18px;
+        color: var(--text-primary);
+        background: linear-gradient(135deg, #b44fff, #ff4fa3);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .sidebar-nav ul {
+        list-style: none;
+        padding: 0;
+      }
+      .sidebar-nav ul li {
+        margin-bottom: 18px;
+      }
+      .sidebar-nav ul li a {
+        color: var(--sidebar-link-color);
+        text-decoration: none;
+        font-size: 15px;
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .sidebar-nav ul li a:hover {
+        color: var(--sidebar-link-hover);
+      }
+      .menu-bottom {
+        margin-top: auto;
+      }
+      .home-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: var(--sidebar-link-color);
+        font-size: 14px;
+        font-style: italic;
+        transition: transform 0.3s ease;
+      }
+      .home-link:hover {
+        transform: translateX(4px);
+        color: var(--sidebar-link-hover);
+      }
+      .home-link svg {
+        stroke: currentColor;
+      }
+
+      .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 3500;
+        display: none;
+        backdrop-filter: blur(2px);
+      }
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      /* ============================================================
+         MESSAGERIE CONTAINER
+      ============================================================ */
+      .messagerie-container {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+        background: var(--bg-root);
+        min-height: 0;
+      }
+
+      /* ============================================================
+         MOBILE WRAPPER (slide)
+      ============================================================ */
+      .mobile-wrapper {
+        display: flex;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* ============================================================
+         CONVERSATIONS LIST (SIDEBAR GAUCHE)
+      ============================================================ */
+      .conversations-list {
+        width: 300px;
+        min-width: 300px;
+        background: var(--bg-panel);
+        border-right: 1px solid var(--border-soft);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+
+      /* Header conversations */
+      .conversations-header {
+        padding: 18px 16px 12px;
+        border-bottom: 1px solid var(--border-soft);
+        flex-shrink: 0;
+      }
+      .conv-header-top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .conv-logo-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #b44fff, #ff4fa3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .conv-header-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        letter-spacing: -0.2px;
+        flex: 1;
+      }
+      .conv-header-title span {
+        color: #b44fff;
+      }
+
+      /* Bouton nouveau message dans sidebar */
+      #btn-nouveau-message-sidebar {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+      #btn-nouveau-message-sidebar:hover {
+        background: #251830;
+        border-color: #b44fff;
+      }
+      #btn-nouveau-message-sidebar svg {
+        stroke: var(--text-muted);
+      }
+
+      /* Search */
+      .search-box {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        border-radius: 10px;
+        padding: 8px 12px;
+      }
+      .search-box svg {
+        opacity: 0.35;
+        flex-shrink: 0;
+        stroke: var(--text-primary);
+      }
+      .search-box input {
+        background: none;
+        border: none;
+        outline: none;
+        color: var(--text-primary);
+        font-size: 13px;
+        width: 100%;
+        font-family: inherit;
+      }
+      .search-box input::placeholder {
+        color: var(--text-faint);
+      }
+
+      /* Tabs */
+      .conversations-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border-soft);
+        padding: 0 4px;
+        flex-shrink: 0;
+      }
+      .conv-tab {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--tab-inactive);
+        padding: 9px 12px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .conv-tab.active {
+        color: var(--tab-active);
+        border-bottom-color: var(--tab-active);
+      }
+      .unread-badge-tab {
+        background: linear-gradient(135deg, #b44fff, #ff4fa3);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 700;
+        border-radius: 8px;
+        padding: 1px 5px;
+        min-width: 16px;
+        text-align: center;
+      }
+
+      /* Conversation list scroll */
+      #conversations-container {
+        flex: 1;
+        overflow-y: auto;
+      }
+      #conversations-container::-webkit-scrollbar {
+        width: 3px;
+      }
+      #conversations-container::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+        border-radius: 4px;
+      }
+
+      .group-title {
+        padding: 10px 16px 4px;
+        font-size: 10px;
+        color: var(--group-title-color);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        font-weight: 600;
+      }
+
+      /* Conversation item */
       .conversation {
         display: flex;
         align-items: center;
-        padding: 8px;
-        margin-bottom: 10px;
-        border-radius: 10px;
+        gap: 10px;
+        padding: 10px 16px;
         cursor: pointer;
-        transition: background 0.2s ease;
+        transition: background 0.15s;
+        position: relative;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      }
+      [data-theme="light"] .conversation {
+        border-bottom: 1px solid var(--border-soft);
       }
       .conversation:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--bg-hover);
+      }
+      .conversation.active {
+        background: var(--bg-active);
+      }
+      .conversation.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 4px;
+        bottom: 4px;
+        width: 3px;
+        background: linear-gradient(#b44fff, #ff4fa3);
+        border-radius: 0 3px 3px 0;
+      }
+      .conversation.has-unread .conv-name {
+        color: var(--text-primary);
+        font-weight: 600;
       }
 
-      .conversation .avatar {
-        width: 50px;
-        height: 50px;
+      /* Avatar */
+      .avatar {
+        width: 42px;
+        height: 42px;
         border-radius: 50%;
-        background-color: #ccc;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+        position: relative;
+        background-color: #555;
         background-size: cover;
         background-position: center;
-        margin-right: 12px;
       }
-      .conversation .info {
+      .avatar.online::after {
+        content: "";
+        position: absolute;
+        bottom: 1px;
+        right: 1px;
+        width: 9px;
+        height: 9px;
+        background: #22c55e;
+        border-radius: 50%;
+        border: 2px solid var(--bg-panel);
+      }
+
+      .conv-info {
         flex: 1;
+        min-width: 0;
+      }
+      .top-line {
         display: flex;
-        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2px;
       }
-      .conversation .info .name {
-        font-weight: bold;
-      }
-      .conversation .info .preview {
-        font-size: 0.9rem;
-        opacity: 0.8;
+      .conv-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-primary);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .conversation .unread {
-        background: #e84a5f;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        margin-left: auto;
+      .time {
+        font-size: 11px;
+        color: var(--text-time);
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-left: 6px;
+      }
+      .preview {
+        font-size: 12px;
+        color: var(--text-label);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
-      /* ==========================
-       POPUP NOUVEAU MESSAGE
-       ========================== */
+      .conv-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .unread {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #b44fff, #ff4fa3);
+        box-shadow: 0 0 6px rgba(180, 79, 255, 0.5);
+      }
+      .unread.new {
+        animation: pulseUnread 1.2s infinite;
+      }
+      @keyframes pulseUnread {
+        0%,
+        100% {
+          transform: scale(1.2);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1);
+          opacity: 0.6;
+        }
+      }
+      .conv-badge {
+        background: linear-gradient(135deg, #b44fff, #ff4fa3);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 1px 6px;
+        min-width: 18px;
+        text-align: center;
+      }
+
+      .conv-actions {
+        opacity: 0;
+        transition: opacity 0.2s;
+        font-size: 13px;
+        cursor: pointer;
+        padding: 4px;
+        color: var(--text-muted);
+      }
+      .conversation:hover .conv-actions {
+        opacity: 1;
+      }
+
+      /* ============================================================
+         CHAT ZONE
+      ============================================================ */
+      .chat-zone {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-root);
+        overflow: hidden;
+        min-width: 0;
+      }
+
+      /* Chat header */
+      .chat-header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border-soft);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--bg-panel);
+        flex-shrink: 0;
+      }
+      .chat-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        min-width: 0;
+      }
+      .chat-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+        position: relative;
+        background: linear-gradient(135deg, #b44fff, #7c3aed);
+        background-size: cover;
+        background-position: center;
+      }
+      .chat-avatar.online::after {
+        content: "";
+        position: absolute;
+        bottom: 1px;
+        right: 1px;
+        width: 9px;
+        height: 9px;
+        background: #22c55e;
+        border-radius: 50%;
+        border: 2px solid var(--bg-panel);
+      }
+      .chat-user-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .chat-user-info .name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .chat-user-info .status {
+        font-size: 12px;
+        color: #22c55e;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .chat-user-info .status::before {
+        content: "";
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        background: #22c55e;
+        border-radius: 50%;
+      }
+      .chat-user-info .status.offline {
+        color: var(--text-muted);
+      }
+      .chat-user-info .status.offline::before {
+        background: var(--text-muted);
+      }
+
+      .chat-header-actions {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .ch-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: all 0.2s;
+      }
+      .ch-btn:hover {
+        background: #251830;
+        color: #d070ff;
+        border-color: #b44fff;
+      }
+      .ch-btn svg {
+        pointer-events: none;
+        stroke: currentColor;
+      }
+
+      /* Bouton retour (mobile) */
+      #btn-back-to-list {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        cursor: pointer;
+        color: #b44fff;
+        flex-shrink: 0;
+        margin-right: 2px;
+      }
+      #btn-back-to-list svg {
+        stroke: currentColor;
+        pointer-events: none;
+      }
+
+      /* Messages */
+      .chat-messages {
+        flex: 1;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        overflow-y: auto;
+        background: var(--bg-root);
+      }
+      .chat-messages::-webkit-scrollbar {
+        width: 3px;
+      }
+      .chat-messages::-webkit-scrollbar-thumb {
+        background: var(--border-soft);
+        border-radius: 4px;
+      }
+
+      /* Séparateur jour */
+      .day-sep {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 4px 0;
+      }
+      .day-sep span {
+        font-size: 11px;
+        color: var(--day-sep-text);
+        white-space: nowrap;
+      }
+      .day-sep::before,
+      .day-sep::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--day-sep-line);
+      }
+
+      /* Message rows */
+      .bubble-wrapper {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 2px;
+        animation: fadeInUp 0.22s ease;
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(6px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .msg-row {
+        display: flex;
+        gap: 8px;
+        max-width: 72%;
+      }
+      .msg-row.me {
+        align-self: flex-end;
+        flex-direction: row-reverse;
+      }
+      .msg-av {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: #fff;
+        margin-top: 2px;
+        background-size: cover;
+        background-position: center;
+      }
+      .msg-body {
+        min-width: 0;
+      }
+      .msg-sender {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-bottom: 3px;
+        padding-left: 2px;
+      }
+
+      .bubble {
+        padding: 10px 14px;
+        border-radius: 16px;
+        font-size: 13px;
+        line-height: 1.5;
+        position: relative;
+        display: inline-block;
+        max-width: 100%;
+        word-wrap: break-word;
+      }
+      .bubble.them {
+        background: var(--bubble-them-bg);
+        border: 1px solid var(--bubble-them-border);
+        color: var(--bubble-them-color);
+        border-radius: 4px 16px 16px 16px;
+      }
+      .bubble.me {
+        background: linear-gradient(135deg, #7c3aed, #c026d3);
+        color: #fff;
+        border-radius: 16px 4px 16px 16px;
+      }
+      .msg-time {
+        font-size: 10px;
+        color: var(--day-sep-text);
+        margin-top: 4px;
+        text-align: right;
+      }
+      .msg-row.me .msg-time {
+        text-align: left;
+      }
+
+      /* Timestamp container (ancienne structure JS) */
+      .timestamp-container {
+        font-size: 11px;
+        color: var(--text-time);
+        margin-top: 2px;
+        display: flex;
+      }
+      .timestamp-container.left {
+        justify-content: flex-start;
+        padding-left: 46px;
+      }
+      .timestamp-container.right {
+        justify-content: flex-end;
+        padding-right: 14px;
+      }
+
+      /* Typing dots */
+      .typing-bubble {
+        background: var(--bubble-them-bg);
+        border: 1px solid var(--bubble-them-border);
+        border-radius: 4px 16px 16px 16px;
+        padding: 12px 16px;
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        width: 58px;
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        background: var(--dot-color);
+        border-radius: 50%;
+        animation: blink 1.2s infinite;
+      }
+      .dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+      @keyframes blink {
+        0%,
+        80%,
+        100% {
+          opacity: 0.3;
+        }
+        40% {
+          opacity: 1;
+        }
+      }
+
+      /* Menu 3 points sur message */
+      .bubble-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        position: relative;
+      }
+      .msg-menu-btn {
+        position: absolute;
+        bottom: -5px;
+        right: 5px;
+        cursor: pointer;
+        padding: 4px;
+        background: transparent;
+        opacity: 0.7;
+        transition: all 0.2s ease;
+      }
+      .msg-menu-btn svg {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+      .msg-menu-btn svg circle {
+        fill: url(#gradientDots);
+      }
+      .msg-menu-btn:hover {
+        opacity: 1;
+        transform: scale(1.15);
+      }
+
+      /* Context menu */
+      .msg-menu {
+        position: fixed;
+        min-width: 180px;
+        border-radius: 12px;
+        background: var(--menu-contextuel-bg);
+        border: 1px solid var(--border-mid);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        z-index: 9999;
+        animation: fadeInUp 0.15s ease;
+      }
+      .menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--menu-item-color);
+        transition: all 0.2s ease;
+      }
+      .menu-item:hover {
+        background: var(--menu-item-hover-bg);
+        transform: translateX(3px);
+      }
+      .menu-item svg {
+        width: 18px;
+        height: 18px;
+        stroke: var(--menu-item-icon);
+        stroke-width: 2;
+        fill: none;
+        pointer-events: none;
+      }
+      .menu-item.danger svg {
+        stroke: #dc2626;
+      }
+      .menu-item.danger:hover {
+        background: rgba(220, 38, 38, 0.08);
+      }
+
+      /* ============================================================
+         COMPOSER
+      ============================================================ */
+      .composer {
+        padding: 12px 16px;
+        border-top: 1px solid var(--border-soft);
+        background: var(--composer-bg);
+        flex-shrink: 0;
+      }
+      .comp-tags {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+      .comp-tags::-webkit-scrollbar {
+        height: 0;
+      }
+      .comp-tag {
+        font-size: 11px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        color: var(--text-muted);
+        border-radius: 20px;
+        padding: 4px 12px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
+        flex-shrink: 0;
+      }
+      .comp-tag:hover {
+        border-color: #b44fff;
+        color: #d070ff;
+      }
+      .composer-inner {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        border-radius: 14px;
+        padding: 10px 14px;
+      }
+      #user-input {
+        flex: 1;
+        background: none;
+        border: none;
+        outline: none;
+        color: var(--text-primary);
+        font-size: 13px;
+        resize: none;
+        max-height: 80px;
+        line-height: 1.5;
+        font-family: inherit;
+        min-height: 20px;
+        overflow-y: auto;
+      }
+      #user-input::placeholder {
+        color: var(--text-faint);
+      }
+      .comp-actions {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      .comp-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s;
+      }
+      .comp-btn:hover {
+        color: #b44fff;
+      }
+      .comp-btn svg {
+        pointer-events: none;
+        stroke: currentColor;
+      }
+      .send-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #b44fff, #ff4fa3);
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition:
+          transform 0.15s,
+          box-shadow 0.15s;
+      }
+      .send-btn:hover {
+        transform: scale(1.06);
+        box-shadow: 0 4px 14px rgba(180, 79, 255, 0.4);
+      }
+      .send-btn svg {
+        pointer-events: none;
+      }
+
+      /* ============================================================
+         CHAT ACTIONS BAS
+      ============================================================ */
+      .chat-actions {
+        display: flex;
+        gap: 8px;
+        padding: 10px 14px;
+        background: var(--composer-bg);
+        border-top: 1px solid var(--border-soft);
+        flex-shrink: 0;
+      }
+      .chat-actions .action-btn {
+        flex: 1;
+        border-radius: 10px;
+        padding: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .chat-actions .action-btn:hover {
+        border-color: #b44fff;
+        color: #d070ff;
+        transform: translateY(-1px);
+      }
+      .chat-actions .action-btn svg {
+        pointer-events: none;
+        stroke: currentColor;
+      }
+      .chat-actions .action-btn.danger {
+        background: rgba(239, 68, 68, 0.08);
+        color: #dc2626;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+      }
+      .chat-actions .action-btn.danger:hover {
+        background: rgba(239, 68, 68, 0.14);
+        border-color: #dc2626;
+        transform: translateY(-1px);
+      }
+
+      /* Archiver */
+      #btn-archive {
+        background: rgba(14, 165, 233, 0.08);
+        color: #0ea5e9;
+        border: 1px solid rgba(14, 165, 233, 0.2);
+      }
+      #btn-archive:hover {
+        background: rgba(14, 165, 233, 0.14);
+        border-color: #0ea5e9;
+      }
+
+      /* Bloquer */
+      #btn-block {
+        background: rgba(234, 179, 8, 0.08);
+        color: #ca8a04;
+        border: 1px solid rgba(234, 179, 8, 0.2);
+      }
+      #btn-block:hover {
+        background: rgba(234, 179, 8, 0.14);
+        border-color: #ca8a04;
+      }
+
+      /* ============================================================
+         POPUP NOUVEAU MESSAGE
+      ============================================================ */
       .newmsg-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-        backdrop-filter: blur(6px);
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(8px);
         display: none;
         align-items: center;
         justify-content: center;
@@ -250,15 +1332,16 @@ LOGOUT BUTTON — AI PREMIUM
       .newmsg-overlay.active {
         display: flex;
       }
+
       .newmsg-modal {
-        width: 60%;
-        max-width: 900px;
-        height: 70%;
-        background: #ffffff;
-        border-radius: 16px;
+        width: min(90vw, 520px);
+        max-height: 80vh;
+        background: var(--popup-bg);
+        border: 1px solid var(--border-mid);
+        border-radius: 20px;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
         overflow: hidden;
         animation: popupIn 0.25s ease;
       }
@@ -272,1340 +1355,458 @@ LOGOUT BUTTON — AI PREMIUM
           opacity: 1;
         }
       }
+
       .newmsg-header {
-        background: #000;
+        background: linear-gradient(135deg, #7c3aed, #c026d3);
         color: #fff;
-        padding: 16px 22px;
-        font-weight: bold;
-        font-size: 18px;
+        padding: 18px 22px;
+        font-weight: 700;
+        font-size: 16px;
         display: flex;
         justify-content: space-between;
         align-items: center;
+      }
+      .newmsg-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .newmsg-header-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       .newmsg-close {
         cursor: pointer;
         font-size: 22px;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+        line-height: 1;
       }
+      .newmsg-close:hover {
+        opacity: 1;
+      }
+
       .newmsg-fields {
-        padding: 18px;
+        padding: 18px 20px;
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
       }
-      .newmsg-fields input {
-        padding: 12px 14px;
-        font-size: 15px;
-        border-radius: 8px;
-        border: 1px solid #ddd;
-        color: #000;
-      }
-      .newmsg-separator {
-        height: 2px;
-        background: #000;
-        margin: 0 18px;
-      }
-      #newMsgBody {
-        flex: 1;
-        margin: 18px;
-        margin-top: 12px;
-        border-radius: 10px;
-        border: 1px solid #ddd;
-        padding: 14px;
-        font-size: 15px;
-        resize: none;
-        color: #000;
-      }
-      .newmsg-footer {
-        padding: 14px 18px;
-        border-top: 1px solid #eee;
-        display: flex;
-        justify-content: flex-end;
-        background: #fff;
-      }
-      .newmsg-footer button {
-        padding: 10px 22px;
-        border-radius: 20px;
-        border: none;
-        font-weight: bold;
-        cursor: pointer;
-        background: linear-gradient(90deg, #5b8def, #e8a2b8);
-        color: #fff;
-      }
-
-      #animated-title {
-        font-weight: 700;
-        letter-spacing: 0.4px;
-
-        /* Dégradé plus propre et cohérent */
-        background: linear-gradient(135deg, #7a5fff, #b6a8ff, #f4a6ff);
-
-        /* Animation douce */
-        background-size: 200% 200%;
-
-        /* Compatibilité */
-        background-clip: text;
-        -webkit-background-clip: text;
-        color: transparent;
-        -webkit-text-fill-color: transparent;
-
-        /* Effet lisibilité premium */
-        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
-
-        /* Animation lente */
-        animation: gradientShift 14s ease-in-out infinite;
-
-        display: inline-block;
-      }
-      @keyframes gradientShift {
-        0% {
-          background-position: 0% 50%;
-        }
-        50% {
-          background-position: 100% 50%;
-        }
-        100% {
-          background-position: 0% 50%;
-        }
-      }
-      .sidebar {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-      }
-
-      .menu-links {
-        list-style: none;
-        padding: 0;
-      }
-
-      .menu-bottom {
-        margin-top: auto;
-        padding: 20px;
-      }
-
-      .home-link {
+      .newmsg-field-wrap {
         display: flex;
         align-items: center;
         gap: 10px;
-        text-decoration: none;
-        color: inherit;
-        transition:
-          transform 0.3s ease,
-          opacity 0.3s ease;
+        background: var(--popup-input-bg);
+        border: 1px solid var(--border-mid);
+        border-radius: 10px;
+        padding: 0 14px;
       }
-
-      /* --- Animation porte --- */
-      .home-link svg {
-        transition: transform 0.4s ease;
-        transform-origin: left center; /* charnière côté gauche */
+      .newmsg-field-wrap svg {
+        stroke: var(--text-muted);
+        flex-shrink: 0;
       }
-
-      /* --- Animation flèche (3e path du SVG) --- */
-      .home-link svg path:last-child {
-        transition: transform 0.3s ease;
-      }
-
-      /* --- Hover --- */
-      .home-link:hover {
-        transform: translateX(4px);
-      }
-
-      .home-link:hover svg {
-        transform: rotateY(-20deg); /* ouverture légère */
-      }
-
-      .home-link:hover svg path:last-child {
-        transform: translateX(-3px); /* flèche qui rentre un peu plus */
-      }
-      /* ==========================
-MESSAGERIE PREMIUM RESPONSIVE
-========================= */
-
-      /* ================================
-MENU FLOTTANT (SIGNATURE FIXÉE)
-================================ */
-
-      .menu-toggle {
-        position: fixed;
-        top: 90px;
-        left: 20px;
-
-        width: 56px;
-        height: 56px;
-
-        border-radius: 50%;
+      .newmsg-field-wrap input {
+        flex: 1;
+        padding: 11px 0;
+        font-size: 14px;
         border: none;
+        background: none;
+        color: var(--text-primary);
+        font-family: inherit;
+        outline: none;
+      }
+      .newmsg-field-wrap input::placeholder {
+        color: var(--text-faint);
+      }
+      .newmsg-field-wrap:focus-within {
+        border-color: #b44fff;
+        box-shadow: 0 0 0 3px rgba(180, 79, 255, 0.1);
+      }
+
+      .newmsg-separator {
+        height: 1px;
+        background: var(--popup-sep);
+        margin: 0 20px;
+      }
+
+      #newMsgBody {
+        flex: 1;
+        margin: 14px 20px;
+        border-radius: 10px;
+        border: 1px solid var(--border-mid);
+        background: var(--popup-input-bg);
+        padding: 14px;
+        font-size: 14px;
+        resize: none;
+        color: var(--text-primary);
+        font-family: inherit;
+        outline: none;
+        min-height: 120px;
+      }
+      #newMsgBody::placeholder {
+        color: var(--text-faint);
+      }
+      #newMsgBody:focus {
+        border-color: #b44fff;
+        box-shadow: 0 0 0 3px rgba(180, 79, 255, 0.1);
+      }
+
+      .newmsg-footer {
+        padding: 14px 20px;
+        border-top: 1px solid var(--border-soft);
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+      .newmsg-cancel {
+        padding: 10px 20px;
+        border-radius: 10px;
+        border: 1px solid var(--border-mid);
+        background: var(--bg-surface);
+        color: var(--text-muted);
+        font-size: 14px;
         cursor: pointer;
-
-        background: linear-gradient(135deg, #4f7cff, #9b6bff);
-        color: white;
-
-        font-size: 24px;
-
+        transition: all 0.2s;
+        font-family: inherit;
+      }
+      .newmsg-cancel:hover {
+        border-color: #b44fff;
+        color: #d070ff;
+      }
+      #newMsgSend {
+        padding: 10px 24px;
+        border-radius: 10px;
+        border: none;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        background: linear-gradient(135deg, #b44fff, #ff4fa3);
+        color: #fff;
         display: flex;
         align-items: center;
-        justify-content: center;
-
-        z-index: 3000;
-
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-
-        transition: all 0.25s ease;
+        gap: 8px;
+        font-family: inherit;
+        transition: all 0.2s;
+      }
+      #newMsgSend:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(180, 79, 255, 0.35);
+      }
+      #newMsgSend svg {
+        pointer-events: none;
       }
 
-      .menu-toggle:hover {
-        transform: translateY(-3px) scale(1.05);
-      }
-
-      /* ---------- SIDEBAR ---------- */
-      .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 280px;
-        height: 100vh;
-        background: #000;
-        color: #fff;
-        transform: translateX(-100%);
-        transition: transform 0.35s ease;
-        z-index: 2000;
-        display: flex;
-        flex-direction: column;
-        padding: 20px;
-        box-sizing: border-box;
-      }
-      .sidebar.open {
-        transform: translateX(0);
-      }
-      .sidebar .close-btn {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 22px;
-        cursor: pointer;
-      }
-      .sidebar h2 {
-        margin-top: 40px;
-        margin-bottom: 30px;
-        font-size: 20px;
-      }
-      .sidebar ul {
-        list-style: none;
-        padding: 0;
-      }
-      .sidebar ul li {
-        margin-bottom: 20px;
-      }
-      .sidebar ul li a {
-        color: #fff;
-        text-decoration: none;
-        font-size: 16px;
-        transition: color 0.2s ease;
-      }
-      .sidebar ul li a:hover {
-        color: #5b8def;
-      }
-      .sidebar-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-        z-index: 1500;
-        display: none;
-      }
-      .sidebar-overlay.active {
-        display: block;
-      }
-      /* ==========================
-FOOTER
-========================= */
+      /* ============================================================
+         FOOTER
+      ============================================================ */
       .bottom-banner {
-        position: relative; /* ou supprimer cette ligne */
-        /* bottom: 0; <-- à supprimer */
         width: 100%;
         text-align: center;
-        padding: 16px;
-        background: rgba(0, 0, 0, 0.65);
-        font-size: 14px;
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
-        z-index: 1000;
+        padding: 12px;
+        background: var(--footer-bg);
+        font-size: 13px;
+        border-top: 1px solid var(--border-soft);
+        flex-shrink: 0;
       }
       .bottom-banner p {
-        color: white;
+        color: var(--footer-color);
         margin: 0;
       }
 
-      /* ---------- BODY & BACKGROUND ---------- */
-      /* ========================== */
-      /* ---------- BODY ---------- */
-      /* ========================== */
-      body {
-        background:
-          radial-gradient(
-            circle at 20% 0%,
-            rgba(120, 119, 255, 0.08),
-            transparent 40%
-          ),
-          radial-gradient(
-            circle at 80% 100%,
-            rgba(168, 85, 247, 0.08),
-            transparent 40%
-          ),
-          #f7f8fb;
-        font-family: "Segoe UI", sans-serif;
-      }
-      html,
-      body {
-        height: 100%;
-      }
-
-      body {
-        display: flex;
-        flex-direction: column;
-      }
-
-      /* ========================== */
-      /* ----- MESSAGERIE CONTAINER ----- */
-      /* ========================== */
-      .messagerie-container {
-        width: 100%;
-        height: calc(100vh - 80px); /* ajuste selon ton header */
-        margin: 0; /* ❌ enlève le centrage */
-        display: flex;
-        background: #ffffff;
-        border-radius: 0; /* optionnel (plus pro en full screen) */
-        box-shadow: none; /* optionnel */
-        overflow: hidden;
-      }
-      .messagerie-container {
-        flex: 1; /* 👈 IMPORTANT */
-      }
-      .messagerie-container {
-        flex: 1;
-        min-height: 100vh;
-      }
-
-      /* ========================== */
-      /* ----- LISTE DES CONVERSATIONS ----- */
-      /* ========================== */
-      .conversations-list {
-        width: 320px;
-        background: #fafbff;
-        border-right: 1px solid #e6e8ee;
-        padding: 0;
-        overflow-y: auto;
-      }
-      .conversations-list::-webkit-scrollbar {
-        width: 6px;
-      }
-      .conversations-list::-webkit-scrollbar-thumb {
-        background: rgba(91, 91, 255, 0.2);
-        border-radius: 6px;
-      }
-      .conversations-header {
-        padding: 16px 18px;
-        font-size: 13px;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        background: linear-gradient(90deg, #5b5bff, #8b5cf6);
-        color: white;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-      }
-
-      /* ---------- CONVERSATION INDIVIDUELLE ---------- */
-      .conversation {
-        display: flex;
-        align-items: center;
-        padding: 12px 14px;
-        gap: 12px;
-        cursor: pointer;
-        border-bottom: 1px solid #eef0f4;
-        background: #fff;
-        transition: all 0.2s ease;
-      }
-
-      .conversation:hover {
-        background: #f6f8ff;
-      }
-
-      .conversation.active {
-        background: linear-gradient(
-          90deg,
-          rgba(91, 91, 255, 0.08),
-          rgba(139, 92, 246, 0.08)
-        );
-      }
-
-      /* Conversation active */
-      .conversation.active {
-        background: linear-gradient(
-          90deg,
-          rgba(91, 91, 255, 0.12),
-          rgba(139, 92, 246, 0.12)
-        );
-        border-left: 3px solid #6a5cff;
-      }
-
-      /* Avatar et info */
-      .conversation .avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background-color: #ccc;
-        background-size: cover;
-        background-position: center;
-        margin-right: 12px;
-      }
-      .conversation .info {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-      }
-      .conversation .info .name {
-        font-weight: bold;
-        color: #0f172a;
-      }
-      .conversation .info .preview {
-        font-size: 0.9rem;
-        opacity: 0.8;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      /* Mini-indicateurs de lecture */
-      .conversation .unread {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        margin-left: auto;
-        background: linear-gradient(135deg, #5b5bff, #8b5cf6);
-        box-shadow: 0 0 6px rgba(91, 91, 255, 0.6);
-        transition: transform 0.3s ease;
-      }
-      .conversation .unread.new {
-        transform: scale(1.2);
-        animation: pulse 1.2s infinite;
-      }
-      @keyframes pulse {
-        0%,
-        100% {
-          transform: scale(1.2);
-          opacity: 1;
-        }
-        50% {
-          transform: scale(1);
-          opacity: 0.6;
-        }
-      }
-      .top-line {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      .time {
-        font-size: 11px;
-        color: #9ca3af;
-      }
-
-      .preview {
-        font-size: 0.85rem;
-        color: #6b7280;
-      }
-
-      /* ========================== */
-      /* ----- CHAT ZONE ----- */
-      /* ========================== */
-      .chat-zone {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        background: #ffffff;
-      }
-
-      /* ---------- CHAT HEADER PREMIUM ---------- */
-      .chat-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 20px;
-        background: linear-gradient(90deg, #5b5bff, #8b5cf6);
-        color: white !important;
-        font-weight: 600;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        flex-wrap: wrap;
-        gap: 12px;
-      }
-
-      /* Chat header left */
-      .chat-header-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .chat-header-left .chat-avatar {
-        width: 46px;
-        height: 46px;
-        font-weight: bold;
-        font-size: 1rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-        color: white;
-        background: linear-gradient(135deg, #5b5bff, #8b5cf6);
-      }
-      .chat-header-left .chat-user-info .name,
-      .chat-header-left .chat-user-info .status {
-        color: white !important;
-      }
-
-      /* Chat header actions */
-      .chat-header-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .chat-header .action-btn {
-        padding: 8px 18px;
-        border-radius: 14px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        border: none;
-        transition: all 0.25s ease;
-        color: white;
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(6px);
-      }
-      .chat-header .action-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(91, 91, 255, 0.25);
-        background: linear-gradient(135deg, #5b5bff, #8b5cf6);
-      }
-
-      /* ========================== */
-      /* ----- MESSAGES ----- */
-      /* ========================== */
-      .chat-messages {
-        flex: 1;
-        padding: 18px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        background: #f3f4f8;
-        overflow-y: auto;
-      }
-      .bubble {
-        max-width: 62%;
-        padding: 10px 14px 18px 14px; /* 👈 IMPORTANT (place pour l'heure) */
-        font-size: 14px;
-        line-height: 1.4;
-        border-radius: 16px;
-        position: relative;
-      }
-
-      .bubble.user {
-        background: linear-gradient(135deg, #5b5bff, #8b5cf6);
-        color: white;
-        align-self: flex-end;
-        border-bottom-right-radius: 6px;
-      }
-      .bubble + .bubble.user {
-        margin-top: 2px;
-      }
-
-      .bubble + .bubble.contact {
-        margin-top: 2px;
-      }
-
-      .bubble.contact {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        color: #111827;
-        border-bottom-left-radius: 6px;
-      }
-      .timestamp {
-        font-size: 11px;
-        color: #6b7280;
-        margin-top: 4px;
-        margin-bottom: 6px;
-
-        align-self: flex-end; /* 🔥 aligne à droite */
-        padding-right: 8px;
-      }
-      .message-block {
-        display: flex;
-        flex-direction: column;
-      }
-      .timestamp-container {
-        font-size: 11px;
-        color: #6b7280;
-        margin-top: 2px;
-        display: flex;
-      }
-
-      /* Alignement selon l’expéditeur */
-      .timestamp-container.left {
-        justify-content: flex-start;
-        padding-left: 46px; /* laisse la place à l’avatar */
-      }
-
-      .timestamp-container.right {
-        justify-content: flex-end;
-        padding-right: 14px;
-      }
-      .message-body {
-        display: flex;
-        flex-direction: column;
-      }
-      /* Wrapper général */
-      .bubble-wrapper {
-        display: flex;
-        flex-direction: column;
-        margin-bottom: 6px; /* espace entre messages */
-      }
-
-      /* ========================== */
-      /* ----- FORMULAIRE ----- */
-      /* ========================== */
-      .chat-form {
-        padding: 10px 14px;
-        background: #ffffff;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        border-top: 1px solid #e6e8ee;
-      }
-
-      .chat-form input {
-        flex: 1;
-        border-radius: 999px;
-        padding: 12px 16px;
-        border: none;
-        background: #f1f3f8;
-        font-size: 14px;
-        color: #111827; /* 👈 FIX ICI */
-      }
-      .chat-form input::placeholder {
-        color: #9ca3af;
-      }
-
-      .chat-form input:focus {
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(106, 92, 255, 0.1);
-      }
-
-      .chat-form button {
-        border-radius: 50%;
-        width: 44px;
-        height: 44px;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .chat-form button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 18px rgba(91, 91, 255, 0.25);
-      }
-
-      /* ========================== */
-      /* ----- ACTIONS CONTEXTUELLES ----- */
-      /* ========================== */
-      .chat-actions {
-        display: flex;
-        gap: 8px;
-        padding: 10px 14px;
-        background: #ffffff;
-        border-top: 1px solid #e6e8ee;
-      }
-
-      .chat-actions .action-btn {
-        flex: 1;
-        border-radius: 10px;
-        padding: 10px;
-        font-size: 12px;
-        font-weight: 600;
-      }
-      .chat-actions .action-btn:hover {
-        box-shadow:
-          0 0 0 3px rgba(106, 92, 255, 0.15),
-          0 8px 20px rgba(91, 91, 255, 0.25);
-        transform: translateY(-2px);
-      }
-      .chat-actions .action-btn.danger {
-        background: rgba(239, 68, 68, 0.1);
-        color: #dc2626;
-        border: 1px solid rgba(239, 68, 68, 0.2);
-      }
-      .chat-actions .action-btn.danger:hover {
-        box-shadow:
-          0 0 0 3px rgba(239, 68, 68, 0.15),
-          0 8px 20px rgba(239, 68, 68, 0.25);
-      }
-      /* Chat header left */
-      .chat-header-left {
-        display: flex;
-        align-items: center; /* centre verticalement l'avatar et la colonne */
-        gap: 12px;
-      }
-
-      .chat-header-left .chat-avatar {
-        width: 46px;
-        height: 46px;
-        font-weight: bold;
-        font-size: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center; /* centre le "A" parfaitement */
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-        color: white;
-        background: linear-gradient(135deg, #5b5bff, #8b5cf6);
-      }
-
-      .chat-header-left .chat-user-info {
-        display: flex;
-        flex-direction: column; /* nom au-dessus, statut en dessous */
-        justify-content: center; /* centre verticalement par rapport à l'avatar */
-      }
-
-      .chat-header-left .chat-user-info .name {
-        font-weight: 600;
-        color: white !important;
-        font-size: 1rem;
-      }
-      .chat-avatar {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-      }
-
-      .chat-user-info {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
-
-      .status {
-        font-size: 11px;
-        opacity: 0.8;
-      }
-
-      .chat-header-left .chat-user-info .status {
-        font-size: 0.75rem; /* plus petit */
-        color: rgba(255, 255, 255, 0.8) !important;
-        margin-top: 2px;
-      }
-      .conversations-tools {
-        position: sticky;
-        top: 48px;
-        z-index: 9;
-        background: #fafbff;
-      }
-
-      /* SEARCH */
-      .search-box {
-        padding: 10px 12px;
-      }
-
-      .search-box input {
-        width: 100%;
-        padding: 10px 14px;
-        box-sizing: border-box; /* 🔥 FIX */
-        border-radius: 20px;
-        border: 1px solid #e5e7eb;
-        background: #ffffff;
-      }
-
-      .search-box input:focus {
-        outline: none;
-        border-color: #6a5cff;
-        box-shadow: 0 0 0 3px rgba(106, 92, 255, 0.1);
-      }
-
-      /* TABS */
-      .tabs {
-        display: flex;
-        border-top: 1px solid #eef0f4;
-        border-bottom: 1px solid #eef0f4;
-      }
-
-      .tabs button {
-        flex: 1;
-        padding: 10px;
-        border: none;
-        background: transparent;
-        font-size: 12px;
-        font-weight: 600;
-        color: #6b7280;
-        cursor: pointer;
-        transition: 0.2s;
-      }
-
-      .tabs button.active {
-        color: #5b5bff;
-        border-bottom: 2px solid #5b5bff;
-      }
-      .conv-actions {
-        opacity: 0;
-        transition: 0.2s;
-        font-size: 13px;
-        margin-left: auto;
-      }
-
-      .conversation:hover .conv-actions {
-        opacity: 1;
-      }
-      /* Archiver */
-      #btn-archive {
-        background: linear-gradient(135deg, #e0f2fe, #bae6fd);
-        color: #0369a1;
-        border: 1px solid #7dd3fc;
-      }
-
-      /* Bloquer */
-      #btn-block {
-        background: linear-gradient(135deg, #fef3c7, #fde68a);
-        color: #92400e;
-        border: 1px solid #fcd34d;
-      }
-      #btn-archive:hover {
-        box-shadow:
-          0 0 0 3px rgba(56, 189, 248, 0.2),
-          0 8px 20px rgba(56, 189, 248, 0.25);
-      }
-
-      #btn-block:hover {
-        box-shadow:
-          0 0 0 3px rgba(251, 191, 36, 0.2),
-          0 8px 20px rgba(251, 191, 36, 0.25);
-      }
-      .unread.new {
-        width: 10px;
-        height: 10px;
-        background: #ff3b30;
-        border-radius: 50%;
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-      }
-      .conversation {
-        position: relative;
-      }
-      .bubble {
-        animation: fadeInUp 0.25s ease;
-      }
-      /* ================================
-   STYLES GLOBAUX DES ICONES SVG
-================================= */
-      .icon-btn,
-      .action-btn svg,
-      .chat-form button svg {
-        display: inline-block;
-        vertical-align: middle;
-        stroke: #333;
-        stroke-width: 2;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        fill: none;
-        width: 24px;
-        height: 24px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-
-      /* Hover général pour tous les SVG */
-      .icon-btn:hover svg,
-      .action-btn:hover svg,
-      .chat-form button:hover svg {
-        transform: scale(1.1);
-      }
-
-      /* ================================
-   SPECIFIQUE PAR ICONE
-================================= */
-
-      /* 1. ARCHIVER (boîte + flèche) */
-      #btn-archive svg path {
-        stroke: #0369a1; /* couleur visible avant hover */
-        stroke-dasharray: 100;
-        stroke-dashoffset: 100;
-        transition:
-          stroke-dashoffset 0.5s ease,
-          stroke 0.3s ease;
-      }
-      #btn-archive:hover svg path {
-        stroke-dashoffset: 0;
-        stroke: #007bff;
-      }
-
-      /* 2. SUPPRIMER (trash) */
-      #btn-delete svg path {
-        stroke: #dc2626; /* couleur visible avant hover */
-        transform-origin: center;
-        transition:
-          transform 0.3s ease,
-          stroke 0.3s ease;
-      }
-      #btn-delete:hover svg path {
-        transform: rotate(-5deg) scale(1.1);
-        stroke: #ff4d4f;
-      }
-
-      /* 3. BLOQUER (shield + slash) */
-      #btn-block svg path {
-        stroke: #92400e; /* couleur visible avant hover */
-        stroke-dasharray: 50;
-        stroke-dashoffset: 0; /* apparait tout de suite */
-        transition:
-          stroke 0.3s ease,
-          transform 0.3s ease;
-      }
-      #btn-block:hover svg path {
-        stroke: #ffc107;
-        transform: scale(1.05);
-      }
-
-      /* 4. NOUVEAU MESSAGE (enveloppe + +) */
-      #btn-nouveau-message svg path {
-        stroke: #28a745; /* couleur visible avant hover */
-        stroke-dasharray: 60;
-        stroke-dashoffset: 0; /* visible immédiatement */
-        transition:
-          stroke-dashoffset 0.4s ease,
-          transform 0.3s ease,
-          stroke 0.3s ease;
-      }
-      #btn-nouveau-message:hover svg path {
-        stroke-dashoffset: 0;
-        transform: scale(1.1);
-        stroke: #22c55e;
-      }
-
-      /* 5. RÉPONDRE (flèche retour) */
-      #btn-reply svg path {
-        stroke: #17a2b8; /* couleur visible avant hover */
-        stroke-dasharray: 40;
-        stroke-dashoffset: 0;
-        transition:
-          transform 0.3s ease,
-          stroke 0.3s ease;
-      }
-      #btn-reply:hover svg path {
-        transform: translateX(-2px);
-        stroke: #0d6efd;
-      }
-
-      /* 6. NON LU (point + cercle) */
-      .icon-btn[title="Non lu"] svg circle:last-child {
-        fill: #007bff; /* visible avant hover */
-        transform-origin: center;
-        transition:
-          transform 0.3s ease,
-          fill 0.3s ease;
-      }
-      .icon-btn[title="Non lu"]:hover svg circle:last-child {
-        transform: scale(1.3);
-        fill: #0d6efd;
-      }
-
-      /* 7. ENVOYER (avion papier) */
-      .chat-form button svg path {
-        stroke: #007bff; /* couleur visible avant hover */
-        stroke-dasharray: 60;
-        stroke-dashoffset: 0;
-        transition:
-          stroke 0.3s ease,
-          transform 0.3s ease;
-      }
-      .chat-form button:hover svg path {
-        transform: translateX(2px) rotate(2deg);
-        stroke: #0d6efd;
-      }
-
-      /* 8. OPTIONS (3 points) */
-      .icon-btn[title="Options"] svg circle {
-        fill: #6c757d; /* visible avant hover */
-        transition:
-          transform 0.3s ease,
-          fill 0.3s ease;
-      }
-      .icon-btn[title="Options"]:hover svg circle {
-        transform: scale(1.2);
-        fill: #495057;
-      }
-
-      /* ================================
-   POSITIONNEMENT / ALIGNEMENT
-================================= */
-      .conversations-tools .tabs button,
-      .chat-header-actions .action-btn,
-      .chat-actions .action-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-      }
-
-      .chat-form button,
-      .action-btn,
-      .icon-btn {
-        background: transparent;
-        border: none;
-        padding: 6px;
-        border-radius: 6px;
-      }
-
-      .chat-form button:hover,
-      .action-btn:hover,
-      .icon-btn:hover {
-        background: rgba(0, 123, 255, 0.1);
-      }
-      /* ===== DEFAULT (DESKTOP) ===== */
-      .mobile-wrapper {
-        display: flex; /* 🔥 IMPORTANT */
-        width: 100%;
-        height: 100%;
-      }
-
-      /* ================================
-   ACCESSIBILITÉ / TRANSITION GLOBALE
-================================= */
-      svg {
-        pointer-events: none; /* pour que le bouton gère le hover */
-      }
-
-      .icon-btn:focus svg,
-      .action-btn:focus svg,
-      .chat-form button:focus svg {
-        outline: 2px solid #007bff;
-        outline-offset: 2px;
-      }
-
-      @keyframes fadeInUp {
-        from {
-          opacity: 0;
-          transform: translateY(6px) scale(0.98);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-      }
-
-      /* ========================== */
-      /* ----- RESPONSIVE ----- */
-      /* ========================== */
-      @media (max-width: 900px) {
-        .messagerie-container {
-          flex-direction: column;
-          height: auto;
-        }
-        .conversations-list {
-          width: 100%;
-          max-height: 220px;
-          margin-bottom: 12px;
-        }
-        .chat-zone {
-          height: calc(100vh - 260px);
-          min-height: 400px;
-        }
-        .chat-header {
-          flex-direction: column;
-          align-items: flex-start;
-        }
-        .chat-header-actions {
-          width: 100%;
-          justify-content: flex-start;
-          gap: 6px;
-          margin-top: 6px;
-        }
-        .chat-header .action-btn {
-          flex: 1;
-          text-align: center;
-          min-width: 100px;
-        }
-      }
-      @media (max-width: 480px) {
-        .menu-toggle {
-          width: 44px;
-          height: 44px;
-          top: 60px;
-          left: 12px;
-          font-size: 20px;
-        }
-        .chat-zone {
-          height: calc(100vh - 200px);
-        }
-        .chat-form input {
-          font-size: 0.9rem;
-          padding: 0.7rem 0.9rem;
-        }
-        .chat-form button {
-          padding: 0.7rem 1.2rem;
-        }
-        /* ==========================
-MOBILE SLIDE MESSAGERIE
-========================= */
-        @media (max-width: 768px) {
-          .mobile-wrapper {
-            width: 200vw;
-            transform: translateX(0);
-            transition: transform 0.3s ease;
-          }
-
-          .conversations-list,
-          .chat-zone {
-            width: 100vw;
-            height: 100%;
-          }
-
-          .mobile-wrapper.chat-active {
-            transform: translateX(-100vw);
-          }
-
-          .mobile-wrapper.conversations-active {
-            transform: translateX(0);
-          }
-
-          .messagerie-container {
-            flex-direction: row !important;
-          }
-
-          .conversations-list {
-            max-height: 100% !important;
-          }
-
-          .chat-zone {
-            height: 100% !important;
-          }
-        }
-        @media (max-width: 768px) {
-          .swipe-indicator {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            z-index: 50;
-            pointer-events: none;
-          }
-
-          /* flèches arrondies */
-          .swipe-indicator .arrow {
-            width: 12px;
-            height: 12px;
-            border-top: 3px solid #7a5fff;
-            border-left: 3px solid #7a5fff;
-            transform: rotate(-45deg); /* forme flèche */
-            border-radius: 2px;
-            animation: pulse 1.4s infinite;
-          }
-
-          /* ligne fine, invisible au départ */
-          .swipe-indicator .line {
-            height: 3px;
-            background: linear-gradient(
-              to right,
-              #7a5fff 20%,
-              #b6a8ff 50%,
-              #7a5fff 80%
-            );
-            border-radius: 2px;
-            flex: 0;
-            width: 0;
-            opacity: 0;
-            transition:
-              width 0.2s ease,
-              opacity 0.2s ease;
-          }
-
-          /* pulse animation flèches */
-          @keyframes pulse {
-            0% {
-              opacity: 0.3;
-              transform: rotate(-45deg) scale(0.95);
-            }
-            50% {
-              opacity: 1;
-              transform: rotate(-45deg) scale(1);
-            }
-            100% {
-              opacity: 0.3;
-              transform: rotate(-45deg) scale(0.95);
-            }
-          }
-        }
-      }
-      .bubble {
-        display: flex;
-        width: fit-content;
-        position: relative;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* 👈 ombre ajoutée */
-      }
-
-      .bubble.user {
-        align-self: flex-end;
-      }
-
-      .bubble.contact {
-        align-self: flex-start;
-      }
-
-      .bubble-content {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .msg-menu-btn {
-        position: absolute;
-        bottom: -5px;
-        right: 5px;
-
-        cursor: pointer;
-
-        padding: 4px;
-
-        background: transparent; /* ❌ plus de cercle */
-        border-radius: 0;
-
-        opacity: 0.7;
-        transition: all 0.2s ease;
-      }
-
-      /* SVG taille */
-      .msg-menu-btn svg {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-        fill: url(#gradientDots);
-      }
-
-      /* 🔥 Dégradé sur les points */
-      .msg-menu-btn svg circle {
-        fill: url(#gradientDots);
-      }
-
-      /* Hover */
-      .msg-menu-btn:hover {
-        opacity: 1;
-        transform: scale(1.15);
-      }
-
-      .bubble-content {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        position: relative;
-      }
-      .msg-menu {
-        position: absolute;
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-        padding: 8px 0;
-        z-index: 999;
-      }
-      .msg-menu {
-        min-width: 150px;
-        animation: fadeInUp 0.15s ease;
-      }
-
-      .msg-menu div {
-        padding: 10px 15px;
-        cursor: pointer;
-      }
-
-      .msg-menu div:hover {
-        background: #f2f2f2;
-      }
-
+      /* ============================================================
+         HIDDEN UTILITY
+      ============================================================ */
       .hidden {
-        display: none;
-      }
-      .msg-menu {
-        min-width: 180px;
-        border-radius: 12px;
-        background: white;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        overflow: hidden;
+        display: none !important;
       }
 
-      .menu-item {
+      /* ============================================================
+         EMPTY STATE
+      ============================================================ */
+      .chat-empty {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        color: var(--text-label);
+        text-align: center;
+        padding: 40px;
+      }
+      .chat-empty-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--bg-surface);
         display: flex;
         align-items: center;
-        gap: 10px;
-
-        padding: 10px 14px;
-        cursor: pointer;
-        font-size: 14px;
-
-        transition: background 0.2s;
+        justify-content: center;
+        border: 1px solid var(--border-mid);
+      }
+      .chat-empty-icon svg {
+        stroke: var(--text-muted);
+      }
+      .chat-empty h3 {
+        font-size: 15px;
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+      .chat-empty p {
+        font-size: 13px;
       }
 
-      .menu-item:hover {
-        background: #f5f5f5;
+      /* ============================================================
+         RESPONSIVE MOBILE
+      ============================================================ */
+      /* APRÈS — responsive header Apple-level, cohérent toutes pages */
+      @media (max-width: 768px) {
+        /* ── HEADER ── */
+        .top-banner {
+          height: 52px;
+          padding: 0 12px;
+          gap: 8px;
+        }
+
+        .logo-container {
+          flex: 1;
+          min-width: 0;
+          gap: 8px;
+        }
+        .logo-img {
+          width: 28px;
+          flex-shrink: 0;
+        }
+        .logo-text {
+          font-size: 14px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          /* Stoppe l'animation coûteuse sur mobile */
+          animation: none;
+          background: linear-gradient(135deg, #7a5fff, #f4a6ff);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .header-right {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+
+        /* Thème — taille réduite */
+        #btn-theme {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          flex-shrink: 0;
+        }
+
+        /* Logout — icône SVG seule, texte masqué */
+        #btn-logout {
+          width: 32px;
+          height: 32px;
+          padding: 0;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0;
+          flex-shrink: 0;
+        }
+        #btn-logout span {
+          display: none;
+        }
+        #btn-logout .logout-icon {
+          display: block;
+          width: 16px;
+          height: 16px;
+        }
+
+        /* ── MENU TOGGLE ──
+     Masqué sur mobile (la nav se fait via le slide gauche/droite) */
+        .menu-toggle {
+          display: none;
+        }
+
+        /* ── MESSAGERIE ── */
+        .messagerie-container {
+          overflow: hidden;
+        }
+
+        .mobile-wrapper {
+          width: 200%;
+          flex-shrink: 0;
+          transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .mobile-wrapper.show-chat {
+          transform: translateX(-50%);
+        }
+
+        .conversations-list {
+          width: 50%;
+          min-width: unset;
+        }
+        .chat-zone {
+          width: 50%;
+          min-width: unset;
+        }
+
+        #btn-back-to-list {
+          display: flex;
+        }
+
+        .chat-messages {
+          padding: 14px 12px;
+        }
+        .msg-row {
+          max-width: 88%;
+        }
+
+        .comp-tags {
+          display: none;
+        }
+        .composer {
+          padding: 8px 12px;
+        }
+
+        .chat-actions {
+          gap: 6px;
+          padding: 8px 10px;
+        }
+        .chat-actions .action-btn {
+          font-size: 11px;
+          padding: 7px 6px;
+        }
+
+        .newmsg-modal {
+          width: 94vw;
+        }
       }
 
-      /* SVG style */
-      .menu-item svg {
-        width: 18px;
-        height: 18px;
-        stroke: #555;
-        stroke-width: 2;
-        fill: none;
+      @media (max-width: 480px) {
+        .logo-text {
+          font-size: 13px;
+        }
+        .chat-header-actions .ch-btn:nth-child(n + 3) {
+          display: none; /* Masque appel + options sur très petit écran */
+        }
       }
-
-      /* Danger (supprimer) */
-      .menu-item.danger svg {
-        stroke: #dc2626;
-      }
-
-      .menu-item.danger:hover {
-        background: rgba(220, 38, 38, 0.08);
-      }
-      .menu-item {
-        transition: all 0.2s ease;
-      }
-
-      .menu-item:hover {
-        transform: translateX(3px);
+      /* SVG global pointer-events */
+      svg {
+        pointer-events: none;
       }
     </style>
   </head>
 
   <body>
-    <!-- ===== BOUTON MENU FLOTTANT ===== -->
-    <button class="menu-toggle" id="openSidebar">☰</button>
+    <!-- ===== BOUTON MENU FLOTTANT (desktop) ===== -->
+    <!-- APRÈS -->
+    <button class="menu-toggle" id="openSidebar" aria-label="Ouvrir le menu">
+      <svg
+        width="22"
+        height="18"
+        viewBox="0 0 22 18"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <line x1="0" y1="2" x2="22" y2="2" />
+        <line x1="0" y1="9" x2="16" y2="9" />
+        <line x1="0" y1="16" x2="10" y2="16" />
+      </svg>
+    </button>
 
-    <!-- ===== SIDEBAR ===== -->
-    <nav id="sidebar" class="sidebar">
-      <span class="close-btn" id="closeSidebar">&times;</span>
+    <!-- ===== SIDEBAR NAV ===== -->
+    <nav id="sidebar" class="sidebar-nav" aria-label="Navigation principale">
+      <span class="close-btn" id="closeSidebar" aria-label="Fermer"
+        >&times;</span
+      >
       <h2>Menu</h2>
-
-      <!-- Liens principaux -->
       <ul class="menu-links">
-        <li><a href="profil.html">Profil & Compte</a></li>
-        <li><a href="messagerie.html">Messagerie</a></li>
-        <li><a href="favoris.html">Profils favoris</a></li>
-        <li><a href="statistiques.html">Statistiques</a></li>
+        <li>
+          <a href="profil.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+            Profil &amp; Compte
+          </a>
+        </li>
+        <li>
+          <a href="messagerie.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
+              />
+            </svg>
+            Messagerie
+          </a>
+        </li>
+        <li>
+          <a href="favoris.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
+              />
+            </svg>
+            Profils favoris
+          </a>
+        </li>
+        <li>
+          <a href="statistiques.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+            Statistiques
+          </a>
+        </li>
       </ul>
-
-      <!-- Retour accueil placé tout en bas -->
       <div class="menu-bottom">
         <a href="accueil.html" class="home-link">
           <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -1613,20 +1814,18 @@ MOBILE SLIDE MESSAGERIE
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <!-- Porte -->
-            <path d="M3 21h18"></path>
-            <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"></path>
-            <!-- Flèche qui rentre -->
-            <path d="M12 11l-3 3 3 3"></path>
+            <path d="M3 21h18" />
+            <path d="M7 21V5a2 2 0 012-2h6a2 2 0 012 2v16" />
+            <path d="M12 11l-3 3 3 3" />
           </svg>
-          <span><i>Retour à l'accueil</i></span>
+          <span>Retour à l'accueil</span>
         </a>
       </div>
     </nav>
 
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
 
-    <!-- HEADER -->
+    <!-- ===== HEADER ===== -->
     <header class="top-banner">
       <div class="logo-container">
         <img
@@ -1636,247 +1835,478 @@ MOBILE SLIDE MESSAGERIE
         />
         <h1 class="logo-text" id="animated-title">Mon AiGENT Immobilier</h1>
       </div>
-      <button id="btn-logout" class="btn-secondary hidden">
-        Se déconnecter
-      </button>
+      <div class="header-right">
+        <!-- Bouton thème -->
+        <button id="btn-theme" aria-label="Changer le thème">
+          <!-- Soleil (visible en light) -->
+          <svg
+            class="icon-sun"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#b44fff"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          <!-- Lune (visible en dark) -->
+          <svg
+            class="icon-moon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#b44fff"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+          </svg>
+        </button>
+        <button id="btn-logout" class="hidden">
+          <svg
+            class="logout-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Déconnexion</span>
+        </button>
+      </div>
     </header>
 
-    <!-- CONTENU MESSAGERIE -->
+    <!-- ===== MESSAGERIE ===== -->
     <main class="messagerie-container">
-      <div class="mobile-wrapper">
-        <!-- ===================== -->
-        <!-- LISTE CONVERSATIONS -->
-        <!-- ===================== -->
+      <div class="mobile-wrapper" id="mobileWrapper">
+        <!-- ===================== LISTE CONVERSATIONS ===================== -->
         <div class="conversations-list" aria-label="Liste de conversations">
-          <!-- HEADER -->
-          <div class="conversations-header">Messages</div>
+          <div class="conversations-header">
+            <div class="conv-header-top">
+              <div class="conv-logo-icon">A</div>
+              <div class="conv-header-title">
+                <span>Ai</span>GENT
+                <span style="color: #ff4fa3; font-size: 11px; font-weight: 400"
+                  >Messagerie</span
+                >
+              </div>
+              <button
+                id="btn-nouveau-message-sidebar"
+                title="Nouveau message"
+                aria-label="Nouveau message"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke-width="2"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </button>
+            </div>
 
-          <!-- TOOLS (SEARCH + TABS) -->
-          <div class="conversations-tools">
             <div class="search-box">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke-width="2"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
               <input
                 type="text"
                 id="search-conversations"
                 placeholder="Rechercher une conversation..."
+                autocomplete="off"
               />
             </div>
+          </div>
 
-            <div class="tabs">
-              <button class="active" data-filter="all">Tous</button>
-              <button data-filter="unread">Non lus</button>
-              <button data-filter="archived">Archivés</button>
+          <div class="conversations-tabs">
+            <div class="conv-tab active" data-filter="all">Tous</div>
+            <div class="conv-tab" data-filter="unread">
+              Non lus
+              <span
+                class="unread-badge-tab"
+                id="unread-count-tab"
+                style="display: none"
+                >0</span
+              >
             </div>
+            <div class="conv-tab" data-filter="archived">Archivés</div>
           </div>
 
-          <!-- CONTENEUR JS -->
           <div id="conversations-container">
-            <!-- JS injecte ici les conversations -->
-
-            <!-- ✅ EXEMPLE STRUCTURE (à reproduire en JS) -->
-            <!--
-      <div class="conversation active">
-        <div class="avatar"></div>
-
-        <div class="info">
-          <div class="top-line">
-            <span class="name">John Doe</span>
-            <span class="time">14:32</span>
-          </div>
-          <div class="preview">Dernier message affiché ici...</div>
-        </div>
-
-        <div class="conv-actions">
-          <button class="icon-btn danger" title="Supprimer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M3 6h18"/>
-              <path d="M8 6V4h8v2"/>
-              <path d="M19 6l-1 14H6L5 6"/>
-              <path d="M10 11v6M14 11v6"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-      -->
+            <!-- Injecté par JS -->
           </div>
         </div>
 
-        <!-- ===================== -->
-        <!-- ZONE CHAT -->
-        <!-- ===================== -->
+        <!-- ===================== ZONE CHAT ===================== -->
         <div class="chat-zone" aria-label="Chat actif">
-          <!-- HEADER CHAT -->
           <div class="chat-header">
+            <button id="btn-back-to-list" aria-label="Retour à la liste">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+
             <div class="chat-header-left">
               <div class="chat-avatar" id="chat-avatar">A</div>
-
               <div class="chat-user-info">
-                <span class="name" id="chat-with"></span>
-                <span class="status" id="chat-status">En ligne</span>
+                <span class="name" id="chat-with"
+                  >Sélectionne une conversation</span
+                >
+                <span class="status" id="chat-status">—</span>
               </div>
             </div>
 
             <div class="chat-header-actions">
-              <button class="action-btn" id="btn-reply" title="Répondre">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  width="18"
-                  height="18"
-                >
-                  <path d="M9 17l-5-5 5-5" />
-                  <path d="M4 12h10a6 6 0 0 1 6 6v1" />
-                </svg>
-              </button>
-
-              <button
-                class="action-btn primary"
-                id="btn-nouveau-message"
-                title="Nouveau message"
+              <div
+                class="ch-btn"
+                id="btn-reply"
+                title="Répondre"
+                role="button"
+                tabindex="0"
               >
                 <svg
+                  width="15"
+                  height="15"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="currentColor"
-                  width="18"
-                  height="18"
+                  stroke-width="2"
+                  stroke-linecap="round"
                 >
-                  <path d="M4 4h16v16H4z" />
-                  <path d="M22 6l-10 7L2 6" />
-                  <path d="M12 11v6M9 14h6" />
+                  <path d="M9 17l-5-5 5-5" />
+                  <path d="M4 12h10a6 6 0 016 6v1" />
                 </svg>
-              </button>
+              </div>
+              <div
+                class="ch-btn"
+                id="btn-nouveau-message"
+                title="Nouveau message"
+                role="button"
+                tabindex="0"
+              >
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                >
+                  <path
+                    d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
+                  />
+                  <line x1="12" y1="9" x2="12" y2="15" />
+                  <line x1="9" y1="12" x2="15" y2="12" />
+                </svg>
+              </div>
+              <div class="ch-btn" title="Appel" role="button" tabindex="0">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                >
+                  <path
+                    d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.22 2 2 0 012 .01h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14.92z"
+                  />
+                </svg>
+              </div>
+              <div class="ch-btn" title="Options" role="button" tabindex="0">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="19" cy="12" r="1" />
+                  <circle cx="5" cy="12" r="1" />
+                </svg>
+              </div>
             </div>
           </div>
 
-          <!-- MESSAGES -->
           <div class="chat-messages" id="chat-box" aria-live="polite">
-            <!-- JS injecte ici les messages -->
-
-            <!-- ✅ EXEMPLE STRUCTURE -->
-            <!--
-      <div class="bubble contact">
-        Bonjour 👋
-        <span class="timestamp">14:30</span>
-      </div>
-
-      <div class="bubble user">
-        Salut !
-        <span class="timestamp">14:31</span>
-      </div>
-      -->
+            <div class="chat-empty" id="chat-empty-state">
+              <div class="chat-empty-icon">
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke-width="1.5"
+                >
+                  <path
+                    d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
+                  />
+                </svg>
+              </div>
+              <h3>Aucune conversation sélectionnée</h3>
+              <p>
+                Choisis une conversation à gauche<br />ou démarre-en une
+                nouvelle.
+              </p>
+            </div>
           </div>
 
-          <!-- INPUT -->
-          <form
-            class="chat-form"
-            id="chat-form"
-            aria-label="Envoyer un message"
-          >
-            <input
-              type="text"
-              id="user-input"
-              placeholder="Écris ton message..."
-              autocomplete="off"
-              required
-            />
+          <!-- Composer (remplace le form) -->
+          <div class="composer" id="composer-zone">
+            <div class="comp-tags">
+              <div class="comp-tag" data-quick="Proposer un créneau">
+                Proposer un créneau
+              </div>
+              <div class="comp-tag" data-quick="Envoyer les détails du bien">
+                Envoyer les détails
+              </div>
+              <div class="comp-tag" data-quick="Demander un document">
+                Demander un doc
+              </div>
+              <div class="comp-tag" data-quick="Confirmer le rendez-vous">
+                Confirmer RDV
+              </div>
+            </div>
+            <div class="composer-inner">
+              <textarea
+                id="user-input"
+                rows="1"
+                placeholder="Écris ton message..."
+                autocomplete="off"
+              ></textarea>
+              <div class="comp-actions">
+                <button class="comp-btn" title="Image" type="button">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke-width="2"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                </button>
+                <button class="comp-btn" title="Joindre" type="button">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
+                    />
+                  </svg>
+                </button>
+                <button
+                  class="send-btn"
+                  id="send-btn"
+                  title="Envoyer"
+                  type="button"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#fff"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                  >
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
 
-            <button type="submit" title="Envoyer">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                width="20"
-                height="20"
-              >
-                <path d="M22 2L11 13" />
-                <path d="M22 2L15 22L11 13L2 9L22 2Z" />
-              </svg>
-            </button>
-          </form>
-
-          <!-- ACTIONS BAS -->
+          <!-- Actions bas -->
           <div class="chat-actions">
             <button class="action-btn" id="btn-archive" title="Archiver">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor"
-                width="18"
-                height="18"
+                stroke-width="2"
+                width="16"
+                height="16"
               >
                 <path d="M3 7h18v13H3z" />
                 <path d="M1 3h22v4H1z" />
                 <path d="M12 10v6" />
                 <path d="M9 13l3 3 3-3" />
               </svg>
+              Archiver
             </button>
-
             <button class="action-btn danger" id="btn-delete" title="Supprimer">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor"
-                width="18"
-                height="18"
+                stroke-width="2"
+                width="16"
+                height="16"
               >
                 <path d="M3 6h18" />
                 <path d="M8 6V4h8v2" />
                 <path d="M19 6l-1 14H6L5 6" />
                 <path d="M10 11v6M14 11v6" />
               </svg>
+              Supprimer
             </button>
-
             <button class="action-btn" id="btn-block" title="Bloquer">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor"
-                width="18"
-                height="18"
+                stroke-width="2"
+                width="16"
+                height="16"
               >
                 <path d="M12 3l8 4v5c0 5-3.5 9-8 9s-8-4-8-9V7l8-4z" />
                 <path d="M9 9l6 6" />
               </svg>
+              Bloquer
             </button>
           </div>
         </div>
-
-        <div class="swipe-indicator">
-          <div class="arrow"></div>
-          <div class="arrow"></div>
-          <div class="line"></div>
-        </div>
+        <!-- /chat-zone -->
       </div>
+      <!-- /mobile-wrapper -->
     </main>
 
-    <!-- FOOTER -->
+    <!-- ===== FOOTER ===== -->
     <footer class="bottom-banner">
-      <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
+      <p>© Mon AiGENT Immobilier — Tous droits réservés</p>
     </footer>
 
-    <!-- ==========================
-   POPUP NOUVEAU MESSAGE
-   ========================== -->
-    <div id="newMsgOverlay" class="newmsg-overlay">
+    <!-- ===== POPUP NOUVEAU MESSAGE ===== -->
+    <div
+      id="newMsgOverlay"
+      class="newmsg-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Nouveau message"
+    >
       <div class="newmsg-modal">
         <div class="newmsg-header">
-          Nouveau message
-          <span id="newMsgClose" class="newmsg-close">&times;</span>
+          <div class="newmsg-header-left">
+            <div class="newmsg-header-icon">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+              >
+                <path
+                  d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
+                />
+                <line x1="12" y1="9" x2="12" y2="15" />
+                <line x1="9" y1="12" x2="15" y2="12" />
+              </svg>
+            </div>
+            Nouveau message
+          </div>
+          <span id="newMsgClose" class="newmsg-close" role="button" tabindex="0"
+            >&times;</span
+          >
         </div>
 
         <div class="newmsg-fields">
-          <input
-            type="text"
-            id="newMsgPseudo"
-            placeholder="Pseudo du destinataire"
-          />
-          <input
-            type="email"
-            id="newMsgEmail"
-            placeholder="Email du destinataire"
-          />
-          <input type="text" id="newMsgObjet" placeholder="Objet du message" />
+          <div class="newmsg-field-wrap">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+            <input
+              type="text"
+              id="newMsgPseudo"
+              placeholder="Pseudo du destinataire"
+              autocomplete="off"
+            />
+          </div>
+          <div class="newmsg-field-wrap">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="2"
+            >
+              <path d="M4 4h16v12H4z" />
+              <polyline points="4 4 12 13 20 4" />
+            </svg>
+            <input
+              type="email"
+              id="newMsgEmail"
+              placeholder="Email du destinataire"
+              autocomplete="off"
+            />
+          </div>
+          <div class="newmsg-field-wrap">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke-width="2"
+            >
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="14" y2="18" />
+            </svg>
+            <input
+              type="text"
+              id="newMsgObjet"
+              placeholder="Objet du message"
+              autocomplete="off"
+            />
+          </div>
         </div>
 
         <div class="newmsg-separator"></div>
@@ -1884,38 +2314,48 @@ MOBILE SLIDE MESSAGERIE
         <textarea id="newMsgBody" placeholder="Écris ton message..."></textarea>
 
         <div class="newmsg-footer">
+          <button class="newmsg-cancel" id="newMsgCancel">Annuler</button>
           <button id="newMsgSend">
             <svg
               viewBox="0 0 24 24"
               fill="none"
-              stroke="currentColor"
-              width="18"
-              height="18"
+              stroke="#fff"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              width="14"
+              height="14"
             >
-              <path d="M22 2L11 13" />
-              <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
+            Envoyer
           </button>
         </div>
       </div>
     </div>
-    <div id="msgMenu" class="msg-menu hidden">
-      <div class="menu-item" data-action="save">
-        <svg viewBox="0 0 24 24">
-          <path d="M6 3h12v18l-6-4-6 4V3z" />
-        </svg>
+
+    <!-- Menu contextuel message -->
+    <div id="msgMenu" class="msg-menu hidden" role="menu">
+      <svg width="0" height="0" style="position: absolute">
+        <defs>
+          <linearGradient id="gradientDots" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#7b5cff" />
+            <stop offset="100%" stop-color="#ff4ecd" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="menu-item" data-action="save" role="menuitem">
+        <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4V3z" /></svg>
         <span>Enregistrer</span>
       </div>
-
-      <div class="menu-item" data-action="copy">
+      <div class="menu-item" data-action="copy" role="menuitem">
         <svg viewBox="0 0 24 24">
           <rect x="9" y="9" width="13" height="13" rx="2" />
           <rect x="2" y="2" width="13" height="13" rx="2" />
         </svg>
         <span>Copier</span>
       </div>
-
-      <div class="menu-item danger" data-action="delete">
+      <div class="menu-item danger" data-action="delete" role="menuitem">
         <svg viewBox="0 0 24 24">
           <path d="M3 6h18" />
           <path d="M8 6V4h8v2" />
@@ -1926,10 +2366,7 @@ MOBILE SLIDE MESSAGERIE
       </div>
     </div>
 
-    <!-- Leaflet JS -->
     <script src="/leaflet/leaflet.js" defer></script>
-
-    <!-- JS EXTERNE MESSAGERIE -->
     <script src="/messagerie.js" defer></script>
   </body>
 </html>

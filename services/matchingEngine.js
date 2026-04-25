@@ -935,7 +935,6 @@ export function matchSellerToBuyers(sellerProfile, topN = 5) {
 
   if (geoPool.length < 30) {
     const remainingNeeded = 30 - geoPool.length;
-
     const otherBuyers = BUYERS.filter(
       (buyer) =>
         buyer.role === "buyer" &&
@@ -947,7 +946,6 @@ export function matchSellerToBuyers(sellerProfile, topN = 5) {
           buyerCoords && sellerCoords
             ? distanceKm(sellerProfile.ville, buyer.ville)
             : Infinity;
-
         return {
           ...buyer,
           distanceToSeller,
@@ -956,16 +954,23 @@ export function matchSellerToBuyers(sellerProfile, topN = 5) {
         };
       })
       .sort((a, b) => a.distanceToSeller - b.distanceToSeller);
-
     geoPool = [...geoPool, ...otherBuyers.slice(0, remainingNeeded)];
   }
+
+  const levelToScore = {
+    perfect: 100,
+    close: 75,
+    tolerated: 50,
+    weak: 25,
+    out: 0,
+    none: null,
+  };
 
   const scored = geoPool.map((buyer) => {
     const score = scoreBuyerForSeller(buyer, sellerProfile);
     const common = [];
     const different = [];
 
-    // ===== Budget =====
     const budgetMatch =
       buyer.budgetMax == null
         ? "none"
@@ -973,46 +978,23 @@ export function matchSellerToBuyers(sellerProfile, topN = 5) {
           ? "perfect"
           : buyer.budgetMax + TOLERANCE >= sellerProfile.price
             ? "close"
-            : buyer.budgetMax + TOLERANCE * 1.5 >= sellerProfile.price
-              ? "tolerated"
-              : "out";
+            : "out";
 
-    if (budgetMatch === "perfect") common.push("Budget compatible");
-    else if (["close", "tolerated"].includes(budgetMatch))
-      different.push("Prix légèrement supérieur au budget");
-    else different.push("Budget incompatible");
-
-    // ===== Ville =====
     const dist = buyer.distanceToSeller ?? Infinity;
     const villeMatch =
       dist === 0
         ? "perfect"
-        : dist <= 10
+        : dist <= 20
           ? "close"
           : dist <= 50
             ? "tolerated"
-            : dist <= 200
-              ? "weak"
-              : "out";
+            : "out";
 
-    if (dist === 0) common.push("Ville parfaite");
-    else if (dist < 100) common.push("Ville proche");
-    else if (dist <= 200) different.push("Ville éloignée");
-    else different.push("Ville trop éloignée");
-
-    // ===== Pièces =====
     const piecesDiff =
       buyer.piecesMin != null ? sellerProfile.pieces - buyer.piecesMin : null;
     const piecesMatch =
       buyer.piecesMin == null ? "none" : piecesDiff >= 0 ? "perfect" : "out";
 
-    if (piecesMatch === "perfect")
-      common.push(
-        piecesDiff > 0 ? "Nombre de pièces supérieur" : "Pièces parfaites",
-      );
-    else different.push("Pièces insuffisantes");
-
-    // ===== Surface =====
     const surfaceDiff =
       buyer.surfaceMin != null
         ? sellerProfile.surface - buyer.surfaceMin
@@ -1020,45 +1002,17 @@ export function matchSellerToBuyers(sellerProfile, topN = 5) {
     const surfaceMatch =
       buyer.surfaceMin == null ? "none" : surfaceDiff >= 0 ? "perfect" : "out";
 
-    if (surfaceMatch === "perfect")
-      common.push(surfaceDiff > 0 ? "Surface supérieure" : "Surface parfaite");
-    else different.push("Surface insuffisante");
-
-    // ===== Type =====
-    const typeMatch =
-      !buyer.type || !sellerProfile.type
-        ? "none"
-        : normalize(buyer.type) === normalize(sellerProfile.type)
-          ? "perfect"
-          : isTypeCompatible(buyer.type, sellerProfile.type)
-            ? "close"
-            : "out";
-
-    if (["perfect", "close"].includes(typeMatch))
-      common.push("Type compatible");
-    else if (typeMatch === "out") different.push("Type incompatible");
-
-    const levelToScore = {
-      perfect: 100,
-      close: 75,
-      tolerated: 50,
-      weak: 25,
-      out: 0,
-      none: null,
-    };
-
+    // ON GARDE LA STRUCTURE EXACTE POUR LES GRAPHIQUES
     const criteriaMatch = {
-      budget: ["perfect", "close", "tolerated"].includes(budgetMatch),
+      budget: ["perfect", "close"].includes(budgetMatch),
       ville: ["perfect", "close", "tolerated"].includes(villeMatch),
-      pieces: ["perfect", "close"].includes(piecesMatch),
-      surface: ["perfect", "close"].includes(surfaceMatch),
-      type: ["perfect", "close"].includes(typeMatch),
-
+      pieces: piecesMatch === "perfect",
+      surface: surfaceMatch === "perfect",
+      type: true,
       detail: {
         budget: {
           level: budgetMatch,
           score: levelToScore[budgetMatch],
-          max: buyer.budgetMax,
           diff: (buyer.budgetMax ?? 0) - sellerProfile.price,
         },
         ville: {
@@ -1069,67 +1023,32 @@ export function matchSellerToBuyers(sellerProfile, topN = 5) {
         pieces: {
           level: piecesMatch,
           score: levelToScore[piecesMatch],
-          seller: sellerProfile.pieces,
-          min: buyer.piecesMin,
           diff: piecesDiff,
         },
         surface: {
           level: surfaceMatch,
           score: levelToScore[surfaceMatch],
-          seller: sellerProfile.surface,
-          min: buyer.surfaceMin,
           diff: surfaceDiff,
         },
-        type: {
-          level: typeMatch,
-          score: levelToScore[typeMatch],
-          seller: sellerProfile.type,
-          buyer: buyer.type,
-        },
+        type: { level: "perfect", score: 100 },
       },
     };
-
-    const compatibility = Math.round(score);
-    const buyerCoords = getCoords(buyer.ville);
 
     return {
       ...buyer,
       score,
-      compatibility,
+      compatibility: Math.round(score),
+      criteriaMatch,
+      villeOriginal: buyer.ville,
+      price: sellerProfile.price,
+      surface: sellerProfile.surface,
+      pieces: sellerProfile.pieces,
       common,
       different,
-      criteriaMatch,
-      villeScoreVal: scoreVille(
-        sellerProfile.ville,
-        buyer.ville,
-        VILLE_WEIGHT,
-        200,
-      ),
-      buyerLat: sellerCoords?.lat ?? null,
-      buyerLng: sellerCoords?.lng ?? null,
-      lat: buyerCoords?.lat ?? null,
-      lng: buyerCoords?.lng ?? null,
-      piecesMin: buyer.piecesMin,
-      piecesMax: buyer.piecesMax,
-      surfaceMin: buyer.surfaceMin,
-      surfaceMax: buyer.surfaceMax,
-      budgetMin: buyer.budgetMin,
-      budgetMax: buyer.budgetMax,
-      price: sellerProfile.price,
-      villeOriginal: buyer.ville,
-      departement: getDepartement(buyer.ville),
     };
   });
+
   scored.sort((a, b) => b.compatibility - a.compatibility);
-  console.log(
-    "[MATCH SELLERS → BUYERS] BUYERS en mémoire:",
-    BUYERS.map((b) => b.username),
-  );
-  console.log(
-    "[MATCH SELLERS → BUYERS] sellerProfile:",
-    sellerProfile.username,
-    sellerProfile.ville,
-  );
   return scored.slice(0, topN);
 }
 export function getStatsMatches(buyerProfile, limit = 30) {
@@ -1375,6 +1294,36 @@ export function getStatsMatches(buyerProfile, limit = 30) {
   scored.sort((a, b) => b.compatibility - a.compatibility);
 
   return scored.slice(0, limit);
+}
+export function getSimilarProfiles(userProfile, limit = 5) {
+  const pool = userProfile.role === "buyer" ? BUYERS : SELLERS;
+
+  return pool
+    .filter((p) => p.username !== userProfile.username)
+    .map((p) => {
+      let sim = 0;
+      // Similitude ville
+      if (p.ville === userProfile.ville) sim += 40;
+      // Similitude budget (proche de 20%)
+      const b1 = userProfile.budgetMax || userProfile.price;
+      const b2 = p.budgetMax || p.price;
+      if (b1 && b2 && Math.abs(b1 - b2) / b1 < 0.2) sim += 30;
+      // Similitude surface
+      const s1 = userProfile.surfaceMin || userProfile.surface;
+      const s2 = p.surfaceMin || p.surface;
+      if (s1 && s2 && Math.abs(s1 - s2) / s1 < 0.2) sim += 30;
+
+      return {
+        username: p.username,
+        name: p.username,
+        ville: p.ville,
+        budget: b2,
+        surface: s2,
+        compat: Math.min(sim, 99),
+      };
+    })
+    .sort((a, b) => b.compat - a.compat)
+    .slice(0, limit);
 }
 // ================== APPRENTISSAGE ==================
 export function learnPreference(buyerProfile, seller) {

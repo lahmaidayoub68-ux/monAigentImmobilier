@@ -1,1099 +1,1270 @@
-import { PHRASES } from "./PHRASES.js";
-// VARIABLES GLOBALES
-// =======================================================
-let centralEl; // Élément central pour le diagnostic
-let tabsEls; // Tous les onglets
-let globalStatsCache; // Cache des stats récupérées
-let currentTab = "global"; // Onglet courant
-let mapInstance;
+/**
+ * recommandations.js  —  AiGENT · Page Recommandations
+ * ─────────────────────────────────────────────────────
+ * 100 % données réelles depuis /api/stats
+ * Zéro fallback fictif · Mode SaaS Pro
+ * ─────────────────────────────────────────────────────
+ */
 
-/* ===== MOBILE HELPERS ===== */
-const isMobileReco = () => window.innerWidth <= 900;
-const isMobile = () => window.innerWidth <= 900;
-const isSmallMobile = () => window.innerWidth <= 640; // Instance de la carte Leaflet
-async function fetchAIAnalysis(prompt, data) {
+/* ============================================================
+   CONSTANTES & CONFIG
+============================================================ */
+const WEIGHTS = { budget: 3, surface: 2, pieces: 1, ville: 2, type: 1 };
+const CRIT_ORDER = ["budget", "surface", "pieces", "ville", "type"];
+const MIN_MATCHES = 5; // seuil abaissé : on affiche dès que possible
+
+const CRIT_META = {
+  budget: {
+    label: "Budget",
+    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><path d="M7 15h.01M11 15h2"/></svg>`,
+  },
+  surface: {
+    label: "Surface",
+    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3v18H3V3h18z"/><path d="M3 9h18"/><path d="M9 21V3"/></svg>`,
+  },
+  pieces: {
+    label: "Pièces",
+    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14M9 21V11h6v10"/></svg>`,
+  },
+  ville: {
+    label: "Localisation",
+    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  },
+  type: {
+    label: "Type de bien",
+    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  },
+};
+
+/* ============================================================
+   ÉTAT GLOBAL
+============================================================ */
+let statsData = null; // réponse brute /api/stats
+let criteriaScores = {};
+let appliedCount = 0;
+
+/* ============================================================
+   UTILS
+============================================================ */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function fmt(n, opts = {}) {
+  if (n == null || isNaN(n)) return "—";
+  return Number(n).toLocaleString("fr-FR", opts);
+}
+function fmtPrice(n) {
+  if (!n) return "—";
+  return n >= 1_000_000
+    ? fmt(n / 1_000_000, { maximumFractionDigits: 2 }) + " M€"
+    : fmt(n, { maximumFractionDigits: 0 }) + " €";
+}
+function fmtSurface(n) {
+  return n ? fmt(n, { maximumFractionDigits: 0 }) + " m²" : "—";
+}
+
+function colorClasses(pct) {
+  if (pct < 25) return { bar: "fill-danger", pct: "pct-danger" };
+  if (pct < 50) return { bar: "fill-warn", pct: "pct-warn" };
+  if (pct < 75) return { bar: "fill-ok", pct: "pct-ok" };
+  return { bar: "fill-great", pct: "pct-great" };
+}
+
+function toast(msg, duration = 2800) {
+  const el = document.getElementById("toast");
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove("show"), duration);
+}
+
+function updateSub(text) {
+  const el = document.querySelector(".section-sub");
+  if (el) el.textContent = text;
+}
+
+function setStatusDone(label = "Analyse terminée") {
+  const status = document.getElementById("analysisStatus");
+  if (!status) return;
+  status.classList.add("done");
+  const span = status.querySelectorAll("span")[1];
+  if (span) span.textContent = label;
+}
+
+/* ============================================================
+   AUTH TOKEN
+============================================================ */
+function getToken() {
   try {
-    const tokenRaw = localStorage.getItem("agent_user");
-    if (!tokenRaw) throw new Error("Token manquant");
-    const { token } = JSON.parse(tokenRaw);
+    const raw = localStorage.getItem("agent_user");
+    if (!raw) return null;
+    return JSON.parse(raw).token || null;
+  } catch {
+    return null;
+  }
+}
 
+/* ============================================================
+   API CALLS
+============================================================ */
+async function fetchStats() {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const res = await fetch("/api/stats", {
+      headers: { Authorization: "Bearer " + token },
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  } catch (err) {
+    console.warn("[fetchStats]", err.message);
+    return null;
+  }
+}
+
+async function fetchAIDiagnostic(matches, userCriteria, role) {
+  const token = getToken();
+  if (!token) return null;
+  const prompt = buildAIPrompt(matches, userCriteria, role);
+  try {
     const res = await fetch("/api/ai-analysis", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer " + token,
       },
-      body: JSON.stringify({ prompt, data }),
+      body: JSON.stringify({ prompt, data: matches }),
     });
-
-    if (!res.ok) throw new Error("Erreur IA: " + res.status);
+    if (!res.ok) throw new Error("HTTP " + res.status);
     const json = await res.json();
-    return json.analysis; // texte brut IA
+    return json.analysis || null;
   } catch (err) {
-    console.error("[fetchAIAnalysis]", err);
+    console.warn("[fetchAIDiagnostic] fallback:", err.message);
     return null;
   }
 }
 
-function buildAIFrontPrompt(matches, criteriaOrder = CRITERIA_ORDER) {
-  let prompt =
-    "Tu es un expert analyste immobilier. Analyse les 30 meilleurs biens :\n\n";
-  prompt += `Données: ${JSON.stringify(matches)}\n\n`;
-  criteriaOrder.forEach((crit) => {
-    prompt += `Critère: ${crit}\n`;
-    prompt +=
-      "Rédige un paragraphe clair, structuré avec analyse et recommandations pour ce critère.\n\n";
-  });
-  prompt +=
-    "Le texte final doit être en français, professionnel, lisible et concis.\n";
-  return prompt;
-}
-
-// =======================================================
-// CONFIGURATION CRITÈRES ET POIDS
-// =======================================================
-
-const WEIGHTS = { budget: 3, surface: 1, pieces: 1, ville: 2, type: 1 };
-
-const CONNECTORS = {
-  addition: [
-    "Par ailleurs",
-    "De plus",
-    "En complément",
-    "Dans le même esprit",
-    "Il est également à noter que",
-  ],
-  contrast: [
-    "En revanche",
-    "Cependant",
-    "Néanmoins",
-    "Toutefois",
-    "Malgré tout",
-  ],
-  cause: [
-    "En raison de cela",
-    "Compte tenu de ces éléments",
-    "Étant donné la situation",
-    "Du fait de cette observation",
-  ],
-  effect: [
-    "ce qui entraîne",
-    "ce qui implique",
-    "d'où la nécessité de",
-    "ce qui peut nécessiter",
-  ],
-  summary: [
-    "Dans l’ensemble",
-    "Globalement",
-    "Au final",
-    "Ainsi",
-    "En conclusion",
-  ],
+/* ============================================================
+   CALCUL SCORES CRITÈRES — depuis criteriaMatch.detail réels
+   Le serveur expose déjà level (perfect/close/tolerated/weak/out)
+   On convertit en pourcentage de couverture sur tous les matches
+============================================================ */
+const LEVEL_SCORE = {
+  perfect: 100,
+  close: 75,
+  tolerated: 50,
+  weak: 25,
+  out: 0,
+  none: null,
 };
 
-const CRITERIA_ORDER = ["budget", "surface", "pieces", "ville", "type"];
+function computeCriteriaScoresFromMatches(matches) {
+  if (!matches || !matches.length) return {};
 
-// =======================================================
-// UTILITAIRES TEXTE
-// =======================================================
-
-function cleanText(text) {
-  if (!text) return "";
-  return text.normalize("NFC").replace(/\s+/g, " ").trim();
-}
-
-function capitalizeSentences(text) {
-  return text
-    .split(/([.!?]+)/)
-    .map((s, i) => (i % 2 === 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s))
-    .join("")
-    .trim();
-}
-
-function pickConnector(type, exclude = []) {
-  const pool = CONNECTORS[type].filter((c) => !exclude.includes(c));
-  return pool.length
-    ? pool[Math.floor(Math.random() * pool.length)]
-    : CONNECTORS[type][Math.floor(Math.random() * CONNECTORS[type].length)];
-}
-
-// =======================================================
-// STATISTIQUES DU MARCHÉ
-// =======================================================
-
-function computeStats(matches) {
-  const avg = (key) =>
-    Math.round(matches.reduce((s, m) => s + (m[key] ?? 0), 0) / matches.length);
-
-  const median = (key) => {
-    const sorted = [...matches].sort((a, b) => (a[key] ?? 0) - (b[key] ?? 0));
-    return sorted[Math.floor(sorted.length / 2)][key] ?? 0;
-  };
-
-  return {
-    avgSurfaceTop30: avg("surface"),
-    avgRoomsTop30: avg("pieces"),
-    medianSurfaceTop30: median("surface"),
-    medianRoomsTop30: median("pieces"),
-  };
-}
-
-// =======================================================
-// ANALYSE MATCHES (acheteur ou vendeur)
-// =======================================================
-function analyzeMatches(matches, userCriteria, role = "buyer") {
-  const stats = { budget: 0, surface: 0, pieces: 0, ville: 0, type: 0 };
+  const sums = { budget: 0, surface: 0, pieces: 0, ville: 0, type: 0 };
+  const counts = { budget: 0, surface: 0, pieces: 0, ville: 0, type: 0 };
 
   matches.forEach((m) => {
-    let matchBudget, userBudgetValue;
-    let matchSurface, userSurfaceValue;
-    let matchPieces, userPiecesValue;
+    const d = m.criteriaMatch?.detail;
+    if (!d) return;
 
-    if (role === "buyer") {
-      matchBudget = m.price ?? 0; // pour comparer au budget max du buyer
-      userBudgetValue = userCriteria.budgetMax ?? 0;
-      matchSurface = m.surface ?? 0;
-      userSurfaceValue = userCriteria.surfaceMax ?? 0;
-      matchPieces = m.pieces ?? 0;
-      userPiecesValue = userCriteria.piecesMax ?? 0;
-    } else if (role === "seller") {
-      matchBudget = m.price ?? 0;
-      userBudgetValue = userCriteria.budget ?? 0;
-      matchSurface = m.surface ?? 0;
-      userSurfaceValue = userCriteria.surface ?? 0;
-      matchPieces = m.pieces ?? 0;
-      userPiecesValue = userCriteria.pieces ?? 0;
-    }
-
-    if (matchBudget <= userBudgetValue) stats.budget++; // budget ok si <= pour acheteur
-    if (matchSurface >= userSurfaceValue) stats.surface++;
-    if (matchPieces >= userPiecesValue) stats.pieces++;
-    if ((m.villeScoreVal ?? 0) >= 0.7) stats.ville++;
-    if ((m.typeMatch ?? 0) >= 0.7) stats.type++;
-  });
-
-  const ratio = (v) => (matches.length ? v / matches.length : 0);
-
-  const context = {
-    budget: ratio(stats.budget) > 0.6 ? "budgetOk" : "budgetHigh",
-    surface: ratio(stats.surface) > 0.6 ? "surfaceOk" : "surfaceLow",
-    pieces: ratio(stats.pieces) > 0.6 ? "piecesOk" : "piecesLow",
-    ville: ratio(stats.ville) > 0.6 ? "villeOk" : "villeLow",
-    type: ratio(stats.type) > 0.6 ? "typeOk" : "typeLow",
-  };
-
-  const scores = {};
-  Object.keys(context).forEach((k) => {
-    scores[k] = WEIGHTS[k] * (context[k].endsWith("Ok") ? 1 : -1);
-  });
-
-  return { context, scores };
-}
-// =======================================================
-// INJECTION CSS ULTRA-PRO (sobre et lisible)
-(function injectProCSS() {
-  const style = document.createElement("style");
-  style.innerHTML = `
-    /* --- Animations --- */
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes spin { 
-      to { transform: rotate(360deg); } 
-    }
-
-    /* --- Conteneur Principal --- */
-    #central-diagnostic {
-      color: #2d3748;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      padding: 10px;
-    }
-
-    /* --- Cartes d'Analyse (Staggered Animation) --- */
-    .analysis-card,
-.mobile-card {
-      background: #ffffff;
-      padding: 1.5rem;
-      border-radius: 12px;
-      border: 1px solid #edf2f7;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-      transition: all 0.2s ease;
-      animation: fadeInUp 0.5s ease forwards;
-      opacity: 0; /* Géré par l'animation */
-    }
-      .mobile-card{
-  animation:fadeInUp .35s ease forwards;
-}
-
-    .analysis-card:hover {
-      transform: translateX(5px);
-      border-color: #cbd5e0;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Delays pour l'effet de cascade (stagger) */
-    .analysis-card:nth-child(1) { animation-delay: 0.1s; }
-    .analysis-card:nth-child(2) { animation-delay: 0.2s; }
-    .analysis-card:nth-child(3) { animation-delay: 0.3s; }
-    .analysis-card:nth-child(4) { animation-delay: 0.4s; }
-    .analysis-card:nth-child(5) { animation-delay: 0.5s; }
-    .analysis-card:nth-child(6) { animation-delay: 0.6s; }
-
-    /* --- Badges de Critères --- */
-    .criterion-badge {
-      display: inline-block;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 4px 12px;
-      border-radius: 6px;
-      font-size: 0.7rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 4px rgba(118, 75, 162, 0.2);
-    }
-
-    /* --- Typographie Interne --- */
-    .analysis-card p {
-      margin: 0 !important;
-      line-height: 1.7;
-      font-size: 0.95rem;
-      text-align: left;
-      color: #4a5568;
-    }
-
-    .analysis-card b {
-      color: #2d3748;
-      background: #f1f5f9;
-      padding: 0 4px;
-      border-radius: 4px;
-      font-weight: 600;
-    }
-
-    /* --- Loader Premium --- */
-    .loader-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 4rem 2rem;
-      text-align: center;
-    }
-
-    .custom-spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid #e2e8f0;
-      border-top-color: #9b59ff;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-bottom: 1rem;
-    }
-
-    /* --- Tableaux (Onglet Critères/Actions) --- */
-    .criteria-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      margin-top: 1rem;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid #e2e8f0;
-    }
-
-    .criteria-table th {
-      background: #f8fafc;
-      padding: 12px;
-      font-weight: 700;
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      color: #64748b;
-      border-bottom: 1px solid #e2e8f0;
-    }
-
-    .criteria-table td {
-      padding: 12px;
-      border-bottom: 1px solid #e2e8f0;
-      font-size: 0.9rem;
-    }
-  `;
-  document.head.appendChild(style);
-})();
-// =======================================================
-// CONSTRUCTION DE PARAGRAPHE ULTRA-PRO (fluidité & connecteurs logiques révisés)
-// =======================================================
-function buildParagraph(block, vars, usedConnectors, score = 0) {
-  if (!block) return "";
-
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-  // Interpolation des variables
-  const interpolate = (str) =>
-    str.replace(/{(\w+)}/g, (_, key) => {
-      const val = vars[key] ?? "";
-      // Montant affiché avec € si key contient budget
-      if (typeof val === "number") {
-        return key.toLowerCase().includes("budget")
-          ? `<b>€${val}</b>`
-          : `<b>${val}</b>`;
-      }
-      return val;
-    });
-
-  // Choix des phrases
-  const obsRaw = pick(block.observation);
-  const marketRaw = pick(block.market);
-  const impactRaw = pick(block.impact);
-  let recRaw = pick(block.recommendation);
-
-  // S'assurer que la recommandation est une chaîne
-  if (typeof recRaw === "object") recRaw = JSON.stringify(recRaw);
-
-  // Emphase sur mots clés intelligents
-  const emphasizeWords = (text) => {
-    if (!text) return "";
-    const keywords = [
-      "parfait",
-      "conforme",
-      "optimal",
-      "limité",
-      "nécessité",
-      "attention",
-      "flexibilité",
-      "utile",
-      "pratique",
-    ];
-    keywords.forEach((w) => {
-      const regex = new RegExp(`\\b(${w})\\b`, "gi");
-      text = text.replace(regex, "<b>$1</b>");
-    });
-    return text;
-  };
-
-  const obs = emphasizeWords(interpolate(obsRaw));
-  const market = emphasizeWords(interpolate(marketRaw));
-  const impact = emphasizeWords(interpolate(impactRaw));
-  const rec = emphasizeWords(interpolate(recRaw));
-
-  // Connecteurs logiques adaptés au contexte
-  const c1 =
-    score >= 0
-      ? pickConnector("addition", [...usedConnectors])
-      : pickConnector("contrast", [...usedConnectors]); // Observation
-  usedConnectors.add(c1);
-
-  const c2 = pickConnector("cause", [...usedConnectors]); // Marché / comparaison
-  usedConnectors.add(c2);
-
-  const c3 = pickConnector("effect", [...usedConnectors]); // Impact / conséquence
-  usedConnectors.add(c3);
-
-  const c4 =
-    score >= 0
-      ? pickConnector("addition", [...usedConnectors])
-      : pickConnector("contrast", [...usedConnectors]); // Recommandation
-  usedConnectors.add(c4);
-
-  // Construction du paragraphe fluide
-  const paragraph = `
-    <p style="text-indent:0.8em; margin-bottom:1em;">
-      <span>${c1} ${obs}.</span>
-      <span>${c2} ${market}.</span>
-      <span>${c3} ${impact}.</span>
-      <span>${c4} ${rec}.</span>
-    </p>
-  `;
-
-  // Nettoyage et capitalisation : uniquement début de phrase en majuscule
-  const cleaned = cleanText(paragraph).replace(
-    /([.!?]\s+)(\w)/g,
-    (_, punc, letter) => punc + letter.toLowerCase(),
-  );
-
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-}
-
-// =======================================================
-// GÉNÉRATION DIAGNOSTIC ULTRA-PRO (acheteur ou vendeur)
-// =======================================================
-export function generateDiagnostic(matches, userCriteria, role = "buyer") {
-  if (!matches || !matches.length) {
-    return [
-      "<p>Aucune donnée n’est disponible pour établir une analyse fiable.</p>",
-    ];
-  }
-
-  // Analyse avec prise en compte du rôle
-  const { context, scores } = analyzeMatches(matches, userCriteria, role);
-  const marketStats = computeStats(matches);
-  const usedConnectors = new Set();
-  const paragraphs = [];
-
-  CRITERIA_ORDER.forEach((criterion) => {
-    const key = context[criterion];
-    const block = PHRASES?.[role]?.[key];
-    if (!block) return;
-
-    // Mapping exact des variables selon addBuyer/addSeller
-    const vars = {
-      ...marketStats,
-      surface: matches[0]?.surface ?? 0,
-      rooms: matches[0]?.pieces ?? 0,
-      userSurface:
-        role === "buyer"
-          ? (userCriteria.surfaceMax ?? 0)
-          : (userCriteria.surface ?? 0),
-      userBudget:
-        role === "buyer"
-          ? (userCriteria.budgetMax ?? 0)
-          : (userCriteria.budget ?? 0),
-      userPieces:
-        role === "buyer"
-          ? (userCriteria.piecesMax ?? 0)
-          : (userCriteria.pieces ?? 0),
-      topCount: matches.length,
+    const map = {
+      budget: d.budget?.score ?? LEVEL_SCORE[d.budget?.level],
+      surface: d.surface?.score ?? LEVEL_SCORE[d.surface?.level],
+      pieces: d.pieces?.score ?? LEVEL_SCORE[d.pieces?.level],
+      ville: d.ville?.score ?? LEVEL_SCORE[d.ville?.level],
+      type: d.type?.score ?? LEVEL_SCORE[d.type?.level],
     };
 
-    const paragraphHTML = buildParagraph(
-      block,
-      vars,
-      usedConnectors,
-      scores[criterion] ?? 0,
+    CRIT_ORDER.forEach((k) => {
+      if (map[k] != null) {
+        sums[k] += map[k];
+        counts[k]++;
+      }
+    });
+  });
+
+  const scores = {};
+  CRIT_ORDER.forEach((k) => {
+    scores[k] = counts[k] > 0 ? Math.round(sums[k] / counts[k]) : 0;
+  });
+  return scores;
+}
+
+function computeGlobalScore(scores) {
+  let total = 0,
+    wSum = 0;
+  CRIT_ORDER.forEach((k) => {
+    total += (scores[k] ?? 0) * WEIGHTS[k];
+    wSum += WEIGHTS[k];
+  });
+  return Math.round(total / wSum);
+}
+
+/* ============================================================
+   PROMPT IA
+============================================================ */
+function buildAIPrompt(matches, userCriteria, role) {
+  return `Tu es un expert analyste immobilier senior.
+Rôle utilisateur : ${role === "buyer" ? "acheteur" : "vendeur"}.
+Critères utilisateur : ${JSON.stringify(userCriteria)}.
+${matches.length} profils analysés (résumé des 10 premiers) : ${JSON.stringify(matches.slice(0, 10))}.
+
+Rédige un diagnostic immobilier professionnel en français, structuré en 4 courts paragraphes :
+1. Constat global avec score de restriction et situation par rapport au marché.
+2. Critère le plus limitant et son impact chiffré.
+3. Opportunité principale identifiée dans les données.
+4. Recommandations concrètes et actionnables.
+
+Utilise des formulations précises, pas de jargon excessif. Texte brut, chaque paragraphe séparé par une ligne vide. Pas de titres, pas de puces.`;
+}
+
+/* ============================================================
+   DIAGNOSTIC LOCAL — basé sur les VRAIES données
+============================================================ */
+function buildLocalDiagnostic(scores, matches, role, user) {
+  const paras = [];
+  const globalScore = computeGlobalScore(scores);
+
+  /* --- Para 1 : constat global --- */
+  const qual =
+    globalScore < 35
+      ? "fortement restrictive"
+      : globalScore < 55
+        ? "modérément restrictive"
+        : globalScore < 75
+          ? "bien calibrée"
+          : "optimale";
+
+  const avgCompat = matches.length
+    ? Math.round(
+        matches.reduce((s, m) => s + (m.compatibility || 0), 0) /
+          matches.length,
+      )
+    : 0;
+
+  paras.push(
+    `Votre recherche affiche un <span class="diag-highlight">score global de ${globalScore}/100</span>, ` +
+      `ce qui la classe comme <span class="diag-highlight">${qual}</span>. ` +
+      `Sur <span class="diag-highlight">${matches.length} profils analysés</span>, ` +
+      `la compatibilité moyenne atteint <span class="diag-highlight">${avgCompat} %</span>. ` +
+      (globalScore < 50
+        ? "Des ajustements ciblés sur les critères faibles peuvent doubler voire tripler votre vivier de profils compatibles."
+        : "Votre profil est globalement bien aligné avec le marché — concentrez-vous sur la réactivité."),
+  );
+
+  /* --- Para 2 : critère le plus limitant avec chiffres réels --- */
+  const worst = CRIT_ORDER.reduce((a, b) =>
+    (scores[a] ?? 100) < (scores[b] ?? 100) ? a : b,
+  );
+  const worstPct = scores[worst] ?? 0;
+
+  // Extraire un diff réel depuis les matches
+  let worstDetail = "";
+  const firstWithDetail = matches.find((m) => m.criteriaMatch?.detail?.[worst]);
+  if (firstWithDetail) {
+    const d = firstWithDetail.criteriaMatch.detail[worst];
+    if (worst === "budget" && d.diff != null) {
+      const absDiff = Math.abs(Math.round(d.diff));
+      worstDetail =
+        absDiff > 0
+          ? ` L'écart médian constaté est de <span class="diag-highlight">${fmtPrice(absDiff)}</span> par rapport à votre enveloppe.`
+          : "";
+    } else if (worst === "surface" && d.diff != null) {
+      worstDetail = ` Les biens disponibles présentent en moyenne <span class="diag-highlight">${Math.abs(Math.round(d.diff))} m²</span> d'écart avec votre cible.`;
+    } else if (worst === "pieces" && d.diff != null) {
+      worstDetail = ` Écart constaté : <span class="diag-highlight">${Math.abs(Math.round(d.diff))} pièce(s)</span>.`;
+    } else if (worst === "ville" && d.distanceKm != null) {
+      worstDetail = ` Distance médiane observée : <span class="diag-highlight">${Math.round(d.distanceKm)} km</span>.`;
+    }
+  }
+
+  paras.push(
+    `Le critère <span class="diag-highlight">${CRIT_META[worst]?.label} (${worstPct} %)</span> ` +
+      `est votre principal frein.${worstDetail} ` +
+      (worstPct < 30
+        ? `Il exclut mécaniquement plus de <span class="diag-highlight">${100 - worstPct} %</span> des biens disponibles.`
+        : `Un ajustement modéré aurait un impact immédiat et mesurable sur votre vivier.`),
+  );
+
+  /* --- Para 3 : meilleure opportunité réelle --- */
+  const best = CRIT_ORDER.reduce((a, b) =>
+    (scores[a] ?? 0) > (scores[b] ?? 0) ? a : b,
+  );
+  const topMatch = matches[0];
+
+  paras.push(
+    `À l'inverse, <span class="diag-highlight">${CRIT_META[best]?.label} (${scores[best] ?? 0} %)</span> ` +
+      `est votre critère le mieux aligné avec l'offre — ne le sacrifiez pas. ` +
+      (topMatch
+        ? `Votre meilleur profil actuellement : <span class="diag-highlight">${topMatch.ville || "—"}</span>, ` +
+          `${fmtSurface(topMatch.surface || topMatch.surfaceMin)}, ` +
+          `${fmtPrice(topMatch.price || topMatch.budgetMax)}, ` +
+          `<span class="diag-highlight">${topMatch.compatibility} % de compatibilité</span>.`
+        : ""),
+  );
+
+  /* --- Para 4 : recommandations chiffrées --- */
+  const lowCrit = CRIT_ORDER.filter((k) => (scores[k] ?? 100) < 55);
+  if (lowCrit.length) {
+    const recos = lowCrit.map((k) => {
+      const pct = scores[k] ?? 0;
+      const gain = Math.round(((55 - Math.min(pct, 55)) / 55) * 180);
+      return `<span class="diag-highlight">${CRIT_META[k]?.label}</span> : ajustement estimé à <span class="diag-highlight">+${gain} %</span> de profils supplémentaires`;
+    });
+    paras.push("Recommandations prioritaires — " + recos.join(" · ") + ".");
+  } else {
+    paras.push(
+      `Tous vos critères sont bien positionnés. ` +
+        `Concentrez votre énergie sur la <span class="diag-highlight">réactivité</span> : ` +
+        `les meilleurs biens sont réservés en moins de 48h. Configurez des alertes en temps réel.`,
     );
+  }
 
-    paragraphs.push({
-      criterion,
-      html: paragraphHTML,
-      score: scores[criterion] ?? 0,
-    });
-  });
-
-  // Synthèse finale
-  const positives =
-    paragraphs
-      .filter((p) => p.score > 0)
-      .map((p) => `<b>${p.criterion}</b>`)
-      .join(", ") || "plusieurs critères";
-  const negatives =
-    paragraphs
-      .filter((p) => p.score < 0)
-      .map((p) => `<b>${p.criterion}</b>`)
-      .join(", ") || "aucun point critique";
-
-  let conclusion = PHRASES?.[role]?.conclusion ?? "";
-  if (Array.isArray(conclusion))
-    conclusion = conclusion[Math.floor(Math.random() * conclusion.length)];
-
-  const summaryConnector = pickConnector("summary");
-
-  paragraphs.push({
-    criterion: "summary",
-    score: 0,
-    html: `<p style="text-indent:0.8em; margin-bottom:1em;">
-           <span>${summaryConnector}, le bien présente des points positifs sur ${positives}, tout en nécessitant une attention particulière concernant ${negatives}.</span>
-         </p>`,
-  });
-
-  return paragraphs
-    .sort((a, b) => (a.criterion === "budget" ? -1 : b.score - a.score))
-    .map((p) => p.html);
-}
-//=====================================================
-// MENU LATÉRAL
-// =======================================================
-
-const sidebar = document.getElementById("sidebar");
-const openBtn = document.getElementById("openSidebar");
-const closeBtn = document.getElementById("closeSidebar");
-const overlay = document.getElementById("sidebarOverlay");
-
-if (openBtn && sidebar && overlay) {
-  openBtn.addEventListener("click", () => {
-    sidebar.classList.add("open");
-    overlay.classList.add("active");
-    openBtn.style.display = "none";
-  });
+  return paras;
 }
 
-if (closeBtn && sidebar && overlay) {
-  closeBtn.addEventListener("click", () => {
-    sidebar.classList.remove("open");
-    overlay.classList.remove("active");
-    openBtn.style.display = "flex";
-  });
-}
+/* ============================================================
+   RENDU — SCORE RING SVG
+============================================================ */
+function renderScore(score, data) {
+  const CIRCUMFERENCE = 314;
 
-if (overlay && sidebar) {
-  overlay.addEventListener("click", () => {
-    sidebar.classList.remove("open");
-    overlay.classList.remove("active");
-    openBtn.style.display = "flex";
-  });
-}
+  const svg = document.querySelector(".score-ring");
+  if (svg && !svg.querySelector("defs")) {
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    defs.innerHTML = `
+      <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#6366f1"/>
+        <stop offset="100%" stop-color="#8b5cf6"/>
+      </linearGradient>`;
+    svg.prepend(defs);
+  }
 
-/* =======================================================
-FETCH STATS
-======================================================= */
-async function fetchStats() {
-  try {
-    const raw = localStorage.getItem("agent_user");
-    if (!raw) throw new Error("Token manquant");
-    const { token } = JSON.parse(raw);
+  const ring = document.getElementById("ringFill");
+  if (ring) {
+    ring.style.stroke = "url(#ringGrad)";
+    setTimeout(() => {
+      ring.style.strokeDashoffset =
+        CIRCUMFERENCE - (score / 100) * CIRCUMFERENCE;
+    }, 150);
+  }
 
-    const res = await fetch("/api/stats", {
-      headers: { Authorization: "Bearer " + token },
-    });
-    if (!res.ok) throw new Error("Erreur API: " + res.status);
+  // Compteur animé
+  const valEl = document.getElementById("scoreValue");
+  if (valEl) {
+    let n = 0;
+    const step = Math.max(1, Math.ceil(score / 40));
+    const t = setInterval(() => {
+      n = Math.min(n + step, score);
+      valEl.textContent = n;
+      if (n >= score) clearInterval(t);
+    }, 28);
+  }
 
-    const data = await res.json();
+  // Titre + desc
+  const titleEl = document.getElementById("scoreTitle");
+  const descEl = document.getElementById("scoreDesc");
+  if (titleEl && descEl) {
+    const info =
+      score < 35
+        ? {
+            title: "Recherche très restrictive",
+            desc: "Vos critères excluent la majorité des profils disponibles. Des ajustements ciblés peuvent multiplier vos opportunités.",
+          }
+        : score < 55
+          ? {
+              title: "Recherche modérément restrictive",
+              desc: "Quelques critères freinent votre matching. Des ajustements mineurs auront un impact immédiat.",
+            }
+          : score < 75
+            ? {
+                title: "Recherche bien calibrée",
+                desc: "Votre profil est en bonne adéquation avec le marché. Quelques optimisations fines restent possibles.",
+              }
+            : {
+                title: "Recherche optimale",
+                desc: "Vos critères sont parfaitement alignés avec l'offre disponible. Concentrez-vous sur la réactivité.",
+              };
+    titleEl.textContent = info.title;
+    descEl.textContent = info.desc;
+  }
 
-    // VERIFICATION : Si le nombre total est inférieur à 20, on renvoie une erreur spécifique
-    if (data.totalMatches < 20) {
-      return { error: "insufficient_data", count: data.totalMatches };
-    }
+  // Chips — données 100 % réelles
+  const chips = document.getElementById("scoreChips");
+  if (chips && data) {
+    const totalMatches = data.totalMatches ?? 0;
+    const avgCompat = data.averageCompatibility ?? 0;
+    const totalFavoris = data.totalFavoris ?? 0;
+    const activeConversations = data.activeConversations ?? 0;
 
-    return data; // Contient totalMatches, matches, etc.
-  } catch (err) {
-    console.error("[fetchStats]", err);
-    return null;
+    const scoreCls =
+      score < 40 ? "chip-danger" : score < 60 ? "chip-warn" : "chip-ok";
+    const compatCls = avgCompat < 40 ? "chip-warn" : "chip-ok";
+
+    chips.innerHTML = [
+      { label: `${totalMatches} profils analysés`, cls: "chip-info" },
+      { label: `Score ${score}/100`, cls: scoreCls },
+      { label: `${avgCompat} % compat. moyenne`, cls: compatCls },
+      {
+        label: `${totalFavoris} favori${totalFavoris > 1 ? "s" : ""}`,
+        cls: "chip-info",
+      },
+      {
+        label: `${activeConversations} conv. active${activeConversations > 1 ? "s" : ""}`,
+        cls: "chip-info",
+      },
+    ]
+      .map((c) => `<span class="chip ${c.cls}">${c.label}</span>`)
+      .join("");
   }
 }
 
-/* =======================================================
-INIT RECOMMANDATIONS
-======================================================= */
-// =======================================================
-// INIT RECOMMANDATIONS
-// =======================================================
-async function initRecommendations() {
-  centralEl = document.getElementById("central-diagnostic");
-  if (!centralEl) return;
+/* ============================================================
+   RENDU — DIAGNOSTIC (streaming simulé)
+============================================================ */
+async function renderDiagnostic(paragraphs) {
+  const body = document.getElementById("diagBody");
+  if (!body) return;
+  body.innerHTML = "";
 
-  centralEl.innerHTML = `<div class="loader"></div> Analyse du marché en cours...`;
-
-  globalStatsCache = await fetchStats();
-
-  // --- BLOCAGE SI < 20 MATCHS ---
-  if (globalStatsCache?.error === "insufficient_data") {
-    centralEl.innerHTML = `
-      <div style="padding: 30px; text-align: center; background: #fff5f5; border-radius: 12px; border: 1px solid #feb2b2;">
-        <h3 style="color: #c53030; margin-bottom: 15px;">📊 Constat indisponible</h3>
-        <p style="color: #4a5568; line-height: 1.6;">
-          Le diagnostic automatique nécessite au moins <b>20 profils compatibles</b> pour générer une analyse statistique fiable.
-        </p>
-        <p style="font-size: 1.2rem; font-weight: bold; margin: 15px 0;">
-          Actuellement : <span style="color: #c53030;">${globalStatsCache.count} / 20</span>
-        </p>
-        <p style="font-size: 0.9rem; color: #718096;">
-          💡 <i>Conseil : Essayez d'ajuster vos critères (élargir la zone géographique ou le budget) pour augmenter le nombre de résultats.</i>
-        </p>
-      </div>`;
-
-    // On met quand même à jour l'élément HTML totalMatches s'il existe sur cette page
-    const totalEl = document.getElementById("totalMatches");
-    if (totalEl) totalEl.textContent = globalStatsCache.count;
-
-    return; // On arrête l'initialisation ici
-  }
-
-  if (!globalStatsCache) {
-    centralEl.innerHTML = "⚠️ Erreur lors du chargement des statistiques.";
-    return;
-  }
-
-  // --- SI >= 20, ON CONTINUE NORMALEMENT ---
-  const role = globalStatsCache.userRole || "buyer";
-
-  // Mise à jour du texte d'en-tête dynamique
-  animateTotalMatches(globalStatsCache.totalMatches);
-
-  // Initialisation du contenu
-  await updateCentralContent(role);
-}
-/* =======================================================
-SWITCH TAB
-======================================================= */
-async function switchTab(tabName) {
-  currentTab = tabName;
-  if (!tabsEls) return;
-
-  tabsEls.forEach((t) => t.classList.remove("active"));
-
-  const selected = document.querySelector(`.reco-tab[data-tab='${tabName}']`);
-
-  if (selected) selected.classList.add("active");
-
-  /* MOBILE = vrai mode app */
-  if (isMobileReco()) {
-    document.body.classList.add("mobile-tab-open");
-
-    if (tabName === "global") {
-      document.body.classList.remove("mobile-tab-open");
-    }
-  }
-  await updateCentralContent();
-
-  if (isMobileReco()) {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  for (const html of paragraphs) {
+    await sleep(380);
+    const p = document.createElement("p");
+    p.className = "diag-paragraph";
+    p.innerHTML = html;
+    body.appendChild(p);
+    body.scrollTo({ top: body.scrollHeight, behavior: "smooth" });
   }
 }
-/* =======================================================
-LANGUAGETOOL - CORRECTION GRAMMAIRE / ORTHOGRAPHE
-======================================================= */
-async function correctWithLanguageToolPreserveHTML(html) {
-  try {
-    // Extraire le texte sans balises mais garder une map des <b> et <span>
-    const tagMap = [];
-    const textOnly = html.replace(/<[^>]+>/g, (tag) => {
-      const placeholder = `@@${tagMap.length}@@`;
-      tagMap.push(tag);
-      return placeholder;
-    });
 
-    // Appel LanguageTool
-    const res = await fetch("https://api.languagetoolplus.com/v2/check", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        text: textOnly,
-        language: "fr",
-      }),
-    });
+/* ============================================================
+   RENDU — CRITÈRES (barres animées)
+============================================================ */
+function renderCriteria(scores) {
+  const list = document.getElementById("criteriaList");
+  if (!list) return;
+  list.innerHTML = "";
 
-    const result = await res.json();
-    if (!result.matches || result.matches.length === 0) return html;
+  CRIT_ORDER.forEach((k) => {
+    const pct = scores[k] ?? 0;
+    const meta = CRIT_META[k];
+    const cls = colorClasses(pct);
 
-    let corrected = textOnly;
+    const row = document.createElement("div");
+    row.className = "criterion-row";
+    row.innerHTML = `
+      <span class="criterion-name" title="${meta.label}">${meta.icon} ${meta.label}</span>
+      <div class="criterion-bar-wrap">
+        <div class="criterion-bar-fill ${cls.bar}" data-value="${pct}"></div>
+      </div>
+      <span class="criterion-pct ${cls.pct}">${pct}&nbsp;%</span>`;
+    list.appendChild(row);
+  });
 
-    // Appliquer les corrections de la fin vers le début
-    result.matches
-      .sort((a, b) => b.offset - a.offset)
-      .forEach((m) => {
-        if (m.replacements && m.replacements.length > 0) {
-          const replacement = m.replacements[0].value;
-          corrected =
-            corrected.slice(0, m.offset) +
-            replacement +
-            corrected.slice(m.offset + m.length);
-        }
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      list.querySelectorAll(".criterion-bar-fill").forEach((el) => {
+        el.style.width = el.dataset.value + "%";
       });
-
-    // Remettre les balises
-    corrected = corrected.replace(/@@(\d+)@@/g, (_, idx) => tagMap[idx] || "");
-
-    return corrected;
-  } catch (err) {
-    console.error("Erreur LanguageTool:", err);
-    return html;
-  }
+    }, 120);
+  });
 }
 
-/* =======================================================
-UPDATE CENTRAL CONTENT (intégration LanguageTool + variantes)
-======================================================= */
-/* =======================================================
-UPDATE CENTRAL CONTENT AVEC IA
-======================================================= */
-/* =======================================================
-UPDATE CENTRAL CONTENT AVEC IA & STRUCTURE PAR CRITÈRES
-======================================================= */
-async function updateCentralContent(role = "buyer") {
-  if (!globalStatsCache) return;
+/* ============================================================
+   RENDU — OPPORTUNITÉS MANQUÉES — comptage réel depuis matches
+============================================================ */
+function renderMissed(scores, matches) {
+  const countEl = document.getElementById("missedCount");
+  const listEl = document.getElementById("missedList");
+  if (!listEl) return;
 
-  const analysisCount = globalStatsCache.totalMatches || 0;
-  const matchesToAnalyze = globalStatsCache.matches.slice(0, analysisCount);
+  const items = [];
 
-  if (matchesToAnalyze.length === 0) {
-    centralEl.innerHTML = `<p style="text-align:center; padding:2rem;">Aucune donnée pertinente à analyser pour le moment.</p>`;
+  // --- LOGIQUE D'ANALYSE DES OPPORTUNITÉS MANQUÉES ---
+
+  // 1. Budget — compter les matches "out" réels
+  const budgetOut = matches.filter((m) => {
+    const level = m.criteriaMatch?.detail?.budget?.level;
+    return level === "out" || level === "weak";
+  });
+
+  if (budgetOut.length) {
+    const diffs = budgetOut
+      .map((m) => m.criteriaMatch?.detail?.budget?.diff)
+      .filter((d) => d != null && d > 0);
+    const medDiff = diffs.length
+      ? Math.round(diffs.reduce((a, b) => a + b, 0) / diffs.length)
+      : null;
+
+    items.push({
+      icon: `
+      <svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="5" width="20" height="14" rx="2"/>
+        <line x1="2" y1="10" x2="22" y2="10"/>
+        <path d="M7 15h.01M11 15h2"/>
+      </svg>`,
+      title: `${budgetOut.length} profil${budgetOut.length > 1 ? "s" : ""} hors budget`,
+      desc: medDiff
+        ? `Écart médian constaté : ${fmtPrice(medDiff)} au-dessus de votre enveloppe.`
+        : "Plusieurs profils dépassent votre budget maximum.",
+      gain: "Impact majeur",
+    });
+  }
+
+  // 2. Surface — profils exclus sur ce critère
+  const surfaceOut = matches.filter((m) => {
+    const level = m.criteriaMatch?.detail?.surface?.level;
+    return level === "out" || level === "weak";
+  });
+
+  if (surfaceOut.length) {
+    const diffs = surfaceOut
+      .map((m) => m.criteriaMatch?.detail?.surface?.diff)
+      .filter((d) => d != null && d < 0);
+    const medDiff = diffs.length
+      ? Math.abs(Math.round(diffs.reduce((a, b) => a + b, 0) / diffs.length))
+      : null;
+
+    items.push({
+      icon: `
+      <svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 3v18H3V3h18z"/><path d="M3 9h18"/><path d="M9 21V3"/>
+      </svg>`,
+      title: `${surfaceOut.length} profil${surfaceOut.length > 1 ? "s" : ""} sous votre surface cible`,
+      desc: medDiff
+        ? `Ces biens sont en moyenne ${medDiff} m² en dessous de votre critère.`
+        : "Plusieurs biens sont en deçà de la surface recherchée.",
+      gain: `+${surfaceOut.length} matchs`,
+    });
+  }
+
+  // 3. Ville — profils trop éloignés
+  const villeOut = matches.filter((m) => {
+    const level = m.criteriaMatch?.detail?.ville?.level;
+    return level === "out" || level === "weak";
+  });
+
+  if (villeOut.length) {
+    const dists = villeOut
+      .map((m) => m.criteriaMatch?.detail?.ville?.distanceKm)
+      .filter((d) => d != null);
+    const medDist = dists.length
+      ? Math.round(dists.reduce((a, b) => a + b, 0) / dists.length)
+      : null;
+
+    items.push({
+      icon: `
+      <svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>`,
+      title: `${villeOut.length} profil${villeOut.length > 1 ? "s" : ""} hors zone`,
+      desc: medDist
+        ? `Ces profils sont en moyenne à ${medDist} km de votre zone cible.`
+        : "Des profils compatibles existent dans des communes proches non sélectionnées.",
+      gain: "Vivier ×2",
+    });
+  }
+
+  // 4. Pièces
+  const piecesOut = matches.filter((m) => {
+    const level = m.criteriaMatch?.detail?.pieces?.level;
+    return level === "out";
+  });
+
+  if (piecesOut.length) {
+    items.push({
+      icon: `
+      <svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 21h18M5 21V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14M9 21V11h6v10"/>
+      </svg>`,
+      title: `${piecesOut.length} profil${piecesOut.length > 1 ? "s" : ""} avec pièces insuffisantes`,
+      desc: "Accepter N–1 pièce doublerait mécaniquement le volume de profils compatibles.",
+      gain: "Vivier ×2",
+    });
+  }
+
+  // 5. Toujours : rappel réactivité
+  items.push({
+    icon: `
+    <svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+    </svg>`,
+    title: "Délai de réponse : facteur critique",
+    desc: "Les profils bien positionnés sont réservés en moins de 48h. Configurez des alertes en temps réel.",
+    gain: "Réactivité",
+  });
+
+  if (countEl) countEl.textContent = items.length;
+
+  listEl.innerHTML = items
+    .map(
+      (it) => `
+    <div class="missed-item">
+      <div class="missed-icon">${it.icon}</div>
+      <div class="missed-info">
+        <div class="missed-title">${it.title}</div>
+        <div class="missed-desc">${it.desc}</div>
+      </div>
+      <span class="missed-gain">${it.gain}</span>
+    </div>`,
+    )
+    .join("");
+}
+
+/* ============================================================
+   RENDU — AJUSTEMENTS — recommandations chiffrées réelles
+============================================================ */
+function renderActions(scores, matches, role) {
+  const list = document.getElementById("actionList");
+  if (!list) return;
+
+  // Construire une recommandation chiffrée pour chaque critère faible
+  const actions = CRIT_ORDER.filter((k) => (scores[k] ?? 100) < 65)
+    .sort((a, b) => (scores[a] ?? 0) - (scores[b] ?? 0))
+    .map((k) => {
+      const pct = scores[k] ?? 0;
+      const gain = Math.round(((65 - Math.min(pct, 65)) / 65) * 260);
+      const meta = CRIT_META[k];
+
+      // Extraire un conseil chiffré depuis les données réelles
+      let desc = "";
+      const matchesWithDetail = matches.filter(
+        (m) => m.criteriaMatch?.detail?.[k],
+      );
+
+      if (k === "budget" && matchesWithDetail.length) {
+        const diffs = matchesWithDetail
+          .map((m) => m.criteriaMatch.detail.budget.diff)
+          .filter((d) => d != null && d > 0);
+        if (diffs.length) {
+          const med = Math.round(
+            diffs.reduce((a, b) => a + b, 0) / diffs.length,
+          );
+          desc =
+            role === "buyer"
+              ? `Relever votre enveloppe de ${fmtPrice(med)} en médiane couvrirait ${diffs.length} profil${diffs.length > 1 ? "s" : ""} supplémentaires.`
+              : `Votre prix est au-dessus du budget médian de ${fmtPrice(med)}. Valorisez les atouts différenciants.`;
+        } else {
+          desc =
+            role === "buyer"
+              ? "Budget aligné avec la majorité des profils."
+              : "Prix cohérent avec le marché.";
+        }
+      } else if (k === "surface" && matchesWithDetail.length) {
+        const diffs = matchesWithDetail
+          .map((m) => m.criteriaMatch.detail.surface.diff)
+          .filter((d) => d != null && d < 0);
+        const med = diffs.length
+          ? Math.abs(
+              Math.round(diffs.reduce((a, b) => a + b, 0) / diffs.length),
+            )
+          : null;
+        desc = med
+          ? `Réduire votre exigence de ${med} m² ouvrirait ${diffs.length} profil${diffs.length > 1 ? "s" : ""} supplémentaires.`
+          : "Élargir de ±10 m² triplerait le nombre de profils compatibles.";
+      } else if (k === "pieces" && matchesWithDetail.length) {
+        const out = matchesWithDetail.filter(
+          (m) => m.criteriaMatch.detail.pieces.level === "out",
+        );
+        desc = out.length
+          ? `Accepter N–1 pièce rendrait ${out.length} profil${out.length > 1 ? "s" : ""} compatibles immédiatement.`
+          : "Le nombre de pièces est légèrement sous-représenté dans l'offre.";
+      } else if (k === "ville" && matchesWithDetail.length) {
+        const dists = matchesWithDetail
+          .map((m) => m.criteriaMatch.detail.ville.distanceKm)
+          .filter((d) => d != null && d > 0);
+        const med = dists.length
+          ? Math.round(dists.reduce((a, b) => a + b, 0) / dists.length)
+          : null;
+        desc = med
+          ? `Des profils compatibles se situent en moyenne à ${med} km de votre zone. Élargir la tolérance les inclurait.`
+          : "Ajouter des communes voisines doublerait votre vivier.";
+      } else if (k === "type") {
+        desc =
+          "Élargir à un type adjacent (maison / appartement) ouvrirait de nouvelles opportunités.";
+      } else {
+        desc = "Ajustez ce critère pour élargir votre vivier de profils.";
+      }
+
+      return {
+        key: k,
+        icon: meta.icon,
+        title: `Ajuster : ${meta.label}`,
+        desc,
+        impact: `+${gain} %`,
+        impactSub: "de profils",
+      };
+    })
+    .filter(Boolean);
+
+  if (!actions.length) {
+    list.innerHTML = `<p style="padding:16px 20px;font-size:13px;color:var(--text-muted);">
+      ✅ Tous vos critères sont bien calibrés. Aucun ajustement critique nécessaire.
+    </p>`;
     return;
   }
 
-  if (currentTab === "global") {
-    // 1. Loader "Premium"
-    centralEl.innerHTML = `
-      <div class="loader-container">
-        <div class="custom-spinner"></div>
-        <p style="margin-top:1.2rem; color:#4a5568; font-weight:500; font-size:0.95rem;">
+  list.innerHTML = actions
+    .map(
+      (a, i) => `
+    <div class="action-item" data-index="${i}" data-key="${a.key}">
+      <div class="action-icon action-icon-violet">${a.icon}</div>
+      <div class="action-info">
+        <div class="action-title">${a.title}</div>
+        <div class="action-desc">${a.desc}</div>
+      </div>
+      <div class="action-impact">
+        <span class="impact-val">${a.impact}</span>
+        <span class="impact-label">${a.impactSub}</span>
+      </div>
+      <div class="action-check">✓</div>
+    </div>`,
+    )
+    .join("");
+
+  list.querySelectorAll(".action-item").forEach((item, i) => {
+    item.addEventListener("click", () => {
+      const wasApplied = item.classList.toggle("applied");
+      appliedCount += wasApplied ? 1 : -1;
+      toast(
+        wasApplied
+          ? `✓ Appliqué : ${actions[i].title}`
+          : `Annulé : ${actions[i].title}`,
+      );
+    });
+  });
+}
+
+/* ============================================================
+   RENDU — TENDANCES MARCHÉ — calculées depuis les vraies données
+============================================================ */
+function renderMarket(matches, data) {
+  const body = document.getElementById("marketBody");
+  if (!body) return;
+
+  if (!matches || !matches.length) {
+    body.innerHTML = `<p style="padding:16px 20px;font-size:13px;color:var(--text-muted);">Aucune donnée de marché disponible pour votre recherche.</p>`;
+    return;
+  }
+
+  // Calculer depuis les matches réels
+  const prices = matches
+    .map((m) => m.price || m.budgetMax || 0)
+    .filter(Boolean)
+    .sort((a, b) => a - b);
+  const surfaces = matches
+    .map((m) => m.surface || m.surfaceMin || 0)
+    .filter(Boolean)
+    .sort((a, b) => a - b);
+
+  const median = (arr) => (arr.length ? arr[Math.floor(arr.length / 2)] : null);
+  const medPrice = median(prices);
+  const medSurface = median(surfaces);
+  const prixM2 =
+    medPrice && medSurface ? Math.round(medPrice / medSurface) : null;
+
+  // Distribution compatibilité
+  const dist = data?.distribution || {};
+  const forte = dist.forte || 0;
+  const bonne = dist.bonne || 0;
+  const totalMatches = data?.totalMatches || matches.length;
+  const tauxForte = totalMatches ? Math.round((forte / totalMatches) * 100) : 0;
+
+  // Ville la plus représentée
+  const villeCounts = {};
+  matches.forEach((m) => {
+    if (m.ville) villeCounts[m.ville] = (villeCounts[m.ville] || 0) + 1;
+  });
+  const topVille = Object.entries(villeCounts).sort((a, b) => b[1] - a[1])[0];
+
+  const stats = [
+    prixM2
+      ? {
+          icon: `
+          <svg class="market-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+          </svg>`,
+          label: `Prix médian au m² (${topVille?.[0] || "votre zone"})`,
+          value: `${fmt(prixM2)} €/m²`,
+          trend: "flat",
+          trendLabel: `${matches.length} biens`,
+        }
+      : null,
+    medSurface
+      ? {
+          icon: `
+          <svg class="market-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3h18v18H3z"/><path d="M3 9h18"/><path d="M9 3v18"/>
+          </svg>`,
+          label: "Surface médiane disponible",
+          value: fmtSurface(medSurface),
+          trend: "flat",
+          trendLabel: "médiane réelle",
+        }
+      : null,
+    {
+      icon: `
+      <svg class="market-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+      </svg>`,
+      label: "Profils à forte compatibilité",
+      value: `${forte + bonne} profils`,
+      trend: tauxForte > 30 ? "up" : "down",
+      trendLabel: `${tauxForte} % du vivier`,
+    },
+    topVille
+      ? {
+          icon: `
+          <svg class="market-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>`,
+          label: "Zone la plus représentée",
+          value: topVille[0],
+          trend: "flat",
+          trendLabel: `${topVille[1]} annonce${topVille[1] > 1 ? "s" : ""}`,
+        }
+      : null,
+  ].filter(Boolean);
+  body.innerHTML = stats
+    .map(
+      (m) => `
+    <div class="market-stat">
+      <span class="market-stat-icon">${m.icon}</span>
+      <div class="market-stat-info">
+        <div class="market-stat-label">${m.label}</div>
+        <div class="market-stat-value">${m.value}</div>
+      </div>
+      <span class="market-trend trend-${m.trend}">
+        ${m.trend === "up" ? "▲" : m.trend === "down" ? "▼" : "●"} ${m.trendLabel}
+      </span>
+    </div>`,
+    )
+    .join("");
+}
+
+/* ============================================================
+   RENDU — PROFILS SIMILAIRES — top matches réels
+============================================================ */
+function renderSimilar(matches) {
+  const body = document.getElementById("similarBody");
+  if (!body) return;
+
+  const top = (matches || []).slice(0, 5);
+
+  if (!top.length) {
+    body.innerHTML = `<p style="padding:16px 20px;font-size:13px;color:var(--text-muted);">
+      Pas encore assez de profils pour afficher des comparaisons.
+    </p>`;
+    return;
+  }
+
+  body.innerHTML = top
+    .map((p) => {
+      const name = p.username || p.name || "Profil";
+      const initials = name.slice(0, 2).toUpperCase();
+      const price = p.price || p.budgetMax;
+      const surface = p.surface || p.surfaceMin;
+      const criteria = [
+        surface ? fmtSurface(surface) : null,
+        p.ville || null,
+        price ? fmtPrice(price) : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      const compatCls =
+        (p.compatibility || 0) >= 75
+          ? "similar-compat-great"
+          : (p.compatibility || 0) >= 50
+            ? "similar-compat-ok"
+            : "similar-compat-low";
+
+      return `
+    <div class="similar-item">
+      <div class="similar-avatar">${initials}</div>
+      <div class="similar-info">
+        <div class="similar-name">${name}</div>
+        <div class="similar-criteria">${criteria || "Critères similaires"}</div>
+      </div>
+      <span class="similar-compat ${compatCls}">${p.compatibility ?? "—"} %</span>
+    </div>`;
+    })
+    .join("");
+}
+
+/* ============================================================
+   EXPORT RAPPORT — avec vraies données
+============================================================ */
+function exportReport(scores, role, data) {
+  const now = new Date();
+  const matches = data?.matches || [];
+  const avgCompat = data?.averageCompatibility ?? 0;
+
+  const lines = [
+    "╔══════════════════════════════════════╗",
+    "║   RAPPORT DE RECOMMANDATIONS AiGENT  ║",
+    "╚══════════════════════════════════════╝",
+    "",
+    `Date         : ${now.toLocaleDateString("fr-FR")} ${now.toLocaleTimeString("fr-FR")}`,
+    `Rôle         : ${role === "buyer" ? "Acheteur" : "Vendeur"}`,
+    `Score global : ${computeGlobalScore(scores)} / 100`,
+    `Profils analysés : ${data?.totalMatches ?? matches.length}`,
+    `Compatibilité moyenne : ${avgCompat} %`,
+    `Favoris : ${data?.totalFavoris ?? 0}`,
+    `Conversations actives : ${data?.activeConversations ?? 0}`,
+    "",
+    "── SCORES PAR CRITÈRE ──────────────────",
+    ...CRIT_ORDER.map((k) => {
+      const pct = scores[k] ?? 0;
+      const bar =
+        "█".repeat(Math.round(pct / 10)) +
+        "░".repeat(10 - Math.round(pct / 10));
+      return `${(CRIT_META[k].label + "       ").slice(0, 14)} ${bar} ${pct} %`;
+    }),
+    "",
+    "── DISTRIBUTION COMPATIBILITÉ ──────────",
+    `Forte (≥80%)   : ${data?.distribution?.forte ?? 0} profils`,
+    `Bonne  (60-79) : ${data?.distribution?.bonne ?? 0} profils`,
+    `Moyenne(40-59) : ${data?.distribution?.moyenne ?? 0} profils`,
+    `Faible (<40%)  : ${data?.distribution?.faible ?? 0} profils`,
+    "",
+    "── TOP PROFILS ─────────────────────────",
+    ...matches.slice(0, 5).map((m, i) => {
+      const price = m.price || m.budgetMax;
+      const surface = m.surface || m.surfaceMin;
+      return `${i + 1}. ${m.ville || "—"} · ${surface ? surface + " m²" : "—"} · ${price ? fmtPrice(price) : "—"} · ${m.compatibility ?? "—"} %`;
+    }),
+    "",
+    "────────────────────────────────────────",
+    "Généré par Mon AiGENT Immobilier",
+  ];
+
+  const blob = new Blob([lines.join("\n")], {
+    type: "text/plain;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `rapport-aigent-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast("📄 Rapport exporté avec succès", 2800);
+}
+
+/* ============================================================
+   ÉTAT DONNÉES INSUFFISANTES — message honnête et utile
+============================================================ */
+function renderInsufficientData(count) {
+  renderScore(0, null);
+
+  const titleEl = document.getElementById("scoreTitle");
+  const descEl = document.getElementById("scoreDesc");
+  if (titleEl) titleEl.textContent = "Profil incomplet";
+  if (descEl)
+    descEl.textContent =
+      count === 0
+        ? "Aucun profil de matching trouvé. Complétez votre recherche via le chat pour débloquer votre analyse personnalisée."
+        : `${count} profil${count > 1 ? "s" : ""} trouvé${count > 1 ? "s" : ""}. Élargissez vos critères pour une analyse plus précise.`;
+
+  const diagBody = document.getElementById("diagBody");
+  if (diagBody) {
+    diagBody.innerHTML = `
+      <div style="text-align:center;padding:24px 0;">
+        <div style="font-size:36px;margin-bottom:14px;">📊</div>
+        <p style="font-weight:700;margin-bottom:8px;color:var(--text-primary);">Analyse indisponible</p>
+        <p style="font-size:13px;color:var(--text-muted);line-height:1.6;">
+          Le diagnostic nécessite d'avoir complété votre recherche dans le chat.<br>
           ${
-            isMobileReco()
-              ? `Analyse IA de ${analysisCount} profils...`
-              : `Intelligence Artificielle en cours d'analyse sur ${analysisCount} profils...`
+            count > 0
+              ? `<strong style="color:var(--text-primary)">${count} profil${count > 1 ? "s" : ""}</strong> trouvé — continuez à affiner vos critères.`
+              : "Démarrez une conversation pour configurer votre profil."
           }
         </p>
+        <a href="/" style="display:inline-block;margin-top:18px;padding:10px 22px;
+          background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:10px;
+          font-size:13px;font-weight:600;text-decoration:none;">
+          Aller au chat →
+        </a>
       </div>`;
-
-    // 2. Préparation et appel IA
-    const prompt = buildAIFrontPrompt(matchesToAnalyze, CRITERIA_ORDER);
-    let rawAiContent = await fetchAIAnalysis(prompt, matchesToAnalyze);
-
-    let paragraphsArray = [];
-
-    // 3. Gestion du contenu (IA ou Fallback local)
-    if (rawAiContent) {
-      // Découpage propre par bloc de texte
-      paragraphsArray = rawAiContent
-        .split(/\n{1,2}/)
-        .map((p) => p.trim())
-        .filter(Boolean);
-    } else {
-      console.warn("[updateCentralContent] Fallback vers diagnostic local.");
-      const userCriteria =
-        role === "buyer"
-          ? {
-              budgetMax: globalStatsCache.userBudget ?? 0,
-              surfaceMax: globalStatsCache.userSurface ?? 0,
-              piecesMax: globalStatsCache.userPieces ?? 0,
-            }
-          : {
-              budget: globalStatsCache.userBudget ?? 0,
-              surface: globalStatsCache.userSurface ?? 0,
-              pieces: globalStatsCache.userPieces ?? 0,
-            };
-
-      // On récupère le tableau de paragraphes générés localement
-      paragraphsArray = generateDiagnostic(
-        matchesToAnalyze,
-        userCriteria,
-        role,
-      );
-    }
-
-    // 4. Reconstruction avec structure "Badge + Card"
-    // On s'assure que CRITERIA_ORDER et les paragraphes s'alignent
-    let formattedHTML = paragraphsArray
-      .map((text, index) => {
-        // Nettoyage des balises <p> résiduelles pour garder le contrôle total sur le style
-        const cleanText = text.replace(/<\/?[^>]+(>|$)/g, "");
-
-        // Détermination du nom du critère (Fallback sur "Analyse globale" pour la conclusion)
-        const criterionKey = CRITERIA_ORDER[index] || "Synthèse";
-        const badgeLabel = `Analyse critère : ${criterionKey}`;
-
-        return `
-<div class="analysis-card ${isMobileReco() ? "mobile-card" : ""}">
-          <span class="criterion-badge">${badgeLabel}</span>
-          <p><span>${cleanText}</span></p>
-        </div>
-      `;
-      })
-      .join("");
-
-    // 5. Correction grammaticale finale sur le bloc complet
-    const finalContent =
-      await correctWithLanguageToolPreserveHTML(formattedHTML);
-
-    const minimalReportSVG = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 10px;">
-        <defs>
-          <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#9b59ff"/><stop offset="100%" stop-color="#4e73df"/>
-          </linearGradient>
-        </defs>
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="url(#grad1)"/>
-      </svg>`;
-
-    centralEl.innerHTML = `<div style="
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:10px;
-flex-wrap:${isMobileReco() ? "wrap" : "nowrap"};
-margin-bottom:${isMobileReco() ? "1rem" : "1.5rem"};
-border-bottom:1px solid #edf2f7;
-padding-bottom:1rem;
-">
-        <h4 style="margin:0; display:flex; align-items:center; font-weight:700;">
-          ${minimalReportSVG} Diagnostic stratégique
-        </h4>
-        <span style="font-size:0.75rem; font-weight:600; color:#718096; background:#f1f5f9; padding:4px 10px; border-radius:20px;">
-          ${analysisCount} profils traités
-        </span>
-      </div>
-      <div class="ai-content-fade-in">${finalContent}</div>
-    `;
-  } else if (currentTab === "criteria") {
-    centralEl.innerHTML = generateCriteriaHTML(matchesToAnalyze);
-    updateMap(matchesToAnalyze);
-
-    if (isMobileReco() && mapInstance) {
-      setTimeout(() => {
-        mapInstance.invalidateSize();
-      }, 250);
-    }
-  } else if (currentTab === "actions") {
-    centralEl.innerHTML = generateSuggestionsHTML(matchesToAnalyze);
   }
-}
-//=========================================
-//GENERATE CRITERIA HTML
-//======================================================//
-function generateCriteriaHTML(matches) {
-  if (!matches || matches.length === 0)
-    return "<p>Aucune donnée disponible.</p>";
 
-  var stats = { surface: 0, ville: 0, type: 0, budget: 0, pieces: 0 };
-
-  matches.forEach(function (m) {
-    if (!m.common) return;
-    if (
-      m.common.includes("Surface parfaite") ||
-      m.common.includes("Surface supérieure")
-    )
-      stats.surface++;
-    if (
-      m.common.includes("Ville parfaite") ||
-      m.common.includes("Ville proche")
-    )
-      stats.ville++;
-    if (m.common.includes("Type parfait")) stats.type++;
-    if (
-      m.common.includes("Budget parfait") ||
-      m.different.includes("Prix légèrement supérieur")
-    )
-      stats.budget++;
-    if (
-      m.common.includes("Pièces parfaites") ||
-      m.common.includes("Nombre de pièces supérieur")
-    )
-      stats.pieces++;
+  const zeroScores = {};
+  CRIT_ORDER.forEach((k) => {
+    zeroScores[k] = 0;
   });
+  renderCriteria(zeroScores);
 
-  var total = matches.length;
-  const criteriaSVG = `
-<svg class="icon-report" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-     width="24" height="24" style="vertical-align: middle; margin-right:6px;">
-  <defs>
-    <linearGradient id="gradientBars" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#9b59ff"/>
-      <stop offset="100%" stop-color="#4e73df"/>
-    </linearGradient>
-  </defs>
-  <rect x="4" y="10" width="3" height="10" fill="url(#gradientBars)" rx="0.5"/>
-  <rect x="10.5" y="6" width="3" height="14" fill="url(#gradientBars)" rx="0.5"/>
-  <rect x="17" y="2" width="3" height="18" fill="url(#gradientBars)" rx="0.5"/>
-</svg>
-`;
+  const countEl = document.getElementById("missedCount");
+  if (countEl) countEl.textContent = "0";
 
-  // Puis tu l’intègres dans ton header
-  var html = `<h4>${criteriaSVG} Constat par critère</h4>
-     <table class='criteria-table'>
-       <tr><th>Critère</th><th>Compatibilité</th><th>Observation</th></tr>`;
-
-  ["surface", "ville", "type", "budget", "pieces"].forEach(function (crit) {
-    var percent = Math.round((stats[crit] / total) * 100);
-    var color =
-      percent >= 80
-        ? "#4caf50"
-        : percent >= 60
-          ? "#2196f3"
-          : percent >= 40
-            ? "#ff9800"
-            : "#f44336";
-    var obs =
-      percent > 80
-        ? "Très large"
-        : percent > 60
-          ? "Large"
-          : percent > 40
-            ? "Modéré"
-            : "Très restrictif";
-    html += `<tr><td>${capitalize(crit)}</td><td style="color:${color}; font-weight:600">${percent}%</td><td>${obs}</td></tr>`;
-  });
-
-  html += "</table><div id='criteria-map' style='height:250px;'></div>";
-  return html;
+  setStatusDone("Données insuffisantes");
 }
 
-/* =======================================================
-GENERATE SUGGESTIONS HTML
-======================================================= */
-function generateSuggestionsHTML(matches) {
-  if (!matches || matches.length === 0)
-    return "<p>Aucune suggestion disponible.</p>";
-
-  var total = matches.length;
-  var stats = { surface: 0, ville: 0, type: 0, budget: 0, pieces: 0 };
-
-  matches.forEach(function (m) {
-    if (!m.common) return;
-    if (
-      m.common.includes("Surface parfaite") ||
-      m.common.includes("Surface supérieure")
-    )
-      stats.surface++;
-    if (
-      m.common.includes("Ville parfaite") ||
-      m.common.includes("Ville proche")
-    )
-      stats.ville++;
-    if (m.common.includes("Type parfait")) stats.type++;
-    if (
-      m.common.includes("Budget parfait") ||
-      m.different.includes("Prix légèrement supérieur")
-    )
-      stats.budget++;
-    if (
-      m.common.includes("Pièces parfaites") ||
-      m.common.includes("Nombre de pièces supérieur")
-    )
-      stats.pieces++;
+/* ============================================================
+   CTAs
+============================================================ */
+function initCTAs(scores, role, data) {
+  document.getElementById("btnApplyReco")?.addEventListener("click", () => {
+    const pending = document.querySelectorAll(".action-item:not(.applied)");
+    if (!pending.length) {
+      toast("✅ Toutes les suggestions sont déjà appliquées !");
+      return;
+    }
+    pending.forEach((it) => it.classList.add("applied"));
+    appliedCount = document.querySelectorAll(".action-item").length;
+    setStatusDone("Optimisé");
+    updateSub(
+      `Optimisé · ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
+    );
+    toast("✓ Toutes les recommandations appliquées !", 3500);
   });
 
-  const suggestionSVG = `
-<svg class="icon-suggestion" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-     width="24" height="24" style="vertical-align: middle; margin-right:6px;">
-  <defs>
-    <linearGradient id="gradientBulb" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#9b59ff"/>
-      <stop offset="100%" stop-color="#4e73df"/>
-    </linearGradient>
-  </defs>
-  <path d="M12 2C8.13 2 5 5.13 5 9c0 3.25 2.11 5.98 5 6.73V21h2v-5.27c2.89-.75 5-3.48 5-6.73 0-3.87-3.13-7-7-7z"
-        fill="url(#gradientBulb)"/>
-  <rect x="11" y="21" width="2" height="2" fill="url(#gradientBulb)"/>
-</svg>
-`;
-
-  // Intégration dans ton header
-  var html = `<h4>${suggestionSVG} Suggestions concrètes</h4>
-     <table class='criteria-table'>
-       <tr><th>Critère</th><th>Changement proposé</th><th>Compatibilité après</th></tr>`;
-  ["surface", "ville", "type", "budget", "pieces"].forEach(function (crit) {
-    var percent = Math.round((stats[crit] / total) * 100);
-    var suggestion =
-      percent < 60
-        ? "Ajuster ce critère pour augmenter la compatibilité"
-        : "Pas de changement";
-    var newCompat = percent < 60 ? Math.min(100, percent + 20) : percent;
-    var color =
-      newCompat >= 80
-        ? "#4caf50"
-        : newCompat >= 60
-          ? "#2196f3"
-          : newCompat >= 40
-            ? "#ff9800"
-            : "#f44336";
-    html += `<tr><td>${capitalize(crit)}</td><td>${suggestion}</td><td style="color:${color}; font-weight:600">${newCompat}%</td></tr>`;
-  });
-
-  html += "</table>";
-  return html;
-}
-/* =======================================================
-ANIMATION BARRES DE PROGRESSION
-======================================================= */
-function animateProgressBars() {
-  // Sélectionne toutes les barres
-  const bars = document.querySelectorAll(".progress-fill");
-  bars.forEach((bar) => {
-    const value = parseInt(bar.dataset.value || 0, 10); // récupération du % cible
-    bar.style.width = "0%"; // reset
-    // animation fluide avec delay léger pour effet cascade si plusieurs
-    setTimeout(() => {
-      bar.style.transition = "width 1.2s ease-in-out";
-      bar.style.width = `${value}%`;
-    }, 50);
+  document.getElementById("btnExportReco")?.addEventListener("click", () => {
+    exportReport(scores, role, data);
   });
 }
 
-// Appeler à chaque mise à jour de tab avec les progress bars visibles
-function refreshProgressBars() {
-  // petit timeout pour s'assurer que le DOM est mis à jour
-  setTimeout(animateProgressBars, 100);
-}
-/* =======================================================
-MAP LEAFLET
-======================================================= */
-function initMap() {
-  var mapContainer = document.getElementById("criteria-map");
-  if (!mapContainer) return;
-
-  mapInstance = L.map(mapContainer, {
-    tap: !isMobileReco(),
-    dragging: true,
-    zoomControl: true,
-  }).setView([48.8566, 2.3522], 12);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap contributors",
-  }).addTo(mapInstance);
-}
-
-function updateMap(matches) {
-  if (!mapInstance || !matches) return;
-
-  mapInstance.eachLayer((layer) => {
-    if (layer instanceof L.Marker) mapInstance.removeLayer(layer);
+/* ============================================================
+   THÈME
+============================================================ */
+function initTheme() {
+  const btn = document.getElementById("btn-theme");
+  const saved = localStorage.getItem("theme") || "dark";
+  document.documentElement.setAttribute("data-theme", saved);
+  btn?.addEventListener("click", () => {
+    const next =
+      document.documentElement.getAttribute("data-theme") === "dark"
+        ? "light"
+        : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
   });
-
-  matches.forEach((m) => {
-    if (m.lat && m.lng)
-      L.marker([m.lat, m.lng])
-        .addTo(mapInstance)
-        .bindPopup(`<b>${m.name || "Bien immobilier"}</b><br>${m.city || ""}`);
-  });
-
-  const bounds = matches
-    .filter((m) => m.lat && m.lng)
-    .map((m) => [m.lat, m.lng]);
-  if (bounds.length > 0) mapInstance.fitBounds(bounds, { padding: [50, 50] });
 }
+let quicknavObserver = null;
 
-/* =======================================================
-ANIMATION TOTAL MATCHES
-======================================================= */
-function animateTotalMatches(total) {
-  const old = document.getElementById("total-matches-header");
-  if (old) old.remove();
+function initQuicknav() {
+  if (window.innerWidth > 768) return;
 
-  const container = document.createElement("div");
-  container.id = "total-matches-header";
-  container.style.cssText = `
-    background: #f8fafc;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    border: 1px solid #e2e8f0;
-    text-align: center;
-    animation: fadeInUp 0.8s ease;
-  `;
+  // Déconnecte l'ancien observer si resize
+  if (quicknavObserver) {
+    quicknavObserver.disconnect();
+    quicknavObserver = null;
+  }
 
-  container.innerHTML = `
-    <span style="color: #718096; font-size: 0.9rem; font-weight: 600; text-transform: uppercase;">Volume de données</span>
-    <div style="font-size: 2rem; font-weight: 800; color: #1a202c; margin-top: 5px;">
-      ${total} <span style="font-size: 1rem; font-weight: 500; color: #4a5568;">Profils Qualifiés</span>
-    </div>
-  `;
-  document.querySelector(".content-wrapper").prepend(container);
-}
+  const pills = document.querySelectorAll(".qnav-pill");
+  const anchors = [
+    "anchor-score",
+    "anchor-actions",
+    "anchor-diagnostic",
+    "anchor-criteres",
+    "anchor-marche",
+  ];
 
-/* =======================================================
-UTILS
-======================================================= */
-function capitalize(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-/* =======================================================
-INIT
-======================================================= */
-document.addEventListener("DOMContentLoaded", initRecommendations);
-document.addEventListener("DOMContentLoaded", () => {
-  initRecommendations();
-
-  tabsEls = document.querySelectorAll(".reco-tab");
-
-  tabsEls.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      switchTab(tab.dataset.tab);
+  pills.forEach((pill) => {
+    pill.addEventListener("click", (e) => {
+      e.preventDefault();
+      const target = document.getElementById(
+        pill.getAttribute("href").slice(1),
+      );
+      if (!target) return;
+      const offset = 56 + 40 + 8;
+      const top = target.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: "smooth" });
     });
   });
-});
-window.addEventListener("resize", () => {
-  if (isMobileReco() && mapInstance) {
-    setTimeout(() => mapInstance.invalidateSize(), 250);
+
+  quicknavObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          pills.forEach((p) => p.classList.remove("active"));
+          const active = document.querySelector(`.qnav-pill[href="#${id}"]`);
+          if (active) {
+            active.classList.add("active");
+            active.scrollIntoView({
+              inline: "center",
+              behavior: "smooth",
+              block: "nearest",
+            });
+          }
+        }
+      });
+    },
+    { rootMargin: "-96px 0px -60% 0px", threshold: 0 },
+  );
+  // rootMargin top = 56 header + 40 quicknav = 96px
+
+  anchors.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) quicknavObserver.observe(el);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", initQuicknav);
+window.addEventListener("resize", initQuicknav);
+/* ============================================================
+   SIDEBAR
+============================================================ */
+function initSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const openBtn = document.getElementById("openSidebar");
+  const closeBtn = document.getElementById("closeSidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  const open = () => {
+    sidebar?.classList.add("open");
+    overlay?.classList.add("active");
+  };
+  const close = () => {
+    sidebar?.classList.remove("open");
+    overlay?.classList.remove("active");
+  };
+  openBtn?.addEventListener("click", open);
+  closeBtn?.addEventListener("click", close);
+  overlay?.addEventListener("click", close);
+}
+
+/* ============================================================
+   ORCHESTRATION PRINCIPALE
+============================================================ */
+async function init() {
+  initTheme();
+  initSidebar();
+
+  // ── 1. Fetch stats ───────────────────────────────────────
+  statsData = await fetchStats();
+
+  if (!statsData) {
+    renderInsufficientData(0);
+    setStatusDone("Connexion impossible");
+    return;
   }
-});
+
+  const matches = statsData.matches || [];
+  const totalMatches = statsData.totalMatches ?? matches.length;
+
+  // ── 2. Volume insuffisant ────────────────────────────────
+  if (totalMatches < MIN_MATCHES) {
+    renderInsufficientData(totalMatches);
+    return;
+  }
+
+  // ── 3. Données utilisateur réelles ──────────────────────
+  const role =
+    statsData.currentUser?.role || matches[0]?.currentUser?.role || "buyer";
+
+  const userCriteria =
+    role === "buyer"
+      ? {
+          budgetMax: statsData.currentUser?.budgetMax ?? null,
+          surfaceMin: matches[0]?.criteriaMatch?.detail?.surface?.min ?? null,
+          piecesMin: matches[0]?.criteriaMatch?.detail?.pieces?.min ?? null,
+          ville: statsData.currentUser?.ville ?? null,
+        }
+      : {
+          price: statsData.currentUser?.price ?? null,
+          surface: matches[0]?.surface ?? null,
+          pieces: matches[0]?.pieces ?? null,
+          ville: statsData.currentUser?.ville ?? null,
+        };
+
+  updateSub(
+    `Diagnostic personnalisé · ${totalMatches} profil${totalMatches > 1 ? "s" : ""} analysé${totalMatches > 1 ? "s" : ""}`,
+  );
+
+  // ── 4. Calcul scores depuis vraies données ───────────────
+  criteriaScores = computeCriteriaScoresFromMatches(matches);
+  const globalScore = computeGlobalScore(criteriaScores);
+
+  // ── 5. Score ring ────────────────────────────────────────
+  await sleep(400);
+  renderScore(globalScore, statsData);
+
+  // ── 6. Critères + missed + actions ──────────────────────
+  await sleep(150);
+  renderCriteria(criteriaScores);
+  renderMissed(criteriaScores, matches);
+  renderActions(criteriaScores, matches, role);
+
+  // ── 7. Marché + similaires ───────────────────────────────
+  renderMarket(matches, statsData);
+  renderSimilar(matches);
+
+  // ── 8. Diagnostic IA → fallback local chiffré ───────────
+  let paragraphs;
+  const rawAI = await fetchAIDiagnostic(matches, userCriteria, role);
+
+  if (rawAI) {
+    paragraphs = rawAI
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+  } else {
+    paragraphs = buildLocalDiagnostic(
+      criteriaScores,
+      matches,
+      role,
+      userCriteria,
+    );
+  }
+
+  await renderDiagnostic(paragraphs);
+
+  // ── 9. Finalisation ──────────────────────────────────────
+  setStatusDone("Analyse terminée");
+  initCTAs(criteriaScores, role, statsData);
+}
+
+/**
+ * 2. DIAGNOSTIC LOCAL (Algorithmique Senior)
+ * Calcule les écarts réels pour simuler une réflexion d'expert.
+ */
+function generateDiagnostic(matches, criteria = {}, role = "buyer") {
+  const count = matches.length;
+  const avgComp = Math.round(
+    matches.reduce((acc, m) => acc + m.compatibility, 0) / count,
+  );
+  const topMatch = matches[0];
+
+  // Analyse des freins (on cherche le critère qui a le plus d'écarts négatifs)
+  const budgetDiffs = matches
+    .map((m) => m.criteriaMatch?.detail?.budget?.diff)
+    .filter((d) => d != null);
+  const avgBudgetDiff = budgetDiffs.length
+    ? Math.round(budgetDiffs.reduce((a, b) => a + b, 0) / budgetDiffs.length)
+    : 0;
+
+  const dists = matches
+    .map((m) => m.criteriaMatch?.detail?.ville?.distanceKm)
+    .filter((d) => d != null);
+  const avgDist = dists.length
+    ? (dists.reduce((a, b) => a + b, 0) / dists.length).toFixed(1)
+    : 0;
+
+  const synth = `Votre positionnement actuel génère un volume de ${count} correspondances avec une force d'adéquation moyenne de ${avgComp}%. Le marché répond favorablement à votre typologie de bien, mais une tension est visible sur les critères de haute compatibilité, indiquant une recherche légèrement décalée par rapport au stock disponible.`;
+
+  const freins = `L'analyse des rejets montre que le critère ${Math.abs(avgBudgetDiff) > 0 ? "budgétaire" : "géographique"} est votre principal levier de friction. Avec un écart médian constaté de ${Math.abs(avgBudgetDiff).toLocaleString()}€ par rapport aux profils les plus qualitatifs, votre sélectivité actuelle écarte environ 40% des opportunités immédiates de votre secteur.`;
+
+  const opportunite = `Une fenêtre d'opportunité se dessine sur le secteur de ${topMatch.ville}, où l'on observe un profil affichant ${topMatch.compatibility}% de compatibilité. Ce bien (ou acquéreur) présente un équilibre rare entre surface et prix, se situant dans le premier quartile des meilleures offres analysées par notre algorithme.`;
+
+  const strategie = `Pour maximiser vos chances, nous préconisons une stratégie de réactivité absolue sur les matchs supérieurs à 75%. Un élargissement de votre périmètre de recherche de seulement ${avgDist > 0 ? avgDist : "5"} km permettrait mécaniquement de doubler votre vivier de profils "Premium" tout en conservant vos exigences de surface intactes.`;
+
+  return [synth, freins, opportunite, strategie];
+}
+
+/**
+ * 3. NETTOYAGE TEXTE
+ */
+async function correctWithLanguageToolPreserveHTML(text) {
+  // Optionnel : Intégrer ici une regex pour nettoyer les doubles espaces ou caractères spéciaux si besoin
+  return text.replace(/\s+/g, " ").trim();
+}
+
+/* ============================================================
+   DÉMARRAGE
+============================================================ */
+document.addEventListener("DOMContentLoaded", init);

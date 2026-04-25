@@ -1,677 +1,121 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="192x192"
-      href="/images/favicon.ico"
-    />
+    <link rel="icon" type="image/png" href="/images/favicon.ico" />
+    <title>AiGENT - Mes Coups de Cœur</title>
 
-    <title>AiGENT - Profils Favoris</title>
-
-    <link rel="stylesheet" href="accueil.css" />
-
-    <!-- Leaflet CSS (LOCAL – compatible CSP) -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="/leaflet/leaflet.css" />
 
-    <style>
-      body {
-        overflow-y: auto; /* autorise le scroll vertical */
-        -webkit-overflow-scrolling: touch; /* scroll fluide sur iOS */
-      }
-      .menu-toggle {
-        position: fixed;
-        top: 90px;
-        left: 20px;
-
-        width: 56px;
-        height: 56px;
-
-        border-radius: 50%;
-        border: none;
-        cursor: pointer;
-
-        background: linear-gradient(135deg, #4f7cff, #9b6bff);
-        color: white;
-
-        font-size: 24px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        z-index: 3000;
-
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-
-        transition: all 0.25s ease;
-      }
-
-      .menu-toggle:hover {
-        transform: translateY(-3px) scale(1.05);
-      }
-
-      /* ===== SIDEBAR ===== */
-      .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 260px;
-        height: 100vh;
-        background: #000;
-        color: #fff;
-        transform: translateX(-100%);
-        transition: transform 0.35s ease;
-        z-index: 2000;
-        padding: 20px;
-        box-sizing: border-box;
-      }
-
-      .sidebar.open {
-        transform: translateX(0);
-      }
-
-      .sidebar .close-btn {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 22px;
-        cursor: pointer;
-      }
-
-      .sidebar h2 {
-        margin-top: 40px;
-        margin-bottom: 30px;
-        font-size: 20px;
-      }
-
-      .sidebar ul {
-        list-style: none;
-        padding: 0;
-      }
-
-      .sidebar ul li {
-        margin-bottom: 20px;
-      }
-
-      .sidebar ul li a {
-        color: #fff;
-        text-decoration: none;
-        font-size: 16px;
-      }
-
-      .sidebar ul li a:hover {
-        text-decoration: underline;
-      }
-
-      /* ===== OVERLAY ===== */
-      .sidebar-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.4);
-        z-index: 1500;
-        display: none;
-      }
-
-      .sidebar-overlay.active {
-        display: block;
-      }
-      /* ==========================
-HEADER LAYOUT
-========================== */
-      .top-banner {
-        background: rgba(10, 10, 15, 0.72);
-        padding: 14px 22px;
-
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-
-        position: relative;
-      }
-
-      /* ligne subtile premium */
-      .top-banner::after {
-        content: "";
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 1px;
-
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(122, 95, 255, 0.4),
-          transparent
-        );
-
-        opacity: 0.6;
-      }
-      .logo-container {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-      }
-
-      .logo-img {
-        width: 52px;
-        transition: transform 0.3s ease;
-      }
-
-      .logo-container:hover .logo-img {
-        transform: translateY(-1px) scale(1.04);
-      }
-
-      /* NOM DU PRODUIT */
-      .logo-text {
-        font-size: 26px;
-        font-weight: 700;
-        letter-spacing: 0.4px;
-
-        background: linear-gradient(135deg, #7a5fff, #b6a8ff, #f4a6ff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-
-        background-clip: text;
-        color: transparent;
-
-        line-height: 1;
-      }
-
-      /* Responsive mobile */
-      @media (max-width: 600px) {
-        .logo-img {
-          width: 42px;
-        }
-        .logo-text {
-          font-size: 22px;
-        }
-        .top-banner {
-          padding: 10px 14px;
-        }
-      }
-
-      /* ==========================
-       CONTENEUR CENTRAL FAVORIS
-    ========================== */
-
-      .favoris-container {
-        max-width: 1200px;
-        margin: 50px auto;
-        padding: 0 20px 60px 20px;
-        flex: 1;
-      }
-
-      .favoris-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-        gap: 30px;
-        margin-top: 30px;
-      }
-
-      .section-title {
-        font-weight: bold;
-        font-style: italic;
-        font-size: 22px;
-        margin-bottom: 25px;
-        border-bottom: 2px solid rgba(0, 0, 0, 0.6);
-        padding-bottom: 8px;
-      }
-      /* FOOTER FIXE (desktop + mobile) */
-      .bottom-banner {
-        position: fixed; /* toujours visible */
-        bottom: 0; /* collé en bas */
-        left: 0;
-        width: 100%;
-        text-align: center;
-        padding: 16px; /* desktop */
-        background: rgba(0, 0, 0, 0.65);
-        font-size: 14px;
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
-        z-index: 1000; /* au-dessus du reste */
-      }
-      .bottom-banner p {
-        color: white;
-        margin: 0;
-      }
-
-      /* SAFE AREA MOBILE */
-      @media (max-width: 600px) {
-        .bottom-banner {
-          padding: 12px calc(12px + env(safe-area-inset-bottom));
-          font-size: 12px;
-        }
-      }
-      /* ==========================
-       BARRE DE RECHERCHE
-    ========================== */
-
-      .search-bar {
-        width: 100%;
-        max-width: 650px;
-        padding: 14px 18px;
-        border-radius: 12px;
-        border: 1px solid rgba(0, 0, 0, 0.12);
-        background: #fff;
-        font-size: 15px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-      }
-
-      .search-bar:focus {
-        outline: none;
-        border-color: #635bff; /* couleur Stripe */
-        box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.15);
-      }
-      .msg.structured .bubble.match-card {
-        background: rgba(28, 28, 38, 0.9);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 18px;
-        padding: 0;
-        max-width: 500px;
-        display: flex;
-        flex-direction: column;
-        font-size: 0.95rem;
-        color: #fff;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-        transition:
-          transform 0.25s ease,
-          box-shadow 0.25s ease;
-      }
-      .msg.structured .bubble.match-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
-      }
-
-      /* HEADER */
-      .match-header {
-        background: linear-gradient(135deg, #7a5fff, #b6a8ff);
-        padding: 12px 16px;
-        border-top-left-radius: 18px;
-        border-top-right-radius: 18px;
-        font-weight: 600;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.1);
-      }
-      .match-header .match-title {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #fff;
-      }
-
-      /* FAVORIS */
-      .fav-btn {
-        background: transparent;
-        border: none;
-        font-size: 18px;
-        color: #fff;
-        cursor: pointer;
-        transition: 0.2s;
-      }
-      .fav-btn:hover {
-        transform: scale(1.2);
-      }
-
-      /* DETAILS */
-      .match-details {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px 14px;
-        padding: 12px 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      }
-      .detail-row {
-        display: flex;
-        justify-content: space-between;
-        font-weight: 500;
-      }
-      .detail-row .label {
-        color: #bbb;
-      }
-      .detail-row .value {
-        font-weight: 600;
-        color: #fff;
-      }
-
-      /* CRITÈRES */
-      .match-criteria {
-        display: flex;
-        gap: 12px;
-        padding: 10px 16px;
-        flex-wrap: wrap;
-      }
-      .criteria-group {
-        flex: 1;
-        min-width: 140px;
-      }
-      .criteria-title {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #ccc;
-        margin-bottom: 4px;
-      }
-      .criteria-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-
-      /* PILLS */
-      .pill {
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 0.78rem;
-        font-weight: 600;
-      }
-      .pill-common {
-        background: #4caf71;
-        color: #eafaf1;
-      }
-      .pill-different {
-        background: #e57373;
-        color: #fff1f1;
-      }
-      .pill-neutral {
-        background: #555;
-        color: #eee;
-      }
-
-      /* FOOTER + COMPAT */
-      .match-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 16px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-      }
-      .compat-container {
-        flex: 1;
-        margin-right: 12px;
-      }
-      .compat-label {
-        font-size: 0.85rem;
-        margin-bottom: 4px;
-      }
-      .compat-bar {
-        height: 10px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.15);
-        overflow: hidden;
-      }
-      .compat-bar-inner {
-        height: 100%;
-        border-radius: 999px;
-        transition:
-          width 0.8s ease,
-          background 0.8s ease;
-      }
-
-      /* BOUTON CARTE */
-      .voir-carte-btn {
-        padding: 6px 16px;
-        border-radius: 14px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        background: linear-gradient(135deg, #7a5fff, #b6a8ff);
-        color: #fff;
-        border: none;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-      .voir-carte-btn:hover {
-        transform: translateY(-2px) scale(1.05);
-        box-shadow: 0 4px 12px rgba(122, 95, 255, 0.4);
-      }
-      .remove-fav-btn {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        background: transparent;
-        border: none;
-        color: #484747; /* plus visible sur le fond sombre */
-        font-size: 16px;
-        cursor: pointer;
-        z-index: 10; /* devant le header */
-        transition:
-          transform 0.2s,
-          color 0.2s;
-      }
-
-      .remove-fav-btn:hover {
-        color: #fff;
-        transform: scale(1.2);
-      }
-      /* ===== FAVORIS GRID MOBILE + SCROLL SMOOTH ===== */
-      @media (max-width: 768px) {
-        /* Conteneur général */
-        .favoris-container {
-          padding: 20px 12px 60px 12px;
-          max-width: 100%;
-          box-sizing: border-box;
-          flex: 1;
-        }
-
-        /* Grille : 1 carte par ligne */
-        .favoris-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 20px;
-          width: 100%;
-          overflow-y: auto;
-          -webkit-overflow-scrolling: touch; /* scroll fluide sur iOS */
-        }
-
-        /* Cartes */
-        .msg.structured .bubble.match-card {
-          max-width: 100%;
-          width: 100%;
-          flex-direction: column;
-          overflow: hidden;
-          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-          transition:
-            transform 0.25s ease,
-            box-shadow 0.25s ease;
-        }
-
-        .msg.structured .bubble.match-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
-        }
-
-        /* Détails internes */
-        .match-details {
-          grid-template-columns: 1fr;
-          gap: 8px;
-          padding: 12px 14px;
-        }
-
-        .detail-row {
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        /* Critères */
-        .match-criteria {
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .criteria-group {
-          min-width: auto;
-          width: 100%;
-        }
-
-        /* Pills */
-        .pill {
-          font-size: 0.75rem;
-          padding: 4px 8px;
-        }
-
-        /* Bouton voir carte */
-        .voir-carte-btn {
-          width: 100%;
-          margin-top: 8px;
-          padding: 12px;
-          font-size: 0.9rem;
-        }
-
-        /* Footer de la carte */
-        .match-footer {
-          flex-direction: column;
-          gap: 6px;
-          align-items: flex-start;
-          padding: 10px 14px;
-        }
-
-        .compat-container {
-          width: 100%;
-          margin-right: 0;
-        }
-
-        /* Barre de recherche */
-        .search-wrapper {
-          flex-direction: column;
-          margin-bottom: 20px;
-        }
-
-        .search-bar {
-          width: 100%;
-          font-size: 14px;
-          padding: 12px 16px;
-        }
-
-        /* Section titre */
-        .section-title {
-          font-size: 20px;
-          margin-bottom: 18px;
-        }
-
-        /* Scroll smooth pour la grille */
-        .favoris-grid::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .favoris-grid::-webkit-scrollbar-thumb {
-          background: rgba(0, 0, 0, 0.25);
-          border-radius: 3px;
-        }
-
-        .favoris-grid::-webkit-scrollbar-track {
-          background: transparent;
-        }
-      }
-
-      .sidebar {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-      }
-
-      .menu-links {
-        list-style: none;
-        padding: 0;
-      }
-
-      .menu-bottom {
-        margin-top: auto;
-        padding: 20px;
-      }
-
-      .home-link {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-        color: inherit;
-        transition:
-          transform 0.3s ease,
-          opacity 0.3s ease;
-      }
-
-      /* --- Animation porte --- */
-      .home-link svg {
-        transition: transform 0.4s ease;
-        transform-origin: left center; /* charnière côté gauche */
-      }
-
-      /* --- Animation flèche (3e path du SVG) --- */
-      .home-link svg path:last-child {
-        transition: transform 0.3s ease;
-      }
-
-      /* --- Hover --- */
-      .home-link:hover {
-        transform: translateX(4px);
-      }
-
-      .home-link:hover svg {
-        transform: rotateY(-20deg); /* ouverture légère */
-      }
-
-      .home-link:hover svg path:last-child {
-        transform: translateX(-3px); /* flèche qui rentre un peu plus */
-      }
-      /* ==========================
-   FAVORIS HEADER — STRIPE / LUXE
-========================== */
-
-      .favorites-header {
-        margin-bottom: 40px;
-      }
-
-      .favorites-title {
-        font-size: 26px;
-        font-weight: 600;
-        letter-spacing: -0.4px;
-        margin: 0;
-        color: #111;
-      }
-
-      /* Ligne ultra fine type Stripe */
-      .favorites-divider {
-        margin-top: 18px;
-        height: 1px;
-        width: 100%;
-        background: rgba(0, 0, 0, 0.08);
-      }
-    </style>
+    <!-- On définit le style directement ou via un fichier dédié propre à cette page -->
+    <link rel="stylesheet" href="favoris.css" />
   </head>
 
   <body>
-    <!-- ===== BOUTON MENU FLOTTANT ===== -->
-    <button class="menu-toggle" id="openSidebar">☰</button>
+    <!-- BACKGROUND AMBIANT (Signature) -->
+    <div class="ambient-bg"></div>
 
-    <!-- ===== SIDEBAR ===== -->
-    <nav id="sidebar" class="sidebar">
-      <span class="close-btn" id="closeSidebar">&times;</span>
+    <!-- BOUTON MENU FLOTTANT -->
+    <!-- APRÈS -->
+    <button class="menu-toggle" id="openSidebar" aria-label="Ouvrir le menu">
+      <svg
+        width="22"
+        height="18"
+        viewBox="0 0 22 18"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <line x1="0" y1="2" x2="22" y2="2" />
+        <line x1="0" y1="9" x2="16" y2="9" />
+        <line x1="0" y1="16" x2="10" y2="16" />
+      </svg>
+    </button>
+
+    <!-- SIDEBAR -->
+    <!-- APRÈS -->
+    <nav id="sidebar" class="sidebar-nav" aria-label="Navigation principale">
+      <span class="close-btn" id="closeSidebar" aria-label="Fermer"
+        >&times;</span
+      >
       <h2>Menu</h2>
-
-      <!-- Liens principaux -->
       <ul class="menu-links">
-        <li><a href="profil.html">Profil & Compte</a></li>
-        <li><a href="messagerie.html">Messagerie</a></li>
-        <li><a href="favoris.html">Profils favoris</a></li>
-        <li><a href="statistiques.html">Statistiques</a></li>
+        <li>
+          <a href="profil.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+            Profil &amp; Compte
+          </a>
+        </li>
+        <li>
+          <a href="messagerie.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
+              />
+            </svg>
+            Messagerie
+          </a>
+        </li>
+        <li>
+          <a href="favoris.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
+              />
+            </svg>
+            Profils favoris
+          </a>
+        </li>
+        <li>
+          <a href="statistiques.html">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+            Statistiques
+          </a>
+        </li>
       </ul>
-
-      <!-- Retour accueil placé tout en bas -->
       <div class="menu-bottom">
         <a href="accueil.html" class="home-link">
           <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -679,73 +123,125 @@ HEADER LAYOUT
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <!-- Porte -->
-            <path d="M3 21h18"></path>
-            <path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"></path>
-            <!-- Flèche qui rentre -->
-            <path d="M12 11l-3 3 3 3"></path>
+            <path d="M3 21h18" />
+            <path d="M7 21V5a2 2 0 012-2h6a2 2 0 012 2v16" />
+            <path d="M12 11l-3 3 3 3" />
           </svg>
-          <span><i>Retour à l'accueil</i></span>
+          <span>Retour à l'accueil</span>
         </a>
       </div>
     </nav>
-
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
-    <!-- ===== HEADER ===== -->
+    <!-- HEADER PRO (Opposition Noir/Blanc) -->
     <header class="top-banner">
       <div class="logo-container">
-        <img
-          src="images/logo.png"
-          alt="Logo AiGENT Immobilier"
-          class="logo-img"
-        />
-        <h1 class="logo-text">Mon AiGENT Immobilier</h1>
+        <img src="images/logo.png" alt="Logo" class="logo-img" />
+        <h1 class="logo-text">Mes Profils Favoris</h1>
       </div>
 
-      <button id="btn-logout" class="btn-secondary hidden">
-        Se déconnecter
-      </button>
+      <div class="header-actions">
+        <!-- BOUTON THÈME (Ajouté) -->
+        <button id="btn-theme" aria-label="Changer le thème">
+          <svg
+            class="icon-sun"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          <svg
+            class="icon-moon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+          </svg>
+        </button>
+
+        <span id="user-welcome" class="user-badge">Chargement...</span>
+        <button id="btn-logout" class="logout-btn-minimal">
+          <svg
+            class="logout-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Déconnexion</span>
+        </button>
+      </div>
     </header>
 
-    <!-- ===== CONTENU FAVORIS ===== -->
-    <main class="favoris-container">
-      <div class="favorites-header">
-        <h2 class="favorites-title">Mes profils favoris</h2>
-        <div class="favorites-divider"></div>
+    <main class="favoris-wrapper">
+      <!-- DASHBOARD STATS -->
+      <section class="quick-stats">
+        <div class="stat-card">
+          <span class="stat-val" id="count-total">0</span>
+          <span class="stat-label">Biens sauvegardés</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-val" id="avg-compat">0%</span>
+          <span class="stat-label">Compatibilité Moy.</span>
+        </div>
+        <div class="stat-card search-area">
+          <input
+            type="text"
+            id="fav-search"
+            placeholder="Filtrer par ville, type..."
+          />
+        </div>
+      </section>
+
+      <!-- GRILLE DE CARTES -->
+      <div class="favoris-grid" id="favoris-grid">
+        <!-- Injecté par JS -->
       </div>
 
-      <div class="search-wrapper">
-        <input
-          type="text"
-          class="search-bar"
-          placeholder="Rechercher un profil favori par ville ou type..."
-        />
+      <!-- EMPTY STATE -->
+      <div id="empty-state" class="hidden">
+        <div class="empty-icon">✨</div>
+        <h3>Aucun favori pour le moment</h3>
+        <p>Retournez discuter avec l'IA pour dénicher des pépites.</p>
+        <a href="accueil.html" class="btn-primary">Lancer une recherche</a>
       </div>
-
-      <!-- NOUVEAU WRAPPER -->
-      <div class="favoris-grid"></div>
     </main>
 
-    <!-- ===== FOOTER ===== -->
-    <footer class="bottom-banner">
-      <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
-    </footer>
     <!-- MODAL CARTE -->
-    <div id="mapModal" class="modal" style="display: none">
+    <div id="mapModal" class="modal">
       <div class="modal-content">
-        <span
-          id="closeModal"
-          style="cursor: pointer"
-          aria-label="Fermer la carte"
-          >&times;</span
-        >
-        <div id="map" style="height: 60vh; width: 100%"></div>
+        <span id="closeModal" class="modal-close">&times;</span>
+        <div id="map"></div>
       </div>
     </div>
 
-    <!-- Leaflet JS -->
-    <script src="/leaflet/leaflet.js" defer></script>
-
-    <script src="favoris.js"></script>
+    <footer class="bottom-banner">
+      <p>© AiGENT Immobilier - Excellence & Intelligence Artificielle</p>
+    </footer>
+    <script src="/leaflet/leaflet.js"></script>
+    <script src="favoris.js" type="module"></script>
   </body>
 </html>

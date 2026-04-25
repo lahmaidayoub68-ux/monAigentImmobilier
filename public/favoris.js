@@ -1,387 +1,477 @@
-// ================= CONFIG =================
-const API_BASE =
-  window.location.hostname === "localhost" ? "http://localhost:3000" : ""; // vide = même domaine en prod
+/**
+ * favoris.js - Dashboard Premium AiGENT
+ */
 
-function getToken() {
-  const raw = localStorage.getItem("agent_user");
-  if (!raw) return null;
+const API_BASE = window.location.origin;
+let currentUser = null;
+let favoris = [];
+let mapInstance = null;
 
-  try {
-    const user = JSON.parse(raw);
-    return user.token;
-  } catch {
-    return null;
+const $ = (id) => document.getElementById(id);
+
+document.addEventListener("DOMContentLoaded", async () => {
+  currentUser = JSON.parse(localStorage.getItem("agent_user"));
+
+  if (!currentUser || !currentUser.token) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  if ($("user-welcome")) {
+    $("user-welcome").textContent = `Session : ${currentUser.username}`;
+  }
+
+  initTheme();
+  initSidebar();
+  initSearch();
+  await refreshFavoris();
+
+  const btnLogout = $("btn-logout");
+  if (btnLogout) {
+    btnLogout.classList.remove("hidden");
+    btnLogout.addEventListener("click", logout);
+  }
+});
+
+// ================== THEME ==================
+function initTheme() {
+  const btnTheme = $("btn-theme");
+  const html = document.documentElement;
+  const savedTheme = localStorage.getItem("aigent_theme") || "dark";
+  html.setAttribute("data-theme", savedTheme);
+
+  if (btnTheme) {
+    btnTheme.addEventListener("click", () => {
+      const current = html.getAttribute("data-theme");
+      const next = current === "dark" ? "light" : "dark";
+      html.setAttribute("data-theme", next);
+      localStorage.setItem("aigent_theme", next);
+    });
   }
 }
 
-// ================= STATE =================
-let currentUser = null;
-let favoris = [];
-
-function logout() {
-  // Supprime la session
-  localStorage.removeItem("agent_user");
-
-  // Réinitialise les variables locales
-  currentUser = null;
-  favoris = [];
-
-  // Vider le DOM si besoin
-  const container = document.querySelector(".favoris-grid");
-  if (container) container.innerHTML = "";
-
-  // Redirection vers la page d'accueil
-  window.location.href = "index.html";
-
-  console.log("[FAVORIS] Déconnecté");
-}
-
-// ==========================
-// MENU LATÉRAL
-// ==========================
-const sidebar = document.getElementById("sidebar");
-const openBtn = document.getElementById("openSidebar");
-const closeBtn = document.getElementById("closeSidebar");
-const overlay = document.getElementById("sidebarOverlay");
-
-if (openBtn && sidebar && overlay) {
-  openBtn.addEventListener("click", () => {
-    console.log("[SIDEBAR] Ouverture menu");
-    sidebar.classList.add("open");
-    overlay.classList.add("active");
-    openBtn.style.display = "none";
-  });
-}
-
-if (closeBtn && sidebar && overlay) {
-  closeBtn.addEventListener("click", () => {
-    console.log("[SIDEBAR] Fermeture menu");
-    sidebar.classList.remove("open");
-    overlay.classList.remove("active");
-    openBtn.style.display = "flex";
-  });
-}
-
-if (overlay && sidebar) {
-  overlay.addEventListener("click", () => {
-    console.log("[SIDEBAR] Fermeture menu via overlay");
-    sidebar.classList.remove("open");
-    overlay.classList.remove("active");
-    openBtn.style.display = "flex";
-  });
-}
-
-// ================= HELPERS =================
-const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => document.querySelectorAll(selector);
-
-function getUser() {
-  const raw = localStorage.getItem("agent_user");
-  return raw ? JSON.parse(raw) : null;
-}
-
-async function loadFavorisFromAPI() {
+// ================== DATA ==================
+async function refreshFavoris() {
   try {
     const res = await fetch(`${API_BASE}/api/favorites`, {
-      headers: {
-        Authorization: "Bearer " + getToken(),
-      },
+      headers: { Authorization: `Bearer ${currentUser.token}` },
     });
+    if (!res.ok) throw new Error("Erreur");
+    favoris = await res.json();
+    renderFavoris(favoris);
+    updateStats(favoris);
+  } catch (err) {
+    console.error(err);
+    updateStats([]);
+  }
+}
 
-    if (!res.ok) {
-      console.error("Erreur chargement favoris");
-      return [];
-    }
+function updateStats(list) {
+  if ($("count-total")) $("count-total").textContent = list.length;
 
-    return await res.json();
-  } catch (e) {
-    console.error("Erreur réseau chargement favoris", e);
+  if ($("avg-compat")) {
+    const avg =
+      list.length > 0
+        ? Math.round(
+            list.reduce((acc, f) => acc + (Number(f.compatibility) || 0), 0) /
+              list.length,
+          )
+        : 0;
+    $("avg-compat").textContent = `${avg}%`;
+  }
+
+  const emptyState = $("empty-state");
+  const grid = $("favoris-grid");
+
+  if (list.length === 0) {
+    if (emptyState) emptyState.style.display = "flex";
+    if (grid) grid.style.display = "none";
+  } else {
+    if (emptyState) emptyState.style.display = "none";
+    if (grid) grid.style.display = "grid";
+  }
+}
+
+// ================== RENDU CARDS — IDENTIQUE ACCUEIL ==================
+function renderFavoris(list) {
+  const grid = $("favoris-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  list.forEach((m, i) => grid.appendChild(createFavCard(m, i)));
+}
+
+function formatEtatBien(etat) {
+  const MAP = {
+    neuf: "Neuf",
+    renove: "Rénové",
+    bon: "Bon état",
+    a_rafraichir: "À rafraîchir",
+    travaux: "Travaux à prévoir",
+  };
+  return MAP[etat] || "Non renseigné";
+}
+
+function parseImages(img) {
+  if (!img) return [];
+  if (Array.isArray(img)) return img;
+  try {
+    return JSON.parse(img);
+  } catch {
     return [];
   }
 }
 
-// ================= RENDER MATCH CARD =================
-// ================== CREATE FAVORITE MATCH CARD (CROIX EN HAUT DROITE) ==================
 function createFavCard(m, index) {
   const row = document.createElement("div");
-  row.className = "msg bot structured match-row";
-  row.style.display = "flex";
-  row.style.flexDirection = "column";
-  row.style.marginBottom = "18px";
-  row.style.opacity = 0;
+  row.className = "msg bot structured";
+  row.style.animationDelay = `${index * 0.05}s`;
 
   const bubble = document.createElement("div");
   bubble.className = "bubble match-card";
-  bubble.style.position = "relative"; // pour positionner la croix
 
-  const villeLabel = m.villeOriginal || m.ville || "Ville inconnue";
-  const piecesLabel =
-    (m.pieces ?? m.piecesMin)
-      ? `${m.pieces ?? m.piecesMin} pièces`
-      : "Pièces inconnues";
-  const surfaceLabel =
-    (m.surface ?? m.surfaceMin)
-      ? `${m.surface ?? m.surfaceMin} m²`
-      : "Surface inconnue";
+  const ville = m.villeOriginal || m.ville || "Ville inconnue";
+  const dep = m.departement ? ` (${m.departement})` : "";
+  const villeLabel = ville + dep;
+
   const pct = Number(m.compatibility ?? 0);
 
-  const formatLabel = (label) =>
-    label
-      ?.replace(/ville/i, "Ville")
-      .replace(/pièces/i, "Pièces")
-      .replace(/surface/i, "Surface") ?? "";
-
-  const commonHTML = (m.common ?? []).length
-    ? m.common
-        .map((c) => `<span class="pill pill-common">${formatLabel(c)}</span>`)
-        .join("")
-    : `<span class="pill pill-neutral">Aucun critère commun</span>`;
-
-  const differentHTML = (m.different ?? []).length
-    ? m.different
-        .map(
-          (d) => `<span class="pill pill-different">${formatLabel(d)}</span>`,
-        )
-        .join("")
-    : `<span class="pill pill-neutral">Aucune différence</span>`;
-
+  // Prix selon rôle
   let priceLabel = "N/A";
-  if (m.price != null) priceLabel = `${m.price} €`;
-  else if (m.budget != null) priceLabel = `${m.budget} €`;
-  else if (m.budgetMin != null && m.budgetMax != null)
-    priceLabel =
-      m.budgetMin === m.budgetMax
-        ? `${m.budgetMin} €`
-        : `${m.budgetMin} – ${m.budgetMax} €`;
+  if (m.role === "buyer") {
+    if (m.budgetMin != null && m.budgetMax != null) {
+      priceLabel =
+        m.budgetMin === m.budgetMax
+          ? `${m.budgetMin} €`
+          : `${m.budgetMin} – ${m.budgetMax} €`;
+    } else if (m.budgetMin != null) {
+      priceLabel = `${m.budgetMin} €`;
+    }
+  } else {
+    if (m.price != null) priceLabel = `${m.price} €`;
+    else if (m.budgetMax != null) priceLabel = `${m.budgetMax} €`;
+  }
 
-  // ===== HTML de la carte =====
+  const surfaceLabel =
+    (m.surface ?? m.surfaceMin) ? `${m.surface ?? m.surfaceMin} m²` : "N/A";
+  const piecesLabel =
+    (m.pieces ?? m.piecesMin) ? `${m.pieces ?? m.piecesMin} p.` : "N/A";
+
+  // Coordonnées — priorité lat/lng du bien, fallback buyerLat/buyerLng
+  const matchLat = m.lat ?? m.buyerLat ?? 48.8566;
+  const matchLng = m.lng ?? m.buyerLng ?? 2.3522;
+  const buyerLat = m.buyerLat ?? m.lat ?? 48.8566;
+  const buyerLng = m.buyerLng ?? m.lng ?? 2.3522;
+
   bubble.innerHTML = `
     <div class="match-header">
-      <div class="match-title"><strong>${m.type}</strong> – ${villeLabel}</div>
+      <div class="match-title"><strong>${m.type || "Bien"}</strong> – ${villeLabel}</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        ${m.role === "seller" ? `<button class="details-btn" aria-label="Voir détails">ℹ️</button>` : ""}
+        <button class="btn-remove-fav" data-contact="${m.contact}" aria-label="Supprimer des favoris">
+          <svg viewBox="0 0 24 24" fill="none" width="13" height="13">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <button class="remove-fav-btn" data-index="${index}" 
-      style="
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        background: transparent;
-        border: none;
-        color: #aaa;
-        font-size: 16px;
-        cursor: pointer;
-      ">
-      ✕
-    </button>
-
     <div class="match-details">
-      <div class="detail-row"><span class="label">Prix</span><span class="value">${priceLabel}</span></div>
-      <div class="detail-row"><span class="label">Pièces</span><span class="value">${piecesLabel}</span></div>
-      <div class="detail-row"><span class="label">Surface</span><span class="value">${surfaceLabel}</span></div>
-      <div class="detail-row"><span class="label">Contact</span><span class="value">${m.contact ?? "N/A"}</span></div>
+      <div class="detail-row"><span>Prix</span><strong>${priceLabel}</strong></div>
+      <div class="detail-row"><span>Surface</span><strong>${surfaceLabel}</strong></div>
+      <div class="detail-row"><span>Pièces</span><strong>${piecesLabel}</strong></div>
+      <div class="detail-row"><span>Contact</span><strong>${m.contact || "N/A"}</strong></div>
     </div>
 
     <div class="match-criteria">
-      <div class="criteria-group">
-        <div class="criteria-title">Points communs</div>
-        <div class="criteria-list">${commonHTML}</div>
-      </div>
-      <div class="criteria-group">
-        <div class="criteria-title">Différences</div>
-        <div class="criteria-list">${differentHTML}</div>
+      <div class="criteria-list">
+        ${(m.common || []).map((c) => `<span class="pill pill-common">${c}</span>`).join("")}
+        ${(m.different || []).map((d) => `<span class="pill pill-different">${d}</span>`).join("")}
       </div>
     </div>
 
     <div class="match-footer">
       <div class="compat-container">
-        <div class="compat-label">Compatibilité : <strong>${pct}%</strong></div>
-        <div class="compat-bar"><div class="compat-bar-inner"></div></div>
+        <div class="compat-label">${pct}%</div>
+        <div class="compat-bar">
+          <div class="compat-bar-inner" style="width:${pct}%"></div>
+        </div>
       </div>
       <button class="voir-carte-btn"
-        data-lat="${m.lat ?? m.buyerLat ?? 48.8566}"
-        data-lng="${m.lng ?? m.buyerLng ?? 2.3522}"
-        data-buyer-lat="${m.buyerLat ?? 48.8566}"
-        data-buyer-lng="${m.buyerLng ?? 2.3522}"
-        data-ville="${villeLabel}">
-        Voir la carte
-      </button>
+        data-lat="${matchLat}"
+        data-lng="${matchLng}"
+        data-buyer-lat="${buyerLat}"
+        data-buyer-lng="${buyerLng}"
+        data-ville="${villeLabel}">Carte</button>
     </div>
   `;
 
-  row.appendChild(bubble);
+  // Modal détails vendeur
+  if (m.role === "seller") {
+    const detailsBtn = bubble.querySelector(".details-btn");
+    const images = [
+      ...parseImages(m.imagesbien),
+      ...parseImages(m.images),
+    ].filter(Boolean);
 
-  // ===== Bouton retirer favoris =====
-  const removeBtn = bubble.querySelector(".remove-fav-btn");
-  removeBtn.addEventListener("click", async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/favorites/${m.contact}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${state.user?.token}` },
+    const modalOverlay = document.createElement("div");
+    modalOverlay.className = "details-modal-overlay";
+    modalOverlay.innerHTML = `
+      <div class="details-popup-content" onclick="event.stopPropagation()">
+        <div class="details-header">
+          Détails de l'annonce
+          <button class="close-details-btn">&times;</button>
+        </div>
+        ${
+          images.length > 0
+            ? `<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px;">
+               ${images.map((img) => `<img src="${img}" class="carousel-img" style="height:140px;width:auto;flex-shrink:0;border-radius:8px;object-fit:cover;" />`).join("")}
+             </div>`
+            : `<div style="padding:16px 0;text-align:center;color:var(--text-muted);font-style:italic;font-size:13px;">Aucune image disponible</div>`
+        }
+        <div class="details-grid">
+          <div class="feature-item"><span>État</span><strong>${formatEtatBien(m.etatBien)}</strong></div>
+          <div class="feature-item"><span>DPE</span><strong>${m.niveauEnergetique || "N/A"}</strong></div>
+          <div class="feature-item"><span>Charges</span><strong>${m.charges ?? "N/A"}</strong></div>
+          <div class="feature-item"><span>Taxe Foncière</span><strong>${m.taxeFonciere ?? "N/A"}</strong></div>
+        </div>
+      </div>`;
+    document.body.appendChild(modalOverlay);
+
+    detailsBtn.addEventListener("click", () => {
+      modalOverlay.style.display = "flex";
+    });
+    modalOverlay.addEventListener("click", () => {
+      modalOverlay.style.display = "none";
+    });
+    modalOverlay
+      .querySelector(".close-details-btn")
+      .addEventListener("click", (e) => {
+        e.stopPropagation();
+        modalOverlay.style.display = "none";
       });
-      if (res.ok) row.remove();
-    } catch (err) {
-      console.error(err);
-    }
+  }
+
+  // Suppression favoris
+  bubble.querySelector(".btn-remove-fav").addEventListener("click", (e) => {
+    deleteFavori(m.contact, row);
   });
 
-  // ===== Compatibilité =====
-  requestAnimationFrame(() => {
-    const bar = row.querySelector(".compat-bar-inner");
-    if (bar) {
-      bar.style.width = pct + "%";
-      let r,
-        g,
-        b = 0;
-      if (pct < 50) {
-        r = 200 + (255 - 200) * (pct / 50);
-        g = 80 + (190 - 80) * (pct / 50);
-      } else {
-        r = 255 - (255 - 60) * ((pct - 50) / 50);
-        g = 190 - (190 - 130) * ((pct - 50) / 50);
-      }
-      bar.style.background = `linear-gradient(90deg, rgb(${Math.round(r)},${Math.round(g)},0), #7a5fff)`;
-    }
-    row.style.opacity = 1;
+  // Carte Leaflet — signature identique accueil
+  bubble.querySelector(".voir-carte-btn").addEventListener("click", (e) => {
+    const btn = e.currentTarget;
+    openMap(
+      parseFloat(btn.dataset.lat),
+      parseFloat(btn.dataset.lng),
+      parseFloat(btn.dataset.buyerLat),
+      parseFloat(btn.dataset.buyerLng),
+      btn.dataset.ville,
+    );
   });
 
+  row.appendChild(bubble);
   return row;
 }
-// ================= RENDER =================
-function renderFavoris(list = favoris) {
-  const container = $(".favoris-grid");
-  container.innerHTML = "";
-  list.forEach((m, i) => container.appendChild(createFavCard(m, i)));
-  attachEvents();
-}
-// ================= EVENTS =================
-function attachEvents() {
-  // Supprimer favori
-  $$(".remove-fav-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const index = parseInt(btn.dataset.index);
-      const fav = favoris[index];
 
-      await fetch(`${API_BASE}/api/favorites/${fav.dbId}`, {
+// ================== SUPPRESSION ==================
+async function deleteFavori(contact, cardElement) {
+  if (!confirm("Retirer ce profil de vos favoris ?")) return;
+
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/favorites/${encodeURIComponent(contact)}`,
+      {
         method: "DELETE",
-        headers: {
-          Authorization: "Bearer " + getToken(),
-        },
-      });
+        headers: { Authorization: `Bearer ${currentUser.token}` },
+      },
+    );
 
-      favoris.splice(index, 1);
-      renderFavoris();
-    });
-  });
-
-  // Voir carte
-  $$(".voir-carte-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const profileLat = parseFloat(btn.dataset.lat);
-      const profileLng = parseFloat(btn.dataset.lng);
-      const profileVille = btn.dataset.ville;
-      const userLat = parseFloat(btn.dataset.buyerLat);
-      const userLng = parseFloat(btn.dataset.buyerLng);
-
-      const mapContainer = document.getElementById("map");
-      if (!mapContainer) return;
-      mapContainer.innerHTML = "";
-
-      const modal = document.getElementById("mapModal");
-      modal.style.display = "flex";
-      document.body.classList.add("modal-open");
-
-      const map = L.map("map").setView([userLat, userLng], 6);
-
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap contributors",
-      }).addTo(map);
-
-      const blueIcon = L.icon({
-        iconUrl: "images/blue-marker.png",
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-      });
-
-      const redIcon = L.icon({
-        iconUrl: "images/red-marker.png",
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-      });
-
-      const userMarker = L.marker([userLat, userLng], { icon: blueIcon })
-        .addTo(map)
-        .bindPopup("Vous / ville recherchée");
-
-      const profileMarker = L.marker([profileLat, profileLng], {
-        icon: redIcon,
-      })
-        .addTo(map)
-        .bindPopup(profileVille);
-
-      const distanceKm =
-        map.distance([userLat, userLng], [profileLat, profileLng]) / 1000;
-
-      let lineColor = "gray";
-      if (distanceKm <= 110) lineColor = "green";
-      else if (distanceKm <= 220) lineColor = "yellow";
-      else lineColor = "red";
-
-      L.polyline(
-        [
-          [userLat, userLng],
-          [profileLat, profileLng],
-        ],
-        { color: lineColor, dashArray: "5,10", weight: 4 },
-      ).addTo(map);
-
-      const group = new L.featureGroup([userMarker, profileMarker]);
-      map.fitBounds(group.getBounds().pad(0.2));
-
-      L.tooltip({ permanent: true })
-        .setContent(distanceKm.toFixed(1) + " km")
-        .setLatLng([(userLat + profileLat) / 2, (userLng + profileLng) / 2])
-        .addTo(map);
-
-      document.getElementById("closeModal").onclick = () => {
-        modal.style.display = "none";
-        document.body.classList.remove("modal-open");
-        map.remove();
-      };
-    });
-  });
+    if (res.ok) {
+      cardElement.style.transform = "scale(0.9) translateY(20px)";
+      cardElement.style.opacity = "0";
+      cardElement.style.transition = "all 0.3s ease";
+      setTimeout(() => {
+        cardElement.remove();
+        favoris = favoris.filter((f) => f.contact !== contact);
+        updateStats(favoris);
+      }, 300);
+    }
+  } catch (err) {
+    console.error("Erreur suppression:", err);
+  }
 }
 
-// ================= SEARCH =================
+// ================== RECHERCHE ==================
 function initSearch() {
-  const input = $(".search-bar");
-  input.addEventListener("input", () => {
-    const value = input.value.toLowerCase();
+  const searchInput = $("fav-search");
+  if (!searchInput) return;
+
+  searchInput.addEventListener("input", (e) => {
+    const val = e.target.value.toLowerCase();
     const filtered = favoris.filter(
       (f) =>
-        f.ville?.toLowerCase().includes(value) ||
-        f.type?.toLowerCase().includes(value),
+        (f.ville || "").toLowerCase().includes(val) ||
+        (f.type || "").toLowerCase().includes(val),
     );
     renderFavoris(filtered);
+    updateStats(filtered);
   });
 }
 
-// ================= INIT =================
-document.addEventListener("DOMContentLoaded", () => {
-  currentUser = getUser();
-  if (!currentUser) {
-    window.location.href = "index.html";
-    return;
+// ================== LOGOUT ==================
+function logout() {
+  localStorage.clear();
+  window.location.href = "index.html";
+}
+
+// ================== SIDEBAR ==================
+function initSidebar() {
+  const sidebar = $("sidebar");
+  const openBtn = $("openSidebar");
+  const closeBtn = $("closeSidebar");
+  const overlay = $("sidebarOverlay");
+
+  const toggle = (isOpen) => {
+    sidebar?.classList.toggle("open", isOpen);
+    overlay?.classList.toggle("active", isOpen);
+    if (openBtn) openBtn.style.display = isOpen ? "none" : "flex";
+  };
+
+  openBtn?.addEventListener("click", () => toggle(true));
+  closeBtn?.addEventListener("click", () => toggle(false));
+  overlay?.addEventListener("click", () => toggle(false));
+}
+
+// ================== CARTE LEAFLET — SIGNATURE ==================
+// ================== CARTE LEAFLET — SIGNATURE ==================
+// APRÈS — complet
+function openMap(matchLat, matchLng, userLat, userLng, ville) {
+  const modal = $("mapModal");
+  const closeM = $("closeModal");
+  if (!modal) return;
+
+  // Détruire instance précédente proprement
+  if (mapInstance !== null) {
+    try {
+      mapInstance.remove();
+    } catch {}
+    mapInstance = null;
   }
 
-  loadFavorisFromAPI().then((data) => {
-    favoris = data;
-    renderFavoris();
+  const mapEl = $("map");
+  if (!mapEl) return;
+  mapEl.innerHTML = "";
+
+  modal.style.display = "flex";
+  document.body.style.overflow = "hidden";
+
+  // Correction coordonnées identiques (même bug vendeur que chatbot)
+  const coordsAreSame =
+    Math.abs(matchLat - userLat) < 0.0001 &&
+    Math.abs(matchLng - userLng) < 0.0001;
+
+  if (coordsAreSame) {
+    // Fallback : décaler légèrement pour avoir deux points visibles
+    userLat = matchLat + 0.05;
+    userLng = matchLng + 0.05;
+  }
+
+  const centerLat = (matchLat + userLat) / 2;
+  const centerLng = (matchLng + userLng) / 2;
+
+  mapInstance = L.map("map").setView([centerLat, centerLng], 11);
+
+  // Force le rendu après ouverture de la modal
+  setTimeout(() => mapInstance.invalidateSize(), 150);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap",
+  }).addTo(mapInstance);
+
+  // Distance Haversine
+  const R = 6371;
+  const dLat = ((matchLat - userLat) * Math.PI) / 180;
+  const dLng = ((matchLng - userLng) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((userLat * Math.PI) / 180) *
+      Math.cos((matchLat * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  const distanceKm = Math.round(
+    R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)),
+  );
+
+  const lineColor =
+    distanceKm <= 5
+      ? "#6ee7b7"
+      : distanceKm <= 15
+        ? "#818cf8"
+        : distanceKm <= 40
+          ? "#a78bfa"
+          : "#f472b6";
+
+  // Ligne pointillée colorée
+  L.polyline(
+    [
+      [userLat, userLng],
+      [matchLat, matchLng],
+    ],
+    { color: lineColor, weight: 2.5, dashArray: "6 5", opacity: 0.85 },
+  ).addTo(mapInstance);
+
+  // Marqueur bleu — position utilisateur/acheteur (identique chatbot.js)
+  const userIcon = L.divIcon({
+    html: `<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#6366f1,#8b5cf6);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);box-shadow:0 0 0 3px rgba(99,102,241,0.35),0 4px 12px rgba(99,102,241,0.5);"><svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>`,
+    className: "",
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
   });
-  initSearch();
 
-  // === Lien bouton déconnexion ===
-  const logoutBtn = document.getElementById("btn-logout");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", logout);
-  }
-});
+  // Marqueur rose — le bien/profil matché (identique chatbot.js)
+  const matchIcon = L.divIcon({
+    html: `<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#c084fc,#f472b6);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);box-shadow:0 0 0 3px rgba(192,132,252,0.35),0 4px 12px rgba(244,114,182,0.5);"><svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>`,
+    className: "",
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+  });
+
+  const userMarker = L.marker([userLat, userLng], { icon: userIcon })
+    .addTo(mapInstance)
+    .bindPopup(
+      `<strong>📍 Ma recherche</strong><br><span style="font-size:11px;opacity:0.7">Votre position</span>`,
+    )
+    .openPopup();
+
+  const matchMarker = L.marker([matchLat, matchLng], { icon: matchIcon })
+    .addTo(mapInstance)
+    .bindPopup(
+      `<strong>🏠 ${ville}</strong><br>` +
+        `<span style="display:inline-block;margin-top:4px;padding:2px 8px;border-radius:20px;` +
+        `background:${lineColor}22;color:${lineColor};font-size:11px;font-weight:600;` +
+        `border:1px solid ${lineColor}44;">${distanceKm} km</span>`,
+    );
+
+  // Fit bounds sur les deux marqueurs
+  mapInstance.fitBounds(
+    [
+      [userLat, userLng],
+      [matchLat, matchLng],
+    ],
+    { padding: [40, 40] },
+  );
+
+  const closeAction = () => {
+    modal.style.display = "none";
+    document.body.style.overflow = "auto";
+    if (mapInstance) {
+      try {
+        mapInstance.remove();
+      } catch {}
+      mapInstance = null;
+    }
+  };
+
+  closeM.onclick = closeAction;
+  modal.onclick = (e) => {
+    if (e.target === modal) closeAction();
+  };
+}

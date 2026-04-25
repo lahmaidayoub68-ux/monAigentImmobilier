@@ -8,6 +8,7 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import morgan from "morgan";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import path from "path";
@@ -28,6 +29,7 @@ import {
   SELLERS,
   BUYERS,
   getStatsMatches,
+  getSimilarProfiles,
 } from "./services/matchingEngine.js";
 import { getDepartement } from "./services/matchingEngine.js";
 import { seedProfiles } from "./services/seedProfiles.js";
@@ -178,6 +180,7 @@ app.use(
           "'unsafe-inline'",
           "https://cdn.jsdelivr.net",
           "https://cdnjs.cloudflare.com",
+          "https://fonts.googleapis.com", // ✨ AJOUTÉ : Autorise le CSS de Google Fonts
         ],
 
         // ==========================
@@ -188,10 +191,11 @@ app.use(
           "data:",
           "blob:",
           "https://*.tile.openstreetmap.org",
+          "https://*.tile.openstreetmap.fr", // ← AJOUTÉ
+          "https://*.basemaps.cartocdn.com",
           "https://api.dicebear.com",
           "https://unpkg.com",
           "https://res.cloudinary.com",
-
           "https://images.unsplash.com",
           "https://plus.unsplash.com",
         ],
@@ -209,7 +213,11 @@ app.use(
         // ==========================
         // FONTS
         // ==========================
-        fontSrc: ["'self'", "data:"],
+        fontSrc: [
+          "'self'",
+          "data:",
+          "https://fonts.gstatic.com", // ✨ AJOUTÉ : Autorise les fichiers .woff2 de Google
+        ],
 
         // ==========================
         // AUTRES
@@ -1713,12 +1721,12 @@ app.delete("/api/favorites/:id", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
-// ================== STATS ==================
+// ================== STATS — VERSION CORRIGÉE & BOOSTÉE ==================
 app.get("/api/stats", authenticateToken, async (req, res) => {
   try {
     const usernameNormalized = req.user.username.trim().toLowerCase();
 
-    // ================== RÉCUPÉRATION USER DB ==================
+    // 1. RÉCUPÉRATION DE L'UTILISATEUR EN BASE DE DONNÉES
     const user = await db
       .prepare("SELECT id, username FROM users WHERE LOWER(TRIM(username)) = ?")
       .get(usernameNormalized);
@@ -1727,13 +1735,12 @@ app.get("/api/stats", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "Utilisateur introuvable" });
     }
 
-    // ================== FAVORIS ==================
+    // 2. CALCUL DES COMPTEURS D'ACTIVITÉ (FAVORIS & MESSAGES)
     const favResult = await db
       .prepare("SELECT COUNT(*) AS count FROM favorites WHERE user_id = ?")
       .get(user.id);
     const totalFavoris = favResult?.count || 0;
 
-    // ================== CONVERSATIONS ACTIVES ==================
     const convoResult = await db
       .prepare(
         `SELECT COUNT(DISTINCT CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END) AS count
@@ -1743,31 +1750,19 @@ app.get("/api/stats", authenticateToken, async (req, res) => {
       .get(user.id, user.id, user.id);
     const activeConversations = convoResult?.count || 0;
 
-    // ================== PROFILS EN MÉMOIRE ==================
-    const buyerProfiles = BUYERS.filter(
-      (b) => b.username === req.user.username,
-    );
-    const buyerProfile =
-      buyerProfiles.length > 0 ? buyerProfiles[buyerProfiles.length - 1] : null;
+    // 3. RÉCUPÉRATION DES PROFILS EN MÉMOIRE (POUR LE MOTEUR)
+    const buyerProfile = BUYERS.find((b) => b.username === req.user.username);
+    const sellerProfile = SELLERS.find((s) => s.username === req.user.username);
 
-    const sellerProfiles = SELLERS.filter(
-      (s) => s.username === req.user.username,
-    );
-    const sellerProfile =
-      sellerProfiles.length > 0
-        ? sellerProfiles[sellerProfiles.length - 1]
-        : null;
-
-    // ================== MATCHING ==================
+    // 4. GÉNÉRATION DES MATCHS (TOP 30)
     let allMatches = [];
-
     if (buyerProfile) {
       allMatches = getStatsMatches(buyerProfile, 30);
     } else if (sellerProfile) {
       allMatches = matchSellerToBuyers(sellerProfile, 30);
     }
 
-    // ================== SI AUCUN MATCH ==================
+    // 5. CAS OÙ LE PROFIL EST INCOMPLET (PAS DE MATCHS)
     if (!allMatches || allMatches.length === 0) {
       return res.json({
         totalMatches: 0,
@@ -1777,16 +1772,25 @@ app.get("/api/stats", authenticateToken, async (req, res) => {
         distribution: { forte: 0, bonne: 0, moyenne: 0, faible: 0 },
         matches: [],
         topMatch: null,
+        currentUser: {
+          role: buyerProfile
+            ? "buyer"
+            : sellerProfile
+              ? "seller"
+              : req.user.role,
+          ville: buyerProfile?.ville || sellerProfile?.ville || null,
+        },
       });
     }
 
-    // ================== STATS MATCHS ==================
+    // 6. CALCUL DES STATISTIQUES GLOBALES
     const totalMatches = allMatches.length;
     const averageCompatibility = Math.round(
       allMatches.reduce((sum, m) => sum + (m.compatibility || 0), 0) /
         totalMatches,
     );
 
+    // Distribution des scores pour le graphique en Donut
     const distribution = { forte: 0, bonne: 0, moyenne: 0, faible: 0 };
     allMatches.forEach((m) => {
       const c = m.compatibility || 0;
@@ -1796,56 +1800,91 @@ app.get("/api/stats", authenticateToken, async (req, res) => {
       else distribution.faible++;
     });
 
+    // Identification du meilleur match
     const topMatch = allMatches.reduce((prev, curr) =>
       (curr.compatibility || 0) > (prev.compatibility || 0) ? curr : prev,
     );
 
-    // ================== RÉPONSE FINALE ==================
+    // 7. GÉNÉRATION DES PROFILS SIMILAIRES (POUR LE WIDGET DROIT)
+    const similarProfiles = getSimilarProfiles(
+      buyerProfile || sellerProfile,
+      5,
+    );
+
+    // 8. RÉPONSE FINALE — STRUCTURE FLAT (RACINE) POUR LES GRAPHIQUES
     res.json({
       totalMatches,
       averageCompatibility,
       totalFavoris,
       activeConversations,
       distribution,
+      similarProfiles,
+      topMatch,
+      // Objet currentUser à la racine (Attendu par recommandations.js)
+      currentUser: {
+        role: buyerProfile ? "buyer" : "seller",
+        ville: buyerProfile?.ville || sellerProfile?.ville || null,
+        budgetMax: buyerProfile?.budgetMax || null,
+        surfaceMin: buyerProfile?.surfaceMin || null,
+        piecesMin: buyerProfile?.piecesMin || null,
+        price: sellerProfile?.price || null,
+        surface: sellerProfile?.surface || null,
+        pieces: sellerProfile?.pieces || null,
+      },
+      // Liste des matchs avec conservation de l'objet criteriaMatch.detail
       matches: allMatches.map((m) => ({
-        username: m.username,
-        compatibility: m.compatibility,
-        score: m.score,
-        common: m.common,
-        different: m.different,
-        villeScoreVal: m.villeScoreVal,
-        lat: m.lat,
-        lng: m.lng,
-        buyerLat: m.buyerLat ?? null,
-        buyerLng: m.buyerLng ?? null,
+        ...m, // Spread complet pour ne perdre aucune donnée du moteur (common, different, detail, etc.)
+        // Fallbacks de sécurité pour les anciennes versions des graphiques
         price: m.price ?? m.budgetMax ?? 0,
         pieces: m.pieces ?? m.piecesMin ?? 0,
         surface: m.surface ?? m.surfaceMin ?? 0,
+        username: m.username,
+        compatibility: m.compatibility,
         type: m.type,
         ville: m.ville,
-        // criteriaMatch spread complet : detail intact pour le graphique critères
-        criteriaMatch: m.criteriaMatch ?? {
-          budget: false,
-          ville: false,
-          pieces: false,
-          surface: false,
-          detail: null,
-        },
-        // Dans la réponse res.json() de /api/stats, ajouter :
-        currentUser: {
-          role: buyerProfile ? "buyer" : "seller",
-          ville: buyerProfile?.ville || sellerProfile?.ville || null,
-          budgetMax: buyerProfile?.budgetMax || null,
-          price: sellerProfile?.price || null,
-        },
       })),
-      topMatch,
     });
   } catch (err) {
-    console.error("[API /stats] ERREUR :", err);
-    res.status(500).json({ error: "Erreur serveur" });
+    console.error("[API /stats] ERREUR FATALE :", err);
+    res.status(500).json({
+      error: "Erreur interne du serveur lors du calcul des statistiques",
+    });
   }
 });
+// ── FALLBACK LOCAL SERVER-SIDE ──────────────────────────
+function generateDiagnostic(matches, criteria = {}, role = "buyer") {
+  const count = matches.length;
+  if (!count) return "Aucune donnée disponible pour l'analyse.";
+
+  const avgComp = Math.round(
+    matches.reduce((acc, m) => acc + (m.compatibility || 0), 0) / count,
+  );
+  const topMatch = matches[0] || {};
+
+  const budgetDiffs = matches
+    .map((m) => m.criteriaMatch?.detail?.budget?.diff)
+    .filter((d) => d != null);
+  const avgBudgetDiff = budgetDiffs.length
+    ? Math.round(budgetDiffs.reduce((a, b) => a + b, 0) / budgetDiffs.length)
+    : 0;
+
+  const dists = matches
+    .map((m) => m.criteriaMatch?.detail?.ville?.distanceKm)
+    .filter((d) => d != null);
+  const avgDist = dists.length
+    ? (dists.reduce((a, b) => a + b, 0) / dists.length).toFixed(1)
+    : 0;
+
+  const synth = `Votre positionnement actuel génère ${count} correspondances avec une compatibilité moyenne de ${avgComp} %. Le marché répond à votre profil, mais une tension est visible sur les critères de haute compatibilité.`;
+
+  const freins = `L'analyse des rejets indique que le critère ${Math.abs(avgBudgetDiff) > 0 ? "budgétaire" : "géographique"} est votre principal frein. L'écart médian constaté est de ${Math.abs(avgBudgetDiff).toLocaleString("fr-FR")} € par rapport aux profils les plus qualitatifs.`;
+
+  const opportunite = `Une fenêtre d'opportunité se dessine sur le secteur de ${topMatch.ville || "votre zone"}, où le meilleur profil affiche ${topMatch.compatibility || "—"} % de compatibilité.`;
+
+  const strategie = `Pour maximiser vos chances, privilégiez une réactivité absolue sur les matchs supérieurs à 75 %. Un élargissement de ${avgDist > 0 ? avgDist : "5"} km doublerait mécaniquement votre vivier de profils Premium.`;
+
+  return [synth, freins, opportunite, strategie];
+}
 // ================== IA ==================
 app.post("/api/ai", authenticateToken, async (req, res) => {
   try {
@@ -1908,111 +1947,103 @@ app.post("/api/ai", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Erreur serveur lors de l'appel à l'IA" });
   }
 });
+
+/**
+ * 1. ROUTE API - Gère la cascade : OpenRouter -> Gemini Direct -> Fallback Local
+ */
 app.post("/api/ai-analysis", authenticateToken, async (req, res) => {
   try {
-    let { data } = req.body;
+    const { data, criteria, role } = req.body;
     if (!data || !Array.isArray(data) || data.length === 0)
-      return res.status(400).json({ error: "Données manquantes ou invalides" });
+      return res
+        .status(400)
+        .json({ error: "Données invalides pour l'analyse" });
 
-    const username = req.user.username;
+    // --- PRÉPARATION DES DONNÉES (Thinning stratégique) ---
+    const aiFriendlyData = data.slice(0, 25).map((m) => ({
+      v: m.ville,
+      p: m.price || m.budgetMax,
+      s: m.surface || m.surfaceMin,
+      pc: m.pieces || m.piecesMin,
+      t: m.type,
+      dpe: m.criteriaMatch?.detail?.dpe?.letter,
+      comp: m.compatibility,
+      // On inclut les écarts réels pour que l'IA soit précise
+      diff_budget: m.criteriaMatch?.detail?.budget?.diff,
+      dist_km: m.criteriaMatch?.detail?.ville?.distanceKm,
+    }));
 
-    // Crée la session si besoin (optionnel)
-    if (!sessions[username]) sessions[username] = {};
+    const fullPrompt = `Tu es un Expert Immobilier Senior et Analyste de Marché. 
+    Analyse ce set de données (25 matchs) pour un profil ${role === "buyer" ? "Acquéreur" : "Vendeur"} :
+    Données : ${JSON.stringify(aiFriendlyData)}.
+    Critères cibles : ${JSON.stringify(criteria)}.
 
-    // ======== Construction du prompt ========
-    const buildAIPrompt = (
-      data,
-      criteriaOrder = ["budget", "surface", "pieces", "ville", "type"],
-    ) => {
-      let prompt =
-        "Analyse des 30 meilleurs biens immobiliers selon les critères suivants :\n\n";
-      criteriaOrder.forEach((crit) => {
-        prompt += `Critère: ${crit}\n`;
-        prompt += `Données: ${JSON.stringify(data)}\n`;
-        prompt +=
-          "Indique un paragraphe clair, structuré avec analyse et recommandations pour ce critère.\n\n";
+    Rédige un diagnostic stratégique fluide en 4 paragraphes précis, sans aucun titre ni liste à puces :
+    1. Synthèse du marché : Analyse la cohérence globale entre la demande et l'offre actuelle en citant le volume de matchs et la compatibilité moyenne.
+    2. Analyse des freins : Identifie le critère précis qui bloque le matching (prix trop bas, zone trop restreinte ou surface rare) en te basant sur les écarts types constatés.
+    3. Fenêtre d'opportunité : Repère dans les données un profil ou une zone géographique spécifique qui sort du lot et pourquoi elle représente une chance réelle.
+    4. Stratégie opérationnelle : Donne un conseil de mouvement immédiat (élargissement de zone, révision budgétaire ou réactivité) pour débloquer la situation.
+
+    Ton : Professionnel, direct, expert. Ne salue pas, ne conclus pas par des politesses.`;
+
+    let aiText = "";
+
+    // Tentative 1 — OpenRouter
+    try {
+      const openRouter = new OpenAI({
+        apiKey: process.env.ROUTER,
+        baseURL: "https://openrouter.ai/api/v1",
       });
-      prompt +=
-        "Le texte final doit être en français, lisible, professionnel et concis.\n";
-      return prompt;
-    };
+      const response1 = await openRouter.chat.completions.create({
+        model: "openrouter/free",
+        messages: [{ role: "user", content: fullPrompt }],
+        temperature: 0.3,
+        max_tokens: 1000, // ← AJOUTE ÇA, SDK mettait 16384 par défaut
+      });
+      aiText = response1?.choices?.[0]?.message?.content?.trim();
+      console.log("✅ Diagnostic via OpenRouter");
+    } catch (err1) {
+      // REMPLACE TON WARN ACTUEL PAR ÇA :
+      console.error("❌ OpenRouter ERREUR COMPLÈTE :", {
+        message: err1.message,
+        status: err1.status,
+        code: err1.code,
+        type: err1.type,
+        headers: err1.headers,
+        error: err1.error, // objet d'erreur OpenAI SDK
+      });
 
-    const fullPrompt = buildAIPrompt(data);
-
-    // ======== Appel OpenRouter ========
-    const aiClient = new OpenAI({
-      apiKey: process.env.ROUTER,
-      baseURL: "https://openrouter.ai/api/v1", // URL corrigée
-    });
-
-    const aiResponse = await aiClient.chat.completions.create({
-      model: "openai/gpt-4o-mini", // modèle valide et gratuit
-      messages: [
-        {
-          role: "system",
-          content:
-            "Tu es un expert analyste immobilier. Tu rédiges un paragraphe structuré pour chaque critère, avec analyse + recommandations.",
-        },
-        { role: "user", content: fullPrompt },
-      ],
-      temperature: 0.2,
-      max_tokens: 2500,
-    });
-
-    const aiText = aiResponse?.choices?.[0]?.message?.content?.trim();
-
-    // ======== Fallback NLP si IA ne répond pas ========
-    if (!aiText) {
-      console.warn("[AI] IA ne renvoie pas de texte, fallback activé");
-
-      const fallback = generateDiagnostic(
-        data,
-        {
-          budgetMax: 0,
-          surfaceMax: 0,
-          piecesMax: 0,
-        },
-        "buyer",
-      );
-
-      const corrected = await Promise.all(
-        fallback.map(
-          async (html) => await correctWithLanguageToolPreserveHTML(html),
-        ),
-      );
-
-      return res.json({ analysis: corrected.join("") });
+      try {
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const result = await model.generateContent(fullPrompt);
+        aiText = result.response.text().trim();
+        console.log("✅ Diagnostic via Gemini");
+      } catch (err2) {
+        // REMPLACE TON ERROR ACTUEL PAR ÇA :
+        console.error("❌ Gemini ERREUR COMPLÈTE :", {
+          message: err2.message,
+          status: err2.status,
+          code: err2.code,
+          details: err2?.errorDetails,
+          stack: err2.stack?.split("\n").slice(0, 4),
+        });
+      }
     }
-
-    // ======== Réponse finale ========
-    res.json({ analysis: aiText });
+    // --- RÉPONSE : IA OU SCRIPT LOCAL ---
+    if (aiText) {
+      res.json({ analysis: aiText });
+    } else {
+      res.json({
+        analysis: generateDiagnostic(data, criteria, role).join("\n\n"),
+      });
+    }
   } catch (err) {
-    console.error("[/api/ai-analysis] Error:", err);
-
-    // Fallback sur LanguageTool pour sécurité
-    if (req.body.data) {
-      const fallback = generateDiagnostic(
-        req.body.data,
-        {
-          budgetMax: 0,
-          surfaceMax: 0,
-          piecesMax: 0,
-        },
-        "buyer",
-      );
-
-      const corrected = await Promise.all(
-        fallback.map(
-          async (html) => await correctWithLanguageToolPreserveHTML(html),
-        ),
-      );
-
-      return res.json({ analysis: corrected.join("") });
-    }
-
-    res
-      .status(500)
-      .json({ error: "Erreur serveur lors de l'appel à l'IA d'analyse" });
+    console.error("[/api/ai-analysis] Erreur fatale:", err.message);
+    res.json({
+      analysis:
+        "Une erreur technique empêche l'analyse détaillée. Veuillez vous baser sur les scores de compatibilité individuels.",
+    });
   }
 });
 // ================== CHANGER AVATAR ==================
