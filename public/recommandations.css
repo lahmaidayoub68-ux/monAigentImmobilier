@@ -24,15 +24,23 @@ body {
   line-height: 1.5;
 }
 
+/* Syne uniquement pour les grands titres visuels */
 .section-title,
 .score-title,
+.score-value,
+.btn-cta-primary {
+  font-family: "Syne", system-ui, sans-serif;
+}
+
+/* DM Sans pour tous les headers de cards et chiffres */
 .action-header,
 .market-header,
 .similar-header,
 .criteria-header,
 .missed-header,
 .diag-header {
-  font-family: "Syne", system-ui, sans-serif;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-weight: 700;
 }
 
 /* 3. LAYOUT PRINCIPAL (Débloqué également) */
@@ -75,10 +83,11 @@ body {
 
 .section-title {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
+  font-family: "DM Sans", system-ui, sans-serif;
   color: var(--text-primary);
   margin: 0 0 2px;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .section-sub {
@@ -211,14 +220,16 @@ body {
 }
 
 .score-value {
-  font-family: "Syne", system-ui, sans-serif;
-  font-size: 32px;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 36px;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
   background: linear-gradient(135deg, var(--indigo), var(--violet));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 .score-label {
@@ -775,14 +786,14 @@ body {
   gap: 2px;
   flex-shrink: 0;
 }
-
 .impact-val {
   font-size: 14px;
   font-weight: 800;
-  font-family: "Syne", system-ui, sans-serif;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
   color: #22c55e;
 }
-
 .impact-label {
   font-size: 10px;
   color: var(--text-muted);

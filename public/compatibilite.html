@@ -526,9 +526,9 @@
       /* ============================================================
    BASE MOBILE (< 768px)
 ============================================================ */
-
       html {
         -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
       }
 
       body {
@@ -857,9 +857,9 @@
 
         /* Graphique desktop : taille généreuse */
         .chart-stage {
-          min-height: 450px;
-          height: auto;
-          max-height: none;
+          min-height: 320px;
+          height: 320px;
+          max-height: 360px;
         }
 
         .filter-bar {
@@ -957,7 +957,7 @@
     <header class="top-banner">
       <div class="logo-container">
         <img src="images/logo.png" class="logo-img" alt="Logo" />
-        <h1 class="logo-text">Mon AiGENT</h1>
+        <h1 class="logo-text">Mes Statistiques</h1>
       </div>
       <div class="header-right">
         <!-- Boost: Bouton Thème Jour/Nuit -->
@@ -994,11 +994,7 @@
           </svg>
         </button>
 
-        <button
-          class="control-btn"
-          onclick="window.location.href = 'accueil.html'"
-          title="Retour accueil"
-        >
+        <button class="control-btn" id="btnHome" title="Retour accueil">
           <svg
             width="20"
             height="20"

@@ -17,24 +17,122 @@
   </head>
 
   <body class="chat-page">
-    <!-- ===== BOUTON MENU FLOTTANT ===== -->
-    <!-- APRÈS -->
-    <button class="menu-toggle" id="openSidebar" aria-label="Ouvrir le menu">
-      <svg
-        width="22"
-        height="18"
-        viewBox="0 0 22 18"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
+    <!-- ===== MINI SIDEBAR DESKTOP (style GPT) ===== -->
+    <aside class="mini-nav" id="miniNav">
+      <!-- Logo lézard en haut -->
+      <div class="mini-nav-logo">
+        <img src="./images/vrai.png" alt="Logo" class="mini-nav-lizard" />
+      </div>
+
+      <!-- Icône sidebar toggle (style GPT, dégradé rose-violet) -->
+      <button
+        class="mini-nav-toggle"
+        id="openSidebar"
+        aria-label="Ouvrir le menu"
       >
-        <line x1="0" y1="2" x2="22" y2="2" />
-        <line x1="0" y1="9" x2="16" y2="9" />
-        <line x1="0" y1="16" x2="10" y2="16" />
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient
+              id="gradNav"
+              x1="0"
+              y1="0"
+              x2="20"
+              y2="20"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0%" stop-color="#8b5cf6" />
+              <stop offset="100%" stop-color="#f472b6" />
+            </linearGradient>
+          </defs>
+          <!-- Rectangle extérieur -->
+          <rect
+            x="1.5"
+            y="1.5"
+            width="17"
+            height="17"
+            rx="3.5"
+            stroke="url(#gradNav)"
+            stroke-width="1.5"
+          />
+          <!-- Trait vertical à ~35% — séparation colonne gauche style GPT -->
+          <line
+            x1="7"
+            y1="1.5"
+            x2="7"
+            y2="18.5"
+            stroke="url(#gradNav)"
+            stroke-width="1.5"
+          />
+        </svg>
+      </button>
+    </aside>
+
+    <!-- ===== BOUTON HAMBURGER MOBILE UNIQUEMENT ===== -->
+    <button class="mobile-burger" id="openSidebarMobile" aria-label="Menu">
+      <svg
+        id="burger-svg"
+        width="24"
+        height="18"
+        viewBox="0 0 24 18"
+        fill="none"
+      >
+        <defs>
+          <linearGradient
+            id="gradBurger"
+            x1="0"
+            y1="0"
+            x2="24"
+            y2="18"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0%" stop-color="#8b5cf6" />
+            <stop offset="100%" stop-color="#f472b6" />
+          </linearGradient>
+        </defs>
+        <!-- Trait 1 : grand -->
+        <line
+          class="b-line b1"
+          x1="0"
+          y1="2"
+          x2="24"
+          y2="2"
+          stroke="url(#gradBurger)"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        />
+        <!-- Trait 2 : moyen -->
+        <line
+          class="b-line b2"
+          x1="0"
+          y1="9"
+          x2="17"
+          y2="9"
+          stroke="url(#gradBurger)"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        />
+        <!-- Trait 3 : petit -->
+        <line
+          class="b-line b3"
+          x1="0"
+          y1="16"
+          x2="10"
+          y2="16"
+          stroke="url(#gradBurger)"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        />
       </svg>
     </button>
-
+    <!-- ===== BOUTON MENU FLOTTANT ===== -->
+    <!-- APRÈS -->
+    <!-- ===== MINI SIDEBAR (fermée) ===== -->
     <!-- ===== MENU LATÉRAL ===== -->
     <nav id="sidebar" class="sidebar" aria-label="Menu principal">
       <span class="close-btn" id="closeSidebar">&times;</span>

@@ -293,7 +293,47 @@ CREATE TABLE IF NOT EXISTS messages (
 `,
   )
   .run();
+// Juste après ton bloc CREATE TABLE messages existant :
 
+// Migration : ajout colonne attachments si absente
+if (!isProd) {
+  try {
+    const cols = await db.prepare("PRAGMA table_info(messages)").all();
+    if (!cols.find((c) => c.name === "attachments")) {
+      await db
+        .prepare(
+          "ALTER TABLE messages ADD COLUMN attachments TEXT DEFAULT '[]'",
+        )
+        .run();
+      console.log("✅ Colonne attachments ajoutée à messages (SQLite)");
+    }
+  } catch (err) {
+    console.error("[MIGRATION attachments]", err);
+  }
+}
+
+if (isProd) {
+  try {
+    const colCheck = await db
+      .prepare(
+        `
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name='messages' AND column_name='attachments'
+    `,
+      )
+      .all();
+    if (!colCheck.length) {
+      await db
+        .prepare(
+          "ALTER TABLE messages ADD COLUMN attachments TEXT DEFAULT '[]'",
+        )
+        .run();
+      console.log("✅ Colonne attachments ajoutée à messages (PostgreSQL)");
+    }
+  } catch (err) {
+    console.error("[MIGRATION attachments PostgreSQL]", err);
+  }
+}
 await db
   .prepare(
     `
@@ -1371,48 +1411,40 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
       subject: z.string().min(0),
       body: z.string().min(1),
       receiverId: z.number().optional(),
+      // BUG FIX 2 : accepter les attachments
+      attachments: z
+        .array(
+          z.object({
+            type: z.string(),
+            url: z.string(),
+            name: z.string().optional(),
+            size: z.number().optional(),
+          }),
+        )
+        .optional()
+        .default([]),
     });
 
-    const { pseudo, email, subject, body, receiverId } = schema.parse(req.body);
-
-    console.log("[API /messages POST] Données après validation Zod :", {
-      pseudo,
-      email,
-      subject,
-      body,
-      receiverId,
-    });
+    const { pseudo, email, subject, body, receiverId, attachments } =
+      schema.parse(req.body);
 
     let receiver;
 
     if (receiverId) {
-      // Cas réponse
       receiver = await db
         .prepare(`SELECT id, username, contact FROM users WHERE id = $1`)
         .get(receiverId);
-
       if (!receiver) {
-        console.warn(
-          "[API /messages POST] Destinataire introuvable (réponse) :",
-          receiverId,
-        );
         return res.status(404).json({ error: "Utilisateur introuvable" });
       }
     } else {
-      // Cas nouveau message
       if (!pseudo || !email) {
         return res.status(400).json({
           error: "Pseudo et email obligatoires pour un nouveau message",
         });
       }
-
       const normalizedPseudo = pseudo.trim().toLowerCase();
       const normalizedEmail = email.trim().toLowerCase();
-
-      console.log("[API /messages POST] Normalisé :", {
-        normalizedPseudo,
-        normalizedEmail,
-      });
 
       receiver = await db
         .prepare(
@@ -1422,15 +1454,9 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
         .get(normalizedPseudo, normalizedEmail);
 
       if (!receiver) {
-        console.warn(
-          "[API /messages POST] Destinataire introuvable (nouveau) :",
-          { normalizedPseudo, normalizedEmail },
-        );
         return res.status(404).json({ error: "Utilisateur introuvable" });
       }
     }
-
-    console.log("[API /messages POST] Destinataire trouvé :", receiver);
 
     const sender = await db
       .prepare(
@@ -1439,23 +1465,18 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
       .get(req.user.username.trim().toLowerCase());
 
     if (!sender) {
-      console.error(
-        "[API /messages POST] Expéditeur introuvable :",
-        req.user.username,
-      );
       return res.status(404).json({ error: "Expéditeur introuvable" });
     }
 
-    console.log("[API /messages POST] Expéditeur trouvé :", sender);
+    // BUG FIX 2 : persister les attachments en JSON dans la colonne attachments
+    const attachmentsJson = JSON.stringify(attachments || []);
 
-    // Insérer le message
     const insert = await db
       .prepare(
-        `INSERT INTO messages (sender_id, receiver_id, subject, body) VALUES ($1, $2, $3, $4) RETURNING id`,
+        `INSERT INTO messages (sender_id, receiver_id, subject, body, attachments)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
       )
-      .get(sender.id, receiver.id, subject, body);
-
-    console.log("[API /messages POST] Message inséré :", insert);
+      .get(sender.id, receiver.id, subject, body, attachmentsJson);
 
     res.json({ success: true, messageId: insert.id });
   } catch (err) {
@@ -1467,8 +1488,6 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
 // ================== RÉCUPÉRER LES MESSAGES ==================
 app.get("/api/messages", authenticateToken, async (req, res) => {
   try {
-    console.log("[API /messages GET] Requête pour :", req.user.username);
-
     const user = await db
       .prepare(
         `SELECT id, username, contact FROM users WHERE LOWER(TRIM(username)) = $1`,
@@ -1476,14 +1495,8 @@ app.get("/api/messages", authenticateToken, async (req, res) => {
       .get(req.user.username.trim().toLowerCase());
 
     if (!user) {
-      console.error(
-        "[API /messages GET] Utilisateur introuvable :",
-        req.user.username,
-      );
       return res.status(404).json({ error: "Utilisateur introuvable" });
     }
-
-    console.log("[API /messages GET] Utilisateur trouvé :", user);
 
     const messages = await db
       .prepare(
@@ -1494,39 +1507,99 @@ SELECT
   m.receiver_id,
   REPLACE(LOWER(TRIM(su.username)), '"', '') AS sender,
   REPLACE(LOWER(TRIM(ru.username)), '"', '') AS receiver,
-
+ 
   COALESCE(NULLIF(su.avatar, ''), '/images/user-avatar.jpg') AS "senderAvatar",
   COALESCE(NULLIF(ru.avatar, ''), '/images/user-avatar.jpg') AS "receiverAvatar",
-
+ 
   su.contact AS "senderEmail",
   ru.contact AS "receiverEmail",
-
+ 
   m.subject,
   m.body,
+  -- BUG FIX 2 : inclure les attachments
+  COALESCE(m.attachments, '[]') AS attachments,
   m.timestamp
-
+ 
 FROM messages m
 JOIN users su ON m.sender_id = su.id
 JOIN users ru ON m.receiver_id = ru.id
-
+ 
 WHERE m.receiver_id = $1 OR m.sender_id = $1
-
+ 
 ORDER BY m.timestamp ASC, m.id ASC;
       `,
       )
       .all(user.id);
 
-    console.log(
-      `[API /messages GET] Messages récupérés pour ${user.username} :`,
-      messages.length,
-    );
+    // Parser les attachments JSON pour chaque message
+    const messagesWithAttachments = messages.map((m) => ({
+      ...m,
+      attachments: (() => {
+        if (!m.attachments) return [];
+        if (Array.isArray(m.attachments)) return m.attachments;
+        try {
+          const parsed = JSON.parse(m.attachments);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      })(),
+    }));
 
-    res.json(messages);
+    res.json(messagesWithAttachments);
   } catch (err) {
     console.error("[API /messages GET] ERREUR :", err);
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
+
+app.post(
+  "/api/upload-files",
+  authenticateToken,
+  upload.array("files", 10),
+  async (req, res) => {
+    try {
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ error: "Aucun fichier reçu" });
+      }
+
+      // Upload parallèle vers Cloudinary (raw pour les fichiers non-image)
+      const uploadedFiles = await Promise.all(
+        req.files.map(
+          (file) =>
+            new Promise((resolve, reject) => {
+              const stream = cloudinary.uploader.upload_stream(
+                {
+                  folder: "fichiers",
+                  resource_type: "raw", // permet tous types de fichiers
+                  use_filename: true,
+                  unique_filename: true,
+                },
+                (error, result) => {
+                  if (error) return reject(error);
+                  resolve({
+                    url: result.secure_url,
+                    name: file.originalname,
+                    size: file.size,
+                  });
+                },
+              );
+              stream.end(file.buffer);
+            }),
+        ),
+      );
+
+      return res.json({
+        success: true,
+        files: uploadedFiles,
+      });
+    } catch (err) {
+      console.error("[UPLOAD FILES ERROR]", err);
+      return res.status(500).json({ error: "Upload échoué" });
+    }
+  },
+);
+
 app.delete("/api/messages/:id", authenticateToken, async (req, res) => {
   try {
     const msgId = Number(req.params.id);

@@ -16,15 +16,15 @@ const MIN_MATCHES = 5; // seuil abaissé : on affiche dès que possible
 const CRIT_META = {
   budget: {
     label: "Budget",
-    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><path d="M7 15h.01M11 15h2"/></svg>`,
+    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7a6 6 0 1 0 0 10"/><path d="M4 10h10"/><path d="M4 14h10"/></svg>`,
   },
   surface: {
     label: "Surface",
-    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3v18H3V3h18z"/><path d="M3 9h18"/><path d="M9 21V3"/></svg>`,
+    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21L21 3"/><path d="M3 9V21H15"/><path d="M3 21l3-3"/><path d="M6 18l3-3"/><path d="M9 15l3-3"/><path d="M12 12l3-3"/></svg>`,
   },
   pieces: {
     label: "Pièces",
-    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14M9 21V11h6v10"/></svg>`,
+    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18"/><path d="M12 9v12"/><path d="M3 15h9"/></svg>`,
   },
   ville: {
     label: "Localisation",
@@ -32,7 +32,7 @@ const CRIT_META = {
   },
   type: {
     label: "Type de bien",
-    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+    icon: `<svg class="crit-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/><path d="M9 11h1m4 0h1m-6 4h1m4 0h1"/></svg>`,
   },
 };
 
@@ -499,11 +499,11 @@ function renderMissed(scores, matches) {
 
     items.push({
       icon: `
-      <svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="2" y="5" width="20" height="14" rx="2"/>
-        <line x1="2" y1="10" x2="22" y2="10"/>
-        <path d="M7 15h.01M11 15h2"/>
-      </svg>`,
+<svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="9"/>
+  <path d="M15 9a4 4 0 1 0 0 6"/>
+  <path d="M8.5 11h5"/><path d="M8.5 13h5"/>
+</svg>`,
       title: `${budgetOut.length} profil${budgetOut.length > 1 ? "s" : ""} hors budget`,
       desc: medDiff
         ? `Écart médian constaté : ${fmtPrice(medDiff)} au-dessus de votre enveloppe.`
@@ -528,9 +528,12 @@ function renderMissed(scores, matches) {
 
     items.push({
       icon: `
-      <svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 3v18H3V3h18z"/><path d="M3 9h18"/><path d="M9 21V3"/>
-      </svg>`,
+<svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 21L21 3"/>
+  <path d="M3 10V21H14"/>
+  <path d="M3 21l2.5-2.5"/>
+  <path d="M21 3l-2.5 2.5"/>
+</svg>`,
       title: `${surfaceOut.length} profil${surfaceOut.length > 1 ? "s" : ""} sous votre surface cible`,
       desc: medDiff
         ? `Ces biens sont en moyenne ${medDiff} m² en dessous de votre critère.`
@@ -555,10 +558,11 @@ function renderMissed(scores, matches) {
 
     items.push({
       icon: `
-      <svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-        <circle cx="12" cy="10" r="3"/>
-      </svg>`,
+<svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="10" r="2"/>
+  <path d="M12 2a8 8 0 0 1 8 8c0 5.25-8 14-8 14S4 15.25 4 10a8 8 0 0 1 8-8z"/>
+  <circle cx="12" cy="10" r="5" stroke-dasharray="2 2"/>
+</svg>`,
       title: `${villeOut.length} profil${villeOut.length > 1 ? "s" : ""} hors zone`,
       desc: medDist
         ? `Ces profils sont en moyenne à ${medDist} km de votre zone cible.`
@@ -576,9 +580,11 @@ function renderMissed(scores, matches) {
   if (piecesOut.length) {
     items.push({
       icon: `
-      <svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 21h18M5 21V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14M9 21V11h6v10"/>
-      </svg>`,
+<svg class="missed-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="3" width="18" height="18" rx="1"/>
+  <path d="M3 9h18"/><path d="M12 9v12"/><path d="M3 15h9"/>
+  <path d="M15 18h4"/>
+</svg>`,
       title: `${piecesOut.length} profil${piecesOut.length > 1 ? "s" : ""} avec pièces insuffisantes`,
       desc: "Accepter N–1 pièce doublerait mécaniquement le volume de profils compatibles.",
       gain: "Vivier ×2",
@@ -783,9 +789,12 @@ function renderMarket(matches, data) {
     prixM2
       ? {
           icon: `
-          <svg class="market-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
-          </svg>`,
+  <svg class="market-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <path d="M12 2v6h6"/>
+    <path d="M15 13a4 4 0 1 0 0 4"/>
+    <path d="M8 15h5"/><path d="M8 13h5"/>
+  </svg>`,
           label: `Prix médian au m² (${topVille?.[0] || "votre zone"})`,
           value: `${fmt(prixM2)} €/m²`,
           trend: "flat",
@@ -795,9 +804,12 @@ function renderMarket(matches, data) {
     medSurface
       ? {
           icon: `
-          <svg class="market-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3h18v18H3z"/><path d="M3 9h18"/><path d="M9 3v18"/>
-          </svg>`,
+  <svg class="market-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-violet-rose)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 21L21 3"/>
+    <path d="M3 9V21H15"/>
+    <path d="M3 21l3-3"/><path d="M6 18l3-3"/>
+    <path d="M9 15l3-3"/><path d="M12 12l3-3"/>
+  </svg>`,
           label: "Surface médiane disponible",
           value: fmtSurface(medSurface),
           trend: "flat",

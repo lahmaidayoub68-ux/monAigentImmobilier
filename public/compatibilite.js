@@ -54,39 +54,37 @@ const SIG_COLORS = {
 const VUES_CONFIG = [
   {
     id: "repartition",
-    icon: `
-      <svg class="vue-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-ai)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
-        <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
-      </svg>`,
+    icon: `<svg class="vue-svg" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+  <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+</svg>`,
     label: "Répartition",
     desc: "Segmentation du marché",
   },
   {
     id: "profil",
-    icon: `
-      <svg class="vue-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-ai)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-        <circle cx="9" cy="7" r="4"></circle>
-        <path d="M19 8l2 2 4-4"></path>
-      </svg>`,
+    icon: `<svg class="vue-svg" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+  <circle cx="9" cy="7" r="4"/>
+  <path d="M19 8l2 2 4-4"/>
+</svg>`,
     label: "Top Profils",
     desc: "Performances et matching",
   },
   {
     id: "criteres",
     icon: `
-      <svg class="vue-svg" viewBox="0 0 24 24" fill="none" stroke="url(#grad-ai)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="4" y1="21" x2="4" y2="14"></line>
-        <line x1="4" y1="10" x2="4" y2="3"></line>
-        <line x1="12" y1="21" x2="12" y2="12"></line>
-        <line x1="12" y1="8" x2="12" y2="3"></line>
-        <line x1="20" y1="21" x2="20" y2="16"></line>
-        <line x1="20" y1="12" x2="20" y2="3"></line>
-        <line x1="2" y1="14" x2="6" y2="14"></line>
-        <line x1="10" y1="8" x2="14" y2="8"></line>
-        <line x1="18" y1="16" x2="22" y2="16"></line>
-      </svg>`,
+    <svg class="vue-svg" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="4" y1="21" x2="4" y2="14"/>
+      <line x1="4" y1="10" x2="4" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="12"/>
+      <line x1="12" y1="8" x2="12" y2="3"/>
+      <line x1="20" y1="21" x2="20" y2="16"/>
+      <line x1="20" y1="12" x2="20" y2="3"/>
+      <line x1="2" y1="14" x2="6" y2="14"/>
+      <line x1="10" y1="8" x2="14" y2="8"/>
+      <line x1="18" y1="16" x2="22" y2="16"/>
+    </svg>`,
     label: "Critères",
     desc: "Analyse granulaire",
   },
@@ -427,7 +425,9 @@ document.getElementById("exportPNG").onclick = () => {
 };
 
 document.getElementById("refreshData").onclick = () => init();
-
+document.getElementById("btnHome")?.addEventListener("click", () => {
+  window.location.href = "accueil.html";
+});
 /* =======================================================
    INITIALIZATION
 ======================================================= */

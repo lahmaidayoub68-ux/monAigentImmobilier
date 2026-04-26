@@ -3,31 +3,453 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chargement...</title>
+    <title>AiGENT — Introduction</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --violet: #7c3aed;
+        --rose: #c026d3;
+        --pink: #ec4899;
+        --bg: #0d0d11;
+        --grad: linear-gradient(135deg, #7c3aed, #c026d3);
+        --glow-v: rgba(124, 58, 237, 0.5);
+        --glow-r: rgba(192, 38, 211, 0.4);
+      }
+
+      body {
+        background: var(--bg);
+        overflow: hidden;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+
+      /* ═══════════════════════════════
+         AMBIENT BACKGROUND
+      ═══════════════════════════════ */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background:
+          radial-gradient(
+            circle at 20% 20%,
+            rgba(124, 58, 237, 0.08),
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 80% 80%,
+            rgba(192, 38, 211, 0.06),
+            transparent 50%
+          );
+        pointer-events: none;
+      }
+
+      /* ═══════════════════════════════
+         VIDÉO
+      ═══════════════════════════════ */
+      #introVideo {
+        position: relative;
+        z-index: 1;
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        display: block;
+      }
+
+      /* ═══════════════════════════════
+         HEADER LOGO OVERLAY
+      ═══════════════════════════════ */
+      #logoOverlay {
+        position: fixed;
+        top: 22px;
+        left: 28px;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(13, 13, 17, 0.6);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(124, 58, 237, 0.25);
+        border-radius: 14px;
+        padding: 10px 18px;
+        opacity: 0;
+        transform: translateY(-6px);
+        animation: fadeSlideDown 0.6s ease 0.4s forwards;
+      }
+
+      #logoOverlay img {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+      }
+
+      #logoOverlay span {
+        font-size: 14px;
+        font-weight: 800;
+        background: var(--grad);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.01em;
+      }
+
+      @keyframes fadeSlideDown {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ═══════════════════════════════
+         SKIP BUTTON
+      ═══════════════════════════════ */
+      #skipBtn {
+        position: fixed;
+        bottom: 32px;
+        right: 28px;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(13, 13, 17, 0.7);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(192, 38, 211, 0.35);
+        color: #c026d3;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 11px 22px;
+        border-radius: 30px;
+        cursor: pointer;
+        opacity: 0;
+        transform: translateY(10px);
+        transition:
+          opacity 0.5s ease,
+          transform 0.5s ease,
+          background 0.2s,
+          border-color 0.2s,
+          box-shadow 0.2s;
+      }
+
+      #skipBtn.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      #skipBtn:hover {
+        background: rgba(192, 38, 211, 0.18);
+        border-color: #c026d3;
+        box-shadow: 0 0 20px rgba(192, 38, 211, 0.25);
+      }
+
+      #skipBtn svg {
+        transition: transform 0.2s ease;
+      }
+      #skipBtn:hover svg {
+        transform: translateX(3px);
+      }
+
+      /* ═══════════════════════════════
+         BARRE DE PROGRESSION
+      ═══════════════════════════════ */
+      #progressTrack {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.06);
+        z-index: 50;
+      }
+
+      #progressBar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #7c3aed, #c026d3, #ec4899);
+        border-radius: 0 3px 3px 0;
+        transition: width 0.25s linear;
+        box-shadow: 0 0 12px rgba(192, 38, 211, 0.6);
+      }
+
+      /* Timer texte */
+      #timerLabel {
+        position: fixed;
+        bottom: 12px;
+        left: 28px;
+        z-index: 50;
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(192, 38, 211, 0.7);
+        letter-spacing: 0.05em;
+        opacity: 0;
+        transition: opacity 0.4s;
+      }
+
+      #timerLabel.visible {
+        opacity: 1;
+      }
+
+      /* ═══════════════════════════════
+         BADGE MOBILE PORTRAIT
+      ═══════════════════════════════ */
+      #mobileBadge {
+        display: none;
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 50;
+        align-items: center;
+        gap: 8px;
+        background: rgba(13, 13, 17, 0.8);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        border-radius: 20px;
+        padding: 9px 18px;
+        color: rgba(192, 38, 211, 0.9);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        animation: badgePulse 2.2s ease-in-out infinite;
+      }
+
+      @keyframes badgePulse {
+        0%,
+        100% {
+          opacity: 0.65;
+        }
+        50% {
+          opacity: 1;
+          box-shadow: 0 0 16px rgba(192, 38, 211, 0.2);
+        }
+      }
+
+      /* ═══════════════════════════════
+         FADE OUT OVERLAY
+      ═══════════════════════════════ */
+      #fadeOut {
+        position: fixed;
+        inset: 0;
+        background: var(--bg);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 300;
+        transition: opacity 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      #fadeOut.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      /* Texte dans le fade */
+      #fadeOut .fade-content {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        opacity: 0;
+        transition: opacity 0.5s ease 0.4s;
+      }
+
+      #fadeOut.active .fade-content {
+        opacity: 1;
+      }
+
+      #fadeOut .fade-logo {
+        font-size: 22px;
+        font-weight: 900;
+        background: var(--grad);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.02em;
+      }
+
+      #fadeOut .fade-sub {
+        font-size: 12px;
+        color: rgba(192, 38, 211, 0.6);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+
+      .fade-spinner {
+        width: 28px;
+        height: 28px;
+        border: 2px solid rgba(124, 58, 237, 0.2);
+        border-top-color: #c026d3;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* ═══════════════════════════════
+         MOBILE PORTRAIT
+      ═══════════════════════════════ */
+      @media (max-width: 767px) and (orientation: portrait) {
+        body {
+          background: #000;
+        }
+
+        #introVideo {
+          width: 100vw;
+          height: auto;
+          max-height: 100vh;
+          object-fit: contain;
+          object-position: center;
+        }
+
+        #mobileBadge {
+          display: flex;
+        }
+
+        #logoOverlay {
+          top: 14px;
+          left: 14px;
+          padding: 8px 14px;
+        }
+
+        #skipBtn {
+          bottom: 22px;
+          right: 14px;
+        }
+        #timerLabel {
+          bottom: 8px;
+          left: 14px;
+        }
+      }
+
+      /* ═══════════════════════════════
+         MOBILE LANDSCAPE
+      ═══════════════════════════════ */
+      @media (max-width: 767px) and (orientation: landscape) {
+        #introVideo {
+          width: 100vw;
+          height: 100vh;
+          object-fit: contain;
+          background: #000;
+        }
+      }
+    </style>
   </head>
 
-  <body style="margin: 0; background: black; overflow: hidden">
-    <video
-      id="introVideo"
-      autoplay
-      muted
-      playsinline
-      style="width: 100vw; height: 100vh; object-fit: cover"
-    >
+  <body>
+    <!-- Logo overlay -->
+    <div id="logoOverlay">
+      <img src="images/logo.png" alt="AiGENT" />
+      <span>Mon AiGENT</span>
+    </div>
+
+    <!-- Vidéo -->
+    <video id="introVideo" autoplay muted playsinline>
       <source src="videos/video.mp4" type="video/mp4" />
     </video>
 
+    <!-- Badge mobile portrait -->
+    <div id="mobileBadge">↻ &nbsp; Meilleure expérience en paysage</div>
+
+    <!-- Timer -->
+    <div id="timerLabel"></div>
+
+    <!-- Skip -->
+    <button id="skipBtn">
+      Passer
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M5 12h14M12 5l7 7-7 7" />
+      </svg>
+    </button>
+
+    <!-- Progression -->
+    <div id="progressTrack">
+      <div id="progressBar"></div>
+    </div>
+
+    <!-- Fade out -->
+    <div id="fadeOut">
+      <div class="fade-content">
+        <div class="fade-logo">AiGENT</div>
+        <div class="fade-spinner"></div>
+        <div class="fade-sub">Chargement de votre espace…</div>
+      </div>
+    </div>
+
     <script>
       const video = document.getElementById("introVideo");
+      const skipBtn = document.getElementById("skipBtn");
+      const progressBar = document.getElementById("progressBar");
+      const timerLabel = document.getElementById("timerLabel");
+      const fadeOutEl = document.getElementById("fadeOut");
 
-      video.addEventListener("ended", () => {
-        window.location.href = "login.html";
+      let redirected = false;
+
+      // ── Redirect avec fondu premium ──
+      function goToLogin() {
+        if (redirected) return;
+        redirected = true;
+        fadeOutEl.classList.add("active");
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 1100);
+      }
+
+      // ── Fin de vidéo ──
+      video.addEventListener("ended", goToLogin);
+
+      // ── Skip visible après 2s ──
+      setTimeout(() => skipBtn.classList.add("visible"), 2000);
+      skipBtn.addEventListener("click", goToLogin);
+
+      // ── Progression + timer ──
+      video.addEventListener("timeupdate", () => {
+        if (!video.duration) return;
+
+        const pct = (video.currentTime / video.duration) * 100;
+        progressBar.style.width = pct + "%";
+
+        const remaining = Math.ceil(video.duration - video.currentTime);
+        if (remaining <= video.duration && video.currentTime > 0) {
+          timerLabel.classList.add("visible");
+          timerLabel.textContent = remaining + "s";
+        }
       });
 
-      // sécurité si vidéo bloquée / autoplay limité
-      setTimeout(() => {
-        window.location.href = "login.html";
-      }, 8000);
+      // ── Sécurité 10s ──
+      const safety = setTimeout(goToLogin, 10000);
+      video.addEventListener("play", () => clearTimeout(safety));
+
+      // ── Autoplay bloqué ──
+      video.play().catch(() => goToLogin());
     </script>
   </body>
 </html>
