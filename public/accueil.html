@@ -137,6 +137,7 @@
     <nav id="sidebar" class="sidebar" aria-label="Menu principal">
       <span class="close-btn" id="closeSidebar">&times;</span>
       <h2>Menu</h2>
+
       <ul>
         <li>
           <a href="profil.html">
@@ -154,6 +155,7 @@
             Profil & Compte
           </a>
         </li>
+
         <li>
           <a href="messagerie.html">
             <svg
@@ -171,6 +173,7 @@
             Messagerie
           </a>
         </li>
+
         <li>
           <a href="favoris.html">
             <svg
@@ -188,6 +191,7 @@
             Profils favoris
           </a>
         </li>
+
         <li>
           <a href="statistiques.html">
             <svg
@@ -205,10 +209,59 @@
             Statistiques
           </a>
         </li>
+
+        <!-- 🔥 NOUVEAU LIEN MARCHÉ -->
+        <li>
+          <a href="./marche.html">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 64 64"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <!-- Barres -->
+              <rect x="8" y="34" width="8" height="16" rx="2"></rect>
+              <rect x="24" y="26" width="8" height="24" rx="2"></rect>
+              <rect x="40" y="18" width="8" height="32" rx="2"></rect>
+
+              <!-- Ligne / flèche qui rebondit -->
+              <path
+                d="M6 38 
+                   L12 34 
+                   L20 36 
+                   L28 26 
+                   L36 28 
+                   L44 18 
+                   L52 20"
+              ></path>
+
+              <!-- Pointe flèche -->
+              <polyline points="50 16 54 20 48 21"></polyline>
+
+              <!-- Pièce euro (séparée proprement) -->
+              <circle cx="54" cy="14" r="5"></circle>
+              <text
+                x="54"
+                y="16.5"
+                text-anchor="middle"
+                font-size="6"
+                fill="currentColor"
+                stroke="none"
+              >
+                €
+              </text>
+            </svg>
+            Marché
+          </a>
+        </li>
       </ul>
     </nav>
-    <div id="sidebarOverlay" class="sidebar-overlay"></div>
 
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
     <!-- ===== HEADER ===== -->
     <header class="top-banner">
       <div class="logo-container">

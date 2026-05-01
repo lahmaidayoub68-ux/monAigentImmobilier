@@ -1,4 +1,5 @@
 import { openNiveauEnergetiquePopup } from "./niveauEnergetiquePopup.js";
+import { openProximitePopup } from "./proximitePopup.js";
 
 // ================== CONFIG & STATE ==================
 const API_BASE = window.location.origin;
@@ -38,13 +39,17 @@ function normalizeCriteria(c) {
     budgetMax: c.budgetMax ?? c.budget ?? null,
     surface: surface,
     surfaceMin: surface,
+    surfaceMax: c.surfaceMax ?? null,
     pieces: c.pieces ?? c.piecesMin ?? null,
     piecesMin: c.piecesMin ?? c.pieces ?? null,
+    piecesMax: c.piecesMax ?? null,
     toleranceKm: c.toleranceKm ?? 0,
     etatBien: c.etatBien ?? null,
     type: c.type ?? null,
     niveauEnergetique: c.niveauEnergetique ?? null,
     imagesbien: Array.isArray(c.imagesbien) ? c.imagesbien : [],
+    // NOUVEAU
+    proximite: Array.isArray(c.proximite) ? c.proximite : (c.proximite ?? null),
   };
 }
 
@@ -226,6 +231,7 @@ async function sendMessage(text) {
   state.sending = true;
   addMessage({ text, from: "user" });
 
+  // Indicateur de saisie IA
   const thinkEl = document.createElement("div");
   thinkEl.className = "msg bot thinking-msg";
   thinkEl.innerHTML = `<span class="thinking-text">Analyse cognitive en cours<span class="dots"><span>.</span><span>.</span><span>.</span></span></span>`;
@@ -244,6 +250,7 @@ async function sendMessage(text) {
     const data = await res.json();
     thinkEl.remove();
 
+    // Merge critères
     if (data.role) state.role = data.role;
     if (data.criteria) {
       state.criteria = normalizeCriteria({
@@ -255,26 +262,41 @@ async function sendMessage(text) {
       updateProgressBar();
     }
 
-    if (data.reply || data.message) {
-      addMessage({
-        text: data.reply || data.message,
-        from: "bot",
-        typing: true,
-      });
-    }
+    // ── Pop-up : ORDRE STRICT VENDEUR ────────────────────────────────
+    if (state.role === "seller") {
+      // Réponse IA vendeur (toujours affichée sauf si matchs présents)
+      if (data.reply || data.message) {
+        addMessage({
+          text: data.reply || data.message,
+          from: "bot",
+          typing: true,
+        });
+      }
 
-    const baseComplete =
-      state.criteria.ville &&
-      state.criteria.type &&
-      state.criteria.budgetMin &&
-      state.criteria.surfaceMin;
+      // 1. Proximite (premier pop-up vendeur)
+      if (data.triggerProximitePopup && !state.ui.proximitePopupOpened) {
+        state.ui.proximitePopupOpened = true;
+        setTimeout(
+          () =>
+            openProximitePopup({
+              state,
+              save,
+              addMessage,
+              sendProximite,
+            }),
+          800,
+        );
+        return;
+      }
 
-    if (state.role === "seller" && baseComplete) {
-      if (!state.criteria.etatBien && !state.ui.etatPopupOpened) {
+      // 2. État du bien
+      if (data.triggerEtatBienPopup && !state.ui.etatPopupOpened) {
         state.ui.etatPopupOpened = true;
         setTimeout(openEtatPopup, 1200);
         return;
       }
+
+      // 3. Niveau énergétique
       if (
         data.triggerNiveauEnergetiquePopup &&
         !state.ui.niveauEnergetiquePopupOpened
@@ -292,15 +314,56 @@ async function sendMessage(text) {
         );
         return;
       }
+
+      // 4. Images
       if (data.triggerImagesPopup && !state.ui.imagesPopupOpened) {
         state.ui.imagesPopupOpened = true;
         setTimeout(openImagesPopup, 1200);
         return;
       }
+
+      // Matchs vendeur
+      if (Array.isArray(data.matches) && data.matches.length > 0) {
+        renderMatches(data.matches, data.postReply);
+      }
+      return;
     }
 
-    if (Array.isArray(data.matches) && data.matches.length > 0) {
-      renderMatches(data.matches, data.postReply);
+    // ── BUYER ─────────────────────────────────────────────────────────
+    // Si matchs présents : on n'affiche PAS reply (message tunnel obsolète),
+    // renderMatches affiche postReply à la place
+    // APRÈS
+    // ── BUYER ─────────────────────────────────────────────────────────
+    if (data.matchingDone) {
+      if (Array.isArray(data.matches) && data.matches.length > 0) {
+        renderMatches(data.matches, data.postReply);
+      } else {
+        // Matching déclenché mais 0 résultat (sellers sans ville, ou hors rayon)
+        if (data.reply || data.message) {
+          addMessage({
+            text: data.reply || data.message,
+            from: "bot",
+            typing: true,
+          });
+        }
+        addMessage({
+          text:
+            data.postReply ||
+            "Aucun bien ne correspond exactement à vos critères actuellement. Souhaitez-vous élargir votre rayon ou ajuster votre budget ?",
+          from: "bot",
+          typing: true,
+        });
+      }
+      return; // ← CRUCIAL : stoppe le tunnel dans tous les cas
+    }
+
+    // Pas encore de matching — tunnel normal
+    if (data.reply || data.message) {
+      addMessage({
+        text: data.reply || data.message,
+        from: "bot",
+        typing: true,
+      });
     }
   } catch (e) {
     thinkEl.remove();
@@ -315,6 +378,13 @@ async function sendMessage(text) {
 
 // ================== FONCTIONS D'UPDATE POPUPS ==================
 async function sendSpecialUpdate(payload) {
+  // ── Indicateur thinking ──────────────────────────────────────────
+  const thinkEl = document.createElement("div");
+  thinkEl.className = "msg bot thinking-msg";
+  thinkEl.innerHTML = `<span class="thinking-text">Analyse cognitive en cours<span class="dots"><span>.</span><span>.</span><span>.</span></span></span>`;
+  $("chat-box").appendChild(thinkEl);
+  scrollBottom($("chat-box"));
+
   try {
     const res = await fetch(`${API_BASE}/chat`, {
       method: "POST",
@@ -325,14 +395,34 @@ async function sendSpecialUpdate(payload) {
       body: JSON.stringify(payload),
     });
     const data = await res.json();
+    thinkEl.remove();
+
     if (data.criteria) {
       state.criteria = normalizeCriteria({
         ...state.criteria,
         ...data.criteria,
       });
       save("criteria", state.criteria);
+      updateProgressBar();
     }
-    if (
+
+    // ── Affiche TOUJOURS le message IA s'il existe ────────────────
+    if (data.reply || data.message) {
+      addMessage({
+        text: data.reply || data.message,
+        from: "bot",
+        typing: true,
+      });
+    }
+
+    // ── Cascade pop-ups vendeur ───────────────────────────────────
+    if (data.triggerProximitePopup && !state.ui.proximitePopupOpened) {
+      state.ui.proximitePopupOpened = true;
+      openProximitePopup({ state, save, addMessage, sendProximite });
+    } else if (data.triggerEtatBienPopup && !state.ui.etatPopupOpened) {
+      state.ui.etatPopupOpened = true;
+      setTimeout(openEtatPopup, 600);
+    } else if (
       data.triggerNiveauEnergetiquePopup &&
       !state.ui.niveauEnergetiquePopupOpened
     ) {
@@ -346,11 +436,16 @@ async function sendSpecialUpdate(payload) {
     } else if (data.triggerImagesPopup && !state.ui.imagesPopupOpened) {
       state.ui.imagesPopupOpened = true;
       openImagesPopup();
-    } else if (data.matches) {
+    } else if (Array.isArray(data.matches) && data.matches.length > 0) {
       renderMatches(data.matches, data.postReply);
     }
   } catch (e) {
-    console.error(e);
+    thinkEl.remove();
+    console.error("[sendSpecialUpdate]", e);
+    addMessage({
+      text: "Erreur de communication avec le serveur.",
+      from: "bot",
+    });
   }
 }
 
@@ -359,6 +454,17 @@ async function sendNiveauEnergetique(val) {
   await sendSpecialUpdate({
     niveauEnergetique: val,
     message: "__NIVEAU_ENERGETIQUE_SELECTED__",
+  });
+}
+async function sendProximite(val) {
+  // val : tableau de strings ex: ["Transport : Arrêt bus Saint-Lazare", "École : École primaire Jules Ferry"]
+  state.ui.proximitePopupOpened = true;
+  state.criteria.proximite = Array.isArray(val) ? val : [];
+  save("criteria", state.criteria);
+
+  await sendSpecialUpdate({
+    proximite: state.criteria.proximite,
+    message: "__PROXIMITE_SELECTED__",
   });
 }
 
@@ -552,11 +658,71 @@ async function renderMatches(matches, postReply) {
     if (m.role === "seller") {
       bubble.querySelector(".details-btn").onclick = () => {
         const images = Array.isArray(m.imagesbien) ? m.imagesbien : [];
+        const proximite = Array.isArray(m.proximite) ? m.proximite : [];
         let currentIndex = 0;
 
         const modal = document.createElement("div");
         modal.className = "details-modal-overlay";
         modal.style.display = "flex";
+
+        // ── Regrouper les infras par type ─────────────────────────────────
+        const INFRA_COLORS = {
+          Transport: "#6366f1",
+          École: "#8b5cf6",
+          Commerce: "#ec4899",
+          Santé: "#f43f5e",
+          "Parc / Nature": "#10b981",
+          "Restaurant / Café": "#f59e0b",
+        };
+
+        function getInfraColor(label) {
+          for (const [key, color] of Object.entries(INFRA_COLORS)) {
+            if (label.toLowerCase().includes(key.toLowerCase())) return color;
+          }
+          return "#a78bfa";
+        }
+
+        function buildProximiteHTML(items) {
+          if (!items.length) {
+            return `<p style="font-size:12px;color:#64748b;margin:0;font-style:italic">Non renseigné</p>`;
+          }
+
+          return items
+            .map((item) => {
+              const parts = item.split(" : ");
+              const type = parts.length > 1 ? parts[0].trim() : "Lieu";
+              const name = parts.length > 1 ? parts[1].trim() : item;
+
+              const color = getInfraColor(type);
+
+              return `
+        <span class="prox-detail-chip" style="
+          display:inline-flex; align-items:center; gap:5px;
+          padding:4px 10px; margin:2px;
+          border-radius:20px; font-size:11px; font-weight:500;
+          background:${color}1A;
+          border:1px solid ${color}55;
+        ">
+          <span style="
+            width:6px;height:6px;border-radius:50%;
+            background:${color};
+            flex-shrink:0;
+          "></span>
+
+          <span style="
+            color:${color};
+            font-weight:600;
+          ">${type}</span>
+
+          <span style="
+            color:${color};
+            opacity:0.85;
+          ">${name}</span>
+        </span>
+      `;
+            })
+            .join("");
+        }
 
         const renderModalContent = () => {
           const hasImages = images.length > 0;
@@ -565,7 +731,7 @@ async function renderMatches(matches, postReply) {
           <div class="details-header">Détails de l'annonce
             <button class="close-details-btn">&times;</button>
           </div>
-          
+ 
           ${
             hasImages
               ? `
@@ -586,15 +752,34 @@ async function renderMatches(matches, postReply) {
           `
               : '<div class="no-img-placeholder">Aucune photo disponible</div>'
           }
-
+ 
           <div class="details-grid">
             <div class="feature-item"><span>DPE</span><strong>${m.niveauEnergetique || "N/A"}</strong></div>
             <div class="feature-item"><span>État</span><strong>${m.etatBien || "N/A"}</strong></div>
             <div class="feature-item"><span>Contact</span><strong>${m.contact || "N/A"}</strong></div>
           </div>
+ 
+          ${
+            proximite.length > 0
+              ? `
+          <div class="details-proximite-section">
+            <div class="details-proximite-header">
+              <svg viewBox="0 0 24 24" fill="none" width="14" height="14">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                  fill="#a78bfa"/>
+              </svg>
+              <span>Commodités à proximité</span>
+            </div>
+            <div class="details-proximite-chips">
+              ${buildProximiteHTML(proximite)}
+            </div>
+          </div>
+          `
+              : ""
+          }
         </div>`;
 
-          // Ré-attacher les events après chaque re-render interne
+          // Events
           modal.querySelector(".close-details-btn").onclick = () =>
             modal.remove();
           if (images.length > 1) {
@@ -655,56 +840,59 @@ async function renderMatches(matches, postReply) {
       const modal = $("mapModal");
       modal.style.display = "flex";
 
-      // APRÈS
       const isSeller = state.role === "seller";
 
-      const rawLat = parseFloat(btn.dataset.lat);
-      const rawLng = parseFloat(btn.dataset.lng);
-      const rawBuyerLat = parseFloat(btn.dataset.buyerLat);
-      const rawBuyerLng = parseFloat(btn.dataset.buyerLng);
+      const matchLat = parseFloat(btn.dataset.lat);
+      const matchLng = parseFloat(btn.dataset.lng);
+      const buyerLat = parseFloat(btn.dataset.buyerLat);
+      const buyerLng = parseFloat(btn.dataset.buyerLng);
 
-      // Pour un VENDEUR :
-      //   - son bien = lat/lng du match (point rose 🏠)
-      //   - l'acheteur matché = buyerLat/buyerLng (point bleu 📍)
-      // Pour un ACHETEUR :
-      //   - le bien trouvé = lat/lng du match (point rose 🏠)
-      //   - sa recherche = buyerLat/buyerLng (point bleu 📍)
-      // Dans les deux cas la logique est la même,
-      // MAIS si buyerLat === lat (fallback raté), on détecte et on corrige.
+      // Pour ACHETEUR :
+      //   - matchLat/matchLng = coords du BIEN trouvé (marker rose 🏠)
+      //   - buyerLat/buyerLng = coords de l'acheteur = SA ville (marker bleu 📍)
+      // Pour VENDEUR :
+      //   - matchLat/matchLng = coords du BIEN du vendeur (marker rose 🏠)
+      //   - buyerLat/buyerLng = coords de l'acheteur matché (marker bleu 📍)
 
-      const coordsAreSame =
-        Math.abs(rawBuyerLat - rawLat) < 0.0001 &&
-        Math.abs(rawBuyerLng - rawLng) < 0.0001;
+      // Le "user" dans la carte = toujours le marker bleu = buyerLat/buyerLng
+      // Le "bien" dans la carte = toujours le marker rose = matchLat/matchLng
 
-      // Si les deux points sont identiques (fallback raté côté vendeur),
-      // on utilise les critères de l'utilisateur connecté comme position "user"
-      const matchLat = rawLat;
-      const matchLng = rawLng;
-      const matchVille = btn.dataset.ville;
-
-      const userLat =
-        !isNaN(rawBuyerLat) && !coordsAreSame
-          ? rawBuyerLat
-          : (state.criteria.userLat ?? 48.8566);
-      const userLng =
-        !isNaN(rawBuyerLng) && !coordsAreSame
-          ? rawBuyerLng
-          : (state.criteria.userLng ?? 2.3522);
-
+      const userLat = !isNaN(buyerLat) ? buyerLat : 48.8566;
+      const userLng = !isNaN(buyerLng) ? buyerLng : 2.3522;
       const userVille = isSeller
         ? "Acheteur potentiel"
         : state.criteria.ville || "Votre position";
+
       const mapEl = document.getElementById("map");
-      mapEl.innerHTML = ""; // reset si déjà utilisé
+      mapEl.innerHTML = "";
       const map = L.map("map").setView(
         [(matchLat + userLat) / 2, (matchLng + userLng) / 2],
         11,
       );
-      setTimeout(() => map.invalidateSize(), 150); // ← force le rendu dans la modal
+      setTimeout(() => map.invalidateSize(), 150);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap",
       }).addTo(map);
+
+      // Cercle de rayon (acheteur seulement)
+      const toleranceKm = state.criteria?.toleranceKm;
+      if (!isSeller && toleranceKm && toleranceKm > 0) {
+        L.circle([userLat, userLng], {
+          radius: toleranceKm * 1000,
+          color: "#818cf8",
+          fillColor: "#818cf8",
+          fillOpacity: 0.06,
+          weight: 1.5,
+          dashArray: "6 4",
+        })
+          .addTo(map)
+          .bindTooltip(`Rayon de recherche : ${toleranceKm} km`, {
+            permanent: false,
+            direction: "top",
+            className: "leaflet-tooltip-radius",
+          });
+      }
 
       // Distance Haversine
       const R = 6371;
@@ -733,12 +921,7 @@ async function renderMatches(matches, postReply) {
           [userLat, userLng],
           [matchLat, matchLng],
         ],
-        {
-          color: lineColor,
-          weight: 2.5,
-          dashArray: "6 5",
-          opacity: 0.85,
-        },
+        { color: lineColor, weight: 2.5, dashArray: "6 5", opacity: 0.85 },
       ).addTo(map);
 
       const userIcon = L.divIcon({
@@ -755,6 +938,7 @@ async function renderMatches(matches, postReply) {
         iconAnchor: [18, 36],
       });
 
+      // Marker bleu = l'utilisateur (buyer ou vendeur connecté)
       L.marker([userLat, userLng], { icon: userIcon })
         .addTo(map)
         .bindPopup(
@@ -762,10 +946,11 @@ async function renderMatches(matches, postReply) {
         )
         .openPopup();
 
+      // Marker rose = le bien (seller) ou l'acheteur matché
       L.marker([matchLat, matchLng], { icon: matchIcon })
         .addTo(map)
         .bindPopup(
-          `<strong>🏠 ${matchVille}</strong><br><span style="display:inline-block;margin-top:4px;padding:2px 8px;border-radius:20px;background:${lineColor}22;color:${lineColor};font-size:11px;font-weight:600;border:1px solid ${lineColor}44;">${distanceKm} km</span>`,
+          `<strong>🏠 ${btn.dataset.ville}</strong><br><span style="display:inline-block;margin-top:4px;padding:2px 8px;border-radius:20px;background:${lineColor}22;color:${lineColor};font-size:11px;font-weight:600;border:1px solid ${lineColor}44;">${distanceKm} km</span>`,
         );
 
       map.fitBounds(
@@ -1145,8 +1330,22 @@ export function initChatbot() {
 
   initTheme();
   restoreSession();
+
+  // S'assurer que state.ui contient le flag proximite
+  if (!state.ui) {
+    state.ui = {
+      etatPopupOpened: false,
+      imagesPopupOpened: false,
+      niveauEnergetiquePopupOpened: false,
+      proximitePopupOpened: false,
+    };
+  } else if (state.ui.proximitePopupOpened === undefined) {
+    state.ui.proximitePopupOpened = false;
+  }
+
   render();
-  // --- GESTION DES SUGGESTIONS ---
+
+  // Suggestions
   const suggestionsBox = $("chat-suggestions");
   const input = $("user-input");
 
@@ -1154,18 +1353,13 @@ export function initChatbot() {
     suggestionsBox.addEventListener("click", (e) => {
       const btn = e.target.closest(".suggestion-btn");
       if (btn) {
-        // Récupère le texte sans l'émoji (optionnel) ou tout le texte
-        const text = btn.innerText.trim();
-        input.value = text;
+        input.value = btn.innerText.trim();
         input.focus();
-
-        // Optionnel : Envoyer le message automatiquement au clic
-        // sendMessage(text);
-        // input.value = "";
       }
     });
   }
-  // --- ACTIONS DU PANEL IA (CERVEAU) ---
+
+  // Actions panel IA
   document.querySelector(".ai-btn.primary")?.addEventListener("click", () => {
     sendMessage("Je souhaite être mis en relation avec un conseiller.");
   });
@@ -1192,5 +1386,5 @@ export function initChatbot() {
     window.location.href = "index.html";
   });
 
-  log("✅ Chatbot Hybrid Boosté Prêt");
+  log("✅ Chatbot initialisé — proximite activé");
 }

@@ -245,23 +245,81 @@ function scoreTechniqueSmart(seller, buyer) {
 function scoreEmotionSmart(seller) {
   let score = 50;
 
+  // ── DPE ──────────────────────────────────────────────────────────────
   const energy = getEnergyScore(seller.niveauEnergetique);
   score += energy * 4;
 
+  // ── Photos ───────────────────────────────────────────────────────────
   const photos = Array.isArray(seller.imagesbien)
     ? seller.imagesbien.length
     : 0;
-
   score += Math.min(photos, 6) * 4;
 
+  // ── État du bien ──────────────────────────────────────────────────────
   const etat = normalize(seller.etatBien);
-
   if (etat.includes("neuf")) score += 15;
   else if (etat.includes("renove")) score += 10;
   else if (etat.includes("travaux")) score -= 15;
 
+  // ── Proximite — bonus richesse ────────────────────────────────────────
+  // Chaque infrastructure déclarée rapporte des points, plafonné à 12
+  const nbInfras = Array.isArray(seller.proximite)
+    ? seller.proximite.length
+    : 0;
+
+  if (nbInfras > 0) {
+    // Bonus progressif : 2pts par infra, max 12
+    score += Math.min(nbInfras * 2, 12);
+
+    // Bonus qualitatif : diversité des types
+    const types = new Set(
+      seller.proximite.map((item) => {
+        const parts = item.split(" : ");
+        return parts.length > 1 ? parts[0].trim().toLowerCase() : "autre";
+      }),
+    );
+    if (types.size >= 3) score += 5; // 3 types différents = quartier complet
+    if (types.size >= 5) score += 3; // 5 types = exceptionnel
+  }
+
   return Math.max(0, Math.min(100, score));
 }
+
+function scoreProximiteMatch(seller, buyer) {
+  // Si ni le seller ni le buyer n'ont de données proximite → neutre
+  const sellerInfras = Array.isArray(seller.proximite) ? seller.proximite : [];
+  const buyerPrefs = Array.isArray(buyer.proximite) ? buyer.proximite : [];
+
+  if (!sellerInfras.length && !buyerPrefs.length) return 0;
+  if (!buyerPrefs.length) return sellerInfras.length > 0 ? 3 : 0; // bonus léger si seller a des infras
+
+  if (!sellerInfras.length) return 0; // buyer veut des infras mais seller n'en a pas → pas de bonus
+
+  // Correspondance : on cherche des types en commun
+  const sellerTypes = new Set(
+    sellerInfras.map((item) => {
+      const parts = item.split(" : ");
+      return parts.length > 1 ? parts[0].trim().toLowerCase() : "autre";
+    }),
+  );
+
+  const buyerTypes = new Set(
+    buyerPrefs.map((item) => {
+      const parts = item.split(" : ");
+      return parts.length > 1 ? parts[0].trim().toLowerCase() : "autre";
+    }),
+  );
+
+  let matchCount = 0;
+  for (const t of buyerTypes) {
+    if (sellerTypes.has(t)) matchCount++;
+  }
+
+  if (matchCount === 0) return -3; // buyer veut X, seller n'a pas X
+  if (matchCount === buyerTypes.size) return 8; // match parfait sur tous les types souhaités
+  return Math.round((matchCount / buyerTypes.size) * 6); // match partiel
+}
+
 function getSurfacePiecesAdjustement(seller) {
   const surface = Number(seller.surface);
   const pieces = Number(seller.pieces);
@@ -324,12 +382,14 @@ export async function addSeller(criteria = {}) {
     surface: safeNumber(criteria.surface, 0),
 
     contact: criteria.contact || "",
+
     etatBien:
       criteria.etatBien !== undefined
         ? criteria.etatBien
         : existingIndex >= 0
           ? SELLERS[existingIndex].etatBien
           : null,
+
     imagesbien: Array.isArray(criteria.imagesbien)
       ? criteria.imagesbien
       : safeImagesParse(criteria.imagesbien),
@@ -340,6 +400,13 @@ export async function addSeller(criteria = {}) {
         : existingIndex >= 0
           ? SELLERS[existingIndex].niveauEnergetique
           : null,
+
+    // NOUVEAU
+    proximite: Array.isArray(criteria.proximite)
+      ? criteria.proximite
+      : existingIndex >= 0
+        ? SELLERS[existingIndex].proximite || []
+        : [],
   };
 
   if (existingIndex >= 0) SELLERS[existingIndex] = seller;
@@ -359,6 +426,7 @@ export async function addSeller(criteria = {}) {
       etatBien: seller.etatBien,
       imagesbien: JSON.stringify(seller.imagesbien || []),
       niveauenergetique: seller.niveauEnergetique,
+      proximite: JSON.stringify(seller.proximite || []),
     },
     "username",
     [
@@ -372,6 +440,7 @@ export async function addSeller(criteria = {}) {
       "etatBien",
       "imagesbien",
       "niveauenergetique",
+      "proximite",
     ],
   );
 
@@ -399,8 +468,18 @@ export async function addBuyer(criteria = {}) {
 
     surfaceMin: cleanBuyerNumber(criteria.surfaceMin, null),
     surfaceMax: cleanBuyerNumber(criteria.surfaceMax, MAX_SURFACE),
+
     toleranceKm: cleanBuyerNumber(criteria.toleranceKm, null),
+
     contact: criteria.contact || "",
+
+    // NOUVEAU
+    proximite: Array.isArray(criteria.proximite)
+      ? criteria.proximite
+      : existingIndex >= 0
+        ? BUYERS[existingIndex].proximite || []
+        : [],
+
     preferences:
       existingIndex >= 0
         ? BUYERS[existingIndex].preferences
@@ -417,19 +496,15 @@ export async function addBuyer(criteria = {}) {
       role: buyer.role,
       ville: buyer.ville,
       type: buyer.type,
-
       budgetMin: buyer.budgetMin,
       budgetMax: buyer.budgetMax,
-
       piecesMin: buyer.piecesMin,
       piecesMax: buyer.piecesMax,
-
       surfaceMin: buyer.surfaceMin,
       surfaceMax: buyer.surfaceMax,
-
       toleranceKm: buyer.toleranceKm,
-
       contact: buyer.contact,
+      proximite: JSON.stringify(buyer.proximite || []),
     },
     "username",
     [
@@ -444,11 +519,13 @@ export async function addBuyer(criteria = {}) {
       "surfaceMax",
       "toleranceKm",
       "contact",
+      "proximite",
     ],
   );
 
   return buyer;
 }
+
 export async function getAllSellers() {
   return await db.sellers.find({}); // ou la méthode de ta DB
 }
@@ -503,9 +580,8 @@ function scoreBuyerForSeller(buyer, seller) {
 
   const vital = budgetScore * 0.55 + villeScore * 0.45;
 
-  // Technique (symétrique : on vérifie que le bien seller correspond au buyer)
+  // Technique
   let tech = 0;
-
   if (buyer.piecesMin != null && seller.pieces >= buyer.piecesMin) {
     tech += 45;
     const extra = seller.pieces - buyer.piecesMin;
@@ -527,13 +603,17 @@ function scoreBuyerForSeller(buyer, seller) {
 
   tech = Math.max(0, Math.min(100, tech));
 
-  // Émotion (qualité intrinsèque du bien)
+  // Émotion (qualité intrinsèque seller)
   const emotion = scoreEmotionSmart(seller);
 
-  const final = vital * 0.6 + tech * 0.3 + emotion * 0.1;
+  // Proximite bonus (acheteur × seller)
+  const proximiteBonus = scoreProximiteMatch(seller, buyer);
 
-  return Math.round(final);
+  const final = vital * 0.6 + tech * 0.3 + emotion * 0.1 + proximiteBonus;
+
+  return Math.round(Math.max(0, Math.min(100, final)));
 }
+
 // ===== Vendeur → Acheteur =====
 function scoreSellerForBuyer(seller, buyer) {
   const budgetScore = scoreBudgetSmart(seller, buyer);
@@ -551,15 +631,21 @@ function scoreSellerForBuyer(seller, buyer) {
 
   const emotion = scoreEmotionSmart(seller);
 
-  const final = vital * 0.6 + tech * 0.3 + emotion * 0.1;
+  // Proximite bonus
+  const proximiteBonus = scoreProximiteMatch(seller, buyer);
+
+  const final = vital * 0.6 + tech * 0.3 + emotion * 0.1 + proximiteBonus;
+
   logStep("SELLER SCORE DETAIL", {
     seller: seller.username,
     budgetDiff: seller.price - buyer?.budgetMax,
     distance: seller.distanceToBuyer,
     energy: seller.niveauEnergetique,
+    proximiteBonus,
     finalScore: final,
   });
-  return Math.round(final);
+
+  return Math.round(Math.max(0, Math.min(100, final)));
 }
 
 // ================== MATCHING ACHETEUR → VENDEURS ==================
@@ -765,15 +851,19 @@ export function matchUsers(buyerProfile, topN = 5) {
       buyerLat: buyerCoords?.lat ?? null,
       buyerLng: buyerCoords?.lng ?? null,
 
-      // pour le front
       villeOriginal: seller.ville,
       departement: getDepartement(seller.ville) || "TEST",
       etatBien: seller.etatBien,
-      niveauEnergetique: seller.niveauEnergetique, // <-- ajouté ici pour le front
+      niveauEnergetique: seller.niveauEnergetique,
 
       imagesbien: Array.isArray(seller.imagesbien)
         ? seller.imagesbien
         : safeImagesParse(seller.imagesbien),
+
+      // NOUVEAU
+      proximite: Array.isArray(seller.proximite)
+        ? seller.proximite
+        : safeImagesParse(seller.proximite),
     };
   });
   // 🔥 AJOUT ICI
@@ -1045,6 +1135,11 @@ export function matchSellerToBuyers(sellerProfile, topN = 5) {
       pieces: sellerProfile.pieces,
       common,
       different,
+
+      // NOUVEAU
+      proximite: Array.isArray(buyer.proximite)
+        ? buyer.proximite
+        : safeImagesParse(buyer.proximite),
     };
   });
 
@@ -1275,6 +1370,29 @@ export function getStatsMatches(buyerProfile, limit = 30) {
           score: dpeScore,
           levelScore: levelToScore[dpeMatch],
         },
+        proximite: {
+          level:
+            Array.isArray(seller.proximite) && seller.proximite.length >= 5
+              ? "perfect"
+              : Array.isArray(seller.proximite) && seller.proximite.length >= 3
+                ? "close"
+                : Array.isArray(seller.proximite) &&
+                    seller.proximite.length >= 1
+                  ? "tolerated"
+                  : "none",
+          count: Array.isArray(seller.proximite) ? seller.proximite.length : 0,
+          items: Array.isArray(seller.proximite) ? seller.proximite : [],
+          score: (() => {
+            const n = Array.isArray(seller.proximite)
+              ? seller.proximite.length
+              : 0;
+            if (n >= 5) return 100;
+            if (n >= 3) return 75;
+            if (n >= 1) return 50;
+            return 0;
+          })(),
+        },
+
         etat: {
           level: etatMatch,
           value: seller.etatBien,

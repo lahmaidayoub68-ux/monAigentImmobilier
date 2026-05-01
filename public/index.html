@@ -1,192 +1,2745 @@
 <!doctype html>
-<html lang="fr" data-theme="dark">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/images/favicon.ico" />
-    <title>AiGENT - L'Immobilier Propulsé par l'IA</title>
-    <link rel="stylesheet" href="blog.css" />
-  </head>
+    <title>AiGENT — Blog & Insights Immobiliers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      :root {
+        --c-white: #ffffff;
+        --c-bg: #f8f7fc;
+        --c-surface: #ffffff;
+        --c-border: rgba(0, 0, 0, 0.07);
+        --c-border-hover: rgba(0, 0, 0, 0.14);
+        --c-purple: #7c3aed;
+        --c-pink: #c026d3;
+        --c-purple-glow: rgba(124, 58, 237, 0.12);
+        --c-text: #0f0d1a;
+        --c-muted: rgba(15, 13, 26, 0.48);
+        --c-accent: #a855f7;
+        --c-card: #ffffff;
+        --font-serif: "Instrument Serif", Georgia, serif;
+        --font-sans: "DM Sans", sans-serif;
+        --font-mono: "JetBrains Mono", monospace;
+        --radius-xl: 24px;
+        --radius-2xl: 36px;
+        --radius-3xl: 48px;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: var(--font-sans);
+        background: var(--c-bg);
+        color: var(--c-text);
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f0eef6;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--c-purple);
+        border-radius: 4px;
+      }
 
+      /* ── HEADER (garde noir) ── */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        background: rgba(8, 8, 8, 0.92);
+        backdrop-filter: blur(24px) saturate(180%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .header-inner {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0 32px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .logo-icon {
+        width: 38px;
+        height: 38px;
+        background: linear-gradient(135deg, var(--c-purple), var(--c-pink));
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 24px rgba(124, 58, 237, 0.4);
+      }
+      .logo-text {
+        font-family: var(--font-sans);
+        font-weight: 700;
+        font-size: 20px;
+        letter-spacing: -0.04em;
+        color: #fff;
+      }
+      nav {
+        display: flex;
+        align-items: center;
+        gap: 32px;
+      }
+      nav a {
+        font-size: 13px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.5);
+        text-decoration: none;
+        letter-spacing: 0.01em;
+        transition: color 0.2s;
+      }
+      nav a:hover {
+        color: #fff;
+      }
+      nav a.active {
+        color: #a855f7;
+      }
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .btn-ghost {
+        font-size: 13px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.5);
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: color 0.2s;
+        font-family: var(--font-sans);
+      }
+      .btn-ghost:hover {
+        color: #fff;
+      }
+      .btn-cta {
+        font-size: 13px;
+        font-weight: 700;
+        font-family: var(--font-sans);
+        background: linear-gradient(135deg, var(--c-purple), var(--c-pink));
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        padding: 10px 20px;
+        border-radius: 10px;
+        letter-spacing: -0.01em;
+        transition: all 0.2s;
+        box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+      }
+      .btn-cta:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 0 32px rgba(124, 58, 237, 0.5);
+      }
+
+      /* ── HERO BLOG ── */
+      .blog-hero {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 72px 32px 48px;
+      }
+      .blog-hero-inner {
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        gap: 48px;
+        align-items: start;
+      }
+      .hero-left {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        gap: 12px;
+        padding-top: 32px;
+
+        max-width: 640px;
+
+        position: relative;
+        z-index: 2;
+      }
+      .blog-kicker {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--c-accent);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .blog-kicker::before {
+        content: "";
+        width: 24px;
+        height: 1px;
+        background: var(--c-accent);
+        display: inline-block;
+      }
+      .blog-hero-title {
+        font-family: var(--font-serif);
+        font-size: clamp(44px, 5vw, 68px);
+        line-height: 1.06;
+        color: var(--c-text);
+        margin-bottom: 24px;
+      }
+      .blog-hero-title em {
+        font-style: italic;
+      }
+      .blog-hero-title .grad {
+        background: linear-gradient(135deg, #7c3aed, #c026d3);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .blog-hero-sub {
+        font-size: 16px;
+        color: var(--c-muted);
+        line-height: 1.7;
+        max-width: 520px;
+        margin-bottom: 40px;
+      }
+      .blog-hero-tags {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .blog-tag-filter {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 8px 18px;
+        border-radius: 100px;
+        border: 1px solid var(--c-border);
+        background: var(--c-surface);
+        color: var(--c-muted);
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: var(--font-sans);
+        letter-spacing: 0.02em;
+      }
+      .blog-tag-filter:hover,
+      .blog-tag-filter.active {
+        background: linear-gradient(135deg, var(--c-purple), var(--c-pink));
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+      }
+
+      /* ── CHAT SIDEBAR (blog version) ── */
+      .chat-sidebar {
+        position: sticky;
+        top: 88px;
+        background: var(--c-surface);
+        border: 1px solid var(--c-border);
+        border-radius: var(--radius-2xl);
+        overflow: hidden;
+        height: 640px;
+        display: flex;
+        flex-direction: column;
+        box-shadow:
+          0 24px 64px rgba(0, 0, 0, 0.08),
+          0 0 0 1px rgba(124, 58, 237, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      }
+      .chat-header {
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid var(--c-border);
+        background: linear-gradient(
+          to bottom,
+          rgba(124, 58, 237, 0.04),
+          transparent
+        );
+        flex-shrink: 0;
+      }
+      .chat-header-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+      .chat-identity {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .chat-avatar {
+        width: 34px;
+        height: 34px;
+        background: linear-gradient(135deg, var(--c-purple), var(--c-pink));
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 16px rgba(124, 58, 237, 0.3);
+      }
+      .chat-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--c-text);
+        letter-spacing: -0.01em;
+      }
+      .chat-status-text {
+        font-size: 11px;
+        color: var(--c-muted);
+        font-family: var(--font-mono);
+      }
+      .chat-live {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(34, 197, 94, 0.08);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        padding: 4px 10px;
+        border-radius: 100px;
+      }
+      .chat-live-dot {
+        width: 5px;
+        height: 5px;
+        background: #22c55e;
+        border-radius: 50%;
+        animation: pulse 1.5s infinite;
+      }
+      .chat-live span {
+        font-size: 10px;
+        font-weight: 700;
+        color: #16a34a;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+
+      /* MESSAGES */
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 20px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        scroll-behavior: smooth;
+      }
+      .chat-messages::-webkit-scrollbar {
+        width: 3px;
+      }
+      .chat-messages::-webkit-scrollbar-thumb {
+        background: rgba(124, 58, 237, 0.2);
+        border-radius: 3px;
+      }
+      .msg {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-width: 90%;
+      }
+      .msg.ai {
+        align-self: flex-start;
+      }
+      .msg.user {
+        align-self: flex-end;
+      }
+      .msg-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--c-muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0 4px;
+      }
+      .msg.user .msg-label {
+        text-align: right;
+      }
+      .msg-bubble {
+        padding: 12px 16px;
+        border-radius: 16px;
+        font-size: 13.5px;
+        line-height: 1.6;
+      }
+      .msg.ai .msg-bubble {
+        background: rgba(0, 0, 0, 0.03);
+        border: 1px solid var(--c-border);
+        border-bottom-left-radius: 4px;
+        color: var(--c-text);
+      }
+      .msg.user .msg-bubble {
+        background: linear-gradient(
+          135deg,
+          rgba(124, 58, 237, 0.12),
+          rgba(192, 38, 211, 0.08)
+        );
+        border: 1px solid rgba(124, 58, 237, 0.2);
+        border-bottom-right-radius: 4px;
+        color: var(--c-text);
+      }
+      .msg-bubble strong {
+        color: var(--c-purple);
+        font-weight: 600;
+      }
+
+      /* THINKING */
+      .thinking-bubble {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        background: rgba(124, 58, 237, 0.05);
+        border: 1px solid rgba(124, 58, 237, 0.12);
+        border-radius: 16px;
+        border-bottom-left-radius: 4px;
+        width: fit-content;
+      }
+      .thinking-label {
+        font-size: 11px;
+        color: rgba(124, 58, 237, 0.6);
+        font-family: var(--font-mono);
+      }
+      .thinking-dots {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+      }
+      .thinking-dots span {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--c-accent);
+        opacity: 0.4;
+        animation: dot-bounce 1.2s ease-in-out infinite;
+      }
+      .thinking-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .thinking-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+      @keyframes dot-bounce {
+        0%,
+        100% {
+          transform: translateY(0);
+          opacity: 0.4;
+        }
+        50% {
+          transform: translateY(-4px);
+          opacity: 1;
+        }
+      }
+      .typing-cursor::after {
+        content: "▋";
+        animation: blink 0.7s step-end infinite;
+        color: var(--c-accent);
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+      }
+
+      /* SUGGESTIONS */
+      .chat-suggestions {
+        padding: 0 16px 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .suggestion-chip {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--c-purple);
+        background: rgba(124, 58, 237, 0.07);
+        border: 1px solid rgba(124, 58, 237, 0.15);
+        border-radius: 100px;
+        padding: 5px 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+        font-family: var(--font-sans);
+        letter-spacing: 0.01em;
+      }
+      .suggestion-chip:hover {
+        background: rgba(124, 58, 237, 0.15);
+        border-color: rgba(124, 58, 237, 0.35);
+        color: #6d28d9;
+      }
+
+      /* INPUT */
+      .chat-input-wrap {
+        padding: 12px 16px 16px;
+        border-top: 1px solid var(--c-border);
+        flex-shrink: 0;
+      }
+      .chat-input-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.025);
+        border: 1px solid var(--c-border);
+        border-radius: 14px;
+        padding: 10px 10px 10px 16px;
+        transition: border-color 0.2s;
+      }
+      .chat-input-row:focus-within {
+        border-color: rgba(124, 58, 237, 0.35);
+      }
+      .chat-input-row textarea {
+        flex: 1;
+        background: none;
+        border: none;
+        outline: none;
+        resize: none;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        color: var(--c-text);
+        line-height: 1.5;
+        max-height: 96px;
+        min-height: 20px;
+      }
+      .chat-input-row textarea::placeholder {
+        color: var(--c-muted);
+      }
+      .chat-send {
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, var(--c-purple), var(--c-pink));
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        box-shadow: 0 0 16px rgba(124, 58, 237, 0.25);
+      }
+      .chat-send:hover {
+        transform: scale(1.05);
+      }
+      .chat-send:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .chat-footer-note {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        margin-top: 8px;
+      }
+      .chat-footer-note span {
+        font-size: 10px;
+        color: var(--c-muted);
+        letter-spacing: 0.05em;
+      }
+
+      /* ── MAIN CONTENT ── */
+      .main-wrap {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0 32px;
+      }
+
+      /* ── FEATURED ARTICLE ── */
+      .featured-section {
+        padding: 16px 0 64px;
+      }
+      .featured-grid {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 2px;
+        background: var(--c-border);
+        border-radius: var(--radius-2xl);
+        overflow: hidden;
+        border: 1px solid var(--c-border);
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.06);
+      }
+      .featured-img-wrap {
+        height: 480px;
+        overflow: hidden;
+        position: relative;
+        cursor: pointer;
+      }
+      .featured-img-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 6s ease;
+        filter: brightness(0.85) saturate(1.1);
+      }
+      .featured-img-wrap:hover img {
+        transform: scale(1.06);
+      }
+      .featured-img-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to right,
+          transparent 50%,
+          rgba(248, 247, 252, 0.9) 95%
+        );
+      }
+      .featured-body {
+        background: var(--c-surface);
+        padding: 48px 44px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 24px;
+      }
+      .article-tags {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .article-tag {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 100px;
+      }
+      .article-tag.purple {
+        background: rgba(124, 58, 237, 0.1);
+        color: #7c3aed;
+        border: 1px solid rgba(124, 58, 237, 0.2);
+      }
+      .article-tag.blue {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+        border: 1px solid rgba(59, 130, 246, 0.2);
+      }
+      .article-tag.green {
+        background: rgba(34, 197, 94, 0.1);
+        color: #16a34a;
+        border: 1px solid rgba(34, 197, 94, 0.2);
+      }
+      .article-tag.pink {
+        background: rgba(236, 72, 153, 0.1);
+        color: #db2777;
+        border: 1px solid rgba(236, 72, 153, 0.2);
+      }
+      .featured-title {
+        font-family: var(--font-serif);
+        font-size: clamp(26px, 3vw, 38px);
+        line-height: 1.15;
+        color: var(--c-text);
+        cursor: pointer;
+      }
+      .featured-title:hover {
+        color: var(--c-purple);
+      }
+      .featured-excerpt {
+        font-size: 14px;
+        color: var(--c-muted);
+        line-height: 1.7;
+      }
+      .featured-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 16px;
+        border-top: 1px solid var(--c-border);
+      }
+      .article-author {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .article-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--c-purple), var(--c-pink));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+      }
+      .article-author-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--c-text);
+      }
+      .article-author-role {
+        font-size: 11px;
+        color: var(--c-muted);
+      }
+      .article-date {
+        font-size: 11px;
+        color: var(--c-muted);
+        font-family: var(--font-mono);
+      }
+
+      /* ── ARTICLES GRID ── */
+      .articles-section {
+        padding: 0 0 96px;
+      }
+      .section-eyebrow {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--c-accent);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+      }
+      .section-title {
+        font-family: var(--font-serif);
+        font-size: clamp(32px, 4vw, 48px);
+        line-height: 1.1;
+        color: var(--c-text);
+      }
+      .section-title em {
+        font-style: italic;
+        color: var(--c-purple);
+      }
+      .articles-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-top: 48px;
+      }
+      .article-card {
+        background: var(--c-surface);
+        border: 1px solid var(--c-border);
+        border-radius: 24px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+      }
+      .article-card:hover {
+        transform: translateY(-4px);
+        box-shadow:
+          0 16px 48px rgba(124, 58, 237, 0.12),
+          0 0 0 1px rgba(124, 58, 237, 0.1);
+      }
+      .article-img {
+        width: 100%;
+        aspect-ratio: 16/9;
+        overflow: hidden;
+      }
+      .article-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s ease;
+        filter: brightness(0.85) saturate(1.1);
+      }
+      .article-card:hover .article-img img {
+        transform: scale(1.06);
+      }
+      .article-body {
+        padding: 28px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .article-title {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.3;
+        color: var(--c-text);
+        flex: 1;
+      }
+      .article-excerpt {
+        font-size: 13px;
+        color: var(--c-muted);
+        line-height: 1.65;
+      }
+      .article-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 16px;
+        border-top: 1px solid var(--c-border);
+      }
+
+      /* ── DATA STRIP ── */
+      .data-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: var(--c-border);
+        border: 1px solid var(--c-border);
+        border-radius: 20px;
+        overflow: hidden;
+        margin: 0 0 64px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+      }
+      .stat-item {
+        background: var(--c-surface);
+        padding: 28px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .stat-value {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        color: var(--c-text);
+      }
+      .stat-value span {
+        font-size: 16px;
+        font-weight: 400;
+        color: var(--c-accent);
+      }
+      .stat-label {
+        font-size: 12px;
+        color: var(--c-muted);
+        font-weight: 500;
+      }
+
+      /* ── CTA BAND ── */
+      .cta-band {
+        margin: 0 0 96px;
+        background: linear-gradient(135deg, #7c3aed 0%, #c026d3 100%);
+        border-radius: var(--radius-2xl);
+        padding: 56px 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 16px 64px rgba(124, 58, 237, 0.35);
+      }
+      .cta-band::before {
+        content: "";
+        position: absolute;
+        top: -80px;
+        right: -80px;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 50%;
+        pointer-events: none;
+      }
+      .cta-band::after {
+        content: "";
+        position: absolute;
+        bottom: -60px;
+        left: 30%;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 50%;
+        pointer-events: none;
+      }
+      .cta-band-text {
+        position: relative;
+        z-index: 1;
+      }
+      .cta-band-title {
+        font-family: var(--font-serif);
+        font-size: clamp(28px, 3vw, 40px);
+        color: #fff;
+        line-height: 1.1;
+        margin-bottom: 12px;
+      }
+      .cta-band-title em {
+        font-style: italic;
+      }
+      .cta-band-sub {
+        font-size: 15px;
+        color: rgba(255, 255, 255, 0.7);
+        line-height: 1.6;
+        max-width: 460px;
+      }
+      .cta-band-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+        flex-shrink: 0;
+      }
+      .cta-btn-white {
+        background: #fff;
+        color: var(--c-purple);
+        font-size: 14px;
+        font-weight: 700;
+        font-family: var(--font-sans);
+        padding: 14px 28px;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      }
+      .cta-btn-white:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      }
+      .cta-btn-ghost-white {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: var(--font-sans);
+        padding: 14px 24px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+      }
+      .cta-btn-ghost-white:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      /* ── FOOTER ── */
+      footer {
+        border-top: 1px solid var(--c-border);
+        padding: 64px 32px 40px;
+        background: var(--c-surface);
+      }
+      .footer-inner {
+        max-width: 1320px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 48px;
+      }
+      .footer-top {
+        display: grid;
+        grid-template-columns: 1.5fr repeat(3, 1fr);
+        gap: 48px;
+      }
+      .footer-brand-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        margin-bottom: 20px;
+      }
+      .footer-brand-tagline {
+        font-size: 13px;
+        color: var(--c-muted);
+        line-height: 1.7;
+        font-style: italic;
+        max-width: 280px;
+      }
+      .footer-col h6 {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--c-muted);
+        margin-bottom: 20px;
+      }
+      .footer-col ul {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .footer-col ul li a {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--c-muted);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+      .footer-col ul li a:hover {
+        color: var(--c-text);
+      }
+      .footer-bottom {
+        border-top: 1px solid var(--c-border);
+        padding-top: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .footer-copy {
+        font-size: 11px;
+        color: var(--c-muted);
+        letter-spacing: 0.05em;
+      }
+      .footer-links {
+        display: flex;
+        gap: 24px;
+      }
+      .footer-links a {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--c-muted);
+        text-decoration: none;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        transition: color 0.2s;
+      }
+      .footer-links a:hover {
+        color: var(--c-accent);
+      }
+
+      /* ── POPUP ── */
+      .popup-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(15, 13, 26, 0.5);
+        backdrop-filter: blur(8px);
+        align-items: center;
+        justify-content: center;
+      }
+      .popup-overlay.show {
+        display: flex;
+        animation: fadeIn 0.25s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .popup-card {
+        background: var(--c-surface);
+        border: 1px solid rgba(124, 58, 237, 0.2);
+        border-radius: var(--radius-2xl);
+        padding: 48px;
+        max-width: 460px;
+        width: 90%;
+        text-align: center;
+        position: relative;
+        animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow:
+          0 40px 80px rgba(0, 0, 0, 0.15),
+          0 0 0 1px rgba(124, 58, 237, 0.08);
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(24px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .popup-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 24px;
+        background: linear-gradient(135deg, var(--c-purple), var(--c-pink));
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 40px rgba(124, 58, 237, 0.3);
+      }
+      .popup-title {
+        font-family: var(--font-serif);
+        font-size: 28px;
+        line-height: 1.1;
+        color: var(--c-text);
+        margin-bottom: 12px;
+      }
+      .popup-title em {
+        font-style: italic;
+        color: var(--c-purple);
+      }
+      .popup-sub {
+        font-size: 14px;
+        color: var(--c-muted);
+        line-height: 1.6;
+        margin-bottom: 32px;
+      }
+      .popup-cta {
+        width: 100%;
+        background: linear-gradient(135deg, var(--c-purple), var(--c-pink));
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+        font-family: var(--font-sans);
+        padding: 16px;
+        border-radius: 14px;
+        border: none;
+        cursor: pointer;
+        margin-bottom: 12px;
+        transition: all 0.2s;
+        box-shadow: 0 0 32px rgba(124, 58, 237, 0.25);
+      }
+      .popup-cta:hover {
+        transform: translateY(-1px);
+      }
+      .popup-dismiss {
+        background: none;
+        border: none;
+        color: var(--c-muted);
+        font-size: 13px;
+        cursor: pointer;
+        transition: color 0.2s;
+        font-family: var(--font-sans);
+      }
+      .popup-dismiss:hover {
+        color: var(--c-text);
+      }
+      .popup-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.04);
+        border: 1px solid var(--c-border);
+        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .popup-close:hover {
+        background: rgba(0, 0, 0, 0.08);
+      }
+
+      /* ── REVEAL ── */
+      .reveal {
+        opacity: 0;
+        transform: translateY(24px);
+        transition:
+          opacity 0.7s ease,
+          transform 0.7s ease;
+      }
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* ── COUNTER badge ── */
+      .msg-counter {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: rgba(124, 58, 237, 0.5);
+        letter-spacing: 0.05em;
+      }
+      .chat-header {
+        position: relative;
+      }
+      /* ── RESPONSIVE MOBILE ── */
+      @media (max-width: 1024px) {
+        .blog-hero-inner {
+          grid-template-columns: 1fr;
+        }
+        .featured-grid {
+          grid-template-columns: 1fr;
+        }
+        .featured-img {
+          height: 350px;
+        }
+        .articles-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 768px) {
+        .header-inner {
+          padding: 0 16px;
+        }
+        nav {
+          display: none;
+        }
+        .blog-hero {
+          padding: 40px 16px;
+        }
+        .blog-hero-title {
+          font-size: 42px;
+        }
+        .featured-content {
+          padding: 32px;
+        }
+        .featured-title {
+          font-size: 28px;
+        }
+        .articles-grid {
+          grid-template-columns: 1fr;
+        }
+        .chat-sidebar {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          left: 20px;
+          height: 70vh;
+          z-index: 1001;
+          display: none;
+        }
+        .chat-sidebar.open {
+          display: flex;
+        }
+        .chat-toggle {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          background: var(--c-purple);
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 8px 32px rgba(124, 58, 237, 0.4);
+          z-index: 1002;
+          cursor: pointer;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .blog-hero-title {
+          font-size: 36px;
+        }
+        .featured-img {
+          height: 240px;
+        }
+        .article-card-body {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
   <body>
-    <!-- HEADER PRO -->
-    <header class="top-banner">
-      <div class="top-banner-row1">
-        <div class="logo-container">
-          <img src="images/logo.png" class="logo-img" alt="Logo" />
-          <h1 class="logo-text">Mon AiGENT Immobilier</h1>
+    <!-- HEADER -->
+    <header>
+      <div class="header-inner">
+        <div style="display: flex; align-items: center; gap: 48px">
+          <a href="#" class="logo">
+            <div class="logo-icon">
+              <i
+                data-lucide="zap"
+                style="color: #fff; width: 18px; height: 18px"
+              ></i>
+            </div>
+            <span class="logo-text">Mon AiGENT Immobilier</span>
+          </a>
+          <nav>
+            <a href="#">Acheter</a>
+            <a href="#">Vendre</a>
+            <a href="#">Data & Estimation</a>
+            <a href="#" class="active">Blog & Insights</a>
+          </nav>
         </div>
-        <div class="header-nav">
-          <a href="login.html" class="nav-link">Connexion</a>
+        <div class="header-actions">
+          <a href="./intro.html"
+            ><button class="btn-ghost">Connexion</button></a
+          >
+          <a href="./intro.html"
+            ><button class="btn-cta">Accès Élite</button></a
+          >
         </div>
-      </div>
-      <div class="top-banner-row2">
-        <a href="intro.html" class="cta-header">Démarrer l'expérience</a>
       </div>
     </header>
 
-    <!-- HERO SECTION : IMPACT VISUEL -->
-    <section class="hero-premium">
-      <div class="hero-overlay"></div>
-      <div class="hero-content">
-        <div class="badge-new">Nouveau : Algorithme V3.0</div>
-        <h1 class="hero-title">
-          Trouvez l'accord parfait,<br /><span>sans chercher.</span>
-        </h1>
-        <p class="hero-desc">
-          AiGENT révolutionne la rencontre immobilière. Notre IA analyse des
-          milliers de profils pour connecter instantanément les acheteurs
-          qualifiés et les vendeurs exclusifs.
-        </p>
-        <div class="hero-actions">
-          <a href="intro.html" class="btn-main pulse">Découvrir en vidéo</a>
-          <a href="#features" class="btn-outline">En savoir plus</a>
+    <!-- HERO BLOG -->
+    <div class="blog-hero">
+      <div class="blog-hero-inner">
+        <div class="hero-left">
+          <div class="blog-kicker">Expertise & Insights 2026</div>
+          <h1 class="blog-hero-title">
+            La data au service<br />
+            <em>de vos <span class="grad">décisions.</span></em>
+          </h1>
+          <p class="blog-hero-sub">
+            Analyses exclusives, tendances du marché parisien et décryptages par
+            nos experts IA. Chaque article, un avantage concurrentiel.
+          </p>
+          <div class="blog-hero-tags">
+            <button class="blog-tag-filter active">Tout</button>
+            <button class="blog-tag-filter">Marché Luxe</button>
+            <button class="blog-tag-filter">Investissement</button>
+            <button class="blog-tag-filter">IA & Tech</button>
+            <button class="blog-tag-filter">Tendances</button>
+            <button class="blog-tag-filter">Off-Market</button>
+          </div>
+        </div>
+
+        <!-- CHAT SIDEBAR -->
+        <div class="chat-sidebar" id="chat-sidebar">
+          <div class="chat-header">
+            <div class="chat-header-top">
+              <div class="chat-identity">
+                <div class="chat-avatar">
+                  <i
+                    data-lucide="bot"
+                    style="color: #fff; width: 16px; height: 16px"
+                  ></i>
+                </div>
+                <div>
+                  <div class="chat-name">AiGENT Conseiller</div>
+                  <div class="chat-status-text">
+                    Expert marché · Paris prestige
+                  </div>
+                </div>
+              </div>
+              <div class="chat-live">
+                <div class="chat-live-dot"></div>
+                <span>Live</span>
+              </div>
+            </div>
+            <div class="msg-counter" id="msg-counter">0 / 5 messages</div>
+          </div>
+
+          <div class="chat-messages" id="chat-messages">
+            <div class="msg ai">
+              <div class="msg-label">AiGENT IA</div>
+              <div class="msg-bubble">
+                Bienvenue. Je suis votre conseiller immobilier dédié au marché
+                parisien de prestige.<br /><br />
+                Parlez-moi de votre projet —
+                <strong>achat, vente ou estimation</strong> — et je vous
+                accompagne avec précision, données à l'appui.
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-suggestions" id="chat-suggestions">
+            <div class="suggestion-chip" onclick="sendSuggestion(this)">
+              Je cherche à acheter
+            </div>
+            <div class="suggestion-chip" onclick="sendSuggestion(this)">
+              Je veux vendre
+            </div>
+            <div class="suggestion-chip" onclick="sendSuggestion(this)">
+              Estimer mon bien
+            </div>
+            <div class="suggestion-chip" onclick="sendSuggestion(this)">
+              Tendances 2026
+            </div>
+          </div>
+
+          <div class="chat-input-wrap">
+            <div class="chat-input-row">
+              <textarea
+                id="chat-input"
+                placeholder="Décrivez votre projet immobilier…"
+                rows="1"
+                onkeydown="handleChatKey(event)"
+                oninput="autoGrow(this)"
+              ></textarea>
+              <button
+                class="chat-send"
+                id="chat-send-btn"
+                onclick="sendMessage()"
+              >
+                <i
+                  data-lucide="arrow-up"
+                  style="color: #fff; width: 14px; height: 14px"
+                ></i>
+              </button>
+            </div>
+            <div class="chat-footer-note">
+              <i
+                data-lucide="lock"
+                style="color: rgba(0, 0, 0, 0.2); width: 10px; height: 10px"
+              ></i>
+              <span>Conversation privée · Aperçu gratuit 5 messages</span>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- PROMISE SECTION -->
-    <section class="value-proposition">
-      <div class="container">
-        <div class="glass-box">
-          <div class="text-side">
-            <h2>Plus qu'un site, un <span>cerveau</span> immobilier.</h2>
-            <p>
-              Fini les listes interminables. Nous utilisons la
-              <strong>science des données</strong> pour extraire uniquement les
-              5% de profils qui correspondent réellement à votre projet de vie.
-            </p>
-          </div>
-          <div class="img-side">
+    <!-- MAIN CONTENT -->
+    <div class="main-wrap">
+      <!-- DATA STRIP -->
+      <div class="data-strip reveal">
+        <div class="stat-item">
+          <div class="stat-value">2 847<span>+</span></div>
+          <div class="stat-label">Transactions réalisées</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">98<span>%</span></div>
+          <div class="stat-label">Taux de satisfaction client</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">42<span>j</span></div>
+          <div class="stat-label">Délai moyen de vente</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">12<span>Mds</span></div>
+          <div class="stat-label">De patrimoine géré</div>
+        </div>
+      </div>
+
+      <!-- FEATURED -->
+      <section class="featured-section reveal">
+        <div style="margin-bottom: 32px">
+          <div class="section-eyebrow">À la une</div>
+          <h2 class="section-title">
+            La connaissance<br />au service <em>de l'exceptionnel.</em>
+          </h2>
+        </div>
+        <div class="featured-grid">
+          <div class="featured-img-wrap">
             <img
-              src="images/hero.png"
-              alt="Intelligence Artificielle Immobilière"
+              src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=900"
+              alt="Villa Paris"
+              referrerpolicy="no-referrer"
             />
+            <div class="featured-img-overlay"></div>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <main id="features">
-      <!-- FEATURE 1: LE MATCHING -->
-      <section class="feature-block">
-        <div class="section-tag">Technologie</div>
-        <h2 class="section-title">L'Algorithme de Matching</h2>
-
-        <div class="feature-grid">
-          <div class="feature-card">
-            <div class="step-num">01</div>
-            <h3>Filtrage Prédictif</h3>
-            <p>
-              Notre IA scanne la base de données en millisecondes pour isoler
-              les 30 profils ayant la plus forte affinité géographique et
-              financière.
-            </p>
+          <div class="featured-body">
+            <div class="article-tags">
+              <span class="article-tag purple">Marché Luxe</span>
+              <span class="article-tag blue">Analyse</span>
+            </div>
+            <div class="featured-title">
+              Immobilier de prestige à Paris en 2026 : le marché off-market
+              dicte ses nouvelles règles
+            </div>
+            <div class="featured-excerpt">
+              La rareté des biens d'exception et la demande soutenue des UHNWI
+              redessinent les codes du marché parisien. Les transactions
+              off-market représentent désormais 34% des volumes en
+              arrondissements premium — un record historique. Décryptage
+              exclusif avec nos données propriétaires.
+            </div>
+            <div class="featured-meta">
+              <div class="article-author">
+                <div class="article-avatar">SA</div>
+                <div>
+                  <div class="article-author-name">Sophie Arnaud</div>
+                  <div class="article-author-role">Analyste Senior · Luxe</div>
+                </div>
+              </div>
+              <div class="article-date">12 avr. 2026</div>
+            </div>
           </div>
-          <div class="feature-card">
-            <div class="step-num">02</div>
-            <h3>Affinage Cognitif</h3>
-            <p>
-              Le moteur analyse ensuite la surface, les pièces et l'état du bien
-              pour ne conserver que les 10 profils à ultra-haute compatibilité.
-            </p>
-          </div>
-          <div class="feature-card highlighted">
-            <div class="step-num">03</div>
-            <h3>Score de Précision</h3>
-            <p>
-              Un score de 0 à 100% est généré. Vous recevez un Top 5 "Elite"
-              pour garantir une transaction fluide et rapide.
-            </p>
-          </div>
-        </div>
-
-        <div class="ai-note">
-          <span>💡</span>
-          <strong>L'intelligence de la tolérance :</strong> Notre IA comprend
-          qu'un coup de cœur peut se jouer à 2m² près. Elle ajuste ses filtres
-          dynamiquement selon le marché.
         </div>
       </section>
 
-      <!-- FEATURE 2: LES STATS -->
-      <section class="feature-block alt-bg">
-        <div class="feature-split">
-          <div class="visual-side">
-            <div class="stats-glass">
-              <img src="images/statistiques.png" alt="Statistiques avancées" />
+      <!-- ARTICLES -->
+      <section class="articles-section">
+        <div
+          style="
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-bottom: 0;
+          "
+        >
+          <div>
+            <div class="section-eyebrow">Derniers articles</div>
+            <h2 class="section-title">Insights <em>exclusifs.</em></h2>
+          </div>
+        </div>
+        <div class="articles-grid reveal">
+          <div class="article-card">
+            <div class="article-img">
+              <img
+                src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=600"
+                alt="Appartement haussmannien"
+                referrerpolicy="no-referrer"
+              />
+            </div>
+            <div class="article-body">
+              <div class="article-tags">
+                <span class="article-tag green">Investissement</span>
+              </div>
+              <div class="article-title">
+                Les 5 arrondissements parisiens à la meilleure rentabilité en
+                2026
+              </div>
+              <div class="article-excerpt">
+                Notre data engine analyse les 80 000 transactions des 24
+                derniers mois pour identifier les zones à fort potentiel.
+              </div>
+              <div class="article-meta">
+                <div class="article-author">
+                  <div
+                    class="article-avatar"
+                    style="
+                      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+                    "
+                  >
+                    TC
+                  </div>
+                  <div class="article-author-name">Thomas Carré</div>
+                </div>
+                <div class="article-date">04 avr. 2026</div>
+              </div>
             </div>
           </div>
-          <div class="text-side">
-            <div class="section-tag">Analyse</div>
-            <h2 class="section-title">Visualisez votre positionnement</h2>
-            <p>
-              Ne naviguez plus à vue. AiGENT transforme des milliers de points
-              de données en graphiques limpides pour comprendre le marché en
-              temps réel.
+
+          <div class="article-card">
+            <div class="article-img">
+              <img
+                src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=600"
+                alt="Villa moderne"
+                referrerpolicy="no-referrer"
+              />
+            </div>
+            <div class="article-body">
+              <div class="article-tags">
+                <span class="article-tag pink">IA & Tech</span>
+              </div>
+              <div class="article-title">
+                Comment l'IA redéfinit l'estimation immobilière en temps réel
+              </div>
+              <div class="article-excerpt">
+                Notre modèle prédictif atteint 97% de précision sur les marchés
+                premium. Voici comment il fonctionne.
+              </div>
+              <div class="article-meta">
+                <div class="article-author">
+                  <div
+                    class="article-avatar"
+                    style="
+                      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+                    "
+                  >
+                    LM
+                  </div>
+                  <div class="article-author-name">Laura Martin</div>
+                </div>
+                <div class="article-date">28 mars 2026</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="article-card">
+            <div class="article-img">
+              <img
+                src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&q=80&w=600"
+                alt="Terrasse parisienne"
+                referrerpolicy="no-referrer"
+              />
+            </div>
+            <div class="article-body">
+              <div class="article-tags">
+                <span class="article-tag blue">Tendances</span>
+              </div>
+              <div class="article-title">
+                Terrasses et extérieurs : la prime post-COVID reste à +28%
+              </div>
+              <div class="article-excerpt">
+                Les biens avec extérieur consolident leur survaleur sur
+                l'ensemble des marchés premium parisiens.
+              </div>
+              <div class="article-meta">
+                <div class="article-author">
+                  <div
+                    class="article-avatar"
+                    style="
+                      background: linear-gradient(135deg, #22c55e, #3b82f6);
+                    "
+                  >
+                    PD
+                  </div>
+                  <div class="article-author-name">Paul Dubois</div>
+                </div>
+                <div class="article-date">20 mars 2026</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="article-card">
+            <div class="article-img">
+              <img
+                src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=600"
+                alt="Paris vue"
+                referrerpolicy="no-referrer"
+              />
+            </div>
+            <div class="article-body">
+              <div class="article-tags">
+                <span class="article-tag purple">Off-Market</span>
+              </div>
+              <div class="article-title">
+                Accéder au marché off-market parisien : codes, réseaux et
+                stratégies
+              </div>
+              <div class="article-excerpt">
+                Les meilleures adresses ne s'annoncent jamais. Voici comment nos
+                membres accèdent à ces biens invisibles.
+              </div>
+              <div class="article-meta">
+                <div class="article-author">
+                  <div
+                    class="article-avatar"
+                    style="
+                      background: linear-gradient(135deg, #7c3aed, #c026d3);
+                    "
+                  >
+                    RB
+                  </div>
+                  <div class="article-author-name">Romain Blanc</div>
+                </div>
+                <div class="article-date">15 mars 2026</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="article-card">
+            <div class="article-img">
+              <img
+                src="https://images.unsplash.com/photo-1499856871958-5b9627545d1a?auto=format&fit=crop&q=80&w=600"
+                alt="Paris prestige"
+                referrerpolicy="no-referrer"
+              />
+            </div>
+            <div class="article-body">
+              <div class="article-tags">
+                <span class="article-tag green">Fiscalité</span>
+              </div>
+              <div class="article-title">
+                Optimisation fiscale : les dispositifs clés pour l'immobilier de
+                prestige
+              </div>
+              <div class="article-excerpt">
+                Monument Historique, Malraux, nue-propriété — les stratégies des
+                investisseurs avertis décryptées par nos experts.
+              </div>
+              <div class="article-meta">
+                <div class="article-author">
+                  <div
+                    class="article-avatar"
+                    style="
+                      background: linear-gradient(135deg, #f59e0b, #ef4444);
+                    "
+                  >
+                    NC
+                  </div>
+                  <div class="article-author-name">Nathalie Côté</div>
+                </div>
+                <div class="article-date">08 mars 2026</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="article-card">
+            <div class="article-img">
+              <img
+                src="https://images.unsplash.com/photo-1600047509782-20d39509f26d?auto=format&fit=crop&q=80&w=600"
+                alt="Luxe intérieur"
+                referrerpolicy="no-referrer"
+              />
+            </div>
+            <div class="article-body">
+              <div class="article-tags">
+                <span class="article-tag pink">Marché Luxe</span>
+              </div>
+              <div class="article-title">
+                Les UHNWI face au marché parisien : profils, attentes et signaux
+                d'achat
+              </div>
+              <div class="article-excerpt">
+                Ultra-high-net-worth individuals : qui sont ces acheteurs qui
+                font le marché du prestige à Paris en 2026 ?
+              </div>
+              <div class="article-meta">
+                <div class="article-author">
+                  <div
+                    class="article-avatar"
+                    style="
+                      background: linear-gradient(135deg, #ec4899, #f43f5e);
+                    "
+                  >
+                    AL
+                  </div>
+                  <div class="article-author-name">Amélie Leroy</div>
+                </div>
+                <div class="article-date">01 mars 2026</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA BAND -->
+      <div class="cta-band reveal">
+        <div class="cta-band-text">
+          <h3 class="cta-band-title">
+            Prêt à franchir<br /><em>le cap décisif ?</em>
+          </h3>
+          <p class="cta-band-sub">
+            Rejoignez les 3 000 membres qui accèdent en priorité au marché
+            parisien de prestige — données exclusives, off-market et conseiller
+            IA dédié.
+          </p>
+        </div>
+        <div class="cta-band-actions">
+          <button class="cta-btn-white">Lancer mon projet</button>
+          <button
+            class="cta-btn-ghost-white"
+            onclick="window.location.href = 'contact.html'"
+          >
+            Contacter un expert
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- /main-wrap -->
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-inner">
+        <div class="footer-top">
+          <div>
+            <a href="#" class="footer-brand-logo">
+              <div class="logo-icon" style="width: 32px; height: 32px">
+                <i
+                  data-lucide="zap"
+                  style="color: #fff; width: 14px; height: 14px"
+                ></i>
+              </div>
+              <span class="logo-text" style="color: var(--c-text)">AiGENT</span>
+            </a>
+            <p class="footer-brand-tagline">
+              "L'intelligence n'est pas de chercher plus, mais de trouver
+              mieux."
             </p>
-            <ul class="benefit-list">
-              <li>
-                <strong>Répartition Donut :</strong> Visualisez la force de vos
-                matchs.
-              </li>
-              <li>
-                <strong>Heatmap Interactive :</strong> Identifiez les zones de
-                forte demande.
-              </li>
-              <li>
-                <strong>Analyse de Tendances :</strong> Ajustez vos prix selon
-                la réalité du terrain.
-              </li>
+          </div>
+          <div class="footer-col">
+            <h6>Explorer</h6>
+            <ul>
+              <li><a href="#">Acheter</a></li>
+              <li><a href="#">Vendre</a></li>
+              <li><a href="#">Data Hub</a></li>
+              <li><a href="#">Blog Luxe</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h6>Compagnie</h6>
+            <ul>
+              <li><a href="#">L'ADN</a></li>
+              <li><a href="#">Presse</a></li>
+              <li><a href="#">Carrière</a></li>
+              <li><a href="#">Éthique IA</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h6>Support</h6>
+            <ul>
+              <li><a href="contact.html">Contacter un expert</a></li>
+              <li><a href="#">Confidentialité</a></li>
+              <li><a href="#">Mentions</a></li>
+              <li><a href="#">Assistance</a></li>
             </ul>
           </div>
         </div>
-      </section>
-
-      <!-- FEATURE 3: IA ADVISOR -->
-      <section class="feature-block">
-        <div class="feature-split reverse">
-          <div class="text-side">
-            <div class="section-tag">IA Advisor</div>
-            <h2 class="section-title">Votre conseiller 24/7</h2>
-            <p>
-              L'IA AiGENT ne se contente pas de trier. Elle vous conseille. Si
-              un critère bloque vos chances de succès, elle vous alerte et vous
-              propose des alternatives intelligentes.
-            </p>
-            <div class="impact-card">
-              "92% des utilisateurs trouvent leur match idéal après avoir suivi
-              nos recommandations IA."
-            </div>
-          </div>
-          <div class="visual-side">
-            <div class="stats-glass">
-              <img src="images/recommandation.png" alt="Conseils IA" />
-            </div>
+        <div class="footer-bottom">
+          <p class="footer-copy">
+            © 2026 AiGENT Immobilier Group. Tous droits réservés.
+          </p>
+          <div class="footer-links">
+            <a href="#">Instagram</a>
+            <a href="#">LinkedIn</a>
           </div>
         </div>
-      </section>
-    </main>
-
-    <!-- FINAL CTA -->
-    <section class="final-cta">
-      <div class="cta-glow"></div>
-      <h2>Prêt à trouver votre <span>match ?</span></h2>
-      <p>
-        Rejoignez la communauté et accédez à notre messagerie sécurisée pour
-        contacter directement les propriétaires et acheteurs.
-      </p>
-      <div class="cta-group">
-        <a href="login.html" class="btn-main">Se connecter / S'inscrire</a>
-        <a href="intro.html" class="btn-secondary">Voir la vidéo d'intro</a>
       </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer class="bottom-banner">
-      <p>
-        © AiGENT Immobilier - Intelligence Artificielle & Matching de Précision
-      </p>
     </footer>
+
+    <!-- POPUP -->
+    <div class="popup-overlay" id="popup-overlay">
+      <div class="popup-card">
+        <button class="popup-close" onclick="closePopup()">
+          <i
+            data-lucide="x"
+            style="color: var(--c-muted); width: 14px; height: 14px"
+          ></i>
+        </button>
+        <div class="popup-icon">
+          <i
+            data-lucide="lock-open"
+            style="color: #fff; width: 28px; height: 28px"
+          ></i>
+        </div>
+        <div class="popup-title">Continuez sur<br /><em>AiGENT Élite</em></div>
+        <div class="popup-sub">
+          Vous avez utilisé vos 5 messages de prévisualisation. Connectez-vous
+          pour bénéficier d'un accès illimité à votre conseiller IA et à
+          l'ensemble du marché off-market parisien.
+        </div>
+        <button class="popup-cta" onclick="closePopup()">
+          Accéder au compte Élite →
+        </button>
+        <button class="popup-dismiss" onclick="closePopup()">
+          Continuer en mode limité
+        </button>
+      </div>
+    </div>
+
+    <script>
+      lucide.createIcons();
+
+      // ── REVEAL ──
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) e.target.classList.add("visible");
+          });
+        },
+        { threshold: 0.08 },
+      );
+      document
+        .querySelectorAll(".reveal")
+        .forEach((el) => observer.observe(el));
+
+      // ── FILTER TAGS ──
+      document.querySelectorAll(".blog-tag-filter").forEach((btn) => {
+        btn.addEventListener("click", function () {
+          document
+            .querySelectorAll(".blog-tag-filter")
+            .forEach((b) => b.classList.remove("active"));
+          this.classList.add("active");
+        });
+      });
+
+      // ── POPUP ──
+      function showPopup() {
+        document.getElementById("popup-overlay").classList.add("show");
+      }
+      function closePopup() {
+        document.getElementById("popup-overlay").classList.remove("show");
+      }
+      document
+        .getElementById("popup-overlay")
+        .addEventListener("click", (e) => {
+          if (e.target === document.getElementById("popup-overlay"))
+            closePopup();
+        });
+
+      // ── CHAT STATE ──
+      let messageCount = 0;
+      const MAX_FREE = 5;
+      let isLoading = false;
+      let detectedRole = null; // 'buyer' | 'seller' | null
+      let criteria = {};
+
+      // ── UTILS ──
+      function scrollMessages() {
+        const c = document.getElementById("chat-messages");
+        c.scrollTop = c.scrollHeight;
+      }
+      function autoGrow(el) {
+        el.style.height = "auto";
+        el.style.height = Math.min(el.scrollHeight, 96) + "px";
+      }
+      function handleChatKey(e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      }
+      function sendSuggestion(chip) {
+        document.getElementById("chat-input").value = chip.textContent;
+        sendMessage();
+      }
+      function escapeHTML(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+      function updateCounter() {
+        document.getElementById("msg-counter").textContent =
+          messageCount + " / 5 messages";
+      }
+
+      // ── APPEND ──
+      function appendUserMessage(text) {
+        const c = document.getElementById("chat-messages");
+        const el = document.createElement("div");
+        el.className = "msg user";
+        el.innerHTML = `<div class="msg-label">Vous</div><div class="msg-bubble">${escapeHTML(text)}</div>`;
+        c.appendChild(el);
+        scrollMessages();
+      }
+      function appendThinking() {
+        const c = document.getElementById("chat-messages");
+        const el = document.createElement("div");
+        el.className = "msg ai";
+        el.id = "thinking-indicator";
+        el.innerHTML = `<div class="msg-label">AiGENT IA</div>
+    <div class="thinking-bubble">
+      <div class="thinking-label">Analyse en cours</div>
+      <div class="thinking-dots"><span></span><span></span><span></span></div>
+    </div>`;
+        c.appendChild(el);
+        scrollMessages();
+      }
+      function removeThinking() {
+        const el = document.getElementById("thinking-indicator");
+        if (el) el.remove();
+      }
+      function appendAIMessage(text) {
+        const c = document.getElementById("chat-messages");
+        const el = document.createElement("div");
+        el.className = "msg ai";
+        const bubble = document.createElement("div");
+        bubble.className = "msg-bubble typing-cursor";
+        el.innerHTML = `<div class="msg-label">AiGENT IA</div>`;
+        el.appendChild(bubble);
+        c.appendChild(el);
+        scrollMessages();
+        streamText(bubble, text, () => {
+          bubble.classList.remove("typing-cursor");
+        });
+      }
+      function streamText(el, text, onDone) {
+        const words = text.split(" ");
+        let i = 0;
+        el.textContent = "";
+        function next() {
+          if (i < words.length) {
+            el.textContent += (i > 0 ? " " : "") + words[i++];
+            scrollMessages();
+            setTimeout(next, 22 + Math.random() * 28);
+          } else {
+            if (onDone) onDone();
+          }
+        }
+        next();
+      }
+
+      // ─────────────────────────────────────────────────────────────────
+      // ── MOTEUR IA DÉTERMINISTE — 60+ phrases par critère ──────────
+      // ─────────────────────────────────────────────────────────────────
+
+      // Détection de rôle
+      function detectRole(msg) {
+        const m = msg.toLowerCase();
+        const buyerKeys = [
+          "acheter",
+          "achat",
+          "acquérir",
+          "acquisition",
+          "cherche",
+          "recherche",
+          "trouver",
+          "investir",
+          "invest",
+          "budget",
+          "m²",
+          "surface",
+          "pièces",
+          "appartement",
+          "maison",
+          "studio",
+          "loft",
+          "duplex",
+          "résidence",
+        ];
+        const sellerKeys = [
+          "vendre",
+          "vente",
+          "mettre en vente",
+          "céder",
+          "cession",
+          "propriétaire",
+          "mon appartement",
+          "mon bien",
+          "ma maison",
+          "estimation",
+          "estimer",
+        ];
+        let bScore = buyerKeys.filter((k) => m.includes(k)).length;
+        let sScore = sellerKeys.filter((k) => m.includes(k)).length;
+        if (sScore > bScore) return "seller";
+        if (bScore > 0) return "buyer";
+        return null;
+      }
+
+      // Extraction de données du message
+      function extractFromMessage(msg) {
+        const m = msg.toLowerCase();
+        const data = {};
+
+        // Budget / Prix
+        const budgetMatches = m.match(
+          /(\d[\d\s]*(?:k|000)?\s*(?:€|euros?)?|\d+\s*(?:millions?|mds?))/gi,
+        );
+        if (budgetMatches) {
+          const nums = budgetMatches
+            .map((b) => {
+              b = b.replace(/\s/g, "");
+              if (b.includes("million") || b.includes("mds"))
+                return parseFloat(b) * 1000000;
+              if (b.toLowerCase().endsWith("k")) return parseFloat(b) * 1000;
+              return parseFloat(b.replace(/[^0-9]/g, ""));
+            })
+            .filter((n) => !isNaN(n) && n > 0);
+          if (nums.length >= 2) {
+            data.budgetMin = Math.min(...nums);
+            data.budgetMax = Math.max(...nums);
+          } else if (nums.length === 1) {
+            if (m.includes("max") || m.includes("jusqu") || m.includes("moins"))
+              data.budgetMax = nums[0];
+            else if (
+              m.includes("min") ||
+              m.includes("partir") ||
+              m.includes("moins de")
+            )
+              data.budgetMin = nums[0];
+            else {
+              data.budgetMin = nums[0];
+              data.budgetMax = nums[0];
+            }
+          }
+        }
+
+        // Surface
+        const surfMatch = m.match(/(\d+)\s*m²?/i);
+        if (surfMatch) data.surface = parseInt(surfMatch[1]);
+
+        // Pièces
+        const piecesMatch = m.match(/(\d+)\s*(?:pièces?|chambres?|rooms?)/i);
+        if (piecesMatch) data.pieces = parseInt(piecesMatch[1]);
+
+        // Arrondissement / Zone
+        const arrondMatch = m.match(
+          /(\d+)(?:e|ème|er|eme)\s*(?:arr?\.?|arrondissement)?/i,
+        );
+        if (arrondMatch)
+          data.zone =
+            "Paris " + arrondMatch[1] + (arrondMatch[1] === "1" ? "er" : "e");
+
+        // Villes notables
+        const zones = [
+          "neuilly",
+          "boulogne",
+          "vincennes",
+          "saint-germain",
+          "versailles",
+          "levallois",
+          "issy",
+          "montrouge",
+          "sèvres",
+          "meudon",
+          "passy",
+          "auteuil",
+          "marais",
+          "bastille",
+          "montmartre",
+          "batignolles",
+          "monceau",
+          "trocadéro",
+          "saint-honoré",
+        ];
+        const foundZone = zones.find((z) => m.includes(z));
+        if (foundZone && !data.zone)
+          data.zone = foundZone.charAt(0).toUpperCase() + foundZone.slice(1);
+
+        // Type de bien
+        if (
+          m.includes("maison") ||
+          m.includes("villa") ||
+          m.includes("pavillon")
+        )
+          data.type = "maison";
+        else if (
+          m.includes("appartement") ||
+          m.includes("appart") ||
+          m.includes("studio") ||
+          m.includes("loft") ||
+          m.includes("duplex")
+        )
+          data.type = "appartement";
+
+        // Urgence / délai
+        const delaiMatch = m.match(/(\d+)\s*(?:mois?|semaines?|ans?)/i);
+        if (delaiMatch) data.delai = delaiMatch[0];
+
+        return data;
+      }
+
+      // ── BANQUE DE PHRASES — ACHETEUR ──
+      const BUYER_PHRASES = {
+        welcome: [
+          "Parfait. Trouver le bien idéal dans Paris de prestige demande précision et connaissance du marché — je suis là pour ça. Commençons par l'essentiel :",
+          "Excellent choix de nous confier votre projet d'acquisition. Le marché parisien recèle des opportunités que peu voient — et nous, nous les connaissons. Dites-moi :",
+          "Bienvenue dans le processus d'acquisition sur-mesure AiGENT. Chaque projet est unique, et c'est exactement pourquoi je commence par comprendre le vôtre.",
+          "L'achat d'un bien de prestige à Paris est une décision qui mérite une approche rigoureuse. Je vais vous guider étape par étape avec les données les plus fraîches du marché.",
+          "Notre algorithme a identifié plus de 340 biens potentiels ces 30 derniers jours rien que sur les marchés premium. Mais d'abord, j'ai besoin de cerner précisément votre projet.",
+          "Le marché parisien évolue vite — certains arrondissements ont progressé de 8,2% en 12 mois. Je vais vous permettre de vous positionner avec précision. Commençons.",
+        ],
+        askZone: [
+          "Quelle zone géographique vous attire ? Un arrondissement précis, un quartier, ou plutôt une logique de proximité (travail, écoles, transports) ?",
+          "Paris compte 20 arrondissements aux marchés très distincts — du 1er à 14 000€/m² au 20ème à 8 500€/m². Vers quelle zone vous orientez-vous ?",
+          "La localisation est le critère roi sur le marché parisien. Quel secteur vous correspond le mieux — rive droite, rive gauche, couronne premium ?",
+          "Notre data montre que 78% de nos acheteurs ont une zone de prédilection précise. La vôtre, c'est quoi ?",
+          "Chaque quartier parisien a son ADN propre. Montmartre, le Marais, Neuilly, Passy, Saint-Germain — où votre projet prend-il racine ?",
+          "Pour un matching optimal, j'ai besoin de votre ancrage géographique. Quel arrondissement ou quartier est non-négociable pour vous ?",
+        ],
+        confirmZone: [
+          "Excellent choix — {zone} est l'un des secteurs les plus recherchés de notre portefeuille. Le marché y est tendu mais les opportunités off-market restent accessibles.",
+          "{zone} : marché dynamique, valorisation solide sur 24 mois. Vous avez le bon instinct. Maintenant, parlons budget.",
+          "Très bien, {zone} est dans notre zone de prédilection. On y a traité {n} transactions le mois dernier. Passons au budget.",
+          "Parfait. {zone} concentre certains des biens les plus recherchés de notre réseau — notamment en off-market. J'ai quelques profils potentiels déjà.",
+          "{zone}, excellent. Les prix y oscillent entre 10 500 et 18 000€/m² selon la qualité et l'étage — je vais affiner avec votre budget.",
+          "Noté pour {zone}. C'est une zone où notre réseau exclusif donne un avantage décisif. Quel budget envisagez-vous pour cette acquisition ?",
+          "Choix stratégique. {zone} présente une liquidité élevée et une valorisation pérenne. J'ai besoin de votre enveloppe budgétaire pour aller plus loin.",
+        ],
+        askBudget: [
+          "Quel budget avez-vous envisagé pour cette acquisition ? Une fourchette suffit, je calibrerai les résultats avec précision.",
+          "Parlons budget — c'est le deuxième pilier de votre recherche. Quelle enveloppe maximale avez-vous allouée à ce projet ?",
+          "Le budget détermine l'éventail des possibles sur ce marché. Quelle est votre capacité d'investissement, financement inclus ?",
+          "Pour calibrer les biens qui vous correspondent réellement, j'ai besoin de votre budget cible. Entre quelle et quelle fourchette vous situez-vous ?",
+          "Notre algorithme fonctionne mieux avec un budget précis. Donnez-moi une fourchette — je m'occupe du reste.",
+          "En 2026, le ticket d'entrée premium à Paris oscille entre 400k€ et plusieurs millions selon le secteur. Votre budget se situe dans quelle zone ?",
+        ],
+        confirmBudget: [
+          "Budget noté — {budget}. Dans votre zone cible, cela ouvre l'accès à des biens très qualitatifs, notamment en off-market.",
+          "Avec {budget}, vous vous positionnez sur un segment compétitif mais bien alimenté. Notre réseau a actuellement plusieurs biens correspondants.",
+          "{budget} — c'est un budget sérieux qui donne accès aux meilleures adresses parisiennes. Continuons.",
+          "Excellent. {budget} dans votre secteur cible, c'est précisément là où notre algorithme excelle pour trouver les perles rares.",
+          "Budget enregistré : {budget}. Cela correspond à environ {m2} m² dans votre zone selon les prix actuels du marché. Affinons.",
+          "Noté. {budget} — je vais croiser ce paramètre avec notre base exclusive de 340+ biens actifs. Mais j'ai encore besoin de quelques informations.",
+        ],
+        askSurface: [
+          "Quelle surface minimum est indispensable pour votre confort ? En m², soyez précis — cela m'aide à filtrer nos meilleures correspondances.",
+          "Surface plancher : combien de m² vous faut-il au minimum ? C'est un critère clé pour le matching.",
+          "Un bien confortable, c'est d'abord une surface adaptée. Quel minimum en m² est non-négociable pour vous ?",
+          "Le rapport surface/prix est l'un des indicateurs les plus discriminants sur le marché parisien. Quelle surface minimum visez-vous ?",
+          "Pour un matching précis, j'ai besoin de votre surface plancher. Combien de m² minimum pour que le bien vous corresponde vraiment ?",
+          "Paris varie énormément : 45m² dans le 7e peut valoir 800k€, quand 120m² à Montrouge revient à 650k€. Quelle surface minimum ciblez-vous ?",
+        ],
+        confirmSurface: [
+          "Surface minimum de {surface}m² enregistrée. C'est un bon calibre pour le marché que vous visez.",
+          "{surface}m² minimum — parfait, c'est une contrainte claire qui va affiner nos résultats de manière significative.",
+          "Noté : {surface}m² minimum. Votre projet prend forme. Reste une question essentielle avant que je lance la recherche.",
+          "Surface : {surface}m² minimum. Combiné à votre budget et votre zone, on commence à avoir un profil très précis.",
+          "Très bien, {surface}m². Je filtre déjà mentalement nos 340 biens actifs — le nombre se réduit. C'est là où AiGENT devient vraiment puissant.",
+          "{surface}m² minimum, c'est noté. Sur votre zone cible avec ce budget, cela correspond à environ {n} biens actuellement en portefeuille.",
+        ],
+        askPieces: [
+          "Combien de pièces minimum recherchez-vous ? (Salon + chambres — soyez précis, c'est déterminant.)",
+          "Nombre de pièces : combien en avez-vous besoin au minimum pour que le bien réponde à vos besoins réels ?",
+          "Un T2, T3, T4, T5 ou plus ? Le nombre de pièces est le troisième pilier de votre recherche.",
+          "Pour finir le profil, j'ai besoin du nombre de pièces minimum. C'est une contrainte que notre algorithme pondère fortement.",
+          "Chambre(s) séparée(s), bureau, pièce d'eau additionnelle — combien de pièces au total minimum ?",
+          "Dernier critère structurant : combien de pièces sont indispensables ? Cela déterminera les dernières correspondances.",
+        ],
+        confirmPieces: [
+          "{pieces} pièces minimum — enregistré. Votre profil est maintenant complet et très précis.",
+          "Minimum {pieces} pièces, noté. C'est la dernière brique — votre profil acheteur est désormais calibré avec précision.",
+          "Parfait, {pieces}+ pièces. Je lance maintenant la recherche dans notre base complète. Les résultats vont s'afficher.",
+          "{pieces} pièces minimum. C'est cohérent avec votre surface cible. Le profil est complet — je cherche les meilleures correspondances.",
+        ],
+        askType: [
+          "Appartement haussmannien, loft contemporain ou maison de ville ? Quel type de bien corresponds à votre projet de vie ?",
+          "Maison ou appartement — c'est une question fondamentale qui oriente toute la recherche. Votre préférence ?",
+          "Le type de bien reflète votre mode de vie. Appartement (copropriété, gardien, services) ou maison (indépendance, jardin possible) ?",
+          "Dernière question structurante : maison individuelle ou appartement en copropriété ? Les deux marchés sont très différents à Paris.",
+        ],
+        confirmType: [
+          "{type} — excellent. Le marché {type} dans votre zone présente de très belles opportunités en ce moment.",
+          "Noté : {type}. Cohérent avec votre profil. Je finalise la recherche.",
+          "Parfait, {type}. C'est exactement le segment où notre réseau est le plus fort. Je lance le matching.",
+        ],
+        launchSearch: [
+          "Votre profil acheteur est maintenant complet et précis. Zone, budget, surface, pièces, type — tout est calibré. Je lance la recherche dans notre base exclusive. Pour accéder aux résultats complets et aux biens off-market, rejoignez AiGENT Élite.",
+          "Profil finalisé. Notre algorithme va maintenant croiser vos critères avec 340+ biens actifs, dont une sélection exclusive off-market. Les meilleurs résultats sont réservés à nos membres Élite.",
+          "Excellent. Votre profil est parfaitement défini — c'est exactement le niveau de précision dont notre algorithme a besoin pour identifier les correspondances rares. Connectez-vous à AiGENT Élite pour voir les résultats.",
+          "Recherche lancée. Selon vos critères, 12 à 18 biens correspondent actuellement à votre profil dans notre base. Pour y accéder — dont plusieurs exclusifs off-market — l'accès Élite est indispensable.",
+        ],
+        market: [
+          "En 2026, le marché parisien premium affiche une valorisation moyenne de +8,2% sur 12 mois. Les arrondissements 6, 7, 8 et 16 surperforment avec des liquidités record. Quel secteur vous intéresse le plus ?",
+          "Le marché off-market parisien représente désormais 34% des transactions premium — les meilleures adresses ne s'annoncent jamais publiquement. C'est précisément là que notre réseau excelle. Votre projet vous oriente plutôt vers quelle zone ?",
+          "Prix moyens actuels : 8e arrondissement à 16 500€/m², 7e à 15 200€/m², 16e à 13 800€/m², 17e à 11 200€/m². Où vous situez-vous dans cette cartographie ?",
+          "Le délai moyen de vente sur le segment prestige parisien est de 38 jours — mais les biens premium bien positionnés partent en moins de 3 semaines. La réactivité est clé. Votre projet est dans quelle phase ?",
+        ],
+        offTopic: [
+          "C'est une question intéressante, mais mon domaine d'expertise reste l'immobilier parisien de prestige. Pour vous aider au mieux, revenons à votre projet : acheteur ou vendeur ?",
+          "Je suis spécialisé sur le marché immobilier parisien — et c'est un marché qui mérite toute l'attention. Parlez-moi de votre projet immobilier ?",
+          "Mon expertise se concentre sur l'immobilier de prestige à Paris. C'est déjà un vaste sujet ! Revenons à votre projet — qu'est-ce que vous recherchez ?",
+        ],
+      };
+
+      // ── BANQUE DE PHRASES — VENDEUR ──
+      const SELLER_PHRASES = {
+        welcome: [
+          "Mettre en vente un bien à Paris de prestige est une décision stratégique qui mérite une approche méthodique. Je vais vous accompagner pour maximiser votre prix de cession.",
+          "Vendre dans le marché parisien actuel, c'est une opportunité réelle — à condition de se positionner correctement. Notre réseau d'acheteurs qualifiés est l'un des plus fournis de la place.",
+          "Excellente démarche. Notre algorithme met en relation vos biens avec des acheteurs qui ont déjà défini précisément leurs critères — résultat : 42 jours de délai moyen de vente.",
+          "Vendre au juste prix, dans les meilleurs délais et avec une discrétion totale — c'est la promesse AiGENT. Pour commencer, j'ai quelques questions précises.",
+          "Le marché parisien est favorable aux vendeurs bien positionnés. Certains biens partent en moins de 3 semaines avec notre réseau. Parlons de votre bien.",
+          "Notre base compte actuellement 2 800+ acheteurs qualifiés en attente active. La probabilité de trouver le bon acheteur est très élevée — à condition de bien calibrer l'offre.",
+        ],
+        askZone: [
+          "Dans quel arrondissement ou quartier se situe votre bien ? C'est le premier paramètre pour évaluer le potentiel de cession.",
+          "Commençons par la localisation. Dans quel secteur de Paris (ou de la petite couronne) se trouve votre bien ?",
+          "Pour estimer le potentiel de vente et identifier les acheteurs actifs dans votre secteur, j'ai besoin de l'adresse ou de la zone.",
+          "Quelle est la localisation de votre bien ? Le marché varie considérablement entre les arrondissements — du simple au triple.",
+        ],
+        confirmZone: [
+          "{zone} — un marché que nous connaissons très bien. Notre base recense actuellement plusieurs acheteurs actifs dans ce secteur.",
+          "Très bien, {zone}. C'est une zone avec une forte demande côté acquéreurs dans notre réseau. Parlons maintenant du bien lui-même.",
+          "{zone} : marché dynamique, délais de vente réduits. Vous avez bien choisi le moment pour vendre. Parlez-moi de votre bien.",
+          "Noté. {zone} présente une liquidité solide — les biens bien positionnés partent vite. Pour l'estimation, j'ai besoin de quelques critères.",
+        ],
+        askType: [
+          "S'agit-il d'un appartement ou d'une maison ? Le type de bien est fondamental pour l'estimation et le ciblage des acheteurs.",
+          "Votre bien est de quel type ? Appartement haussmannien, loft contemporain, maison de ville — chaque catégorie a ses acheteurs spécifiques.",
+          "Appartement ou maison ? Cette distinction oriente tout le processus de mise en valeur et de recherche d'acheteurs.",
+        ],
+        confirmType: [
+          "{type} — parfait. Nous avons des acheteurs actifs spécifiquement sur ce segment dans votre zone.",
+          "Noté : {type}. C'est exactement ce que recherchent plusieurs de nos membres en ce moment.",
+        ],
+        askPieces: [
+          "Combien de pièces compte votre bien ? (Nombre total : salon, chambres, bureau...)",
+          "La configuration de votre bien : combien de pièces au total ?",
+          "Votre {type} dispose de combien de pièces ? C'est un critère clé pour l'estimation.",
+        ],
+        confirmPieces: [
+          "{pieces} pièces — bien noté. Une belle configuration pour le marché parisien.",
+          "Noté : {pieces} pièces. Cela correspond à une demande soutenue dans votre secteur.",
+        ],
+        askSurface: [
+          "Quelle est la surface habitable de votre bien en m² (surface loi Carrez de préférence) ?",
+          "La surface est un paramètre central de l'estimation. Quelle est la surface habitable en m² ?",
+          "En m², quelle est la superficie de votre {type} ?",
+        ],
+        confirmSurface: [
+          "{surface}m² — c'est une surface {qualification} pour le marché {zone}.",
+          "{surface}m² dans votre zone, c'est un bien qui devrait susciter un fort intérêt. Dernier paramètre clé :",
+          "Superficie : {surface}m². Je commence à avoir une vision précise de votre bien.",
+        ],
+        askPrice: [
+          "À quel prix envisagez-vous de céder votre bien ? Notre estimation data peut confirmer ou affiner ce positionnement.",
+          "Quel prix de vente avez-vous en tête ? C'est le dernier paramètre pour déclencher la recherche d'acheteurs dans notre réseau.",
+          "Le prix est évidemment central. Quelle valorisation souhaitez-vous pour votre bien ?",
+          "Pour cibler les acheteurs qui correspondent exactement à votre positionnement tarifaire, quel est votre prix de vente cible ?",
+        ],
+        confirmPrice: [
+          "Prix de vente noté : {price}€. Selon nos données, ce positionnement est {eval} pour votre secteur.",
+          "{price}€ — je vais croiser ce prix avec les 80 000 transactions récentes pour valider le positionnement.",
+          "Excellent. {price}€ pour un {surface}m² en {zone} — notre algorithme va identifier les acheteurs qualifiés correspondants.",
+        ],
+        launchSearch: [
+          "Parfait — votre fiche bien est complète. Zone, type, surface, pièces, prix : tout est calibré. Je recherche maintenant les acheteurs qualifiés dans notre base. Pour accéder aux profils et lancer la mise en relation, rejoignez AiGENT Élite.",
+          "Dossier vendeur finalisé. Notre base recense actuellement plusieurs acheteurs dont le profil correspond à votre bien. Pour accéder à ces profils et démarrer le processus de mise en relation discrète, l'accès Élite est indispensable.",
+          "Votre bien est maintenant référencé dans notre système. 2 800+ acheteurs qualifiés vont être consultés automatiquement. Les meilleurs candidats sont visibles via votre espace Élite.",
+        ],
+        estimation: [
+          "Notre moteur d'estimation atteint 97% de précision sur les marchés premium parisiens. Pour votre bien en {zone}, et selon les transactions récentes comparables, la fourchette probable se situe entre {min} et {max}€/m². Je peux affiner si vous me donnez plus de détails.",
+          "Estimation IA : votre surface et votre localisation correspondent à un prix moyen de marché de 12 000 à 16 000€/m² selon la qualité du bien et son étage. Parlez-moi des atouts spécifiques de votre bien.",
+        ],
+      };
+
+      // ── MOTEUR DE RÉPONSE ──
+      let conversationPhase = "init"; // init > roleDetect > tunnel > launch
+      let buyerProgress = []; // critères déjà acquis: ['zone','budget','surface','pieces','type']
+      let sellerProgress = [];
+
+      function getBuyerResponse(userMsg, extracted) {
+        // Mise à jour critères
+        if (extracted.zone) {
+          criteria.zone = extracted.zone;
+          if (!buyerProgress.includes("zone")) buyerProgress.push("zone");
+        }
+        if (extracted.budgetMin || extracted.budgetMax) {
+          criteria.budgetMin = extracted.budgetMin;
+          criteria.budgetMax = extracted.budgetMax;
+          if (!buyerProgress.includes("budget")) buyerProgress.push("budget");
+        }
+        if (extracted.surface) {
+          criteria.surface = extracted.surface;
+          if (!buyerProgress.includes("surface")) buyerProgress.push("surface");
+        }
+        if (extracted.pieces) {
+          criteria.pieces = extracted.pieces;
+          if (!buyerProgress.includes("pieces")) buyerProgress.push("pieces");
+        }
+        if (extracted.type) {
+          criteria.type = extracted.type;
+          if (!buyerProgress.includes("type")) buyerProgress.push("type");
+        }
+
+        const needed = ["zone", "budget", "surface", "pieces", "type"];
+        const missing = needed.filter((n) => !buyerProgress.includes(n));
+
+        // Si tous critères réunis
+        if (missing.length === 0) {
+          return pick(BUYER_PHRASES.launchSearch);
+        }
+
+        // Confirmation + question suivante
+        let confirm = "";
+        let question = "";
+
+        // Ce qu'on vient d'obtenir
+        if (
+          extracted.zone &&
+          buyerProgress.includes("zone") &&
+          missing[0] !== "zone"
+        ) {
+          confirm = pick(BUYER_PHRASES.confirmZone)
+            .replace("{zone}", criteria.zone)
+            .replace("{n}", Math.floor(Math.random() * 20 + 15));
+        } else if (
+          (extracted.budgetMin || extracted.budgetMax) &&
+          buyerProgress.includes("budget") &&
+          missing[0] !== "budget"
+        ) {
+          const bStr = formatBudget(criteria.budgetMax || criteria.budgetMin);
+          const m2est = criteria.budgetMax
+            ? Math.round(criteria.budgetMax / 13000)
+            : "?";
+          confirm = pick(BUYER_PHRASES.confirmBudget)
+            .replace("{budget}", bStr)
+            .replace("{m2}", m2est);
+        } else if (
+          extracted.surface &&
+          buyerProgress.includes("surface") &&
+          missing[0] !== "surface"
+        ) {
+          const nBiens = Math.floor(Math.random() * 8 + 4);
+          confirm = pick(BUYER_PHRASES.confirmSurface)
+            .replace("{surface}", criteria.surface)
+            .replace("{n}", nBiens);
+        } else if (
+          extracted.pieces &&
+          buyerProgress.includes("pieces") &&
+          missing[0] !== "pieces"
+        ) {
+          confirm = pick(BUYER_PHRASES.confirmPieces).replace(
+            "{pieces}",
+            criteria.pieces,
+          );
+        } else if (
+          extracted.type &&
+          buyerProgress.includes("type") &&
+          missing[0] !== "type"
+        ) {
+          confirm = pick(BUYER_PHRASES.confirmType).replace(
+            "{type}",
+            criteria.type,
+          );
+        }
+
+        // Prochaine question
+        const nextMissing = missing[0];
+        if (nextMissing === "zone") question = pick(BUYER_PHRASES.askZone);
+        else if (nextMissing === "budget")
+          question = pick(BUYER_PHRASES.askBudget);
+        else if (nextMissing === "surface")
+          question = pick(BUYER_PHRASES.askSurface);
+        else if (nextMissing === "pieces")
+          question = pick(BUYER_PHRASES.askPieces);
+        else if (nextMissing === "type") question = pick(BUYER_PHRASES.askType);
+
+        return confirm ? confirm + "\n\n" + question : question;
+      }
+
+      function getSellerResponse(userMsg, extracted) {
+        if (extracted.zone) {
+          criteria.zone = extracted.zone;
+          if (!sellerProgress.includes("zone")) sellerProgress.push("zone");
+        }
+        if (extracted.type) {
+          criteria.type = extracted.type;
+          if (!sellerProgress.includes("type")) sellerProgress.push("type");
+        }
+        if (extracted.pieces) {
+          criteria.pieces = extracted.pieces;
+          if (!sellerProgress.includes("pieces")) sellerProgress.push("pieces");
+        }
+        if (extracted.surface) {
+          criteria.surface = extracted.surface;
+          if (!sellerProgress.includes("surface"))
+            sellerProgress.push("surface");
+        }
+        if (extracted.budgetMin || extracted.budgetMax) {
+          criteria.price = extracted.budgetMin || extracted.budgetMax;
+          if (!sellerProgress.includes("price")) sellerProgress.push("price");
+        }
+
+        const needed = ["zone", "type", "pieces", "surface", "price"];
+        const missing = needed.filter((n) => !sellerProgress.includes(n));
+
+        if (missing.length === 0) return pick(SELLER_PHRASES.launchSearch);
+
+        let confirm = "";
+        let question = "";
+
+        if (
+          extracted.zone &&
+          sellerProgress.includes("zone") &&
+          !missing.includes("zone")
+        ) {
+          confirm = pick(SELLER_PHRASES.confirmZone).replace(
+            "{zone}",
+            criteria.zone,
+          );
+        } else if (
+          extracted.type &&
+          sellerProgress.includes("type") &&
+          !missing.includes("type")
+        ) {
+          confirm = pick(SELLER_PHRASES.confirmType).replace(
+            "{type}",
+            criteria.type,
+          );
+        } else if (
+          extracted.pieces &&
+          sellerProgress.includes("pieces") &&
+          !missing.includes("pieces")
+        ) {
+          confirm = pick(SELLER_PHRASES.confirmPieces).replace(
+            "{pieces}",
+            criteria.pieces,
+          );
+        } else if (
+          extracted.surface &&
+          sellerProgress.includes("surface") &&
+          !missing.includes("surface")
+        ) {
+          const qual =
+            criteria.surface > 100
+              ? "exceptionnelle"
+              : criteria.surface > 60
+                ? "solide"
+                : "compacte mais recherchée";
+          confirm = pick(SELLER_PHRASES.confirmSurface)
+            .replace("{surface}", criteria.surface)
+            .replace("{qualification}", qual)
+            .replace("{zone}", criteria.zone || "Paris");
+        } else if (
+          (extracted.budgetMin || extracted.budgetMax) &&
+          sellerProgress.includes("price") &&
+          !missing.includes("price")
+        ) {
+          const p = criteria.price;
+          const pricePm2 = criteria.surface
+            ? Math.round(p / criteria.surface)
+            : null;
+          const mktPrice = 13000;
+          const eval_ = pricePm2
+            ? pricePm2 > mktPrice * 1.1
+              ? "ambitieux mais défendable sur ce segment"
+              : pricePm2 < mktPrice * 0.9
+                ? "attractif — probablement sous-coté"
+                : "cohérent avec le marché"
+            : "dans les standards du marché";
+          confirm = pick(SELLER_PHRASES.confirmPrice)
+            .replace("{price}", p.toLocaleString("fr"))
+            .replace("{eval}", eval_)
+            .replace("{surface}", criteria.surface || "")
+            .replace("{zone}", criteria.zone || "");
+        }
+
+        const nextMissing = missing[0];
+        if (nextMissing === "zone") question = pick(SELLER_PHRASES.askZone);
+        else if (nextMissing === "type")
+          question = pick(SELLER_PHRASES.askType);
+        else if (nextMissing === "pieces")
+          question = pick(SELLER_PHRASES.askPieces).replace(
+            "{type}",
+            criteria.type || "bien",
+          );
+        else if (nextMissing === "surface")
+          question = pick(SELLER_PHRASES.askSurface).replace(
+            "{type}",
+            criteria.type || "bien",
+          );
+        else if (nextMissing === "price")
+          question = pick(SELLER_PHRASES.askPrice);
+
+        return confirm ? confirm + "\n\n" + question : question;
+      }
+
+      // Réponse marché / tendances
+      function getMarketResponse(msg) {
+        const m = msg.toLowerCase();
+        if (m.includes("prix") || m.includes("coût") || m.includes("m²")) {
+          return "En 2026, le marché parisien premium : 8e arrt → 16 500€/m², 7e → 15 200€/m², 6e → 14 800€/m², 16e → 13 800€/m², 17e → 11 200€/m². La prime off-market est de +6 à 12% sur les biens d'exception. Sur quelle zone souhaitez-vous vous positionner ?";
+        }
+        if (
+          m.includes("tendance") ||
+          m.includes("marché") ||
+          m.includes("2026")
+        ) {
+          return "Le marché parisien 2026 : valorisation moyenne +8,2% sur 12 mois, délai de vente 38 jours en moyenne (23 jours sur le prestige), part du off-market à 34% des volumes premium. Les biens avec extérieur conservent une prime de +28% post-COVID. Quel aspect vous intéresse le plus pour votre projet ?";
+        }
+        if (m.includes("off-market") || m.includes("exclusif")) {
+          return "Le off-market parisien, c'est notre terrain de jeu. 94 biens exclusifs actifs en ce moment — appartements haussmanniens, hôtels particuliers, lofts de créateurs. Ces biens ne s'annoncent jamais publiquement et partent souvent sous 3 semaines. Votre projet vous oriente vers l'achat ou la vente ?";
+        }
+        if (m.includes("invest") || m.includes("rentabilit")) {
+          return "Rentabilité locative parisienne 2026 : 2,8 à 4,2% brut selon l'arrondissement, avec une valorisation patrimoniale de +8,2% annuelle sur le prestige. Les T3-T4 en 14e-15e offrent le meilleur ratio rendement/sécurité. Souhaitez-vous qu'on affine selon votre budget ?";
+        }
+        return pick(BUYER_PHRASES.market);
+      }
+
+      // ── MOTEUR PRINCIPAL ──
+      function getAIResponse(userMsg) {
+        const m = userMsg.toLowerCase();
+        const extracted = extractFromMessage(userMsg);
+
+        // Off-topic
+        const reImmo =
+          /immob|appart|maison|bien|paris|achet|vend|invest|logement|propriét|locat|prix|m²|surface|pièce|quartier|arrond|budget|estimation|marché|tendance|off-market|luxe|prestige|haussmann/i;
+        if (!reImmo.test(userMsg) && messageCount > 1 && !detectedRole) {
+          return pick(BUYER_PHRASES.offTopic);
+        }
+
+        // Détection rôle initial
+        if (!detectedRole) {
+          const role = detectRole(userMsg);
+          if (role) {
+            detectedRole = role;
+            if (role === "buyer") {
+              const welcome = pick(BUYER_PHRASES.welcome);
+              const firstQ = pick(BUYER_PHRASES.askZone);
+              if (extracted.zone) {
+                criteria.zone = extracted.zone;
+                buyerProgress.push("zone");
+                return (
+                  welcome +
+                  "\n\n" +
+                  pick(BUYER_PHRASES.confirmZone)
+                    .replace("{zone}", criteria.zone)
+                    .replace("{n}", Math.floor(Math.random() * 20 + 15)) +
+                  "\n\n" +
+                  pick(BUYER_PHRASES.askBudget)
+                );
+              }
+              return welcome + "\n\n" + firstQ;
+            } else {
+              const welcome = pick(SELLER_PHRASES.welcome);
+              if (extracted.zone) {
+                criteria.zone = extracted.zone;
+                sellerProgress.push("zone");
+                return (
+                  welcome +
+                  "\n\n" +
+                  pick(SELLER_PHRASES.confirmZone).replace(
+                    "{zone}",
+                    criteria.zone,
+                  ) +
+                  "\n\n" +
+                  pick(SELLER_PHRASES.askType)
+                );
+              }
+              return welcome + "\n\n" + pick(SELLER_PHRASES.askZone);
+            }
+          }
+          // Pas de rôle détecté — questions marché/tendances OK
+          if (
+            m.includes("tendance") ||
+            m.includes("marché") ||
+            m.includes("prix") ||
+            m.includes("off-market") ||
+            m.includes("invest")
+          ) {
+            return getMarketResponse(userMsg);
+          }
+          // Demande de rôle
+          return "Je peux vous aider de deux façons selon votre projet :\n\n— **Acheteur** : je trouve les biens correspondant exactement à vos critères, dont des exclusivités off-market.\n— **Vendeur** : j'identifie les acheteurs qualifiés dans notre réseau et optimise votre prix de cession.\n\nQuel est votre projet ?";
+        }
+
+        // Role connu — marché question intercalée ?
+        if (
+          m.includes("tendance") ||
+          m.includes("combien vaut") ||
+          m.includes("prix du march")
+        ) {
+          return (
+            getMarketResponse(userMsg) +
+            (detectedRole === "buyer"
+              ? "\n\nRevenons à votre projet : " +
+                (buyerProgress.length === 0
+                  ? "dans quelle zone cherchez-vous ?"
+                  : "continuons votre profil.")
+              : "")
+          );
+        }
+
+        if (detectedRole === "buyer")
+          return getBuyerResponse(userMsg, extracted);
+        if (detectedRole === "seller")
+          return getSellerResponse(userMsg, extracted);
+
+        return "Pouvez-vous me préciser votre projet — achat ou vente ?";
+      }
+
+      // ── HELPERS ──
+      function pick(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+      }
+      function formatBudget(n) {
+        if (!n) return "?";
+        if (n >= 1000000)
+          return (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + "M€";
+        if (n >= 1000) return Math.round(n / 1000) + "k€";
+        return n + "€";
+      }
+
+      // ── SUGGESTIONS DYNAMIQUES ──
+      function updateSuggestions() {
+        const wrap = document.getElementById("chat-suggestions");
+        let chips = [];
+
+        if (!detectedRole) {
+          chips = [
+            "Je cherche à acheter",
+            "Je veux vendre",
+            "Estimer mon bien",
+            "Tendances 2026",
+            "Prix au m² Paris",
+          ];
+        } else if (detectedRole === "buyer") {
+          const sets = [
+            [
+              "Budget 800k€",
+              "Surface 80m²+",
+              "Paris 7e ou 8e ?",
+              "Appartement haussmannien",
+            ],
+            [
+              "Off-market uniquement",
+              "T4 minimum",
+              "Voir les tendances",
+              "Délais de vente ?",
+            ],
+            [
+              "Rendement locatif",
+              "Neuilly ou Paris ?",
+              "Financement disponible",
+              "Accès Élite",
+            ],
+            [
+              "Comparer les quartiers",
+              "Travaux à prévoir ?",
+              "Signature rapide",
+              "Paris 16e",
+            ],
+          ];
+          chips =
+            sets[
+              Math.min(Math.floor(buyerProgress.length / 1.5), sets.length - 1)
+            ];
+        } else {
+          const sets = [
+            [
+              "Prix marché actuel",
+              "Délai de vente estimé",
+              "Mon bien vaut combien ?",
+              "Vente discrète",
+            ],
+            [
+              "100m² Paris 8e",
+              "Appartement T4",
+              "2 500 000€",
+              "Acheteurs qualifiés",
+            ],
+            [
+              "Estimation off-market",
+              "Discrétion totale",
+              "Acheteurs étrangers",
+              "Bilan de vente",
+            ],
+          ];
+          chips =
+            sets[
+              Math.min(Math.floor(sellerProgress.length / 1.5), sets.length - 1)
+            ];
+        }
+
+        wrap.innerHTML = chips
+          .map(
+            (c) =>
+              `<div class="suggestion-chip" onclick="sendSuggestion(this)">${c}</div>`,
+          )
+          .join("");
+      }
+
+      // ── SEND ──
+      async function sendMessage() {
+        if (isLoading) return;
+        const input = document.getElementById("chat-input");
+        const text = input.value.trim();
+        if (!text) return;
+
+        messageCount++;
+        updateCounter();
+        input.value = "";
+        input.style.height = "auto";
+
+        appendUserMessage(text);
+
+        if (messageCount > MAX_FREE) {
+          showPopup();
+          return;
+        }
+
+        isLoading = true;
+        document.getElementById("chat-send-btn").disabled = true;
+        appendThinking();
+
+        // Délai simulé (rend l'IA crédible)
+        const delay = 800 + Math.random() * 700;
+        await new Promise((r) => setTimeout(r, delay));
+
+        const response = getAIResponse(text);
+        removeThinking();
+        appendAIMessage(response);
+        updateSuggestions();
+
+        isLoading = false;
+        document.getElementById("chat-send-btn").disabled = false;
+
+        if (messageCount >= MAX_FREE) {
+          setTimeout(showPopup, 2800);
+        }
+      }
+    </script>
   </body>
 </html>

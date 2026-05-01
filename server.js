@@ -1,4 +1,4 @@
-//================ IMPORTS ==================//
+//================ IMPORTS ==================// //actuel
 import express from "express";
 import { db } from "./db.js";
 import bcrypt from "bcryptjs";
@@ -16,6 +16,8 @@ import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
 import fs from "fs";
 import OpenAI from "openai";
+import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
 import levenshtein from "fast-levenshtein";
 const HOST = "0.0.0.0";
 import {
@@ -26,6 +28,7 @@ import {
   learnPreference,
   resetProfiles,
   normalize,
+  distanceKm,
   SELLERS,
   BUYERS,
   getStatsMatches,
@@ -90,25 +93,11 @@ const villesNormalized = villes.map((v) => ({
   original: v,
   norm: normalizeStr(v.ville),
 }));
-const normalizeSurface = (criteria = {}) => {
-  const raw = criteria.surfaceMin ?? criteria.espaceMin ?? null;
-  const val = raw == null ? null : Number(String(raw).replace(/[^\d.-]/g, ""));
-  return isNaN(val) ? null : val;
-};
+
 const toNumber = (v) => {
   if (v === null || v === undefined) return null;
   const n = Number(String(v).replace(/[^\d.-]/g, ""));
   return isNaN(n) ? null : n;
-};
-const normalizePieces = (criteria = {}, mode = "min") => {
-  const raw =
-    mode === "max"
-      ? (criteria.piecesMax ?? criteria.pieces ?? criteria.rooms)
-      : (criteria.piecesMin ?? criteria.pieces ?? criteria.rooms);
-
-  const val = raw == null ? null : Number(String(raw).replace(/[^\d.-]/g, ""));
-
-  return Number.isFinite(val) ? val : null;
 };
 const DB_MAP = {
   piecesMin: "piecesmin",
@@ -143,89 +132,71 @@ app.disable("x-powered-by");
 app.use(cors({ origin: true, credentials: true }));
 app.use(
   helmet({
-    // 🔥 IMPORTANT pour Leaflet + tiles externes
+    // Permet le chargement des tuiles de cartes (Leaflet) depuis des domaines tiers
     crossOriginResourcePolicy: false,
 
-    // 🔥 FIX principal → gestion du referer
     referrerPolicy: {
       policy: "strict-origin-when-cross-origin",
     },
 
     contentSecurityPolicy: {
       useDefaults: true,
-
       directives: {
-        // ==========================
-        // BASE
-        // ==========================
         defaultSrc: ["'self'"],
 
-        // ==========================
-        // SCRIPTS
-        // ==========================
+        // Autorise les balises <script>
         scriptSrc: [
           "'self'",
-          "'unsafe-inline'",
-          "'unsafe-eval'",
-          "https://cdn.jsdelivr.net",
-          "https://cdnjs.cloudflare.com",
+          "'unsafe-inline'", // Indispensable pour tailwind.config et lucide.createIcons()
+          "'unsafe-eval'", // Indispensable pour le moteur JIT de Tailwind CDN
+          "https://cdn.tailwindcss.com",
           "https://unpkg.com",
+          "https://cdnjs.cloudflare.com",
+          "https://cdn.jsdelivr.net",
         ],
 
-        // ==========================
-        // STYLES
-        // ==========================
+        // ✅ AJOUT : Autorise les onclick, oninput, etc. dans le HTML
+        // On utilise 'unsafe-inline' pour permettre l'exécution des fonctions comme handleHeroSearch()
+        scriptSrcAttr: ["'unsafe-inline'"],
+
         styleSrc: [
           "'self'",
-          "'unsafe-inline'",
+          "'unsafe-inline'", // Indispensable pour <style type="text/tailwindcss">
+          "https://fonts.googleapis.com",
           "https://cdn.jsdelivr.net",
           "https://cdnjs.cloudflare.com",
-          "https://fonts.googleapis.com", // ✨ AJOUTÉ : Autorise le CSS de Google Fonts
         ],
 
-        // ==========================
-        // IMAGES
-        // ==========================
         imgSrc: [
           "'self'",
           "data:",
           "blob:",
-          "https://*.tile.openstreetmap.org",
-          "https://*.tile.openstreetmap.fr", // ← AJOUTÉ
-          "https://*.basemaps.cartocdn.com",
-          "https://api.dicebear.com",
-          "https://unpkg.com",
-          "https://res.cloudinary.com",
           "https://images.unsplash.com",
           "https://plus.unsplash.com",
-        ],
-
-        // ==========================
-        // FETCH / API / SOCKETS
-        // ==========================
-        connectSrc: [
-          "'self'",
-          "https://threejs.org",
-          "https://api.languagetoolplus.com",
+          "https://*.tile.openstreetmap.org",
+          "https://*.tile.openstreetmap.fr",
+          "https://*.basemaps.cartocdn.com",
+          "https://res.cloudinary.com",
+          "https://api.dicebear.com",
           "https://unpkg.com",
         ],
 
-        // ==========================
-        // FONTS
-        // ==========================
-        fontSrc: [
+        connectSrc: [
           "'self'",
-          "data:",
-          "https://fonts.gstatic.com", // ✨ AJOUTÉ : Autorise les fichiers .woff2 de Google
+          "https://fonts.googleapis.com",
+          "https://fonts.gstatic.com",
+          "https://api.anthropic.com",
+          "https://unpkg.com",
+          "https://nominatim.openstreetmap.org",
+          "https://overpass-api.de",
+          "https://threejs.org",
+          "https://api.languagetoolplus.com",
         ],
 
-        // ==========================
-        // AUTRES
-        // ==========================
+        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+
         frameSrc: ["'self'"],
         objectSrc: ["'none'"],
-
-        // 🔥 sécurité moderne
         upgradeInsecureRequests: [],
       },
     },
@@ -234,6 +205,33 @@ app.use(
 app.use(compression());
 app.use(morgan("dev"));
 app.use(express.json({ limit: "2mb" }));
+
+const _geocodeCache = new Map();
+async function geocodeVille(ville) {
+  if (!ville) return null;
+  const key = ville.toLowerCase().trim();
+  if (_geocodeCache.has(key)) return _geocodeCache.get(key);
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(ville + ", France")}&format=json&limit=1`;
+    const resp = await fetch(url, {
+      headers: { "User-Agent": "Aigent-Immo/1.0 contact@aigent.fr" },
+    });
+    const data = await resp.json();
+    if (data && data[0]) {
+      const result = {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+      };
+      _geocodeCache.set(key, result);
+      return result;
+    }
+  } catch (e) {
+    console.warn("[geocodeVille] Erreur pour", ville, e.message);
+  }
+  _geocodeCache.set(key, null);
+  return null;
+}
+
 // ================== SERVIR LES FICHIERS STATIQUES AVANT LE RATE LIMIT ==================
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/leaflet", express.static(path.join(__dirname, "public/leaflet")));
@@ -247,6 +245,7 @@ app.use("/login", apiLimiter);
 app.use("/signup", apiLimiter);
 app.use("/chat", apiLimiter);
 // ================== DB ==================
+
 await db
   .prepare(
     `
@@ -264,15 +263,16 @@ CREATE TABLE IF NOT EXISTS users (
   surface REAL DEFAULT 10,
   budget REAL DEFAULT 0,
   budgetmin REAL DEFAULT 0,
-budgetmax REAL DEFAULT 0,
-piecesmin INTEGER DEFAULT 0,
-piecesmax INTEGER DEFAULT 100,
-surfacemin REAL DEFAULT 0,
-surfacemax REAL DEFAULT 1000,
-tolerancekm REAL DEFAULT NULL,
-etatbien TEXT DEFAULT '',
-imagesbien TEXT DEFAULT '[]',
-niveauenergetique TEXT DEFAULT '',
+  budgetmax REAL DEFAULT 0,
+  piecesmin INTEGER DEFAULT 0,
+  piecesmax INTEGER DEFAULT 100,
+  surfacemin REAL DEFAULT 0,
+  surfacemax REAL DEFAULT 1000,
+  tolerancekm REAL DEFAULT NULL,
+  etatbien TEXT DEFAULT '',
+  imagesbien TEXT DEFAULT '[]',
+  niveauenergetique TEXT DEFAULT '',
+  proximite TEXT DEFAULT '[]',
   avatar TEXT DEFAULT '/images/user-avatar.jpg'
 )
 `,
@@ -298,17 +298,15 @@ CREATE TABLE IF NOT EXISTS messages (
 // Migration : ajout colonne attachments si absente
 if (!isProd) {
   try {
-    const cols = await db.prepare("PRAGMA table_info(messages)").all();
-    if (!cols.find((c) => c.name === "attachments")) {
+    const cols = await db.prepare("PRAGMA table_info(users)").all();
+    if (!cols.find((c) => c.name === "proximite")) {
       await db
-        .prepare(
-          "ALTER TABLE messages ADD COLUMN attachments TEXT DEFAULT '[]'",
-        )
+        .prepare("ALTER TABLE users ADD COLUMN proximite TEXT DEFAULT '[]'")
         .run();
-      console.log("✅ Colonne attachments ajoutée à messages (SQLite)");
+      console.log("✅ Colonne proximite ajoutée à users (SQLite)");
     }
   } catch (err) {
-    console.error("[MIGRATION attachments]", err);
+    console.error("[MIGRATION proximite SQLite]", err);
   }
 }
 
@@ -316,24 +314,21 @@ if (isProd) {
   try {
     const colCheck = await db
       .prepare(
-        `
-      SELECT column_name FROM information_schema.columns
-      WHERE table_name='messages' AND column_name='attachments'
-    `,
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_name='users' AND column_name='proximite'`,
       )
       .all();
     if (!colCheck.length) {
       await db
-        .prepare(
-          "ALTER TABLE messages ADD COLUMN attachments TEXT DEFAULT '[]'",
-        )
+        .prepare("ALTER TABLE users ADD COLUMN proximite TEXT DEFAULT '[]'")
         .run();
-      console.log("✅ Colonne attachments ajoutée à messages (PostgreSQL)");
+      console.log("✅ Colonne proximite ajoutée à users (PostgreSQL)");
     }
   } catch (err) {
-    console.error("[MIGRATION attachments PostgreSQL]", err);
+    console.error("[MIGRATION proximite PostgreSQL]", err);
   }
 }
+
 await db
   .prepare(
     `
@@ -356,31 +351,33 @@ console.log(" Initialisation des profils depuis la DB...");
 const allUsers = await db
   .prepare(
     `
- SELECT
-u.username,
-u.role,
-u.contact,
- u.ville,
- u.region,
- u.type,
-u.price,
- u.pieces,
- u.surface,
- u.budget,
- u.etatbien AS "etatBien",
-u.imagesbien AS "imagesbien",
-u.niveauenergetique AS "niveauEnergetique",
- u.piecesmin  AS "piecesMin",
- u.surfacemin AS "surfaceMin",
- u.budgetmin  AS "budgetMin",
- u.piecesmax  AS "piecesMax",
-  u.surfacemax AS "surfaceMax",
-u.tolerancekm AS "toleranceKm",
- u.budgetmax  AS "budgetMax"
+SELECT
+  u.username,
+  u.role,
+  u.contact,
+  u.ville,
+  u.region,
+  u.type,
+  u.price,
+  u.pieces,
+  u.surface,
+  u.budget,
+  u.etatbien          AS "etatBien",
+  u.imagesbien        AS "imagesbien",
+  u.niveauenergetique AS "niveauEnergetique",
+  u.proximite         AS "proximite",
+  u.piecesmin         AS "piecesMin",
+  u.surfacemin        AS "surfaceMin",
+  u.budgetmin         AS "budgetMin",
+  u.piecesmax         AS "piecesMax",
+  u.surfacemax        AS "surfaceMax",
+  u.tolerancekm       AS "toleranceKm",
+  u.budgetmax         AS "budgetMax"
 FROM users u
 `,
   )
   .all();
+
 console.log("🧪 [STEP 1 - DB FETCH] allUsers length =", allUsers.length);
 console.log("🧪 roles distribution =", {
   buyers: allUsers.filter((u) => u.role === "buyer").length,
@@ -453,9 +450,9 @@ allUsers.forEach((u) => {
     price: u.price ?? 0,
     pieces: u.pieces > 0 ? u.pieces : 1,
     surface: u.surface > 0 ? u.surface : 10,
-    budget: u.budget ?? null, //budgetMin: u.budgetMin ?? u.budget ?? 0, avant
-    budgetMax: u.budgetMax ?? u.budget ?? 0, //piecesMin: u.piecesMin ?? null, avant pour bug : lowerCase
-    piecesMax: u.piecesMax ?? 999, //surfaceMin: u.surfaceMin ?? null,//avant
+    budget: u.budget ?? null,
+    budgetMax: u.budgetMax ?? u.budget ?? 0,
+    piecesMax: u.piecesMax ?? 999,
     surfaceMax: u.surfaceMax ?? 999,
     piecesMin: u.piecesMin ?? null,
     surfaceMin: u.surfaceMin ?? null,
@@ -464,19 +461,16 @@ allUsers.forEach((u) => {
     etatBien: u.etatBien || "",
     imagesbien: safeImagesParse(u.imagesbien),
     niveauEnergetique: u.niveauEnergetique || "",
+    proximite: safeImagesParse(u.proximite), // même helper : parse JSON array
     departement: getDepartement(u.ville),
   };
-  console.log("⚠️ [STEP 6 - ROUTING CHECK]", {
-    username: u.username,
-    role: u.role,
-    willCall: u.role === "seller" ? "addSeller" : "addBuyer",
-  });
 
   if (u.role === "buyer") {
     addBuyer(profileData);
   } else if (u.role === "seller") {
     addSeller(profileData);
   }
+
   console.log("🧱 [STEP 3 - PROFILE BUILT]", {
     username: profileData.username,
     role: profileData.role,
@@ -569,10 +563,16 @@ const authenticateToken = (req, res, next) => {
 // ================== UPSERT PROFILE ==================
 async function upsertProfile(user, normalized) {
   console.log(
-    " [WRITE PRE-DB] normalized EXACT snapshot:",
+    "🔧 [WRITE PRE-DB] normalized snapshot:",
     JSON.stringify(normalized, null, 2),
   );
+
   const { username, contact = "", role } = user;
+
+  // ─── Sérialisation proximite ──────────────────────────────────────
+  const proximiteJSON = JSON.stringify(
+    Array.isArray(normalized.proximite) ? normalized.proximite : [],
+  );
 
   const profileData = {
     username,
@@ -580,17 +580,25 @@ async function upsertProfile(user, normalized) {
     role,
     type: normalized.type || "",
     ville: normalized.ville || "",
-    region: normalized.region || normalized.ville || "", // SELLER STRICT
+    region: normalized.region || normalized.ville || "",
 
-    price: role === "seller" ? (normalized.price ?? 0) : 0,
-    pieces: role === "seller" ? (normalized.pieces ?? null) : 0,
-    surface: role === "seller" ? (normalized.surface ?? null) : 0,
+    // SELLER
+    price:
+      role === "seller" ? (normalized.price ?? normalized.budgetMin ?? 0) : 0,
+    pieces:
+      role === "seller"
+        ? (normalized.pieces ?? normalized.piecesMin ?? null)
+        : 0,
+    surface:
+      role === "seller"
+        ? (normalized.surface ?? normalized.surfaceMin ?? null)
+        : 0,
     etatBien: normalized.etatBien ?? null,
     imagesbien: normalized.imagesbien ?? null,
     niveauEnergetique:
       role === "seller" ? (normalized.niveauEnergetique ?? null) : null,
-    // BUYER STRICT
 
+    // BUYER
     budget: role === "buyer" ? (normalized.budgetMin ?? null) : 0,
     budgetMin: role === "buyer" ? (normalized.budgetMin ?? null) : 0,
     budgetMax: role === "buyer" ? (normalized.budgetMax ?? null) : 0,
@@ -599,8 +607,19 @@ async function upsertProfile(user, normalized) {
     surfaceMin: role === "buyer" ? (normalized.surfaceMin ?? null) : null,
     surfaceMax: role === "buyer" ? (normalized.surfaceMax ?? 999) : 0,
     toleranceKm: role === "buyer" ? (normalized.toleranceKm ?? null) : null,
+
+    // COMMUN
+    proximite: Array.isArray(normalized.proximite) ? normalized.proximite : [],
   };
-  console.log(" UPSERT FINAL etatbien:", profileData.etatBien); // ================== MEMORY UPSERT ==================
+
+  console.log(
+    "🔧 UPSERT FINAL — etatbien:",
+    profileData.etatBien,
+    "| proximite:",
+    profileData.proximite,
+  );
+
+  // ─── Mise à jour en mémoire ────────────────────────────────────────
   if (role === "buyer") {
     const existingIndex = BUYERS.findIndex((b) => b.username === username);
     const fullBuyer = {
@@ -611,12 +630,8 @@ async function upsertProfile(user, normalized) {
           ? BUYERS[existingIndex].preferences
           : { typeWeights: {}, regionWeights: {} },
     };
-
-    if (existingIndex >= 0) {
-      BUYERS[existingIndex] = fullBuyer;
-    } else {
-      BUYERS.push(fullBuyer);
-    }
+    if (existingIndex >= 0) BUYERS[existingIndex] = fullBuyer;
+    else BUYERS.push(fullBuyer);
   }
 
   if (role === "seller") {
@@ -625,30 +640,28 @@ async function upsertProfile(user, normalized) {
       id: existingIndex >= 0 ? SELLERS[existingIndex].id : Date.now(),
       ...profileData,
     };
-
-    if (existingIndex >= 0) {
-      SELLERS[existingIndex] = fullSeller;
-    } else {
-      SELLERS.push(fullSeller);
-    }
+    if (existingIndex >= 0) SELLERS[existingIndex] = fullSeller;
+    else SELLERS.push(fullSeller);
   }
+
+  // ─── Écriture DB directe (colonnes spéciales) ─────────────────────
   await db
     .prepare(
-      `
-    UPDATE users
-    SET etatbien = ?, imagesbien = ?, niveauenergetique = ?
-    WHERE username = ?
-  `,
+      `UPDATE users
+       SET etatbien = ?, imagesbien = ?, niveauenergetique = ?, proximite = ?
+       WHERE username = ?`,
     )
     .run(
       profileData.etatBien,
       JSON.stringify(profileData.imagesbien || []),
       profileData.niveauEnergetique ?? null,
+      proximiteJSON,
       username,
     );
-  console.log(" DIRECT UPDATE etatbien DONE");
-  // ================== DB UPSERT ==================
 
+  console.log("✅ DIRECT UPDATE etatbien + proximite DONE");
+
+  // ─── Upsert complet PostgreSQL prod ───────────────────────────────
   if (process.env.NODE_ENV === "production") {
     await db.prepare().upsert(
       "users",
@@ -659,11 +672,9 @@ async function upsertProfile(user, normalized) {
         type: profileData.type,
         ville: profileData.ville,
         region: profileData.region,
-
         price: profileData.price,
         pieces: profileData.pieces,
         surface: profileData.surface,
-
         budgetmin: profileData.budgetMin,
         budgetmax: profileData.budgetMax,
         piecesmin: profileData.piecesMin,
@@ -674,6 +685,7 @@ async function upsertProfile(user, normalized) {
         etatbien: profileData.etatBien,
         imagesbien: JSON.stringify(profileData.imagesbien || []),
         niveauenergetique: profileData.niveauEnergetique ?? null,
+        proximite: proximiteJSON,
       },
       "username",
       [
@@ -695,39 +707,24 @@ async function upsertProfile(user, normalized) {
         "etatbien",
         "imagesbien",
         "niveauenergetique",
+        "proximite",
       ],
     );
   }
-  console.log(" FINAL DB WRITE:", {
+
+  console.log("✅ FINAL DB WRITE:", {
     etatbien: profileData.etatBien,
     piecesmin: profileData.piecesMin,
     surfacemin: profileData.surfaceMin,
-  }); // ================== LOGGING ==================
-
-  console.log("=== PROFIL AJOUTÉ ===");
-  console.log({
-    username: profileData.username,
-    role: profileData.role,
-    villeOriginal: normalized.ville,
-    villeNormalized: normalize(normalized.ville),
-    departement: getDepartement(normalized.ville),
-    price: role === "buyer" ? normalized.budgetMax : normalized.price,
-    budgetMin: normalized.budgetMin,
-    budgetMax: normalized.budgetMax,
-    pieces: normalized.piecesMax,
-    surface: normalized.surfaceMax,
-    etatBien: normalized.etatBien,
-    contact: profileData.contact,
+    proximite: profileData.proximite,
   });
-  console.log("NORMALIZED:", normalized);
 
   return profileData;
-}
-// ================== IMPORT AI CHAT ==================
+} // ================== IMPORT AI CHAT ==================
 import { aiChatWithCriteria } from "./services/aiParsee.js";
+
 // ================== CHAT SYSTEM ==================
 const sessions = {};
-const ORDER = ["type", "ville", "pieces", "espace"];
 
 // ================== QUEUE RATE-LIMIT ==================
 const QUEUE = [];
@@ -742,14 +739,12 @@ function getIntervalByUsers() {
 async function processQueue() {
   if (processing || QUEUE.length === 0) return;
   processing = true;
-
   while (QUEUE.length > 0) {
-    const { req, res, next } = QUEUE.shift();
+    const { next } = QUEUE.shift();
     await next();
     const interval = getIntervalByUsers();
     await new Promise((r) => setTimeout(r, interval));
   }
-
   processing = false;
 }
 
@@ -758,16 +753,165 @@ function userQueueMiddleware(req, res, next) {
   processQueue();
 }
 
+// ================== HELPERS NORMALISATION ==================
+function normalizePieces(criteria = {}, mode = "min") {
+  const raw =
+    mode === "max"
+      ? (criteria.piecesMax ?? criteria.pieces ?? criteria.rooms)
+      : (criteria.piecesMin ?? criteria.pieces ?? criteria.rooms);
+  const val = raw == null ? null : Number(String(raw).replace(/[^\d.-]/g, ""));
+  return Number.isFinite(val) ? val : null;
+}
+
+function normalizeSurface(criteria = {}) {
+  const raw = criteria.surfaceMin ?? criteria.espaceMin ?? null;
+  const val = raw == null ? null : Number(String(raw).replace(/[^\d.-]/g, ""));
+  return isNaN(val) ? null : val;
+}
+
+function buildNormalized(criteria, role) {
+  const piecesMin = normalizePieces(criteria, "min");
+  const surfaceMin = normalizeSurface(criteria);
+  const budgetMin = criteria.budgetMin != null ? Number(criteria.budgetMin) : 0;
+
+  // ── VENDEUR : valeur unique → min = max (prix fixe, pièces fixes, surface fixe)
+  if (role === "seller") {
+    const piecesMax =
+      normalizePieces(criteria, "max") ?? (piecesMin != null ? piecesMin : 999);
+    const surfaceMax =
+      criteria.surfaceMax != null
+        ? Number(criteria.surfaceMax)
+        : surfaceMin != null
+          ? surfaceMin
+          : 9999;
+    const budgetMax =
+      criteria.budgetMax != null ? Number(criteria.budgetMax) : budgetMin;
+
+    return {
+      type: criteria.type ? normalize(criteria.type) : "",
+      ville: criteria.ville || "",
+      budgetMin,
+      budgetMax,
+      piecesMin,
+      piecesMax,
+      surfaceMin,
+      surfaceMax,
+      toleranceKm:
+        criteria.toleranceKm != null ? Number(criteria.toleranceKm) : null,
+      proximite: Array.isArray(criteria.proximite) ? criteria.proximite : [],
+      price: budgetMin,
+      pieces: piecesMin,
+      surface: surfaceMin,
+      etatBien: criteria.etatBien || null,
+      niveauEnergetique: criteria.niveauEnergetique || null,
+      imagesbien: Array.isArray(criteria.imagesbien) ? criteria.imagesbien : [],
+    };
+  }
+
+  // ── ACHETEUR : surfaceMax et piecesMax restent ouverts si non fournis explicitement
+  // "surface min 50m²" → surfaceMin=50, surfaceMax=9999 (pas de plafond)
+  // "entre 50 et 80m²" → surfaceMin=50, surfaceMax=80
+  const piecesMax =
+    criteria.piecesMax != null ? Number(criteria.piecesMax) : 999; // pas de plafond si non fourni
+  const surfaceMax =
+    criteria.surfaceMax != null ? Number(criteria.surfaceMax) : 9999; // pas de plafond si non fourni
+  const budgetMax =
+    criteria.budgetMax != null
+      ? Number(criteria.budgetMax)
+      : budgetMin > 0
+        ? budgetMin * 1.2
+        : 0; // légère marge si valeur unique
+  const toleranceKm =
+    criteria.toleranceKm != null ? Number(criteria.toleranceKm) : null;
+
+  return {
+    type: criteria.type ? normalize(criteria.type) : "",
+    ville: criteria.ville || "",
+    budgetMin,
+    budgetMax,
+    piecesMin,
+    piecesMax,
+    surfaceMin,
+    surfaceMax,
+    toleranceKm,
+    proximite: Array.isArray(criteria.proximite) ? criteria.proximite : [],
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   computeSellerTriggerContext
+   Calcule CE QUE L'IA DOIT DIRE dans CE message pour le vendeur.
+   Appelé AVANT l'appel IA, sur l'état des critères APRÈS merge.
+ 
+   Retourne une string qui sera passée à aiParsee via context.triggerContext.
+   null = collecte normale du tunnel (pas de situation spéciale).
+══════════════════════════════════════════════════════════════════════════ */
+function computeSellerTriggerContext(sc, villeJustReceived) {
+  // La ville vient d'être reçue dans CE message → on va ouvrir le pop-up proximite
+  if (villeJustReceived && sc.ville && !Array.isArray(sc.proximite)) {
+    return "proximite_about_to_trigger";
+  }
+
+  // Les commodités viennent d'être reçues (injection pop-up) → reprendre tunnel
+  if (Array.isArray(sc.proximite) && sc.proximite.length >= 0) {
+    // Vérifier si le tunnel est encore incomplet
+    const tunnelIncomplete =
+      !sc.type ||
+      !sc.piecesMin ||
+      sc.piecesMin <= 0 ||
+      !sc.surfaceMin ||
+      sc.surfaceMin <= 0 ||
+      !sc.budgetMin ||
+      sc.budgetMin <= 0;
+
+    // Ce contexte est actif uniquement pour les messages internes __PROXIMITE_SELECTED__
+    // Le serveur le gère directement ci-dessous
+  }
+
+  // Tunnel complet, pas encore d'etatBien → pop-up état du bien va s'ouvrir
+  const tunnelComplete =
+    sc.ville &&
+    sc.type &&
+    sc.piecesMin > 0 &&
+    sc.surfaceMin > 0 &&
+    sc.budgetMin > 0 &&
+    Array.isArray(sc.proximite);
+
+  if (tunnelComplete && (!sc.etatBien || !sc.etatBien.trim())) {
+    return "etat_about_to_trigger";
+  }
+
+  // etatBien reçu, pas de DPE → pop-up DPE va s'ouvrir
+  if (
+    sc.etatBien?.trim() &&
+    (!sc.niveauEnergetique || !sc.niveauEnergetique.trim())
+  ) {
+    return "dpe_about_to_trigger";
+  }
+
+  // DPE reçu, pas d'images → pop-up photos va s'ouvrir
+  if (
+    sc.etatBien?.trim() &&
+    sc.niveauEnergetique?.trim() &&
+    !Array.isArray(sc.imagesbien)
+  ) {
+    return "images_about_to_trigger";
+  }
+
+  return null; // collecte normale
+}
+
 // ================== CHAT ROUTE ==================
 app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
   try {
-    // ===== Validation =====
     const { message } = z
       .object({ message: z.string().min(1) })
       .parse(req.body);
-    const username = req.user.username;
-    const userRole = req.user.role; // ===== Initialisation session =====
 
+    const username = req.user.username;
+    const userRole = req.user.role;
+
+    // ── Init session ────────────────────────────────────────────────
     if (!sessions[username]) {
       sessions[username] = {
         started: false,
@@ -775,409 +919,382 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
         role: userRole,
         phase: "collecting",
         matches: [],
-        postReply: null,
       };
     }
     const session = sessions[username];
-    session.role = userRole; // ICI (et pas avant)
-    if (req.body.skipImages) {
-      session.criteria.imagesbien = [];
-    }
+    session.role = userRole;
 
+    // ── 1. Snapshot "avant" pour détecter ce qui vient de changer ──
+    const villeAvant = session.criteria.ville || null;
+
+    // ── 2. Injections directes depuis les pop-ups (AVANT l'appel IA) ─
+    // Ces valeurs arrivent via req.body et sont injectées AVANT l'IA
+    // pour que l'IA les voie dans existingCriteria et confirme naturellement
+    let internalMessage = message; // message __INTERNAL__ ou message normal
+
+    if (req.body.proximite !== undefined) {
+      session.criteria.proximite = Array.isArray(req.body.proximite)
+        ? req.body.proximite
+        : [];
+    }
     if (req.body.etatBien !== undefined) {
       session.criteria.etatBien = req.body.etatBien;
     }
     if (req.body.niveauEnergetique !== undefined) {
       session.criteria.niveauEnergetique = req.body.niveauEnergetique;
-    } // ===== Appel IA pour parser les critères =====
-    let aiResponse = {};
+    }
+    if (Array.isArray(req.body.imagesbien)) {
+      session.criteria.imagesbien = req.body.imagesbien;
+    }
+    if (req.body.skipImages === true) {
+      session.criteria.imagesbien = [];
+    }
+
+    // ── 3. Calcul triggerContext PROVISOIRE (avant merge IA) ──────────
+    // On le calcule sur l'état actuel pour les messages internes
+    let triggerContext = null;
+
+    // Pour les messages internes post pop-up, on sait déjà quel contexte
+    if (message === "__PROXIMITE_SELECTED__") triggerContext = "post_proximite";
+    else if (message === "__ETAT_SELECTED__")
+      triggerContext = "dpe_about_to_trigger";
+    else if (message === "__NIVEAU_ENERGETIQUE_SELECTED__")
+      triggerContext = "images_about_to_trigger";
+
+    // ── 4. Appel IA — avec context.triggerContext provisoire ──────────
+    let aiResponse = { message: "", criteria: { ...session.criteria } };
+
     try {
       aiResponse = await aiChatWithCriteria(message, session.criteria, {
         phase: session.phase,
         matchingProfiles: session.matches,
+        role: userRole,
+        triggerContext, // peut être null pour les messages utilisateur normaux
       });
-      console.log(" [AI RESPONSE RAW]", JSON.stringify(aiResponse, null, 2));
-    } catch (err) {
-      console.error("[CHAT] Erreur AI :", err);
+      console.log("🤖 [AI RESPONSE]", JSON.stringify(aiResponse, null, 2));
+    } catch (e) {
+      console.error("[CHAT] Erreur AI:", e);
       aiResponse = {
-        message: "Désolé, je n'ai pas compris. Pouvez-vous reformuler ?",
+        message: "Désolé, une erreur est survenue. Pouvez-vous reformuler ?",
         criteria: session.criteria,
       };
     }
 
-    console.log(" [SESSION BEFORE MERGE]", session.criteria);
-    console.log(" [AI CRITERIA]", aiResponse.criteria); //critères mis à jour//
-    const safeCriteria = Object.fromEntries(
-      Object.entries(aiResponse.criteria || {}).filter(
-        ([_, v]) => v !== null && v !== undefined,
-      ),
-    );
-    console.log("🤖 AI MESSAGE:", aiResponse.message);
-    console.log("🤖 AI CRITERIA RAW:", aiResponse.criteria);
-    console.log("🤖 SESSION BEFORE MERGE:", session.criteria);
+    // ── 5. Merge critères ─────────────────────────────────────────────
+    const POPUP_PROTECTED = new Set([
+      "proximite",
+      "etatBien",
+      "niveauEnergetique",
+      "imagesbien",
+    ]);
 
-    session.criteria = {
-      ...session.criteria,
-      ...safeCriteria, // plus de null qui écrase
-
-      surfaceMin:
-        aiResponse.criteria?.surfaceMin ??
-        aiResponse.criteria?.espaceMin ??
-        session.criteria.surfaceMin,
-
-      piecesMin: aiResponse.criteria?.piecesMin ?? session.criteria.piecesMin,
-
-      etatBien: aiResponse.criteria?.etatBien ?? session.criteria.etatBien,
-      imagesbien: Array.isArray(req.body.imagesbien)
-        ? req.body.imagesbien
-        : (session.criteria.imagesbien ?? null),
-      niveauEnergetique:
-        req.body.niveauEnergetique ??
-        aiResponse.criteria?.niveauEnergetique ??
-        session.criteria.niveauEnergetique,
-    };
-    console.log("🔀 AFTER MERGE:", session.criteria);
-
-    console.log("CRITERIA MERGED:", session.criteria);
-    // ===== Préparation reply =====
-
-    let reply = "";
-    if (!session.started) {
-      reply +=
-        aiResponse.message || "Bonjour ! Je suis votre assistant immobilier.";
-      session.started = true;
-    } else if (aiResponse.message) {
-      reply += aiResponse.message;
-    } // ===== Normalisation =====
-
-    const parseNumber = (value) => {
-      if (value == null) return undefined;
-      const num = Number(String(value).replace(/[^\d.-]/g, ""));
-      return isNaN(num) ? undefined : num;
-    }; // ===== EXTRACTION BRUTE =====
-
-    console.log(" [RAW FOR NORMALIZATION]", session.criteria);
-
-    console.log(" piecesMin RAW INPUT:", session.criteria.piecesMin);
-    console.log(" surfaceMin RAW INPUT:", session.criteria.surfaceMin);
-    console.log(" espaceMin RAW INPUT:", session.criteria.espaceMin);
-    console.log(" etatBien RAW INPUT:", session.criteria.etatBien); // ===== PARSE =====
-    const etatBien = session.criteria.etatBien || undefined;
-
-    const piecesMin = normalizePieces(session.criteria, "min") ?? null;
-    const piecesMax = normalizePieces(session.criteria, "max") ?? 999;
-    const toleranceKm =
-      session.role === "buyer"
-        ? Number(session.criteria.toleranceKm ?? 0)
-        : null;
-
-    const surfaceMin = normalizeSurface(session.criteria) ?? null;
-    const surfaceMax =
-      session.criteria.surfaceMax != null
-        ? Number(session.criteria.surfaceMax)
-        : 9999;
-
-    const budgetMin = Number(session.criteria.budgetMin ?? 0);
-    let budgetMax = Number(session.criteria.budgetMax ?? budgetMin);
-    if (budgetMax < budgetMin) budgetMax = budgetMin;
-    // ===== NORMALIZED FINAL =====
-    const normalized = {
-      type: session.criteria.type ? normalize(session.criteria.type) : "",
-      ville: session.criteria.ville || "",
-
-      budgetMin,
-      budgetMax,
-      piecesMin,
-      piecesMax,
-      surfaceMin,
-      surfaceMax,
-      toleranceKm, // AJOUT ICI
-
-      // SELLER ONLY
-
-      ...(session.role === "seller" && {
-        price: budgetMin,
-        pieces: piecesMin,
-        surface: surfaceMin,
-        etatBien:
-          req.body.etatBien ??
-          aiResponse.criteria?.etatBien ??
-          session.criteria.etatBien,
-        niveauEnergetique:
-          req.body.niveauEnergetique ??
-          aiResponse.criteria?.niveauEnergetique ??
-          session.criteria.niveauEnergetique ??
-          null,
-        imagesbien: Array.isArray(session.criteria.imagesbien)
-          ? session.criteria.imagesbien
-          : [],
-      }),
-    };
-    if (Array.isArray(normalized.imagesbien)) {
-      // déjà bon
-    } else if (typeof normalized.imagesbien === "string") {
-      try {
-        const parsed = JSON.parse(normalized.imagesbien);
-        normalized.imagesbien = Array.isArray(parsed) ? parsed : [];
-      } catch {
-        normalized.imagesbien = [];
-      }
-    } else {
-      normalized.imagesbien = [];
+    const incoming = aiResponse.criteria || {};
+    for (const [key, val] of Object.entries(incoming)) {
+      if (POPUP_PROTECTED.has(key) && session.criteria[key] !== undefined)
+        continue;
+      if (val !== null && val !== undefined) session.criteria[key] = val;
     }
-    console.log(" [NORMALIZED FINAL]", JSON.stringify(normalized, null, 2)); // ===== Vérification critères complets =====
+    session.criteria.intent = userRole;
 
-    // ================== MISSING GLOBAL CRITERIA ==================
-    const missingCriteria = ORDER.filter((k) => {
-      if (k === "pieces") return session.criteria.piecesMin == null;
-      if (k === "espace") return session.criteria.surfaceMin == null;
+    const sc = session.criteria;
 
-      return session.criteria[k] == null;
-    });
+    if (userRole === "seller") {
+      for (const [mn, mx] of [
+        ["budgetMin", "budgetMax"],
+        ["piecesMin", "piecesMax"],
+        ["surfaceMin", "surfaceMax"],
+      ]) {
+        if (sc[mn] != null && sc[mx] == null) sc[mx] = sc[mn];
+        if (sc[mx] != null && sc[mn] == null) sc[mn] = sc[mx];
+      }
+    }
 
-    // ================== SELLER CHECKS ==================
-    const etatBienMissing =
-      session.role === "seller" &&
-      (session.criteria.etatBien == null || session.criteria.etatBien === "");
+    // Buyer : si piecesMin connu, forcer piecesMax à 999 pour éviter que l'IA
+    // redemande le maximum (qui est ouvert par défaut)
+    if (userRole === "buyer") {
+      if (sc.piecesMin != null && sc.piecesMax == null) sc.piecesMax = 999;
+      if (sc.surfaceMin != null && sc.surfaceMax == null) sc.surfaceMax = 9999;
+      if (sc.budgetMin != null && sc.budgetMax == null)
+        sc.budgetMax = sc.budgetMin;
+    }
+    console.log("🔀 AFTER MERGE:", sc);
 
-    const niveauEnergetiqueMissing =
-      session.role === "seller" &&
-      session.criteria.etatBien &&
-      (session.criteria.niveauEnergetique == null ||
-        session.criteria.niveauEnergetique === "");
+    // ── 6. La ville vient-elle d'apparaître dans CE message ? ─────────
+    // On compare avant/après merge pour détecter si c'est CE message qui l'a fournie
+    const villeJustReceived = !villeAvant && !!sc.ville;
 
-    const imagesMissing =
-      session.role === "seller" &&
-      (!Array.isArray(session.criteria.imagesbien) ||
-        session.criteria.imagesbien.length === 0);
+    // ── 7. Si message utilisateur normal et vendeur → recalcul triggerContext
+    // après merge (on a maintenant l'état complet et à jour)
+    let finalTriggerContext = triggerContext; // déjà fixé pour les messages internes
+    if (!message.startsWith("__") && userRole === "seller") {
+      finalTriggerContext = computeSellerTriggerContext(sc, villeJustReceived);
+    }
 
-    // ================== BUYER CHECKS ==================
-    const toleranceMissing =
-      session.role === "buyer" &&
-      session.criteria.ville &&
-      session.criteria.toleranceKm == null;
+    console.log("🎯 TRIGGER CONTEXT:", finalTriggerContext);
 
-    const budgetIncomplete = session.criteria.budgetMin == null;
+    // ── 8. Si le triggerContext a changé par rapport à ce qu'on avait passé à l'IA,
+    // et que l'IA n'avait pas le bon contexte, on relance avec le bon contexte.
+    // Cas principal : message utilisateur normal → ville reçue → l'IA doit annoncer proximite
+    // mais on ne le savait pas avant le merge.
+    let reply = aiResponse.message || "";
 
-    // ================== FINAL TRIGGER CONTROL ==================
-    const isFinalTrigger = req.body.etatBien != null;
+    if (
+      !message.startsWith("__") &&
+      userRole === "seller" &&
+      finalTriggerContext !== triggerContext &&
+      finalTriggerContext !== null
+    ) {
+      // L'IA a répondu sans connaître le triggerContext → on relance
+      console.log("🔁 RELANCE IA avec triggerContext:", finalTriggerContext);
+      try {
+        const aiResponse2 = await aiChatWithCriteria(message, sc, {
+          phase: session.phase,
+          matchingProfiles: session.matches,
+          role: userRole,
+          triggerContext: finalTriggerContext,
+        });
+        if (aiResponse2.message) reply = aiResponse2.message;
+        // On ne merge plus les critères (déjà mergés, risque de régression)
+      } catch (e) {
+        console.error("[CHAT] Erreur AI relance:", e);
+      }
+    }
 
-    // ================== PHASE COLLECTING ==================
+    if (!session.started) session.started = true;
+
+    // ════════════════════════════════════════════════════════════════
+    // PHASE COLLECTING
+    // ════════════════════════════════════════════════════════════════
     if (session.phase === "collecting") {
-      console.log("🚨 CHECK BLOCK:", {
-        missingCriteria,
-        budgetIncomplete,
-        toleranceMissing,
-        etatBienMissing,
-        niveauEnergetiqueMissing,
-        imagesMissing,
+      const missingVille = !sc.ville;
+      const missingType = !sc.type;
+
+      // BUYER
+      const missingTolerance =
+        userRole === "buyer" && sc.ville && sc.toleranceKm == null;
+      const missingBudget =
+        userRole === "buyer" && sc.budgetMin == null && sc.budgetMax == null;
+      const missingSurface = userRole === "buyer" && sc.surfaceMin == null;
+      const missingPieces = userRole === "buyer" && sc.piecesMin == null;
+
+      // SELLER
+      // proximite manquant = ville connue mais pas encore array (pop-up pas encore passé)
+      const missingProximite =
+        userRole === "seller" && sc.ville && !Array.isArray(sc.proximite);
+      const missingSellerPieces =
+        userRole === "seller" && (sc.piecesMin == null || sc.piecesMin <= 0);
+      const missingSellerSurf =
+        userRole === "seller" && (sc.surfaceMin == null || sc.surfaceMin <= 0);
+      const missingSellerBudget =
+        userRole === "seller" && (sc.budgetMin == null || sc.budgetMin <= 0);
+      const missingEtatBien = userRole === "seller" && !sc.etatBien?.trim();
+      const missingDPE =
+        userRole === "seller" &&
+        sc.etatBien?.trim() &&
+        !sc.niveauEnergetique?.trim();
+      const missingImages =
+        userRole === "seller" &&
+        sc.etatBien?.trim() &&
+        sc.niveauEnergetique?.trim() &&
+        !Array.isArray(sc.imagesbien);
+
+      console.log("🚨 MISSING CHECK:", {
+        missingVille,
+        missingType,
+        ...(userRole === "seller"
+          ? {
+              missingProximite,
+              missingSellerPieces,
+              missingSellerSurf,
+              missingSellerBudget,
+              missingEtatBien,
+              missingDPE,
+              missingImages,
+            }
+          : { missingTolerance, missingBudget, missingSurface, missingPieces }),
       });
 
-      // =========================================================
-      // 1. GLOBAL CRITERIA (TOUJOURS PRIORITÉ ABSOLUE)
-      // =========================================================
-      const hasMissingGlobals =
-        missingCriteria.length > 0 ||
-        (session.role === "buyer" && budgetIncomplete) ||
-        toleranceMissing;
-
-      if (hasMissingGlobals) {
-        return res.json({
-          reply,
-          criteria: session.criteria,
-        });
+      // VENDEUR : pop-up proximite — déclenché dès que la ville est connue
+      if (missingProximite) {
+        return res.json({ reply, triggerProximitePopup: true, criteria: sc });
       }
 
-      // =========================================================
-      // 2. SELLER FLOW ORDER STRICT
-      // =========================================================
+      // Critères texte encore manquants
+      const stillMissing =
+        missingVille ||
+        missingType ||
+        missingTolerance ||
+        missingBudget ||
+        missingSurface ||
+        missingPieces ||
+        missingSellerPieces ||
+        missingSellerSurf ||
+        missingSellerBudget;
 
-      // 2.1 état du bien
-      if (etatBienMissing) {
-        return res.json({
-          reply,
-          triggerEtatBienPopup: true,
-          criteria: session.criteria,
-        });
+      if (stillMissing) {
+        return res.json({ reply, criteria: sc });
       }
 
-      // 2.2 niveau énergétique
-      if (niveauEnergetiqueMissing) {
+      // VENDEUR : pop-ups qualité dans l'ordre strict
+      if (missingEtatBien) {
+        return res.json({ reply, triggerEtatBienPopup: true, criteria: sc });
+      }
+      if (missingDPE) {
         return res.json({
           reply,
           triggerNiveauEnergetiquePopup: true,
-          criteria: session.criteria,
+          criteria: sc,
         });
       }
-
-      // 2.3 images
-      if (imagesMissing && !req.body.skipImages) {
-        return res.json({
-          reply,
-          triggerImagesPopup: true,
-          criteria: session.criteria,
-        });
+      if (missingImages) {
+        return res.json({ reply, triggerImagesPopup: true, criteria: sc });
       }
 
-      // =========================================================
-      // 3. MATCHING READY (TOUT EST COMPLET)
-      // =========================================================
+      // MATCHING — tous critères complets
+      const normalized = buildNormalized(sc, userRole);
+      console.log("🔧 [PRE-MATCHING]", JSON.stringify(normalized, null, 2));
 
-      // ===== Critères complets => création du profil en mémoire & DB =====
-      let profile;
-      if (session.role === "buyer") {
-        profile = await addBuyer({
-          username,
-          type: normalized.type,
-          ville: normalized.ville,
-          budgetMin: normalized.budgetMin,
-          budgetMax: normalized.budgetMax,
-          piecesMin: normalized.piecesMin,
-          piecesMax: normalized.piecesMax,
-          surfaceMin: normalized.surfaceMin,
-          surfaceMax: normalized.surfaceMax,
-          toleranceKm: normalized.toleranceKm,
-        });
-      } else {
-        // Utiliser les vraies données du seller
-        const existingSeller = SELLERS.find((s) => s.username === username);
-        profile = await addSeller({
-          username,
-          type: normalized.type || "appartement",
-          ville: normalized.ville || "",
-          price: normalized.budgetMin, // prix fourni par le seller
-          pieces: normalized.piecesMin, // nombre de pièces
-          surface: normalized.surfaceMin, // surface du bien
-          etatBien: normalized.etatBien,
-          imagesbien: normalized.imagesbien,
-          niveauEnergetique: normalized.niveauEnergetique,
-          contact: req.user.contact || "",
-        });
-        console.log("🔥 [STEP 4 - addSeller CALLED]", {
-          username: normalized.username,
-          imagesbien: normalized.imagesbien,
-          SELLERS_BEFORE: SELLERS.length,
-        });
-        console.log("DEBUG existingSeller:", existingSeller);
-        console.log("DEBUG profile after addSeller:", profile);
-        console.log("🔥 SELLERS BEFORE PUSH:", SELLERS.length);
+      let profile,
+        matches = [];
+      try {
+        if (userRole === "buyer") {
+          profile = await addBuyer({ username, ...normalized });
+          matches = matchUsers(profile, 5);
 
-        console.log("🔥 SELLERS AFTER PUSH:", SELLERS.length);
+          // Géocodage : coordonnées de la ville du buyer (= "nous")
+          const buyerCoords = await geocodeVille(normalized.ville);
+
+          // ✅ FIX CARTE : on envoie les coords buyer explicitement au front
+          const buyerLatFinal = buyerCoords?.lat ?? 48.8566;
+          const buyerLngFinal = buyerCoords?.lng ?? 2.3522;
+
+          matches = await Promise.all(
+            matches.map(async (m) => {
+              const matchCoords = await geocodeVille(m.ville);
+              return {
+                ...m,
+                // lat/lng = coordonnées du BIEN (marker rose 🏠)
+                lat: matchCoords?.lat ?? 48.8566,
+                lng: matchCoords?.lng ?? 2.3522,
+                // buyerLat/buyerLng = coordonnées de L'ACHETEUR (marker bleu 📍)
+                buyerLat: buyerLatFinal,
+                buyerLng: buyerLngFinal,
+              };
+            }),
+          );
+        } else {
+          profile = await addSeller({
+            username,
+            type: normalized.type || "appartement",
+            ville: normalized.ville || "",
+            price: normalized.budgetMin,
+            pieces: normalized.piecesMin,
+            surface: normalized.surfaceMin,
+            etatBien: normalized.etatBien,
+            imagesbien: normalized.imagesbien,
+            niveauEnergetique: normalized.niveauEnergetique,
+            proximite: normalized.proximite,
+            contact: req.user.contact || "",
+          });
+          matches = matchSellerToBuyers(profile, 5);
+
+          // Coordonnées du BIEN du vendeur (marker rose 🏠)
+          const sellerCoords = await geocodeVille(normalized.ville);
+          const sellerLatFinal = sellerCoords?.lat ?? 48.8566;
+          const sellerLngFinal = sellerCoords?.lng ?? 2.3522;
+
+          matches = await Promise.all(
+            matches.map(async (m) => {
+              // Coordonnées de L'ACHETEUR matché (marker bleu 📍)
+              const buyerCoords = await geocodeVille(m.ville);
+              return {
+                ...m,
+                // lat/lng = coordonnées du BIEN vendeur (notre bien, marker rose)
+                lat: sellerLatFinal,
+                lng: sellerLngFinal,
+                // buyerLat/buyerLng = coordonnées de l'acheteur matché (marker bleu)
+                buyerLat: buyerCoords?.lat ?? 48.8566,
+                buyerLng: buyerCoords?.lng ?? 2.3522,
+              };
+            }),
+          );
+        }
+
+        matches.forEach((m) => learnPreference(profile, m));
+      } catch (e) {
+        console.error("[MATCHING ERROR]:", e);
       }
-
-      console.log("🚨 JUST BEFORE UPSERT:", normalized.etatBien);
-
-      // ===== UPSERT PROFIL EN DB =====
 
       try {
         await upsertProfile(
-          { username, role: session.role, contact: req.user.contact },
+          { username, role: userRole, contact: req.user.contact },
           normalized,
         );
-      } catch (err) {
-        console.error("[DB UPSERT PROFILE ERROR]:", err);
+      } catch (e) {
+        console.error("[DB UPSERT ERROR]:", e);
       }
-      if (
-        session.role === "seller" &&
-        !req.body.skipImages &&
-        (!Array.isArray(session.criteria.imagesbien) ||
-          session.criteria.imagesbien.length === 0)
-      ) {
-        console.log("📸 TRIGGER IMAGES POPUP CHECK:", {
-          role: session.role,
-          etatBien: session.criteria.etatBien,
-          imagesbien: session.criteria.imagesbien,
-        });
 
-        return res.json({
-          reply,
-          triggerImagesPopup: true,
-          criteria: session.criteria,
-        });
-      }
-      if (
-        session.role === "seller" &&
-        !req.body.skipImages &&
-        (!Array.isArray(session.criteria.imagesbien) ||
-          session.criteria.imagesbien.length === 0)
-      ) {
-        console.log("⛔ BLOCK MATCHING - waiting for images");
-
-        return res.json({
-          reply,
-          triggerImagesPopup: true,
-          criteria: session.criteria,
-        });
-      } // ===== Matching =====
-
-      const matches =
-        session.role === "buyer"
-          ? matchUsers(profile, 5)
-          : matchSellerToBuyers(profile, 5);
-
-      matches.forEach((m) => learnPreference(profile, m));
       session.matches = matches;
-      session.phase = "results"; // ===== Appel IA postResult AVANT réponse =====
+      session.phase = "results";
 
-      let postReply = null;
+      let postReply =
+        "Souhaitez-vous que je vous aide à comparer ces profils ?";
       try {
-        const postResultAI = await aiChatWithCriteria(
-          "__POST_RESULTS__",
-          session.criteria,
-          { phase: "results", matchingProfiles: session.matches },
-        );
-        postReply =
-          postResultAI.message ||
-          "Souhaitez-vous que je vous aide à comparer ces profils ?";
-      } catch (err) {
-        console.error("[POST RESULTS AI ERROR]:", err);
-        postReply =
-          "Souhaitez-vous que je vous aide à choisir le profil le plus adapté ?";
+        const postAI = await aiChatWithCriteria("__POST_RESULTS__", sc, {
+          phase: "results",
+          matchingProfiles: matches,
+          role: userRole,
+        });
+        if (postAI.message) postReply = postAI.message;
+      } catch (e) {
+        console.error("[POST RESULTS AI]:", e);
       }
 
+      // APRÈS
       return res.json({
         reply,
         matches,
         postReply,
+        matchingDone: true, // ← signal explicite que le tunnel est terminé
         triggerImagesPopup: false,
-        criteria: {
-          ...session.criteria,
-          surfaceMin: session.criteria.espaceMin,
-          surfaceMax: session.criteria.espaceMax,
-          surface: session.criteria.espaceMin,
-        },
+        triggerProximitePopup: false,
+        triggerEtatBienPopup: false,
+        triggerNiveauEnergetiquePopup: false,
+        criteria: sc,
       });
-    } // ===== Phase results =====
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // PHASE RESULTS
+    // ════════════════════════════════════════════════════════════════
+    // APRÈS — phase results : ajouter matchingDone pour que le front sache ne pas re-tunneliser
     if (session.phase === "results") {
-      let postResultAI = {};
+      let postAI = {};
       try {
-        postResultAI = await aiChatWithCriteria(message, session.criteria, {
+        postAI = await aiChatWithCriteria(message, sc, {
           phase: "results",
           matchingProfiles: session.matches,
+          role: userRole,
         });
-      } catch (err) {
-        console.error("[RESULTS PHASE AI ERROR]:", err);
-        postResultAI = {
-          message:
-            "Je rencontre une difficulté à analyser votre demande. Pouvez-vous reformuler ?",
+      } catch (e) {
+        postAI = {
+          message: "Je rencontre une difficulté. Pouvez-vous reformuler ?",
         };
       }
-
       return res.json({
-        reply,
-        postReply: postResultAI.message,
-        criteria: session.criteria,
+        reply: postAI.message || "", // en phase results, reply = réponse IA contextuelle
+        postReply: postAI.message || "",
+        matches: session.matches, // renvoyer les matches existants
+        matchingDone: true, // ← front sait qu'on est post-matching
+        criteria: sc,
       });
-    } // ===== Cas par défaut =====
-
-    return res.json({ reply, criteria: session.criteria });
+    }
+    return res.json({ reply, criteria: sc });
   } catch (err) {
-    console.error("[CHAT] ERREUR INATTENDUE :", err);
+    console.error("[CHAT] ERREUR INATTENDUE:", err);
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
-import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
 
 // ================== CLOUDINARY CONFIG ==================
 cloudinary.config({
@@ -2199,45 +2316,48 @@ app.post("/api/support", async (req, res) => {
 
   try {
     console.log("[SUPPORT] Headers reçus :", req.headers);
-
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      console.warn("[SUPPORT] Token manquant");
-      return res.status(401).json({ error: "Token manquant" });
-    }
-
-    console.log("[SUPPORT] Authorization header :", authHeader);
-
-    const token = authHeader.split(" ")[1];
-    console.log("[SUPPORT] Token extrait :", token);
-
-    let decoded;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET);
-      console.log(
-        "[SUPPORT] Token valide pour :",
-        decoded.username,
-        "Role :",
-        decoded.role,
-      );
-    } catch (err) {
-      console.error("[SUPPORT] Token invalide :", err);
-      return res.status(401).json({ error: "Token invalide" });
-    }
-
     console.log("[SUPPORT] Body reçu :", req.body);
 
-    const { subject, message } = req.body;
+    // ── Auth optionnelle : token si connecté, infos formulaire sinon ──
+    const authHeader = req.headers.authorization;
+    let senderIdentity = "Visiteur non connecté";
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      console.log("[SUPPORT] Token extrait :", token);
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        senderIdentity = `Utilisateur connecté : ${decoded.username} (role: ${decoded.role})`;
+        console.log("[SUPPORT] Token valide pour :", decoded.username);
+      } catch (err) {
+        console.warn(
+          "[SUPPORT] Token présent mais invalide, on continue en mode public :",
+          err.message,
+        );
+        // on ne bloque pas — on traite comme visiteur
+      }
+    } else {
+      console.log(
+        "[SUPPORT] Pas de token — mode contact public (contact.html)",
+      );
+    }
+
+    const { subject, message, name, email } = req.body;
+
     if (!subject || !message) {
       console.warn("[SUPPORT] Sujet ou message manquant");
       return res.status(400).json({ error: "Sujet et message obligatoires" });
     }
 
-    const emailContent = `
-Nouveau message support :
+    // Enrichir l'identité avec les champs publics si présents (contact.html)
+    if (name || email) {
+      senderIdentity = `Contact public — Nom : ${name || "non renseigné"} | Email : ${email || "non renseigné"}`;
+    }
 
-Utilisateur : ${decoded.username}
-Role : ${decoded.role}
+    const emailContent = `
+Nouveau message support / contact :
+
+${senderIdentity}
 
 Sujet : ${subject}
 
@@ -2288,6 +2408,247 @@ ${message}
     console.error("[SUPPORT] ERREUR INATTENDUE :", err);
     console.error("[SUPPORT] Stack trace :", err.stack);
     res.status(500).json({ error: "Erreur serveur", details: err.message });
+  }
+});
+app.get("/api/marche", authenticateToken, async function (req, res) {
+  try {
+    // ── 1. Stats par ville : croisement SELLERS × BUYERS (matchs réels) ──
+    const cityStats = {};
+
+    // Indexer les buyers par ville normalisée pour lookup rapide
+    const buyersByVille = {};
+    for (const b of BUYERS) {
+      const v = normalize(b.ville || "");
+      if (!buyersByVille[v]) buyersByVille[v] = [];
+      buyersByVille[v].push(b);
+    }
+
+    for (const s of SELLERS) {
+      const city = s.ville?.trim() || "";
+      if (!city) continue;
+      if (!cityStats[city]) {
+        cityStats[city] = {
+          count: 0,
+          totalPrice: 0,
+          totalSurface: 0,
+          matchCount: 0,
+          prevPrixM2: null,
+        };
+      }
+      cityStats[city].count++;
+      cityStats[city].totalPrice += s.price || 0;
+      cityStats[city].totalSurface += s.surface || 0;
+
+      const sNorm = normalize(city);
+      for (const b of BUYERS) {
+        const bNorm = normalize(b.ville || "");
+        // ← distanceKm maintenant importée, plus d'erreur
+        const dist = distanceKm(city, b.ville || "");
+        const tol = b.toleranceKm ?? 100;
+        if (bNorm === sNorm || dist <= tol) {
+          cityStats[city].matchCount++;
+        }
+      }
+    }
+
+    // Récupérer la variation depuis DB (prix précédent stocké)
+    // On utilise un snapshot en mémoire pour la variation inter-refresh
+    if (!global._marchePrevPrix) global._marchePrevPrix = {};
+
+    const villesData = Object.entries(cityStats)
+      .filter(([, s]) => s.count > 0)
+      .map(([name, stats]) => {
+        const prixM2 =
+          stats.totalSurface > 0
+            ? Math.round(stats.totalPrice / stats.totalSurface)
+            : 0;
+        const prev = global._marchePrevPrix[name] ?? prixM2;
+        const variation =
+          prev > 0
+            ? parseFloat((((prixM2 - prev) / prev) * 100).toFixed(1))
+            : 0;
+        global._marchePrevPrix[name] = prixM2;
+        return {
+          ville: name,
+          prixM2,
+          matchs: stats.matchCount,
+          biens: stats.count,
+          variation,
+        };
+      })
+      .filter((v) => v.prixM2 > 0)
+      .sort((a, b) => b.matchs - a.matchs);
+
+    // ── 2. Types de biens réels ──
+    const typesCount = {};
+    for (const s of SELLERS) {
+      const t = s.type || "appartement";
+      typesCount[t] = (typesCount[t] || 0) + 1;
+    }
+    const typesData = Object.entries(typesCount)
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // ── 3. KPIs réels ──
+    const totalSellers = SELLERS.length;
+    const totalBuyers = BUYERS.length;
+
+    // Prix médian/m² global
+    const allPrixM2 = SELLERS.filter((s) => s.price > 0 && s.surface > 0).map(
+      (s) => s.price / s.surface,
+    );
+    allPrixM2.sort((a, b) => a - b);
+    const medianPrixM2 = allPrixM2.length
+      ? Math.round(allPrixM2[Math.floor(allPrixM2.length / 2)])
+      : 0;
+
+    // Surface médiane
+    const allSurfaces = SELLERS.filter((s) => s.surface > 0)
+      .map((s) => s.surface)
+      .sort((a, b) => a - b);
+    const medianSurface = allSurfaces.length
+      ? Math.round(allSurfaces[Math.floor(allSurfaces.length / 2)])
+      : 0;
+
+    // Compatibilité moyenne : échantillon rapide des 20 premiers sellers × buyers
+    let totalCompat = 0,
+      compatCount = 0;
+    const sellerSample = SELLERS.slice(0, 20);
+    const buyerSample = BUYERS.slice(0, 20);
+    for (const s of sellerSample) {
+      for (const b of buyerSample) {
+        const dist = distanceKm(s.ville || "", b.ville || "");
+        const tol = b.toleranceKm ?? 100;
+        if (dist <= tol) {
+          const budgetOk = b.budgetMax && s.price <= b.budgetMax ? 1 : 0.3;
+          const surfOk = b.surfaceMin && s.surface >= b.surfaceMin ? 1 : 0.5;
+          totalCompat += Math.round(
+            (budgetOk * 0.5 + surfOk * 0.3 + 0.2) * 100,
+          );
+          compatCount++;
+        }
+      }
+    }
+    const compatMoy =
+      compatCount > 0 ? Math.round(totalCompat / compatCount) : 0;
+
+    // Total matchs réels (somme des matchCount de toutes les villes)
+    const totalMatchs = villesData.reduce((s, v) => s + v.matchs, 0);
+
+    // Variation prix global (snapshot précédent)
+    if (!global._marchePrevPrixGlobal)
+      global._marchePrevPrixGlobal = medianPrixM2;
+    const variationPrix =
+      global._marchePrevPrixGlobal > 0
+        ? parseFloat(
+            (
+              ((medianPrixM2 - global._marchePrevPrixGlobal) /
+                global._marchePrevPrixGlobal) *
+              100
+            ).toFixed(1),
+          )
+        : 0;
+    global._marchePrevPrixGlobal = medianPrixM2;
+
+    // Sparklines : historique glissant en mémoire (12 points max)
+    if (!global._marcheHistory)
+      global._marcheHistory = {
+        prix: [],
+        matchs: [],
+        compat: [],
+        users: [],
+        surface: [],
+      };
+    const H = global._marcheHistory;
+    const pushSpark = (arr, val) => {
+      arr.push(Math.round(val));
+      if (arr.length > 12) arr.shift();
+    };
+    pushSpark(H.prix, medianPrixM2 || 0);
+    pushSpark(H.matchs, totalMatchs);
+    pushSpark(H.compat, compatMoy);
+    pushSpark(H.users, totalSellers + totalBuyers);
+    pushSpark(H.surface, medianSurface);
+
+    // ── 4. Distribution compatibilité (depuis les buyers ayant un profil complet) ──
+    const distribution = { forte: 0, bonne: 0, moyenne: 0, faible: 0 };
+    for (const s of SELLERS.slice(0, 30)) {
+      for (const b of BUYERS.slice(0, 30)) {
+        const dist = distanceKm(s.ville || "", b.ville || "");
+        const tol = b.toleranceKm ?? 100;
+        if (dist > tol) continue;
+        const budgetOk = b.budgetMax && s.price <= b.budgetMax ? 1 : 0.3;
+        const surfOk = b.surfaceMin && s.surface >= b.surfaceMin ? 1 : 0.5;
+        const c = Math.round((budgetOk * 0.5 + surfOk * 0.3 + 0.2) * 100);
+        if (c >= 80) distribution.forte++;
+        else if (c >= 60) distribution.bonne++;
+        else if (c >= 40) distribution.moyenne++;
+        else distribution.faible++;
+      }
+    }
+
+    // ── 5. Heatmap : activité réelle par jour (7 derniers jours) ──
+    if (!global._marcheHeatmap) global._marcheHeatmap = new Array(28).fill(0);
+    const dayOfWeek = new Date().getDay();
+    const normalized_dow = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const weekInCycle = Math.floor((Date.now() / 86400000) % 4);
+    const heatIdx = weekInCycle * 7 + normalized_dow;
+    global._marcheHeatmap[heatIdx] =
+      (global._marcheHeatmap[heatIdx] || 0) + totalMatchs;
+
+    // ── 6. Flux live : derniers events réels ──
+    const fluxLive = [];
+    const recentSellers = [...SELLERS]
+      .sort((a, b) => (b.id || 0) - (a.id || 0))
+      .slice(0, 3);
+    for (const s of recentSellers) {
+      if (s.ville) {
+        fluxLive.push({
+          dot: "match",
+          text: `<strong>${s.username}</strong> a publié un bien · <strong>${s.ville}</strong>`,
+        });
+      }
+    }
+    const recentBuyers = [...BUYERS]
+      .sort((a, b) => (b.id || 0) - (a.id || 0))
+      .slice(0, 2);
+    for (const b of recentBuyers) {
+      if (b.ville) {
+        fluxLive.push({
+          dot: "signup",
+          text: `<strong>${b.username}</strong> recherche à <strong>${b.ville}</strong>`,
+        });
+      }
+    }
+
+    res.json({
+      villes: villesData,
+      kpi: {
+        totalMatchs,
+        matchsMois: totalMatchs,
+        prixMedianM2: medianPrixM2,
+        variationPrix,
+        compatMoy,
+        variationCompat: 0,
+        usersActifs: totalSellers + totalBuyers,
+        nouveauxUsers: totalBuyers,
+        surfaceMediane: medianSurface,
+        variationSurface: 0,
+        sparkMatchs: H.matchs.length > 1 ? [...H.matchs] : [totalMatchs],
+        sparkPrix: H.prix.length > 1 ? [...H.prix] : [medianPrixM2],
+        sparkCompat: H.compat.length > 1 ? [...H.compat] : [compatMoy],
+        sparkUsers:
+          H.users.length > 1 ? [...H.users] : [totalSellers + totalBuyers],
+        sparkSurface: H.surface.length > 1 ? [...H.surface] : [medianSurface],
+      },
+      distribution,
+      types: typesData,
+      heatmap: [...global._marcheHeatmap],
+      fluxLive,
+    });
+  } catch (err) {
+    console.error("[/api/marche]", err);
+    res.status(500).json({ error: "Erreur serveur stats marché" });
   }
 });
 // ================== START ==================

@@ -1,323 +1,539 @@
 import "dotenv/config";
-import Together from "together-ai";
 import OpenAI from "openai";
+/* ─── CLIENT GROQ (primaire) ─────────────────────────────────────────────── */
+const groqClient = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
+  timeout: 10000,
+  maxRetries: 0,
+});
 
-/* =========================
-   MISTRAL CLIENT
-========================= */
-
+/* ─── CLIENT MISTRAL (fallback) ──────────────────────────────────────────── */
 const mistralClient = new OpenAI({
   apiKey: process.env.MISTRAL,
   baseURL: "https://api.mistral.ai/v1",
+  timeout: 12000,
+  maxRetries: 0,
 });
 
-async function callMistral(systemPrompt, userMessage) {
-  const response = await mistralClient.chat.completions.create({
-    model: "mistral-small-latest",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userMessage },
-    ],
-    temperature: 0.2,
-  });
-
-  return response?.choices?.[0]?.message?.content || "";
-}
-
-/* =========================
-   HELPERS
-========================= */
-
+/* ─── HELPERS ─────────────────────────────────────────────────────────────── */
 function normalizeNumber(value) {
-  if (typeof value === "number") return value;
-  if (typeof value !== "string") return undefined;
-
-  value = value.replace(/\s+/g, "");
-
-  if (value.toLowerCase().endsWith("k")) {
-    return Math.round(parseFloat(value.slice(0, -1)) * 1000);
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number" && !isNaN(value)) return value;
+  if (typeof value !== "string") return null;
+  const cleaned = value.replace(/\s+/g, "").replace(/[€$]/g, "");
+  if (cleaned.toLowerCase().endsWith("k")) {
+    const n = parseFloat(cleaned.slice(0, -1)) * 1000;
+    return isNaN(n) ? null : Math.round(n);
   }
-
-  const n = parseFloat(value);
-  return isNaN(n) ? undefined : n;
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? null : n;
 }
 
 function extractJSON(text) {
+  if (!text) return null;
+  const cleaned = text
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
   try {
-    const match = text.match(/\{[\s\S]*\}/);
-    return match ? JSON.parse(match[0]) : {};
-  } catch {
-    return {};
-  }
+    const direct = JSON.parse(cleaned);
+    if (typeof direct === "object" && direct !== null) return direct;
+  } catch (_) {}
+  try {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) return JSON.parse(match[0]);
+  } catch (_) {}
+  return null;
 }
 
-/* =========================
-   GROQ CLIENT
-========================= */
+/* ─── LLM CALL ────────────────────────────────────────────────────────────── */
+async function callLLM(messages, maxTokens = 500) {
+  try {
+    const res = await groqClient.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages,
+      temperature: 0.2,
+      max_tokens: maxTokens,
+    });
+    const text = res?.choices?.[0]?.message?.content || "";
+    if (text.trim()) {
+      console.log("✅ Groq OK | RAW:", text.slice(0, 120));
+      return text;
+    }
+    console.warn("⚠️ Groq réponse vide");
+  } catch (e) {
+    console.warn("⚠️ Groq FAILED:", e?.code || e?.message?.slice(0, 80));
+  }
 
-const aiClient = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: "https://api.groq.com/openai/v1",
-});
+  try {
+    const res = await mistralClient.chat.completions.create({
+      model: "mistral-small-latest",
+      messages,
+      temperature: 0.2,
+      max_tokens: maxTokens,
+    });
+    const text = res?.choices?.[0]?.message?.content || "";
+    if (text.trim()) {
+      console.log("✅ Mistral (fallback) OK | RAW:", text.slice(0, 120));
+      return text;
+    }
+    console.warn("⚠️ Mistral réponse vide");
+  } catch (e) {
+    console.warn("⚠️ Mistral FAILED:", e?.code || e?.message?.slice(0, 80));
+  }
 
-/* =========================
-   MAIN FUNCTION
-========================= */
+  return null;
+}
 
+/* ─── MERGE CRITÈRES ─────────────────────────────────────────────────────── */
+function mergeNewCriteria(existing, incoming, role = "buyer") {
+  if (!incoming || typeof incoming !== "object") return { ...existing };
+  const merged = { ...existing };
+
+  for (const [key, val] of Object.entries(incoming)) {
+    if (val === null || val === undefined) continue;
+
+    if (key === "intent") {
+      const MAP = {
+        achat: "buyer",
+        acheter: "buyer",
+        buy: "buyer",
+        buyer: "buyer",
+        vente: "seller",
+        vendre: "seller",
+        sell: "seller",
+        seller: "seller",
+        collecting: null,
+        results: null,
+      };
+      const n = MAP[String(val).toLowerCase().trim()];
+      if (n) merged.intent = n;
+      continue;
+    }
+
+    if (key === "type") {
+      const t = String(val).toLowerCase().trim();
+      const MAISON = [
+        "maison",
+        "villa",
+        "pavillon",
+        "chalet",
+        "fermette",
+        "mas",
+        "bungalow",
+      ];
+      const APPART = [
+        "appartement",
+        "appart",
+        "studio",
+        "loft",
+        "duplex",
+        "triplex",
+        "t1",
+        "t2",
+        "t3",
+        "t4",
+        "t5",
+        "t6",
+        "f1",
+        "f2",
+        "f3",
+        "f4",
+        "f5",
+      ];
+      if (MAISON.some((k) => t.includes(k))) {
+        merged.type = "maison";
+        continue;
+      }
+      if (APPART.some((k) => t.includes(k))) {
+        merged.type = "appartement";
+        continue;
+      }
+      continue;
+    }
+
+    if (
+      [
+        "budgetMin",
+        "budgetMax",
+        "piecesMin",
+        "piecesMax",
+        "surfaceMin",
+        "surfaceMax",
+        "toleranceKm",
+      ].includes(key)
+    ) {
+      const n = normalizeNumber(val);
+      if (n !== null && !(["piecesMin", "piecesMax"].includes(key) && n === 0))
+        merged[key] = n;
+      continue;
+    }
+
+    if (key === "proximite") {
+      if (Array.isArray(val) && val.length > 0) merged.proximite = val;
+      continue;
+    }
+    if (key === "imagesbien") {
+      if (Array.isArray(val)) merged.imagesbien = val;
+      continue;
+    }
+
+    if (typeof val === "string" && val.trim()) merged[key] = val.trim();
+    else if (typeof val === "boolean") merged[key] = val;
+  }
+
+  // ── Symétrie min/max — SEULEMENT si l'IA a explicitement retourné les deux côtés
+  // Pour un acheteur : on NE force PAS surfaceMax/piecesMax/budgetMax à partir du min
+  // car "surface min 50m²" doit garder surfaceMax=null (pas de plafond)
+  // Pour un vendeur : valeur unique → min = max (prix fixe, surface fixe, pièces fixes)
+  if (role === "seller") {
+    for (const [mn, mx] of [
+      ["budgetMin", "budgetMax"],
+      ["piecesMin", "piecesMax"],
+      ["surfaceMin", "surfaceMax"],
+    ]) {
+      if (merged[mn] != null && merged[mx] == null) merged[mx] = merged[mn];
+      if (merged[mx] != null && merged[mn] == null) merged[mn] = merged[mx];
+    }
+  } else {
+    // Acheteur : symétrie uniquement si l'IA a fourni les deux, ou si budget est une valeur unique
+    // Budget : si min ET max fournis → ok. Si un seul → on garde tel quel.
+    // MAIS : si l'IA retourne budgetMin=budgetMax=X (valeur unique genre "300k") → ok aussi
+    // On ne symétrise PAS surface et pièces car "minimum X" ne veut pas dire "maximum X"
+    for (const [mn, mx] of [["piecesMin", "piecesMax"]]) {
+      // Pour les pièces, si min fourni sans max → pas de plafond (laisser null)
+      // La symétrie est gérée plus tard dans buildNormalized avec une valeur 999
+    }
+  }
+
+  return merged;
+}
+
+/* ─── FALLBACK MESSAGE ───────────────────────────────────────────────────── */
+function buildFallbackMessage(role, sc, phase) {
+  if (phase === "results")
+    return "Souhaitez-vous comparer ces profils en détail ?";
+
+  if (role === "buyer") {
+    if (!sc.ville) return "Dans quelle ville recherchez-vous votre bien ?";
+    if (sc.toleranceKm == null)
+      return "Dans quel rayon autour de cette ville souhaitez-vous chercher ?";
+    if (sc.budgetMin == null && sc.budgetMax == null)
+      return "Quel est votre budget ?";
+    if (sc.surfaceMin == null) return "Quelle surface minimum vous convient ?";
+    if (sc.piecesMin == null)
+      return "Combien de pièces minimum souhaitez-vous ?";
+    if (!sc.type) return "Maison ou appartement ?";
+    return "Parfait, je recherche les meilleures correspondances.";
+  }
+
+  // seller — tunnel uniquement, sans pop-ups
+  if (!sc.ville) return "Dans quelle ville se situe votre bien ?";
+  if (!sc.type) return "S'agit-il d'une maison ou d'un appartement ?";
+  if (!sc.piecesMin || sc.piecesMin <= 0)
+    return "Combien de pièces compte votre bien ?";
+  if (!sc.surfaceMin || sc.surfaceMin <= 0)
+    return "Quelle est la surface en m² ?";
+  if (!sc.budgetMin || sc.budgetMin <= 0)
+    return "À quel prix souhaitez-vous vendre votre bien ?";
+  return "Très bien, nous allons continuer.";
+}
+
+/* ─── PROMPT ACHETEUR ────────────────────────────────────────────────────── */
+/* ─── PROMPT ACHETEUR (CORRIGÉ : LOGIQUE DU TUNNEL INTÉGRÉE AU LLM) ────────── */
+function buildBuyerSystemPrompt(phase, sc, matchingProfiles) {
+  // ── Critères déjà acquis (État AVANT le message de l'utilisateur) ──
+  const acquired = [];
+  if (sc.ville) acquired.push(`ville = "${sc.ville}"`);
+  if (sc.toleranceKm != null)
+    acquired.push(`toleranceKm = ${sc.toleranceKm} km`);
+  if (sc.budgetMin != null) acquired.push(`budgetMin = ${sc.budgetMin}`);
+  if (sc.budgetMax != null) acquired.push(`budgetMax = ${sc.budgetMax}`);
+  if (sc.surfaceMin != null) acquired.push(`surfaceMin = ${sc.surfaceMin} m²`);
+  if (sc.surfaceMax != null) acquired.push(`surfaceMax = ${sc.surfaceMax} m²`);
+  if (sc.piecesMin != null) acquired.push(`piecesMin = ${sc.piecesMin}`);
+  if (sc.piecesMax != null) acquired.push(`piecesMax = ${sc.piecesMax}`);
+  if (sc.type) acquired.push(`type = "${sc.type}"`);
+
+  const acquiredBlock = acquired.length
+    ? acquired.map((a) => `  - ${a}`).join("\n")
+    : "  (aucun encore)";
+
+  const resultsBlock =
+    phase === "results"
+      ? `\nPHASE RÉSULTATS — aide l'utilisateur à comparer les profils affichés. Ne modifie PAS les critères.\nProfils :\n${JSON.stringify(matchingProfiles?.slice(0, 5), null, 2)}`
+      : "";
+
+  return `Tu es un agent immobilier expert, chaleureux, haut de gamme et très professionnel. Tu accompagnes un ACHETEUR.
+
+CRITÈRES DÉJÀ ENREGISTRÉS (Avant le dernier message du client) :
+${acquiredBlock}
+
+TUNNEL ACHETEUR — Ordre strict pour poser tes questions.
+Évalue ce que l'utilisateur vient de dire. S'il répond à un critère manquant, passe DIRECTEMENT à la question suivante dans cette liste :
+  1. VILLE — si absente
+  2. RAYON (en km) — si absent
+  3. BUDGET D'ACHAT — si absent
+  4. SURFACE MINIMUM (en m²) — si absente
+  5. NOMBRE DE PIÈCES MINIMUM — si absent
+  6. TYPE DE BIEN (maison ou appartement) — si absent
+
+INSTRUCTION :
+- Extraits TOUTES les informations du message actuel du client pour remplir le JSON.
+- Confirme brièvement et naturellement ce qu'il vient de t'annoncer.
+- Pose UNE SEULE QUESTION pour obtenir le PROCHAIN critère manquant de la liste ci-dessus.
+- Si tous les critères sont réunis, annonce simplement que tu lances la recherche (ne pose plus de question).
+
+STYLE ET TON (TRÈS IMPORTANT) :
+  - Tu es un conseiller premium. Fais des phrases fluides et valorisantes.
+  - Ne pose pas de questions sèches comme un robot. Amène la question de façon conversationnelle.
+  - Ne mentionne JAMAIS tes variables techniques (budgetMin, piecesMax, toleranceKm, etc.) à l'utilisateur.
+
+RÈGLES D'EXTRACTION JSON (Applique-les à TOUT le message) :
+  Budget : "300k" ou "300 000 €" -> budgetMin=300000, budgetMax=300000 / "entre 200k et 350k" -> budgetMin=200000, budgetMax=350000 / "max 300k" -> budgetMax=300000, budgetMin=null
+  Surface : "50m²" -> surfaceMin=50, surfaceMax=null
+  Pièces : "4 pièces" -> piecesMin=4, piecesMax=null
+  Rayon : "60 km" -> toleranceKm=60 / "peu importe" -> toleranceKm=100
+  Type : maison/villa/pavillon -> type="maison" / appartement/studio/loft -> type="appartement"
+
+${resultsBlock}
+
+Réponds UNIQUEMENT avec ce JSON (aucun texte en dehors) :
+{
+  "message": "Ton message d'agent immobilier pro et chaleureux",
+  "criteria": {
+    "intent": "buyer",
+    "type": null,
+    "ville": null,
+    "toleranceKm": null,
+    "budgetMin": null,
+    "budgetMax": null,
+    "surfaceMin": null,
+    "surfaceMax": null,
+    "piecesMin": null,
+    "piecesMax": null
+  }
+}`.trim();
+}
+
+/* ─── PROMPT VENDEUR (inchangé) ──────────────────────────────────────────── */
+function buildSellerSystemPrompt(phase, sc, matchingProfiles, context) {
+  const triggerContext = context?.triggerContext || null;
+
+  const knownEntries = Object.entries(sc).filter(
+    ([k, v]) =>
+      !["intent"].includes(k) &&
+      v !== null &&
+      v !== undefined &&
+      v !== "" &&
+      !(Array.isArray(v) && v.length === 0),
+  );
+  const knownBlock = knownEntries.length
+    ? knownEntries
+        .map(
+          ([k, v]) => `  - ${k} = ${Array.isArray(v) ? JSON.stringify(v) : v}`,
+        )
+        .join("\n")
+    : "  (aucun encore)";
+
+  const resultsBlock =
+    phase === "results"
+      ? `\nPHASE RÉSULTATS — aide à comparer les profils affichés. Ne modifie PAS les critères.\nProfils :\n${JSON.stringify(matchingProfiles?.slice(0, 5), null, 2)}`
+      : "";
+
+  let sellerInstruction = "";
+
+  if (triggerContext === "proximite_about_to_trigger") {
+    sellerInstruction = `
+INSTRUCTION UNIQUE : la ville "${sc.ville}" vient d'être enregistrée.
+Le système va immédiatement afficher une carte interactive pour sélectionner
+les commerces, transports, écoles et services proches du bien.
+→ Confirme avoir noté la ville.
+→ Annonce que tu affiches la carte des commodités à proximité.
+→ Ne pose AUCUNE autre question. Ne parle PAS des pièces, surface, prix, état ou DPE.
+`;
+  } else if (triggerContext === "post_proximite") {
+    const missingInTunnel =
+      (!sc.type ? "le type de bien (maison ou appartement)" : "") ||
+      (!sc.piecesMin || sc.piecesMin <= 0 ? "le nombre de pièces" : "") ||
+      (!sc.surfaceMin || sc.surfaceMin <= 0 ? "la surface en m²" : "") ||
+      (!sc.budgetMin || sc.budgetMin <= 0 ? "le prix de vente" : "");
+
+    sellerInstruction = `
+INSTRUCTION : les commodités à proximité ont été sélectionnées.
+Confirme brièvement (une phrase), puis pose la prochaine question du tunnel :
+
+TUNNEL VENDEUR — ordre strict, UNE question à la fois :
+  1. TYPE — maison ou appartement (si absent)
+  2. PIÈCES — nombre de pièces (si absent ou 0)
+  3. SURFACE — en m² (si absente ou 0)
+  4. PRIX DE VENTE — "À quel prix souhaitez-vous vendre ?" (si absent ou 0)
+
+Prochain critère manquant : ${missingInTunnel || "aucun (tunnel complet)"}
+
+RÈGLES :
+  - Toujours "prix de vente", JAMAIS "budget"
+  - Prix → budgetMin = budgetMax = valeur annoncée
+  - piecesMin = piecesMax, surfaceMin = surfaceMax
+  - Ne parle PAS de l'état du bien, DPE ou photos (ce sont des pop-ups automatiques)
+`;
+  } else if (triggerContext === "etat_about_to_trigger") {
+    sellerInstruction = `
+INSTRUCTION UNIQUE : tous les critères principaux sont maintenant enregistrés
+(ville, type, pièces, surface, prix de vente, commodités).
+Le système va afficher un sélecteur pour qualifier l'état général du bien.
+→ Fais un bref récapitulatif des critères collectés (une phrase).
+→ Annonce que tu vas qualifier l'état du bien.
+→ Ne pose AUCUNE autre question.
+`;
+  } else if (triggerContext === "dpe_about_to_trigger") {
+    sellerInstruction = `
+INSTRUCTION UNIQUE : l'état du bien "${sc.etatBien}" vient d'être enregistré.
+Le système va afficher le sélecteur de diagnostic de performance énergétique (DPE).
+→ Confirme l'état du bien.
+→ Annonce que tu vas afficher le diagnostic énergétique.
+→ Ne pose AUCUNE autre question.
+`;
+  } else if (triggerContext === "images_about_to_trigger") {
+    sellerInstruction = `
+INSTRUCTION UNIQUE : le DPE "${sc.niveauEnergetique}" vient d'être enregistré.
+Le système va afficher l'interface pour déposer des photos du bien.
+→ Confirme le DPE.
+→ Annonce que tu vas permettre d'ajouter des photos pour valoriser le bien.
+→ Ne pose AUCUNE autre question.
+`;
+  } else {
+    sellerInstruction = `
+TUNNEL VENDEUR — ordre strict, UNE question à la fois :
+  1. VILLE — si absente
+  2. TYPE — maison ou appartement, si absent
+  3. PIÈCES — nombre de pièces, si absent ou 0
+  4. SURFACE — en m², si absente ou 0
+  5. PRIX DE VENTE — "À quel prix souhaitez-vous vendre ?" si absent ou 0
+
+RÈGLES CRITIQUES :
+  - "prix de vente" uniquement, JAMAIS "budget"
+  - Prix → budgetMin = budgetMax = valeur annoncée
+  - piecesMin = piecesMax, surfaceMin = surfaceMax
+  - NE JAMAIS mentionner l'état du bien, le DPE ou les photos dans ce tunnel
+    → ces éléments sont gérés automatiquement par des pop-ups APRÈS le tunnel
+  - Ne redemande JAMAIS un critère déjà listé dans les critères enregistrés
+`;
+  }
+
+  return `Tu es un agent immobilier expert, chaleureux et précis.
+
+RÔLE : VENDEUR | Phase : ${phase}
+
+CRITÈRES DÉJÀ ENREGISTRÉS — NE PAS REDEMANDER :
+${knownBlock}
+
+${sellerInstruction}
+
+STYLE :
+  - Confirme brièvement ce que l'utilisateur vient de dire
+  - UNE seule question à la fois, phrases courtes et naturelles
+  - Ne mentionne jamais les noms techniques (budgetMin, piecesMax, surfaceMin…)
+  - Hors-sujet → réponds naturellement puis recentre
+${resultsBlock}
+
+EXTRACTION JSON — extrais TOUTES les infos du message actuel :
+  Prix vendeur : valeur unique → budgetMin=budgetMax=valeur, piecesMin=piecesMax, surfaceMin=surfaceMax.
+
+Réponds UNIQUEMENT avec ce JSON (aucun texte en dehors) :
+{
+  "message": "ton message naturel",
+  "criteria": {
+    "intent": null,
+    "type": null,
+    "ville": null,
+    "toleranceKm": null,
+    "proximite": null,
+    "budgetMin": null,
+    "budgetMax": null,
+    "piecesMin": null,
+    "piecesMax": null,
+    "surfaceMin": null,
+    "surfaceMax": null,
+    "etatBien": null,
+    "imagesbien": null,
+    "niveauEnergetique": null
+  }
+}`.trim();
+}
+
+/* ─── DISPATCH PROMPT selon le rôle ─────────────────────────────────────── */
+function buildSystemPrompt(role, phase, sc, matchingProfiles, context) {
+  if (role === "seller") {
+    return buildSellerSystemPrompt(phase, sc, matchingProfiles, context);
+  }
+  return buildBuyerSystemPrompt(phase, sc, matchingProfiles);
+}
+
+/* ─── EXPORT PRINCIPAL ────────────────────────────────────────────────────── */
 export async function aiChatWithCriteria(
   userMessage,
   existingCriteria = {},
   context = {},
 ) {
   const phase = context.phase || "collecting";
-
-  const matchingProfiles = Array.isArray(context.matchingProfiles)
+  const role = context.role || existingCriteria.intent || "buyer";
+  const matches = Array.isArray(context.matchingProfiles)
     ? context.matchingProfiles
     : [];
 
-  /* =========================
-     SYSTEM PROMPT
-  ========================== */
+  const isInternal =
+    typeof userMessage === "string" && userMessage.startsWith("__");
 
-  const systemPrompt = `
-Tu es un assistant immobilier.
-Tu es dans la peau d’un agent immobilier humain.
-
-Tu discutes avec l’utilisateur (acheteur ou vendeur) pour l’aider à acheter ou à vendre un bien.
-Tu parles naturellement, comme dans une vraie conversation, jamais comme un formulaire.
-
-Ton objectif principal est d’aider l’utilisateur à formuler ses critères immobiliers
-afin qu’ils puissent être utilisés par le site.
-Cependant, tu peux aussi répondre naturellement si la discussion s’écarte temporairement de l’immobilier.
-
-────────────────────────
-CONTEXTE DE CONVERSATION
-────────────────────────
-
-Phase actuelle : ${phase}
-
-- Si la phase est "collecting" :
-  - ton rôle est de collecter ou affiner les critères immobiliers.
-- Si la phase est "results" :
-  - les profils correspondants ont déjà été affichés à l’utilisateur,
-  - tu aides à comprendre, comparer et choisir parmi ces profils,
-  - tu ne modifies plus les critères existants,
-  - sauf si l’utilisateur exprime explicitement un nouveau critère.
-
-────────────────────────
-INTENTION
-────────────────────────
-
-- Tu détectes dès que possible si l’utilisateur est acheteur ou vendeur.
-- S’il ne le précise pas, tu lui poses la question avant d’adapter la discussion.
-- Si le message de l’utilisateur n’a aucun lien avec l’immobilier :
-  - tu peux répondre normalement (small talk, humour, discussion libre),
-  - tu ne cherches pas à collecter de critères,
-  - tu ne poses aucune question immobilière,
-  - tu laisses tous les critères inchangés.
-- Après une digression, tu peux proposer naturellement de revenir au projet immobilier.
-
-────────────────────────
-CRITÈRES
-────────────────────────
-
-Tu peux discuter des critères suivants :
-- la ville
-- le budget
-- le type de bien
-- le nombre de pièces
-- la surface (m²)
-
-Tu enregistres uniquement ces critères :
-- intent
-- type
-- ville
-- budgetMin
-- piecesMin
-- espaceMin
-- toleranceKm
-- etatBien
-- imagesbien
-- niveauEnergetique
-
-Règles générales :
-- Si l’utilisateur donne une valeur unique, tu l’enregistres comme minimum.
-- Tu ne demandes jamais de maximum.
-- Tu ne reposes jamais une question dont le critère est déjà connu.
-- Si une information est floue ou non chiffrée, tu n’enregistres rien.
-- Si une information n’est pas donnée, tu laisses vide.
-
-────────────────────────
-CAS VENDEUR
-────────────────────────
-
-- Si l’utilisateur est vendeur, tu dois collecter tous les critères obligatoires :
-  ville, type, superficie, nombre de pièces et prix.
-- Tu n’envoies la validation finale que lorsque tout est connu.
-
-Tu dois aussi obligatoirement collecter l'état du bien (etatBien).
-
-Règles STRICTES :
-- C’est une information obligatoire.
-- Tu poses cette question uniquement une fois que tous les autres critères vendeur sont connus.
-- Tu poses une question ouverte et naturelle, sans proposer de choix (le choix sera géré par l’interface).
-- Exemple : "Comment décririez-vous l’état général du bien ?"
-
-Tu dois aussi obligatoirement collecter le niveau énergétique du bien (niveauEnergetique).
-
-Règles STRICTES :
-- C'est une information obligatoire, exclusivement pour les vendeurs.
-- Tu poses cette question uniquement une fois que etatBien est connu.
-- Tu poses une question ouverte et naturelle, sans proposer de choix (le choix sera géré par l'interface).
-- Exemple : "Connaissez-vous le diagnostic de performance énergétique de votre bien ?"
-- La valeur sera une lettre parmi : A, B, C, D, E, F, G.
-- Si l'utilisateur ne connaît pas, tu enregistres "unknown".
-
-Une fois TOUS les critères vendeur connus + etatBien connu, imagesbien est activé :
-Le système UI gère cela.
-Tu dois juste attendre que le backend déclenche le popup.
-
-STYLE VENDEUR : Tu restes strictement dans le cadre de la vente du bien.
-
-────────────────────────
-APRÈS AFFICHAGE DES PROFILS
-────────────────────────
-
-Uniquement si la phase est "results" :
-
-- Tu sais que les profils suivants ont été affichés :
-${JSON.stringify(matchingProfiles, null, 2)}
-
-- Tu aides à comparer et choisir sans phrase figée.
-- Tu proposes 1 à 2 profils maximum si pertinent.
-- Tu n’inventes jamais d’informations.
-- Tu ne modifies pas les critères sauf demande explicite.
-
-────────────────────────
-TOLÉRANCE KM
-────────────────────────
-
-- uniquement pour les acheteurs
-- obligatoire après la ville
-
-Règles STRICTES :
-- Dès que ville connue + acheteur → demander toleranceKm obligatoirement
-- Impossible de continuer sans cette info
-- Priorité absolue
-
-────────────────────────
-PRIORITÉ QUESTIONS ACHETEUR
-────────────────────────
-1. ville
-2. toleranceKm
-3. budget
-4. surface / pièces
-
-────────────────────────
-FORMAT DE RÉPONSE (OBLIGATOIRE)
-────────────────────────
-
-{
-  "message": "message naturel",
-  "criteria": {
-    "intent": null,
-    "type": null,
-    "ville": null,
-    "toleranceKm": null,
-    "budgetMin": null,
-    "piecesMin": null,
-    "espaceMin": null,
-    "etatBien": null,
-    "imagesbien": null,
-    "niveauEnergetique": null
-  }
-}
-
-Aucun texte hors JSON.
-
-Critères déjà connus :
-${JSON.stringify(existingCriteria)}
-
-Message utilisateur :
-"${userMessage}"
-`;
-
-  let aiText = "";
-
-  try {
-    const response = await aiClient.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ],
-      temperature: 0.2,
-    });
-
-    aiText = response?.choices?.[0]?.message?.content || "";
-  } catch (err) {
-    console.warn("⚠️ Groq failed → fallback Mistral", err?.code);
-    console.log("🔁 fallback Mistral");
-
-    try {
-      const mistralResponse = await mistralClient.chat.completions.create({
-        model: "mistral-small-latest",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
-        ],
-        temperature: 0.2,
-      });
-
-      aiText = mistralResponse?.choices?.[0]?.message?.content || "";
-    } catch (err2) {
-      console.error("❌ Mistral failed", err2);
-
-      const triggerImagesPopup =
-        normalized.intent === "seller" && normalized.imagesbien === "yes";
-
-      return {
-        message: raw.message || "",
-        criteria: normalized,
-        readyForMatching,
-        triggerImagesPopup,
-      };
-    }
+  let effectiveUserMessage = userMessage;
+  if (isInternal) {
+    const INTERNAL_MAP = {
+      __PROXIMITE_SELECTED__: `Les commodités à proximité ont été sélectionnées : ${JSON.stringify(existingCriteria.proximite || [])}. Confirme et continue le tunnel.`,
+      __ETAT_SELECTED__: `L'état du bien a été sélectionné : "${existingCriteria.etatBien}". Confirme et annonce le DPE.`,
+      __NIVEAU_ENERGETIQUE_SELECTED__: `Le DPE a été sélectionné : "${existingCriteria.niveauEnergetique}". Confirme et annonce les photos.`,
+      __IMAGES_UPLOADED__: `${(existingCriteria.imagesbien || []).length} photo(s) uploadée(s). Confirme et annonce la recherche d'acheteurs.`,
+      __IMAGES_SKIPPED__: `Pas de photos. Confirme et annonce la recherche d'acheteurs.`,
+      __POST_RESULTS__: `Les profils ont été affichés. Propose de l'aide pour comparer et choisir.`,
+    };
+    effectiveUserMessage =
+      INTERNAL_MAP[userMessage] ||
+      `Action : ${userMessage}. Confirme et continue.`;
   }
 
-  console.log("AI TEXT RAW:", aiText);
+  const sc = existingCriteria;
+  const systemPrompt = buildSystemPrompt(role, phase, sc, matches, context);
+
+  const aiText = await callLLM(
+    [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: effectiveUserMessage },
+    ],
+    500,
+  );
+
+  if (!aiText) {
+    const fallback = buildFallbackMessage(role, existingCriteria, phase);
+    console.warn("⚠️ LLM indispo — fallback:", fallback);
+    return { message: fallback, criteria: { ...existingCriteria } };
+  }
 
   const raw = extractJSON(aiText);
-  const normalized = { ...existingCriteria };
 
-  if (raw.criteria && typeof raw.criteria === "object") {
-    for (const key of Object.keys(raw.criteria)) {
-      if (
-        ["budgetMin", "piecesMin", "espaceMin", "toleranceKm"].includes(key)
-      ) {
-        const n = normalizeNumber(raw.criteria[key]);
-
-        if (key === "toleranceKm") {
-          if (n !== undefined && n > 0) normalized[key] = n;
-        } else {
-          if (n !== undefined) normalized[key] = n;
-        }
-      } else {
-        normalized[key] = raw.criteria[key];
-      }
-    }
+  if (!raw) {
+    return {
+      message:
+        aiText.trim() || buildFallbackMessage(role, existingCriteria, phase),
+      criteria: { ...existingCriteria },
+    };
   }
 
-  const readyForMatching =
-    !!normalized.ville ||
-    !!normalized.type ||
-    !!normalized.budgetMin ||
-    !!normalized.piecesMin ||
-    !!normalized.espaceMin;
+  const message =
+    raw?.message?.trim() || buildFallbackMessage(role, existingCriteria, phase);
 
-  return {
-    message: raw.message || "",
-    criteria: normalized,
-    readyForMatching,
-  };
+  // Merge avec connaissance du rôle pour la symétrie min/max
+  const merged = mergeNewCriteria(existingCriteria, raw?.criteria || {}, role);
+
+  return { message, criteria: merged };
 }
