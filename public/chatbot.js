@@ -17,6 +17,9 @@ const state = {
     etatPopupOpened: false,
     imagesPopupOpened: false,
     niveauEnergetiquePopupOpened: false,
+    contactStep: null, // null | 'awaiting_profile_selection'
+    modifyingCriteria: false,
+    lastMatches: [],
   },
 };
 
@@ -62,7 +65,38 @@ const parseImages = (img) => {
     return [];
   }
 };
+function unlockPanelActions() {
+  document.querySelectorAll(".ai-btn").forEach((btn) => {
+    btn.removeAttribute("disabled");
+    btn.classList.remove("btn-locked");
+  });
+  // Afficher un indicateur visuel que les actions sont disponibles
+  const panelHint = document.querySelector(".ai-panel-hint");
+  if (panelHint) {
+    panelHint.textContent = "Actions disponibles";
+    panelHint.classList.add("hint-active");
+  }
+}
 
+function lockPanelActions() {
+  document.querySelectorAll(".ai-btn").forEach((btn) => {
+    btn.setAttribute("disabled", "true");
+    btn.classList.add("btn-locked");
+  });
+  const panelHint = document.querySelector(".ai-panel-hint");
+  if (panelHint) {
+    panelHint.textContent = "Disponible après les résultats";
+    panelHint.classList.remove("hint-active");
+  }
+}
+function addThinkingIndicator(type = "default") {
+  const thinkEl = document.createElement("div");
+  thinkEl.className = "msg bot thinking-msg";
+  thinkEl.innerHTML = `<span class="thinking-text">Analyse cognitive en cours<span class="dots"><span>.</span><span>.</span><span>.</span></span></span>`;
+  $("chat-box").appendChild(thinkEl);
+  scrollBottom($("chat-box"));
+  return thinkEl;
+}
 // ================== STORAGE & SESSION ==================
 const storageKey = (key) =>
   state.user ? `${key}_${state.user.username}` : null;
@@ -102,7 +136,13 @@ function restoreSession() {
     err("Erreur restauration session", e);
   }
 }
-
+if (load("phase") === "results") {
+  state.phase = "results";
+  state.lastMatches = load("lastMatches") || [];
+  unlockPanelActions();
+} else {
+  lockPanelActions();
+}
 // ================== UI: PROGRESS & THEME ==================
 function updateProgressBar() {
   const c = state.criteria;
@@ -224,7 +264,113 @@ function addMessage({
   }
   scrollBottom(box);
 }
+// AVANT : handleResultsResponse, relaunchMatching, sendResultsMessage
+// sont définies DANS le try{} de sendMessage → inaccessibles globalement
 
+// APRÈS : les déplacer AVANT la fonction sendMessage, au niveau du module
+
+async function handleResultsResponse(data) {
+  // Mise à jour des matchs en mémoire
+  if (Array.isArray(data.matches) && data.matches.length > 0) {
+    state.lastMatches = data.matches;
+  }
+
+  // Actions spéciales prioritaires — pas de message affiché ici
+  if (data.actionType === "criteria_updated_relaunch") {
+    await relaunchMatching();
+    return;
+  }
+
+  // Premier matching (matchingDone + matches + postReply) — on affiche les matchs
+  if (
+    data.matchingDone &&
+    Array.isArray(data.matches) &&
+    data.matches.length > 0 &&
+    data.postReply
+  ) {
+    renderMatches(data.matches, data.postReply);
+    return;
+  }
+
+  // Relaunch matching — on affiche les nouveaux matchs sans postReply
+  if (data.actionType === "relaunch_done" && Array.isArray(data.matches)) {
+    if (data.reply) addMessage({ text: data.reply, from: "bot", typing: true });
+    renderMatches(data.matches, null);
+    return;
+  }
+
+  // Réponse IA results standard (conversation, analyse, comparaison...)
+  // Uniquement si ce n'est pas du JSON brut
+  const msg = data.reply || data.postReply;
+  if (msg) {
+    // Garde-fou : on n'affiche pas si c'est du JSON brut exposé
+    const isRawJson = msg.trim().startsWith("{") && msg.includes('"message"');
+    if (!isRawJson) {
+      addMessage({ text: msg, from: "bot", typing: true });
+    }
+  }
+}
+
+async function relaunchMatching() {
+  const thinkEl = addThinkingIndicator("action");
+  try {
+    const res = await fetch(`${API_BASE}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${state.user.token}`,
+      },
+      body: JSON.stringify({ message: "__RELAUNCH_MATCHING__" }),
+    });
+    const data = await res.json();
+    thinkEl.remove();
+    if (data.matchingDone && state.phase !== "results") {
+      state.phase = "results";
+      save("phase", "results");
+      unlockPanelActions();
+    }
+    if (data.reply) addMessage({ text: data.reply, from: "bot", typing: true });
+    if (Array.isArray(data.matches) && data.matches.length > 0) {
+      state.lastMatches = data.matches;
+      renderMatches(data.matches, null);
+    } else {
+      addMessage({
+        text: "Aucun profil trouvé avec ces nouveaux critères. Souhaitez-vous les ajuster ?",
+        from: "bot",
+      });
+    }
+  } catch (e) {
+    thinkEl.remove();
+    addMessage({ text: "Erreur lors du rechargement.", from: "bot" });
+  }
+}
+
+async function sendResultsMessage(text) {
+  const thinkEl = addThinkingIndicator("analyze");
+  try {
+    const res = await fetch(`${API_BASE}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${state.user.token}`,
+      },
+      body: JSON.stringify({ message: text }),
+    });
+    const data = await res.json();
+    thinkEl.remove();
+    if (data.criteria) {
+      state.criteria = normalizeCriteria({
+        ...state.criteria,
+        ...data.criteria,
+      });
+      save("criteria", state.criteria);
+    }
+    await handleResultsResponse(data);
+  } catch (e) {
+    thinkEl.remove();
+    addMessage({ text: "Erreur de communication.", from: "bot" });
+  }
+}
 // ================== LOGIQUE CORE: SEND MESSAGE ==================
 async function sendMessage(text) {
   if (state.sending || !text) return;
@@ -332,32 +478,36 @@ async function sendMessage(text) {
     // ── BUYER ─────────────────────────────────────────────────────────
     // Si matchs présents : on n'affiche PAS reply (message tunnel obsolète),
     // renderMatches affiche postReply à la place
-    // APRÈS
+    // APRÈS le thinkEl.remove() et le merge criteria, dans la branche buyer :
+
+    // Premier matching : matchingDone arrive avec matches + postReply
     // ── BUYER ─────────────────────────────────────────────────────────
+    // Premier matching : matchingDone arrive avec matches + postReply
     if (data.matchingDone) {
+      if (state.phase !== "results") {
+        state.phase = "results";
+        save("phase", "results");
+        unlockPanelActions();
+      }
+      // ✅ FIX : on n'affiche PAS data.reply ici (message tunnel obsolète)
+      // On appelle directement renderMatches comme la branche seller
       if (Array.isArray(data.matches) && data.matches.length > 0) {
         renderMatches(data.matches, data.postReply);
       } else {
-        // Matching déclenché mais 0 résultat (sellers sans ville, ou hors rayon)
-        if (data.reply || data.message) {
-          addMessage({
-            text: data.reply || data.message,
-            from: "bot",
-            typing: true,
-          });
-        }
-        addMessage({
-          text:
-            data.postReply ||
-            "Aucun bien ne correspond exactement à vos critères actuellement. Souhaitez-vous élargir votre rayon ou ajuster votre budget ?",
-          from: "bot",
-          typing: true,
-        });
+        // Aucun match trouvé : on affiche postReply ou reply en fallback
+        const msg = data.postReply || data.reply;
+        if (msg) addMessage({ text: msg, from: "bot", typing: true });
       }
-      return; // ← CRUCIAL : stoppe le tunnel dans tous les cas
+      return;
     }
 
-    // Pas encore de matching — tunnel normal
+    // Phase results déjà active (messages suivants)
+    if (state.phase === "results") {
+      await handleResultsResponse(data);
+      return;
+    }
+
+    // Tunnel collecting normal — seulement si PAS matchingDone
     if (data.reply || data.message) {
       addMessage({
         text: data.reply || data.message,
@@ -365,6 +515,7 @@ async function sendMessage(text) {
         typing: true,
       });
     }
+    // ← FIN. Le bloc dupliqué "Pas encore de matching" est supprimé.
   } catch (e) {
     thinkEl.remove();
     addMessage({
@@ -572,6 +723,11 @@ async function toggleFavorite(match, btn) {
 
 // ================== RENDU MATCHS (avec favoris API) ==================
 async function renderMatches(matches, postReply) {
+  state.lastMatches = matches;
+  state.phase = "results";
+  save("phase", "results");
+  unlockPanelActions();
+
   addMessage({
     text: `${matches.length} profil(s) pertinent(s) identifié(s) :`,
     from: "bot",
@@ -580,6 +736,7 @@ async function renderMatches(matches, postReply) {
 
   // Charger les favoris existants une seule fois
   const existingFavs = await loadFavorites();
+  save("lastMatches", matches);
 
   matches.forEach((m) => {
     const row = document.createElement("div");
@@ -1359,18 +1516,308 @@ export function initChatbot() {
     });
   }
 
-  // Actions panel IA
-  document.querySelector(".ai-btn.primary")?.addEventListener("click", () => {
-    sendMessage("Je souhaite être mis en relation avec un conseiller.");
-  });
+  function initPanelActions() {
+    // Bouton 1 — Mise en relation
+    document.querySelector(".ai-btn.primary")?.addEventListener("click", () => {
+      if (state.phase !== "results") {
+        addMessage({
+          text: "La mise en relation sera disponible une fois vos résultats affichés.",
+          from: "bot",
+          persist: false,
+        });
+        return;
+      }
+      // Déclencher le flow contact
+      triggerContactFlow();
+    });
 
-  document.querySelectorAll(".ai-btn")[1]?.addEventListener("click", () => {
-    sendMessage("Peux-tu analyser le marché immobilier actuel ?");
-  });
+    // Bouton 2 — Analyse marché
+    document.querySelectorAll(".ai-btn")[1]?.addEventListener("click", () => {
+      if (state.phase !== "results") {
+        addMessage({
+          text: "L'analyse de marché sera disponible une fois vos résultats affichés.",
+          from: "bot",
+          persist: false,
+        });
+        return;
+      }
+      triggerMarketAnalysis();
+    });
 
-  document.querySelector(".ai-btn.ghost")?.addEventListener("click", () => {
-    sendMessage("Je souhaite modifier mes critères de recherche.");
-  });
+    // Bouton 3 — Modifier critères
+    document.querySelector(".ai-btn.ghost")?.addEventListener("click", () => {
+      if (state.phase !== "results") {
+        addMessage({
+          text: "Vous pourrez modifier vos critères après le premier matching.",
+          from: "bot",
+          persist: false,
+        });
+        return;
+      }
+      triggerModifyCriteria();
+    });
+  }
+  function triggerContactFlow() {
+    const matches = state.lastMatches || [];
+    if (!matches.length) {
+      addMessage({
+        text: "Aucun profil disponible pour la mise en relation. Relancez une recherche.",
+        from: "bot",
+        persist: false,
+      });
+      return;
+    }
+
+    state.ui.contactStep = "awaiting_profile_selection";
+
+    // Construire la liste interactive des matchs
+    const row = document.createElement("div");
+    row.className = "msg bot structured";
+
+    const isBuyer = state.role === "buyer";
+
+    row.innerHTML = `
+    <div class="bubble contact-select-card">
+      <div class="contact-select-header">
+        <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+          <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z" stroke="url(#grad-mail)" stroke-width="1.6"/>
+          <path d="M22 6l-10 7L2 6" stroke="url(#grad-mail)" stroke-width="1.6" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="grad-mail" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#f472b6"/><stop offset="1" stop-color="#8b5cf6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>Sélectionnez le profil à contacter</span>
+      </div>
+      <div class="contact-select-list">
+        ${matches
+          .map(
+            (m, i) => `
+          <button class="contact-select-item" data-index="${i}">
+            <div class="csi-rank">${i + 1}</div>
+            <div class="csi-info">
+              <span class="csi-title">${isBuyer ? (m.type || "Bien") + " · " + m.ville : "Acheteur · " + m.ville}</span>
+              <span class="csi-sub">${isBuyer ? (m.price || m.budgetMax || "N/A") + " €" : "Budget max " + (m.budgetMax || "N/A") + " €"}</span>
+            </div>
+            <div class="csi-compat">${m.compatibility}%</div>
+          </button>
+        `,
+          )
+          .join("")}
+      </div>
+      <button class="csi-cancel">Annuler</button>
+    </div>`;
+
+    $("chat-box").appendChild(row);
+    scrollBottom($("chat-box"));
+
+    row.querySelectorAll(".contact-select-item").forEach((btn) => {
+      btn.onclick = async () => {
+        const idx = parseInt(btn.dataset.index, 10);
+        const selected = matches[idx];
+        row.remove();
+        state.ui.contactStep = null;
+
+        addMessage({
+          text: `Mise en relation avec le profil ${idx + 1} — ${selected.ville}`,
+          from: "user",
+        });
+
+        await executeContactAction(idx, selected);
+      };
+    });
+
+    row.querySelector(".csi-cancel").onclick = () => {
+      row.remove();
+      state.ui.contactStep = null;
+    };
+  }
+
+  async function executeContactAction(matchIndex, targetMatch) {
+    const thinkEl = addThinkingIndicator("action");
+
+    try {
+      const res = await fetch(`${API_BASE}/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${state.user.token}`,
+        },
+        body: JSON.stringify({
+          message: `__ACTION_CONTACT__:${matchIndex}`,
+        }),
+      });
+
+      const data = await res.json();
+      thinkEl.remove();
+
+      if (data.reply) {
+        addMessage({ text: data.reply, from: "bot", typing: true });
+      }
+
+      if (data.messageSent) {
+        // Badge visuel succès
+        const successEl = document.createElement("div");
+        successEl.className = "msg bot structured";
+        successEl.innerHTML = `
+        <div class="bubble action-success-card">
+          <div class="asc-icon">✓</div>
+          <div class="asc-text">
+            <strong>Message envoyé</strong>
+            <span>${targetMatch.contact}</span>
+          </div>
+        </div>`;
+        $("chat-box").appendChild(successEl);
+        scrollBottom($("chat-box"));
+      }
+    } catch (e) {
+      thinkEl.remove();
+      addMessage({ text: "Erreur lors de l'envoi. Réessayez.", from: "bot" });
+    }
+  }
+
+  async function triggerMarketAnalysis() {
+    addMessage({
+      text: "Analysez le marché pour mes résultats actuels.",
+      from: "user",
+    });
+
+    const thinkEl = addThinkingIndicator("action");
+
+    try {
+      const res = await fetch(`${API_BASE}/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${state.user.token}`,
+        },
+        body: JSON.stringify({
+          message:
+            "Analysez le marché immobilier actuel pour mes résultats et donnez-moi un diagnostic stratégique précis basé sur mes matchs.",
+        }),
+      });
+
+      const data = await res.json();
+      thinkEl.remove();
+
+      if (data.reply) {
+        addMessage({ text: data.reply, from: "bot", typing: true });
+      }
+    } catch (e) {
+      thinkEl.remove();
+      addMessage({ text: "Erreur lors de l'analyse.", from: "bot" });
+    }
+  }
+
+  function triggerModifyCriteria() {
+    const c = state.criteria;
+
+    const lines = [];
+    if (c.ville)
+      lines.push(`
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+        <path d="M12 21s-6-5.5-6-10a6 6 0 1112 0c0 4.5-6 10-6 10z" stroke="url(#grad-pin)" stroke-width="1.6"/>
+        <defs>
+          <linearGradient id="grad-pin" x1="0" y1="0" x2="24" y2="24">
+            <stop stop-color="#f472b6"/><stop offset="1" stop-color="#8b5cf6"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      Ville : <strong>${c.ville}</strong>`);
+
+    if (c.toleranceKm != null)
+      lines.push(`
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+    <circle cx="12" cy="12" r="8" stroke="url(#grad-radius)" stroke-width="1.6"/>
+    <circle cx="12" cy="12" r="3" stroke="url(#grad-radius)" stroke-width="1.6"/>
+    <defs>
+      <linearGradient id="grad-radius" x1="0" y1="0" x2="24" y2="24">
+        <stop stop-color="#f472b6"/><stop offset="1" stop-color="#8b5cf6"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  Rayon : <strong>${c.toleranceKm} km</strong>`);
+    if (c.type)
+      lines.push(`
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+        <path d="M3 10l9-7 9 7v10a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1V10z" stroke="url(#grad-home)" stroke-width="1.6"/>
+        <defs>
+          <linearGradient id="grad-home" x1="0" y1="0" x2="24" y2="24">
+            <stop stop-color="#f472b6"/><stop offset="1" stop-color="#8b5cf6"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      Type : <strong>${c.type}</strong>`);
+
+    if (c.budgetMin || c.budgetMax) {
+      const b = c.budgetMax || c.budgetMin;
+      lines.push(`
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+    <path d="M17 6a7 7 0 10 0 12" stroke="url(#grad-euro)" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M7 10h8M7 14h8" stroke="url(#grad-euro)" stroke-width="1.6" stroke-linecap="round"/>
+    <defs>
+      <linearGradient id="grad-euro" x1="0" y1="0" x2="24" y2="24">
+        <stop stop-color="#f472b6"/><stop offset="1" stop-color="#8b5cf6"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  Budget max : <strong>${b ? Number(b).toLocaleString("fr-FR") + " €" : "N/A"}</strong>`);
+    }
+
+    if (c.surfaceMin)
+      lines.push(`
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+        <rect x="4" y="4" width="16" height="16" rx="2" stroke="url(#grad-area)" stroke-width="1.6"/>
+        <defs>
+          <linearGradient id="grad-area" x1="0" y1="0" x2="24" y2="24">
+            <stop stop-color="#f472b6"/><stop offset="1" stop-color="#8b5cf6"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      Surface min : <strong>${c.surfaceMin} m²</strong>`);
+
+    if (c.piecesMin)
+      lines.push(`
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+        <path d="M3 7h18M3 12h18M3 17h18" stroke="url(#grad-rooms)" stroke-width="1.6" stroke-linecap="round"/>
+        <defs>
+          <linearGradient id="grad-rooms" x1="0" y1="0" x2="24" y2="24">
+            <stop stop-color="#f472b6"/><stop offset="1" stop-color="#8b5cf6"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      Pièces min : <strong>${c.piecesMin}</strong>`);
+
+    const row = document.createElement("div");
+    row.className = "msg bot structured";
+    row.innerHTML = `
+    <div class="bubble modify-criteria-card">
+      <div class="mc-header">
+        <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="url(#grad-edit)" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="url(#grad-edit)" stroke-width="1.6" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="grad-edit" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#f472b6"/><stop offset="1" stop-color="#8b5cf6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span>Critères actuels</span>
+      </div>
+      <div class="mc-list">
+        ${lines.length ? lines.map((l) => `<div class="mc-item">${l}</div>`).join("") : "<div class='mc-item'>Aucun critère enregistré</div>"}
+      </div>
+      <div class="mc-prompt">Qu'est-ce que vous souhaitez modifier ?</div>
+    </div>`;
+
+    $("chat-box").appendChild(row);
+    scrollBottom($("chat-box"));
+
+    // Signaler au serveur qu'on entre en mode modification
+    sendResultsMessage("Je souhaite modifier mes critères de recherche.");
+  }
+  initPanelActions();
 
   $("chat-form")?.addEventListener("submit", (e) => {
     e.preventDefault();

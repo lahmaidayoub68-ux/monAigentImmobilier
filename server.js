@@ -721,8 +721,14 @@ async function upsertProfile(user, normalized) {
 
   return profileData;
 } // ================== IMPORT AI CHAT ==================
-import { aiChatWithCriteria } from "./services/aiParsee.js";
 
+// APRÈS
+import {
+  aiChatWithCriteria,
+  detectResultsIntent,
+  generateContactMessage,
+  aiResultsChat, // ← AJOUT
+} from "./services/aiParsee.js";
 // ================== CHAT SYSTEM ==================
 const sessions = {};
 
@@ -960,6 +966,25 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       triggerContext = "dpe_about_to_trigger";
     else if (message === "__NIVEAU_ENERGETIQUE_SELECTED__")
       triggerContext = "images_about_to_trigger";
+    // ── PRÉ-NORMALISATION buyer AVANT appel IA ──────────────────────────
+    // Forcer les max ouverts AVANT l'IA pour qu'elle ne redemande pas
+    if (userRole === "buyer") {
+      if (
+        session.criteria.piecesMin != null &&
+        session.criteria.piecesMax == null
+      )
+        session.criteria.piecesMax = 999;
+      if (
+        session.criteria.surfaceMin != null &&
+        session.criteria.surfaceMax == null
+      )
+        session.criteria.surfaceMax = 9999;
+      if (
+        session.criteria.budgetMin != null &&
+        session.criteria.budgetMax == null
+      )
+        session.criteria.budgetMax = session.criteria.budgetMin;
+    }
 
     // ── 4. Appel IA — avec context.triggerContext provisoire ──────────
     let aiResponse = { message: "", criteria: { ...session.criteria } };
@@ -1237,14 +1262,19 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       session.matches = matches;
       session.phase = "results";
 
+      // Remplace ce bloc dans la phase collecting, après le matching :
       let postReply =
         "Souhaitez-vous que je vous aide à comparer ces profils ?";
       try {
-        const postAI = await aiChatWithCriteria("__POST_RESULTS__", sc, {
-          phase: "results",
-          matchingProfiles: matches,
-          role: userRole,
-        });
+        const postAI = await aiChatWithCriteria(
+          matches.length === 0 ? "__NO_RESULTS__" : "__POST_RESULTS__", // ← ICI
+          sc,
+          {
+            phase: "results",
+            matchingProfiles: matches,
+            role: userRole,
+          },
+        );
         if (postAI.message) postReply = postAI.message;
       } catch (e) {
         console.error("[POST RESULTS AI]:", e);
@@ -1269,26 +1299,266 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
     // ════════════════════════════════════════════════════════════════
     // APRÈS — phase results : ajouter matchingDone pour que le front sache ne pas re-tunneliser
     if (session.phase === "results") {
-      let postAI = {};
+      const intent = detectResultsIntent(message);
+
+      // ── Action : l'utilisateur a sélectionné un profil à contacter ──────────
+      if (message.startsWith("__ACTION_CONTACT__:")) {
+        const matchIndex = parseInt(message.split(":")[1], 10);
+        const targetMatch = (session.matches || [])[matchIndex];
+
+        if (!targetMatch || !targetMatch.contact) {
+          return res.json({
+            reply:
+              "Je n'ai pas pu identifier ce profil. Pouvez-vous préciser lequel vous intéresse parmi les résultats affichés ?",
+            matches: session.matches,
+            matchingDone: true,
+            criteria: sc,
+            actionType: "contact_failed",
+          });
+        }
+
+        // Générer le message de mise en relation via IA
+        let contactBody = "";
+        try {
+          contactBody = await generateContactMessage(userRole, sc, targetMatch);
+        } catch (e) {
+          contactBody = `Bonjour,\n\nJe suis intéressé(e) par votre profil sur Aigent Immo et souhaiterais échanger avec vous.\n\nCordialement.`;
+        }
+
+        // Trouver l'expéditeur (l'utilisateur connecté)
+        const sender = await db
+          .prepare(
+            `SELECT id, username, contact FROM users WHERE LOWER(TRIM(username)) = $1`,
+          )
+          .get(username.trim().toLowerCase());
+
+        // Trouver le destinataire par son email de contact
+        const receiver = await db
+          .prepare(
+            `SELECT id, username, contact FROM users WHERE LOWER(TRIM(contact)) = $1`,
+          )
+          .get((targetMatch.contact || "").trim().toLowerCase());
+
+        let messageSent = false;
+        let messageId = null;
+
+        if (sender && receiver) {
+          try {
+            const subject =
+              userRole === "buyer"
+                ? `Intérêt pour votre bien — ${targetMatch.type || "bien"} à ${targetMatch.ville}`
+                : `Acheteur potentiel pour votre recherche à ${targetMatch.ville}`;
+
+            const insert = await db
+              .prepare(
+                `INSERT INTO messages (sender_id, receiver_id, subject, body, attachments)
+           VALUES ($1, $2, $3, $4, '[]') RETURNING id`,
+              )
+              .get(sender.id, receiver.id, subject, contactBody);
+
+            messageId = insert?.id || null;
+            messageSent = true;
+          } catch (e) {
+            console.error("[CONTACT ACTION] DB insert failed:", e);
+          }
+        }
+
+        // Réponse IA confirmant l'action
+        const confirmMsg = messageSent
+          ? `Message envoyé à ${receiver?.username || targetMatch.contact} — ${targetMatch.ville}, ${targetMatch.compatibility}% de compatibilité. Ils recevront votre demande dans leur messagerie. Souhaitez-vous contacter un autre profil ou analyser vos résultats plus en détail ?`
+          : `Je n'ai pas pu trouver ce contact dans notre base. Essayez via la messagerie directement avec l'adresse : ${targetMatch.contact}`;
+
+        return res.json({
+          reply: confirmMsg,
+          matches: session.matches,
+          matchingDone: true,
+          criteria: sc,
+          actionType: "contact_done",
+          messageSent,
+          messageId,
+        });
+      }
+
+      // ── Action : relaunch matching après modification critères ───────────────
+      if (message.startsWith("__RELAUNCH_MATCHING__")) {
+        // Le serveur re-exécute le matching avec les critères mis à jour
+        // (les nouveaux critères ont été mergés dans sc via les messages précédents)
+        const normalized = buildNormalized(sc, userRole);
+        let profile,
+          matches = [];
+
+        try {
+          if (userRole === "buyer") {
+            profile = await addBuyer({ username, ...normalized });
+            matches = matchUsers(profile, 5);
+            const buyerCoords = await geocodeVille(normalized.ville);
+            const buyerLatFinal = buyerCoords?.lat ?? 48.8566;
+            const buyerLngFinal = buyerCoords?.lng ?? 2.3522;
+
+            matches = await Promise.all(
+              matches.map(async (m) => {
+                const matchCoords = await geocodeVille(m.ville);
+                return {
+                  ...m,
+                  lat: matchCoords?.lat ?? 48.8566,
+                  lng: matchCoords?.lng ?? 2.3522,
+                  buyerLat: buyerLatFinal,
+                  buyerLng: buyerLngFinal,
+                };
+              }),
+            );
+          } else {
+            profile = await addSeller({
+              username,
+              type: normalized.type || "appartement",
+              ville: normalized.ville || "",
+              price: normalized.budgetMin,
+              pieces: normalized.piecesMin,
+              surface: normalized.surfaceMin,
+              etatBien: normalized.etatBien,
+              imagesbien: normalized.imagesbien,
+              niveauEnergetique: normalized.niveauEnergetique,
+              proximite: normalized.proximite,
+              contact: req.user.contact || "",
+            });
+            matches = matchSellerToBuyers(profile, 5);
+            const sellerCoords = await geocodeVille(normalized.ville);
+            const sellerLatFinal = sellerCoords?.lat ?? 48.8566;
+            const sellerLngFinal = sellerCoords?.lng ?? 2.3522;
+
+            matches = await Promise.all(
+              matches.map(async (m) => {
+                const buyerCoords = await geocodeVille(m.ville);
+                return {
+                  ...m,
+                  lat: sellerLatFinal,
+                  lng: sellerLngFinal,
+                  buyerLat: buyerCoords?.lat ?? 48.8566,
+                  buyerLng: buyerCoords?.lng ?? 2.3522,
+                };
+              }),
+            );
+          }
+
+          matches.forEach((m) => learnPreference(profile, m));
+          await upsertProfile(
+            { username, role: userRole, contact: req.user.contact },
+            normalized,
+          );
+
+          session.matches = matches;
+        } catch (e) {
+          console.error("[RELAUNCH MATCHING ERROR]:", e);
+        }
+
+        // Intro results après relaunch
+        let relaunchIntro = {
+          message: `Voici vos nouveaux résultats avec les critères mis à jour.`,
+        };
+        try {
+          relaunchIntro = await aiResultsChat("__POST_RESULTS__", sc, {
+            phase: "results",
+            matchingProfiles: matches,
+            role: userRole,
+          });
+        } catch (e) {
+          /* silent */
+        }
+
+        return res.json({
+          reply: relaunchIntro.message,
+          matches,
+          postReply: relaunchIntro.message,
+          matchingDone: true,
+          criteria: sc,
+          actionType: "relaunch_done",
+        });
+      }
+
+      // ── Merge éventuel des nouveaux critères si l'utilisateur modifie ────────
+      // (L'IA peut retourner des critères modifiés dans ses réponses results)
+      // On parse d'abord l'intention pour savoir si on doit merger et relancer
+      if (intent === "modify_criteria") {
+        // L'IA va demander ce qu'il veut changer — on reste en results
+        // mais on écoute les messages suivants pour merger les nouveaux critères
+        session.modifyingCriteria = true;
+      }
+
+      // Si on est en mode modification et que l'utilisateur vient de donner de nouveaux critères
+      if (session.modifyingCriteria && intent !== "modify_criteria") {
+        // Merger via aiChatWithCriteria (le parsing léger)
+        try {
+          const parseResult = await aiChatWithCriteria(message, sc, {
+            phase: "collecting",
+            role: userRole,
+            triggerContext: "silent_parse", // contexte silencieux : on parse sans poser de question
+          });
+
+          if (parseResult.criteria) {
+            const incoming = parseResult.criteria;
+            const PROTECTED = new Set([
+              "proximite",
+              "etatBien",
+              "niveauEnergetique",
+              "imagesbien",
+            ]);
+            for (const [key, val] of Object.entries(incoming)) {
+              if (PROTECTED.has(key) && sc[key] !== undefined) continue;
+              if (val !== null && val !== undefined) sc[key] = val;
+            }
+            session.criteria = sc;
+          }
+        } catch (e) {
+          /* silent */
+        }
+
+        // Vérifier si on a assez de critères pour relancer
+        const hasEnoughToRelaunch =
+          sc.ville &&
+          sc.type &&
+          (userRole === "buyer"
+            ? sc.budgetMax != null && sc.surfaceMin != null
+            : sc.budgetMin != null && sc.surfaceMin != null);
+
+        if (hasEnoughToRelaunch) {
+          session.modifyingCriteria = false;
+          // Signaler au front de relancer
+          return res.json({
+            reply:
+              "Vos critères ont été mis à jour. Je relance la recherche...",
+            matches: session.matches,
+            matchingDone: true,
+            criteria: sc,
+            actionType: "criteria_updated_relaunch",
+          });
+        }
+      }
+
+      // ── Appel IA results standard ─────────────────────────────────────────────
+      let resultsAI = {
+        message: "Je suis à votre disposition.",
+        intent: "general",
+      };
       try {
-        postAI = await aiChatWithCriteria(message, sc, {
+        resultsAI = await aiResultsChat(message, sc, {
           phase: "results",
           matchingProfiles: session.matches,
           role: userRole,
         });
       } catch (e) {
-        postAI = {
-          message: "Je rencontre une difficulté. Pouvez-vous reformuler ?",
-        };
+        console.error("[RESULTS AI]:", e);
       }
+
       return res.json({
-        reply: postAI.message || "", // en phase results, reply = réponse IA contextuelle
-        postReply: postAI.message || "",
-        matches: session.matches, // renvoyer les matches existants
-        matchingDone: true, // ← front sait qu'on est post-matching
+        reply: resultsAI.message || "",
+        postReply: resultsAI.message || "",
+        matches: session.matches,
+        matchingDone: true,
         criteria: sc,
+        actionType: resultsAI.intent || "general",
       });
     }
+
     return res.json({ reply, criteria: sc });
   } catch (err) {
     console.error("[CHAT] ERREUR INATTENDUE:", err);
@@ -1784,6 +2054,50 @@ app.delete(
     }
   },
 );
+app.post("/api/send-match-message", authenticateToken, async (req, res) => {
+  try {
+    const schema = z.object({
+      targetContact: z.string().email(),
+      subject: z.string().min(1),
+      body: z.string().min(1),
+    });
+
+    const { targetContact, subject, body } = schema.parse(req.body);
+
+    const sender = await db
+      .prepare(
+        `SELECT id, username FROM users WHERE LOWER(TRIM(username)) = $1`,
+      )
+      .get(req.user.username.trim().toLowerCase());
+
+    if (!sender)
+      return res.status(404).json({ error: "Expéditeur introuvable" });
+
+    const receiver = await db
+      .prepare(`SELECT id, username FROM users WHERE LOWER(TRIM(contact)) = $1`)
+      .get(targetContact.trim().toLowerCase());
+
+    if (!receiver) {
+      return res.status(404).json({
+        error: "Destinataire introuvable",
+        hint: "L'utilisateur n'existe pas ou son email ne correspond pas.",
+      });
+    }
+
+    const insert = await db
+      .prepare(
+        `INSERT INTO messages (sender_id, receiver_id, subject, body, attachments)
+       VALUES ($1, $2, $3, $4, '[]') RETURNING id`,
+      )
+      .get(sender.id, receiver.id, subject, body);
+
+    res.json({ success: true, messageId: insert?.id });
+  } catch (err) {
+    console.error("[/api/send-match-message]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
 // ================== FAVORITES ==================
 app.get("/api/favorites", authenticateToken, async (req, res) => {
   try {
@@ -2164,63 +2478,99 @@ app.post("/api/ai-analysis", authenticateToken, async (req, res) => {
     }));
 
     const fullPrompt = `Tu es un Expert Immobilier Senior et Analyste de Marché. 
-    Analyse ce set de données (25 matchs) pour un profil ${role === "buyer" ? "Acquéreur" : "Vendeur"} :
-    Données : ${JSON.stringify(aiFriendlyData)}.
-    Critères cibles : ${JSON.stringify(criteria)}.
+Analyse ce set de données (25 matchs) pour un profil ${role === "buyer" ? "Acquéreur" : "Vendeur"} :
+Données : ${JSON.stringify(aiFriendlyData)}.
+Critères cibles : ${JSON.stringify(criteria)}.
 
-    Rédige un diagnostic stratégique fluide en 4 paragraphes précis, sans aucun titre ni liste à puces :
-    1. Synthèse du marché : Analyse la cohérence globale entre la demande et l'offre actuelle en citant le volume de matchs et la compatibilité moyenne.
-    2. Analyse des freins : Identifie le critère précis qui bloque le matching (prix trop bas, zone trop restreinte ou surface rare) en te basant sur les écarts types constatés.
-    3. Fenêtre d'opportunité : Repère dans les données un profil ou une zone géographique spécifique qui sort du lot et pourquoi elle représente une chance réelle.
-    4. Stratégie opérationnelle : Donne un conseil de mouvement immédiat (élargissement de zone, révision budgétaire ou réactivité) pour débloquer la situation.
+Rédige un diagnostic stratégique fluide en 4 paragraphes précis, sans aucun titre ni liste à puces :
+1. Synthèse du marché : Analyse la cohérence globale entre la demande et l'offre actuelle en citant le volume de matchs et la compatibilité moyenne.
+2. Analyse des freins : Identifie le critère précis qui bloque le matching (prix trop bas, zone trop restreinte ou surface rare) en te basant sur les écarts types constatés.
+3. Fenêtre d'opportunité : Repère dans les données un profil ou une zone géographique spécifique qui sort du lot et pourquoi elle représente une chance réelle.
+4. Stratégie opérationnelle : Donne un conseil de mouvement immédiat (élargissement de zone, révision budgétaire ou réactivité) pour débloquer la situation.
 
-    Ton : Professionnel, direct, expert. Ne salue pas, ne conclus pas par des politesses.`;
+Ton : Professionnel, direct, expert. Ne salue pas, ne conclus pas par des politesses.`;
 
     let aiText = "";
 
-    // Tentative 1 — OpenRouter
+    /* ─────────────────────────────────────────────
+   🧠 TENTATIVE 1 — GEMINI (PRIORITÉ)
+──────────────────────────────────────────── */
     try {
-      const openRouter = new OpenAI({
-        apiKey: process.env.ROUTER,
-        baseURL: "https://openrouter.ai/api/v1",
-      });
-      const response1 = await openRouter.chat.completions.create({
-        model: "openrouter/free",
-        messages: [{ role: "user", content: fullPrompt }],
-        temperature: 0.3,
-        max_tokens: 1000, // ← AJOUTE ÇA, SDK mettait 16384 par défaut
-      });
-      aiText = response1?.choices?.[0]?.message?.content?.trim();
-      console.log("✅ Diagnostic via OpenRouter");
+      console.log("🚀 Gemini fallback actif");
+
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+      const models = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+      ];
+
+      for (const modelName of models) {
+        try {
+          console.log(`🧪 Test Gemini model: ${modelName}`);
+
+          const model = genAI.getGenerativeModel({ model: modelName });
+          const result = await model.generateContent(fullPrompt);
+
+          aiText = result.response.text().trim();
+
+          if (aiText) {
+            console.log(`✅ Diagnostic via Gemini (${modelName})`);
+            break;
+          }
+        } catch (errG) {
+          console.warn(`⚠️ Gemini model failed: ${modelName}`, {
+            message: errG.message,
+            code: errG.code,
+            status: errG.status,
+          });
+        }
+      }
     } catch (err1) {
-      // REMPLACE TON WARN ACTUEL PAR ÇA :
-      console.error("❌ OpenRouter ERREUR COMPLÈTE :", {
+      console.error("❌ Gemini GLOBAL ERREUR :", {
         message: err1.message,
         status: err1.status,
         code: err1.code,
-        type: err1.type,
-        headers: err1.headers,
-        error: err1.error, // objet d'erreur OpenAI SDK
+        details: err1?.errorDetails,
       });
 
+      /* ─────────────────────────────────────────────
+     🔁 TENTATIVE 2 — OPENROUTER (FALLBACK)
+  ───────────────────────────────────────────── */
       try {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-        const result = await model.generateContent(fullPrompt);
-        aiText = result.response.text().trim();
-        console.log("✅ Diagnostic via Gemini");
+        console.log("🔁 OpenRouter fallback actif");
+
+        const openRouter = new OpenAI({
+          apiKey: process.env.ROUTER,
+          baseURL: "https://openrouter.ai/api/v1",
+        });
+
+        const response1 = await openRouter.chat.completions.create({
+          model: "openrouter/free",
+          messages: [{ role: "user", content: fullPrompt }],
+          temperature: 0.3,
+          max_tokens: 1000,
+        });
+
+        aiText = response1?.choices?.[0]?.message?.content?.trim();
+
+        console.log("✅ Diagnostic via OpenRouter");
       } catch (err2) {
-        // REMPLACE TON ERROR ACTUEL PAR ÇA :
-        console.error("❌ Gemini ERREUR COMPLÈTE :", {
+        console.error("❌ OpenRouter ERREUR COMPLÈTE :", {
           message: err2.message,
           status: err2.status,
           code: err2.code,
-          details: err2?.errorDetails,
-          stack: err2.stack?.split("\n").slice(0, 4),
+          type: err2.type,
+          headers: err2.headers,
+          error: err2.error,
         });
       }
     }
-    // --- RÉPONSE : IA OU SCRIPT LOCAL ---
+
+    /* ─────────────────────────────────────────────
+   📤 RESPONSE FINAL
+──────────────────────────────────────────── */
     if (aiText) {
       res.json({ analysis: aiText });
     } else {
