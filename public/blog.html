@@ -1,0 +1,3399 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Mon AiGENT Immobilier · Blog — Analyses, Guides & Tendances</title>
+    <meta
+      name="description"
+      content="Le média immobilier propulsé par l'IA. Analyses de marché, guides d'achat, taux et tendances."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ════════════════════════════════════════
+       DESIGN SYSTEM — Mon AiGENT Immobilier
+       Palette : Blanc total · Violet principal · Rose léger
+    ════════════════════════════════════════ */
+      :root {
+        /* Couleurs principales */
+        --white: #ffffff;
+        --off: #fafafa;
+        --surface: #f5f4fb;
+        --surface-2: #eeeafb;
+
+        /* Violet */
+        --v: #6c47d4;
+        --v-2: #5835c4;
+        --v-3: #7b5ce4;
+        --v-light: #9c7ff0;
+        --v-xlight: #c4b3fa;
+        --v-soft: rgba(108, 71, 212, 0.07);
+        --v-soft-2: rgba(108, 71, 212, 0.12);
+        --v-border: rgba(108, 71, 212, 0.18);
+        --v-border-2: rgba(108, 71, 212, 0.3);
+
+        /* Rose */
+        --rose: #e8649a;
+        --rose-2: #d14e84;
+        --rose-light: #f29abb;
+        --rose-soft: rgba(232, 100, 154, 0.08);
+        --rose-border: rgba(232, 100, 154, 0.2);
+
+        /* Gris / textes */
+        --ink: #1a1228;
+        --ink-2: #2e2145;
+        --ink-3: #4a3b6e;
+        --ink-4: #7a6fa0;
+        --ink-5: #a89fc8;
+        --ink-6: #c8c2de;
+
+        /* Bordures */
+        --border: rgba(108, 71, 212, 0.1);
+        --border-2: rgba(108, 71, 212, 0.16);
+        --border-gray: rgba(26, 18, 40, 0.08);
+
+        /* Typographies */
+        --f-serif: "Playfair Display", Georgia, serif;
+        --f-sans: "Outfit", system-ui, sans-serif;
+        --f-mono: "JetBrains Mono", monospace;
+
+        /* Rayons */
+        --r: 10px;
+        --r-lg: 16px;
+        --r-xl: 22px;
+        --r-2xl: 32px;
+
+        /* Ombres */
+        --sh-sm: 0 2px 12px rgba(108, 71, 212, 0.08);
+        --sh-md: 0 8px 32px rgba(108, 71, 212, 0.1);
+        --sh-lg: 0 20px 60px rgba(108, 71, 212, 0.14);
+        --sh-card:
+          0 4px 24px rgba(108, 71, 212, 0.08), 0 1px 4px rgba(26, 18, 40, 0.04);
+        --sh-hover:
+          0 16px 48px rgba(108, 71, 212, 0.16),
+          0 4px 12px rgba(26, 18, 40, 0.06);
+
+        --max: 1280px;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        font-size: 16px;
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: var(--f-sans);
+        background: var(--white);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+      img {
+        display: block;
+        max-width: 100%;
+      }
+      button {
+        font-family: var(--f-sans);
+        cursor: pointer;
+        border: none;
+        background: none;
+      }
+
+      /* ════════════════════════════════════════
+       NAV
+    ════════════════════════════════════════ */
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(24px) saturate(1.6);
+        -webkit-backdrop-filter: blur(24px) saturate(1.6);
+        border-bottom: 1px solid var(--border-gray);
+        transition:
+          box-shadow 0.3s,
+          border-color 0.3s;
+      }
+      .nav.scrolled {
+        box-shadow: 0 4px 24px rgba(108, 71, 212, 0.08);
+        border-color: var(--border);
+      }
+      .nav-inner {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 32px;
+        height: 68px;
+        display: flex;
+        align-items: center;
+        gap: 0;
+      }
+
+      /* Logo */
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-right: auto;
+        flex-shrink: 0;
+      }
+      .logo-img-wrap {
+        height: 36px;
+        display: flex;
+        align-items: center;
+      }
+      .logo-img-wrap img {
+        height: 36px;
+        width: auto;
+        object-fit: contain;
+      }
+      .logo-sep {
+        width: 1px;
+        height: 18px;
+        background: var(--border-2);
+        margin: 0 10px;
+      }
+      .logo-name {
+        font-family: var(--f-sans);
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--ink);
+        white-space: nowrap;
+      }
+      .logo-name .ai {
+        color: var(--v);
+      }
+      .logo-tag {
+        font-family: var(--f-mono);
+        font-size: 9px;
+        color: var(--ink-5);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-left: 2px;
+      }
+
+      /* Nav links */
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        margin: 0 20px;
+      }
+      .nav-link {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink-4);
+        padding: 6px 14px;
+        border-radius: 100px;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .nav-link:hover {
+        color: var(--v);
+        background: var(--v-soft);
+      }
+      .nav-link.active {
+        color: var(--v);
+        background: var(--v-soft);
+      }
+
+      /* Nav right */
+      .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .nav-search {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--r);
+        border: 1.5px solid var(--border-2);
+        background: var(--white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink-4);
+        transition: all 0.15s;
+        cursor: pointer;
+      }
+      .nav-search:hover {
+        border-color: var(--v);
+        color: var(--v);
+        background: var(--v-soft);
+      }
+      .nav-search svg {
+        width: 15px;
+        height: 15px;
+      }
+      .nav-btn {
+        font-size: 13px;
+        font-weight: 700;
+        padding: 9px 20px;
+        border-radius: 100px;
+        transition: all 0.2s;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .nav-btn-ghost {
+        color: var(--ink-3);
+        border: 1.5px solid var(--border-2);
+        background: transparent;
+      }
+      .nav-btn-ghost:hover {
+        color: var(--v);
+        border-color: var(--v);
+        background: var(--v-soft);
+      }
+      .nav-btn-cta {
+        background: var(--v);
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(108, 71, 212, 0.25);
+      }
+      .nav-btn-cta:hover {
+        background: var(--v-2);
+        box-shadow: 0 8px 24px rgba(108, 71, 212, 0.35);
+        transform: translateY(-1px);
+      }
+
+      /* Hamburger mobile */
+      .nav-burger {
+        display: none;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--r);
+        border: 1.5px solid var(--border-2);
+        align-items: center;
+        justify-content: center;
+        color: var(--ink-3);
+        cursor: pointer;
+        background: var(--white);
+        flex-direction: column;
+        gap: 5px;
+        padding: 10px 8px;
+      }
+      .nav-burger span {
+        display: block;
+        width: 100%;
+        height: 1.5px;
+        background: var(--ink-3);
+        border-radius: 2px;
+        transition: all 0.2s;
+      }
+      .nav-burger:hover {
+        border-color: var(--v);
+      }
+      .nav-burger:hover span {
+        background: var(--v);
+      }
+
+      /* Mobile nav drawer */
+      .nav-drawer {
+        display: none;
+        position: fixed;
+        top: 68px;
+        left: 0;
+        right: 0;
+        background: var(--white);
+        border-bottom: 1px solid var(--border);
+        padding: 12px 20px 20px;
+        z-index: 199;
+        box-shadow: var(--sh-md);
+        flex-direction: column;
+        gap: 4px;
+      }
+      .nav-drawer.open {
+        display: flex;
+      }
+      .nd-link {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ink-3);
+        padding: 11px 16px;
+        border-radius: var(--r);
+        transition: all 0.12s;
+      }
+      .nd-link:hover,
+      .nd-link.active {
+        color: var(--v);
+        background: var(--v-soft);
+      }
+      .nd-sep {
+        height: 1px;
+        background: var(--border-gray);
+        margin: 8px 0;
+      }
+      .nd-btn {
+        display: block;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 700;
+        padding: 13px;
+        border-radius: 100px;
+        cursor: pointer;
+      }
+      .nd-cta {
+        background: var(--v);
+        color: #fff;
+        margin-top: 4px;
+      }
+
+      /* ════════════════════════════════════════
+       HERO
+    ════════════════════════════════════════ */
+      .blog-hero {
+        position: relative;
+        overflow: hidden;
+        background: var(--white);
+        border-bottom: 1px solid var(--border-gray);
+      }
+      .hero-glow {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(
+            ellipse 60% 80% at 0% 0%,
+            rgba(108, 71, 212, 0.04) 0%,
+            transparent 65%
+          ),
+          radial-gradient(
+            ellipse 50% 60% at 100% 100%,
+            rgba(232, 100, 154, 0.04) 0%,
+            transparent 60%
+          );
+      }
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 32px;
+      }
+
+      /* Masthead */
+      .hero-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 24px 0 20px;
+        border-bottom: 1px solid var(--border-gray);
+        margin-bottom: 32px;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .ht-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .ht-label {
+        font-family: var(--f-mono);
+        font-size: 9px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-5);
+      }
+      .ht-pipe {
+        color: var(--ink-6);
+      }
+      .ht-line {
+        font-family: var(--f-serif);
+        font-size: 13px;
+        font-style: italic;
+        color: var(--ink-4);
+      }
+      .ht-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .live-badge {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--v-soft);
+        border: 1.5px solid var(--v-border);
+        border-radius: 100px;
+        padding: 6px 16px;
+        font-family: var(--f-mono);
+        font-size: 9px;
+        color: var(--v);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .live-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--v);
+        animation: pulse 2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.3;
+          transform: scale(0.6);
+        }
+      }
+      .ht-date {
+        font-family: var(--f-mono);
+        font-size: 10px;
+        color: var(--ink-5);
+      }
+
+      /* Hero grid */
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr;
+        gap: 3px;
+        border-radius: var(--r-xl);
+        overflow: hidden;
+        box-shadow: var(--sh-md);
+        margin-bottom: 32px;
+      }
+
+      /* Main feature */
+      .feat-main {
+        position: relative;
+        display: block;
+        color: inherit;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      .feat-main-img {
+        height: 480px;
+        overflow: hidden;
+        position: relative;
+      }
+      .feat-main-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        filter: brightness(0.52) saturate(0.85);
+        transition:
+          transform 0.9s ease,
+          filter 0.5s;
+      }
+      .feat-main:hover .feat-main-img img {
+        transform: scale(1.04);
+        filter: brightness(0.44) saturate(1.05);
+      }
+      .feat-main-fade {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to top,
+          rgba(10, 6, 24, 0.96) 0%,
+          rgba(10, 6, 24, 0.55) 45%,
+          rgba(108, 71, 212, 0.06) 100%
+        );
+      }
+      .feat-main-num {
+        position: absolute;
+        top: 20px;
+        left: 22px;
+        font-family: var(--f-mono);
+        font-size: 9px;
+        color: rgba(255, 255, 255, 0.25);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      .feat-main-body {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 24px 28px 30px;
+      }
+      .feat-cat {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 5px 13px;
+        border-radius: 7px;
+        margin-bottom: 12px;
+      }
+      .cat-v {
+        color: #ddd6fe;
+        background: rgba(108, 71, 212, 0.22);
+        border: 1px solid rgba(108, 71, 212, 0.35);
+      }
+      .cat-rose {
+        color: #fbcfe8;
+        background: rgba(232, 100, 154, 0.2);
+        border: 1px solid rgba(232, 100, 154, 0.32);
+      }
+      .cat-indigo {
+        color: #c7d2fe;
+        background: rgba(99, 102, 241, 0.2);
+        border: 1px solid rgba(99, 102, 241, 0.3);
+      }
+      .cat-teal {
+        color: #99f6e4;
+        background: rgba(20, 184, 166, 0.15);
+        border: 1px solid rgba(20, 184, 166, 0.25);
+      }
+
+      .feat-h1 {
+        font-family: var(--f-serif);
+        font-size: clamp(22px, 2.5vw, 34px);
+        font-weight: 600;
+        line-height: 1.13;
+        letter-spacing: -0.02em;
+        color: #ffffff;
+        margin-bottom: 10px;
+      }
+      .feat-h1 em {
+        font-style: italic;
+        color: var(--v-xlight);
+      }
+      .feat-lede {
+        font-size: 13.5px;
+        line-height: 1.68;
+        color: rgba(255, 255, 255, 0.65);
+        margin-bottom: 16px;
+      }
+      .feat-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+        font-family: var(--f-mono);
+      }
+      .feat-read {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--v-xlight);
+        margin-top: 14px;
+        transition: gap 0.15s;
+        letter-spacing: 0.02em;
+      }
+      .feat-main:hover .feat-read {
+        gap: 10px;
+      }
+
+      /* Secondary stack */
+      .feat-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .feat-sec {
+        flex: 1;
+        display: block;
+        color: inherit;
+        background: var(--surface);
+        border-left: 3px solid transparent;
+        padding: 20px 20px;
+        position: relative;
+        transition: all 0.2s;
+        cursor: pointer;
+      }
+      .feat-sec:hover {
+        background: var(--surface-2);
+        border-left-color: var(--v);
+      }
+      .fs-cat {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 7px;
+        color: var(--v);
+      }
+      .fs-title {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: var(--ink-2);
+        line-height: 1.38;
+        letter-spacing: -0.01em;
+        margin-bottom: 8px;
+        transition: color 0.2s;
+      }
+      .feat-sec:hover .fs-title {
+        color: var(--v);
+      }
+      .fs-meta {
+        font-family: var(--f-mono);
+        font-size: 9.5px;
+        color: var(--ink-5);
+      }
+      .fs-rt {
+        position: absolute;
+        top: 18px;
+        right: 16px;
+        font-family: var(--f-mono);
+        font-size: 9px;
+        color: var(--ink-5);
+        background: var(--white);
+        border: 1px solid var(--border);
+        padding: 2px 8px;
+        border-radius: 5px;
+      }
+
+      /* ════════════════════════════════════════
+       MARKET TICKER
+    ════════════════════════════════════════ */
+      .ticker-wrap {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border-gray);
+        overflow: hidden;
+      }
+      .ticker-inner {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 32px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+      }
+      .ticker-label {
+        font-family: var(--f-mono);
+        font-size: 8.5px;
+        letter-spacing: 0.17em;
+        text-transform: uppercase;
+        color: var(--ink-5);
+        padding-right: 20px;
+        border-right: 1px solid var(--border);
+        margin-right: 20px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .ticker-items {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .ticker-items::-webkit-scrollbar {
+        display: none;
+      }
+      .tk-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        white-space: nowrap;
+      }
+      .tk-city {
+        font-family: var(--f-mono);
+        font-size: 9.5px;
+        color: var(--ink-4);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .tk-price {
+        font-family: var(--f-mono);
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--ink-2);
+      }
+      .tk-unit {
+        font-size: 9.5px;
+        color: var(--ink-5);
+      }
+      .tk-badge {
+        font-size: 9.5px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 5px;
+      }
+      .tk-up {
+        color: var(--v);
+        background: var(--v-soft);
+      }
+      .tk-dn {
+        color: var(--rose);
+        background: var(--rose-soft);
+      }
+      .tk-sep {
+        width: 1px;
+        height: 18px;
+        background: var(--border-gray);
+        flex-shrink: 0;
+      }
+
+      /* ════════════════════════════════════════
+       PAGE BODY
+    ════════════════════════════════════════ */
+      .page-body {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 52px 32px 80px;
+      }
+
+      /* Section header */
+      .sec-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-bottom: 26px;
+        gap: 16px;
+      }
+      .sec-eye {
+        font-family: var(--f-mono);
+        font-size: 9px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--v-light);
+        margin-bottom: 5px;
+      }
+      .sec-h2 {
+        font-family: var(--f-serif);
+        font-size: clamp(24px, 2.6vw, 34px);
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+        line-height: 1.05;
+      }
+      .sec-h2 em {
+        font-style: italic;
+        color: var(--v);
+      }
+      .sec-see-all {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--v);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+        transition: gap 0.15s;
+      }
+      .sec-see-all:hover {
+        gap: 9px;
+      }
+
+      /* ── PIPELINE STATUS ── */
+      .pipeline-status {
+        background: var(--surface);
+        border: 1.5px solid var(--border-2);
+        border-radius: var(--r-xl);
+        padding: 16px 22px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 40px;
+        flex-wrap: wrap;
+      }
+      .ps-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--v) 0%, var(--rose) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 4px 16px rgba(108, 71, 212, 0.25);
+      }
+      .ps-icon svg {
+        width: 17px;
+        height: 17px;
+        color: #fff;
+      }
+      .ps-body {
+        flex: 1;
+        min-width: 180px;
+      }
+      .ps-label {
+        font-family: var(--f-mono);
+        font-size: 8.5px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--v);
+        margin-bottom: 3px;
+      }
+      .ps-text {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink-2);
+      }
+      .ps-sub {
+        font-size: 11.5px;
+        color: var(--ink-4);
+        margin-top: 2px;
+      }
+      .ps-steps {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-shrink: 0;
+      }
+      .pss {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+      .pss-d {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .pss-d.done {
+        background: var(--v);
+      }
+      .pss-d.active {
+        background: var(--rose);
+        animation: pulse 1.3s infinite;
+      }
+      .pss-d.idle {
+        background: var(--ink-6);
+        border: 1px solid var(--border);
+      }
+      .pss-l {
+        font-family: var(--f-mono);
+        font-size: 8px;
+        color: var(--ink-5);
+      }
+      .pss-arr {
+        color: var(--ink-6);
+        font-size: 12px;
+        margin-bottom: 10px;
+      }
+
+      /* ── LOADING ── */
+      #ain-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 72px 20px;
+        gap: 18px;
+      }
+      .load-ring {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: 2.5px solid var(--surface-2);
+        border-top-color: var(--v);
+        animation: spin 0.75s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .load-text {
+        font-size: 13px;
+        color: var(--ink-4);
+        text-align: center;
+        max-width: 280px;
+        line-height: 1.6;
+      }
+      #ain-loading-msg {
+        display: block;
+        margin-top: 4px;
+        font-size: 11.5px;
+        color: var(--ink-5);
+      }
+      .load-progress {
+        width: 220px;
+        height: 2px;
+        background: var(--surface-2);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      #ain-progress-bar {
+        height: 100%;
+        width: 0;
+        background: linear-gradient(90deg, var(--v) 0%, var(--rose) 100%);
+        border-radius: 2px;
+        transition: width 0.4s ease;
+      }
+
+      /* ── FILTRES ── */
+      .filters-wrap {
+        margin-bottom: 32px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .filters-wrap::-webkit-scrollbar {
+        display: none;
+      }
+      .filters-inner {
+        display: flex;
+        gap: 6px;
+        min-width: max-content;
+        padding-bottom: 2px;
+      }
+      .filter-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 18px;
+        border-radius: 100px;
+        border: 1.5px solid var(--border-2);
+        background: var(--white);
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--ink-4);
+        transition: all 0.15s;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+      .filter-btn:hover {
+        border-color: var(--v);
+        color: var(--v);
+        background: var(--v-soft);
+      }
+      .filter-btn.active {
+        background: var(--v);
+        color: #fff;
+        border-color: var(--v);
+      }
+      .fc {
+        font-family: var(--f-mono);
+        font-size: 9.5px;
+        opacity: 0.55;
+        font-weight: 400;
+      }
+
+      /* ── ARTICLES GRID ── */
+      #ain-articles {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+        transition: opacity 0.35s;
+        margin-bottom: 20px;
+      }
+
+      /* ── ARTICLE CARD (généré par ai-news.js) ── */
+      .ain-card {
+        background: var(--white);
+        border: 1.5px solid var(--border-gray);
+        border-radius: var(--r-xl);
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.25s;
+        display: flex;
+        flex-direction: column;
+      }
+      .ain-card:hover {
+        border-color: var(--v-border-2);
+        box-shadow: var(--sh-hover);
+        transform: translateY(-4px);
+      }
+      .ain-card-img {
+        height: 180px;
+        overflow: hidden;
+        position: relative;
+        background: var(--surface);
+        flex-shrink: 0;
+      }
+      .ain-card-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s;
+      }
+      .ain-card:hover .ain-card-img img {
+        transform: scale(1.05);
+      }
+      .ain-card-body {
+        padding: 18px 20px 20px;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
+      .ain-kicker {
+        font-size: 8.5px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--v);
+        margin-bottom: 8px;
+      }
+      .ain-title {
+        font-family: var(--f-serif);
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--ink-2);
+        line-height: 1.32;
+        letter-spacing: -0.015em;
+        margin-bottom: 9px;
+        flex: 1;
+        transition: color 0.2s;
+      }
+      .ain-card:hover .ain-title {
+        color: var(--v);
+      }
+      .ain-excerpt {
+        font-size: 12.5px;
+        line-height: 1.65;
+        color: var(--ink-4);
+        margin-bottom: 14px;
+      }
+      .ain-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .ain-meta {
+        font-family: var(--f-mono);
+        font-size: 9.5px;
+        color: var(--ink-5);
+      }
+      .ain-read {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--v);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      /* ════════════════════════════════════════
+       ARTICLE POP-UP MODAL
+    ════════════════════════════════════════ */
+      .art-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s;
+      }
+      .art-overlay.open {
+        opacity: 1;
+        pointer-events: all;
+      }
+      .art-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(26, 18, 40, 0.5);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+      .art-modal {
+        position: relative;
+        z-index: 1;
+        background: var(--white);
+        border-radius: var(--r-2xl);
+        width: 100%;
+        max-width: 720px;
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow:
+          0 32px 80px rgba(26, 18, 40, 0.2),
+          0 8px 24px rgba(108, 71, 212, 0.1);
+        transform: translateY(20px) scale(0.97);
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      .art-overlay.open .art-modal {
+        transform: none;
+      }
+
+      /* Modal header avec image */
+      .art-modal-header {
+        position: relative;
+        height: 240px;
+        flex-shrink: 0;
+        overflow: hidden;
+        background: var(--surface);
+      }
+      .art-modal-header img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: brightness(0.48) saturate(0.85);
+      }
+      .art-modal-header-fade {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to top,
+          rgba(10, 6, 24, 0.9) 0%,
+          transparent 60%
+        );
+      }
+      .art-modal-close {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .art-modal-close:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+      .art-modal-close svg {
+        width: 15px;
+        height: 15px;
+      }
+      .art-modal-cat-overlay {
+        position: absolute;
+        bottom: 16px;
+        left: 20px;
+      }
+      .art-modal-scroll {
+        overflow-y: auto;
+        flex: 1;
+        padding: 28px 32px 32px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-2) transparent;
+      }
+      .art-modal-scroll::-webkit-scrollbar {
+        width: 5px;
+      }
+      .art-modal-scroll::-webkit-scrollbar-thumb {
+        background: var(--border-2);
+        border-radius: 3px;
+      }
+
+      .art-modal-title {
+        font-family: var(--f-serif);
+        font-size: clamp(20px, 3vw, 28px);
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+        line-height: 1.15;
+        margin-bottom: 12px;
+      }
+      .art-modal-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--f-mono);
+        font-size: 10px;
+        color: var(--ink-5);
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-gray);
+        flex-wrap: wrap;
+      }
+      .art-modal-meta .dot {
+        color: var(--ink-6);
+      }
+      .art-modal-body {
+        font-size: 15px;
+        line-height: 1.78;
+        color: var(--ink-3);
+      }
+      .art-modal-body p {
+        margin-bottom: 18px;
+      }
+      .art-modal-body h2 {
+        font-family: var(--f-serif);
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--ink);
+        margin: 28px 0 12px;
+        letter-spacing: -0.015em;
+      }
+      .art-modal-body h3 {
+        font-family: var(--f-sans);
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--ink-2);
+        margin: 22px 0 10px;
+      }
+      .art-modal-body strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .art-modal-body em {
+        color: var(--v);
+        font-style: italic;
+      }
+      .art-modal-body blockquote {
+        border-left: 3px solid var(--v);
+        padding: 12px 18px;
+        margin: 20px 0;
+        background: var(--v-soft);
+        border-radius: 0 var(--r) var(--r) 0;
+        font-size: 14px;
+        color: var(--ink-3);
+        font-style: italic;
+      }
+      .art-modal-cta {
+        margin-top: 28px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border-gray);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .art-cta-btn {
+        padding: 11px 24px;
+        border-radius: 100px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .art-cta-main {
+        background: var(--v);
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(108, 71, 212, 0.22);
+      }
+      .art-cta-main:hover {
+        background: var(--v-2);
+        transform: translateY(-1px);
+      }
+      .art-cta-sec {
+        background: var(--white);
+        color: var(--ink-3);
+        border: 1.5px solid var(--border-2);
+      }
+      .art-cta-sec:hover {
+        color: var(--v);
+        border-color: var(--v);
+        background: var(--v-soft);
+      }
+
+      /* ════════════════════════════════════════
+       TWO-COL LAYOUT
+    ════════════════════════════════════════ */
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 48px;
+        margin-top: 68px;
+        align-items: start;
+      }
+      .sidebar {
+        position: sticky;
+        top: 84px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      /* Sidebar boxes */
+      .sb-box {
+        background: var(--white);
+        border: 1.5px solid var(--border-gray);
+        border-radius: var(--r-xl);
+        overflow: hidden;
+        box-shadow: var(--sh-sm);
+      }
+      .sb-head {
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--border-gray);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .sb-head-label {
+        font-family: var(--f-mono);
+        font-size: 8.5px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--ink-5);
+      }
+      .sb-live {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--v);
+        box-shadow: 0 0 8px rgba(108, 71, 212, 0.4);
+        animation: pulse 2s infinite;
+      }
+      .sb-body {
+        padding: 14px 18px;
+      }
+
+      /* Trending */
+      .tr-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-gray);
+      }
+      .tr-row:last-child {
+        border-bottom: none;
+      }
+      .tr-n {
+        font-family: var(--f-mono);
+        font-size: 20px;
+        color: var(--surface-2);
+        line-height: 1;
+        min-width: 26px;
+        flex-shrink: 0;
+        font-weight: 700;
+      }
+      .tr-title {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--ink-2);
+        line-height: 1.38;
+        cursor: pointer;
+        transition: color 0.15s;
+      }
+      .tr-title:hover {
+        color: var(--v);
+      }
+      .tr-cat {
+        font-size: 10px;
+        color: var(--ink-5);
+        margin-top: 2px;
+      }
+
+      /* Tags */
+      .tags-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .tag-pill {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--ink-4);
+        background: var(--surface);
+        border: 1.5px solid var(--border-gray);
+        padding: 5px 13px;
+        border-radius: 100px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .tag-pill:hover {
+        border-color: var(--v);
+        color: var(--v);
+        background: var(--v-soft);
+      }
+
+      /* Newsletter */
+      .nl-text {
+        font-size: 12.5px;
+        color: var(--ink-4);
+        line-height: 1.65;
+        margin-bottom: 13px;
+      }
+      .nl-input {
+        width: 100%;
+        background: var(--surface);
+        border: 1.5px solid var(--border-2);
+        border-radius: var(--r-lg);
+        padding: 10px 14px;
+        font-family: var(--f-sans);
+        font-size: 13px;
+        color: var(--ink);
+        outline: none;
+        margin-bottom: 8px;
+        transition: border-color 0.15s;
+      }
+      .nl-input:focus {
+        border-color: var(--v);
+        background: var(--white);
+      }
+      .nl-input::placeholder {
+        color: var(--ink-5);
+      }
+      .nl-btn {
+        width: 100%;
+        background: var(--v);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 800;
+        padding: 12px;
+        border-radius: var(--r-lg);
+        transition: all 0.2s;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(108, 71, 212, 0.22);
+      }
+      .nl-btn:hover {
+        background: var(--v-2);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(108, 71, 212, 0.3);
+      }
+      .nl-note {
+        font-size: 10px;
+        color: var(--ink-5);
+        text-align: center;
+        margin-top: 8px;
+      }
+
+      /* ════════════════════════════════════════
+       DOSSIERS
+    ════════════════════════════════════════ */
+      .dossier-grid {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 14px;
+      }
+      .dos-main {
+        display: block;
+        color: inherit;
+        background: var(--white);
+        border: 1.5px solid var(--border-gray);
+        border-radius: var(--r-2xl);
+        overflow: hidden;
+        transition: all 0.25s;
+        cursor: pointer;
+      }
+      .dos-main:hover {
+        box-shadow: var(--sh-hover);
+        border-color: var(--v-border-2);
+        transform: translateY(-4px);
+      }
+      .dos-main-img {
+        height: 240px;
+        overflow: hidden;
+        position: relative;
+        background: var(--surface);
+      }
+      .dos-main-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: brightness(0.6) saturate(0.8);
+        transition:
+          transform 0.6s,
+          filter 0.4s;
+      }
+      .dos-main:hover .dos-main-img img {
+        transform: scale(1.05);
+        filter: brightness(0.52) saturate(1.05);
+      }
+      .dos-main-fade {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to top,
+          rgba(10, 6, 24, 0.8) 0%,
+          transparent 55%
+        );
+      }
+      .dos-num {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        font-family: var(--f-mono);
+        font-size: 9px;
+        color: rgba(255, 255, 255, 0.25);
+        letter-spacing: 0.1em;
+      }
+      .dos-cat-overlay {
+        position: absolute;
+        bottom: 14px;
+        left: 16px;
+      }
+      .dos-body {
+        padding: 20px 24px 22px;
+      }
+      .dos-title {
+        font-family: var(--f-serif);
+        font-size: clamp(16px, 1.6vw, 20px);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        color: var(--ink-2);
+        line-height: 1.22;
+        margin-bottom: 9px;
+        transition: color 0.2s;
+      }
+      .dos-main:hover .dos-title {
+        color: var(--v);
+      }
+      .dos-excerpt {
+        font-size: 12.5px;
+        color: var(--ink-4);
+        line-height: 1.68;
+        margin-bottom: 14px;
+      }
+      .dos-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .dos-read {
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--v);
+        letter-spacing: 0.02em;
+      }
+      .dos-time {
+        font-family: var(--f-mono);
+        font-size: 9.5px;
+        color: var(--ink-5);
+      }
+
+      .dos-minis {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .dos-mini {
+        display: flex;
+        flex-direction: column;
+        color: inherit;
+        background: var(--white);
+        border: 1.5px solid var(--border-gray);
+        border-radius: var(--r-xl);
+        overflow: hidden;
+        transition: all 0.2s;
+        cursor: pointer;
+      }
+      .dos-mini:hover {
+        box-shadow: var(--sh-card);
+        border-color: var(--v-border-2);
+      }
+      .dm-img {
+        height: 90px;
+        overflow: hidden;
+        flex-shrink: 0;
+        background: var(--surface);
+      }
+      .dm-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: brightness(0.75) saturate(0.8);
+        transition:
+          transform 0.5s,
+          filter 0.3s;
+      }
+      .dos-mini:hover .dm-img img {
+        transform: scale(1.07);
+        filter: brightness(0.7) saturate(1);
+      }
+      .dm-body {
+        padding: 12px 14px;
+      }
+      .dm-kicker {
+        font-size: 8.5px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--v);
+        margin-bottom: 5px;
+      }
+      .dm-title {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--ink-2);
+        line-height: 1.38;
+        transition: color 0.2s;
+      }
+      .dos-mini:hover .dm-title {
+        color: var(--v);
+      }
+
+      /* ════════════════════════════════════════
+       MEGA CTA
+    ════════════════════════════════════════ */
+      .mega-cta {
+        position: relative;
+        border-radius: var(--r-2xl);
+        overflow: hidden;
+        padding: 56px 60px;
+        margin-top: 68px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 44px;
+        align-items: center;
+        background: var(--surface);
+        border: 1.5px solid var(--border-2);
+      }
+      .mega-cta-bg {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 70% 120% at 0% 50%,
+            rgba(108, 71, 212, 0.07) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 60% 80% at 100% 20%,
+            rgba(232, 100, 154, 0.06) 0%,
+            transparent 55%
+          );
+        pointer-events: none;
+      }
+      .mc-accent {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--v) 0%, var(--rose) 100%);
+      }
+      .mc-text {
+        position: relative;
+        z-index: 1;
+      }
+      .mc-eye {
+        font-family: var(--f-mono);
+        font-size: 9px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--v-light);
+        margin-bottom: 12px;
+      }
+      .mc-h2 {
+        font-family: var(--f-serif);
+        font-size: clamp(26px, 3vw, 42px);
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+        line-height: 1.08;
+        margin-bottom: 12px;
+      }
+      .mc-h2 em {
+        font-style: italic;
+        color: var(--v);
+      }
+      .mc-sub {
+        font-size: 14px;
+        color: var(--ink-4);
+        line-height: 1.72;
+        max-width: 360px;
+      }
+      .mc-actions {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        min-width: 210px;
+      }
+      .mc-btn-main {
+        background: var(--v);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 800;
+        padding: 16px 28px;
+        border-radius: 100px;
+        text-align: center;
+        transition: all 0.2s;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        box-shadow: 0 6px 20px rgba(108, 71, 212, 0.28);
+      }
+      .mc-btn-main:hover {
+        background: var(--v-2);
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(108, 71, 212, 0.36);
+      }
+      .mc-btn-sec {
+        background: var(--white);
+        color: var(--ink-3);
+        font-size: 13px;
+        font-weight: 700;
+        padding: 14px 28px;
+        border-radius: 100px;
+        text-align: center;
+        border: 1.5px solid var(--border-2);
+        transition: all 0.2s;
+        cursor: pointer;
+      }
+      .mc-btn-sec:hover {
+        color: var(--v);
+        border-color: var(--v);
+        background: var(--v-soft);
+      }
+
+      /* ════════════════════════════════════════
+       SEARCH OVERLAY
+    ════════════════════════════════════════ */
+      .s-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 500;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding-top: 90px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.22s;
+      }
+      .s-overlay.open {
+        opacity: 1;
+        pointer-events: all;
+      }
+      .s-bg {
+        position: absolute;
+        inset: 0;
+        background: rgba(26, 18, 40, 0.55);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+      .s-modal {
+        position: relative;
+        z-index: 1;
+        background: var(--white);
+        border: 1.5px solid var(--border-2);
+        border-radius: var(--r-2xl);
+        width: 560px;
+        max-width: calc(100vw - 32px);
+        overflow: hidden;
+        box-shadow: var(--sh-lg);
+        transform: translateY(-14px);
+        transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      .s-overlay.open .s-modal {
+        transform: none;
+      }
+      .s-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-gray);
+      }
+      .s-row svg {
+        color: var(--ink-5);
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+      .s-input {
+        flex: 1;
+        border: none;
+        outline: none;
+        font-family: var(--f-sans);
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ink);
+        background: transparent;
+      }
+      .s-input::placeholder {
+        color: var(--ink-5);
+      }
+      .s-close {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        border: 1.5px solid var(--border-gray);
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink-4);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .s-close:hover {
+        background: var(--v-soft);
+        border-color: var(--v);
+        color: var(--v);
+      }
+      .s-close svg {
+        width: 12px;
+        height: 12px;
+      }
+      .s-body {
+        padding: 14px 18px 18px;
+      }
+      .s-label {
+        font-family: var(--f-mono);
+        font-size: 8.5px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-5);
+        margin-bottom: 8px;
+      }
+      .s-sug {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        border-radius: var(--r);
+        cursor: pointer;
+        transition: background 0.12s;
+      }
+      .s-sug:hover {
+        background: var(--surface);
+      }
+      .s-ico {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        background: var(--v-soft);
+        border: 1px solid var(--v-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .s-ico svg {
+        color: var(--v);
+        width: 13px;
+        height: 13px;
+      }
+      .s-txt {
+        font-size: 13px;
+        color: var(--ink-2);
+        font-weight: 600;
+      }
+
+      /* ════════════════════════════════════════
+       FOOTER
+    ════════════════════════════════════════ */
+      footer {
+        background: var(--surface);
+        border-top: 1px solid var(--border-gray);
+        padding: 56px 32px 36px;
+      }
+      .foot-inner {
+        max-width: var(--max);
+        margin: 0 auto;
+      }
+      .foot-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 48px;
+        padding-bottom: 44px;
+        border-bottom: 1px solid var(--border-gray);
+        margin-bottom: 22px;
+      }
+      .foot-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .foot-logo-img {
+        height: 30px;
+        width: auto;
+        object-fit: contain;
+      }
+      .foot-brand-name {
+        font-family: var(--f-sans);
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      .foot-brand-name .ai {
+        color: var(--v);
+      }
+      .foot-desc {
+        font-size: 12.5px;
+        color: var(--ink-4);
+        line-height: 1.75;
+        max-width: 210px;
+        margin-bottom: 16px;
+      }
+      .foot-badges {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .foot-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1.5px solid var(--border-2);
+        background: var(--white);
+        border-radius: 100px;
+        padding: 4px 12px;
+        font-size: 10px;
+        color: var(--ink-4);
+        width: fit-content;
+      }
+      .foot-col h6 {
+        font-size: 8.5px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-5);
+        margin-bottom: 16px;
+      }
+      .foot-col ul {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .foot-col ul li a {
+        font-size: 12.5px;
+        color: var(--ink-4);
+        transition: color 0.15s;
+      }
+      .foot-col ul li a:hover {
+        color: var(--v);
+      }
+      .foot-bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .foot-copy {
+        font-size: 11px;
+        color: var(--ink-5);
+      }
+      .foot-links {
+        display: flex;
+        gap: 18px;
+      }
+      .foot-links a {
+        font-size: 11px;
+        color: var(--ink-5);
+        transition: color 0.15s;
+      }
+      .foot-links a:hover {
+        color: var(--v);
+      }
+      .foot-socials {
+        display: flex;
+        gap: 6px;
+      }
+      .soc {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        border: 1.5px solid var(--border-gray);
+        color: var(--ink-4);
+        font-size: 10px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        background: var(--white);
+        transition: all 0.15s;
+      }
+      .soc:hover {
+        border-color: var(--v);
+        color: var(--v);
+        background: var(--v-soft);
+      }
+
+      /* ════════════════════════════════════════
+       REVEAL
+    ════════════════════════════════════════ */
+      .reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.6s ease,
+          transform 0.6s ease;
+      }
+      .reveal.in {
+        opacity: 1;
+        transform: none;
+      }
+      .d1 {
+        transition-delay: 0.1s;
+      }
+      .d2 {
+        transition-delay: 0.2s;
+      }
+      .d3 {
+        transition-delay: 0.3s;
+      }
+
+      /* ════════════════════════════════════════
+       RESPONSIVE
+    ════════════════════════════════════════ */
+      @media (max-width: 1100px) {
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          position: static;
+        }
+        .dossier-grid {
+          grid-template-columns: 1fr;
+        }
+        .dos-minis {
+          flex-direction: row;
+          flex-wrap: wrap;
+        }
+        .dos-mini {
+          flex: 1 1 calc(33% - 8px);
+          min-width: 160px;
+        }
+        #ain-articles {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .mega-cta {
+          grid-template-columns: 1fr;
+          gap: 28px;
+          padding: 36px 32px;
+        }
+        .foot-grid {
+          grid-template-columns: 1fr 1fr;
+          gap: 28px;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .nav-links {
+          display: none;
+        }
+        .nav-btn {
+          display: none;
+        }
+        .nav-burger {
+          display: flex;
+        }
+        .hero-grid {
+          grid-template-columns: 1fr;
+        }
+        .feat-stack {
+          flex-direction: row;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .feat-stack::-webkit-scrollbar {
+          display: none;
+        }
+        .feat-sec {
+          min-width: 220px;
+          flex: 0 0 220px;
+        }
+        .ticker-items {
+          gap: 16px;
+        }
+        .page-body {
+          padding: 40px 20px 60px;
+        }
+        .hero-inner {
+          padding: 0 20px;
+        }
+        .ticker-inner {
+          padding: 0 20px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .nav-inner {
+          padding: 0 16px;
+        }
+        .hero-inner {
+          padding: 0 16px;
+        }
+        .ticker-inner {
+          padding: 0 16px;
+        }
+        .page-body {
+          padding: 32px 16px 56px;
+        }
+        footer {
+          padding: 40px 16px 28px;
+        }
+        .hero-top {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 18px 0 16px;
+          margin-bottom: 20px;
+        }
+        .ht-right {
+          flex-direction: row;
+          flex-wrap: wrap;
+        }
+        .hero-grid {
+          gap: 2px;
+          border-radius: var(--r-lg);
+        }
+        .feat-main-img {
+          height: 320px;
+        }
+        .feat-stack {
+          flex-direction: column;
+        }
+        .feat-sec {
+          min-width: 0;
+          flex: 1;
+        }
+        #ain-articles {
+          grid-template-columns: 1fr;
+          gap: 14px;
+        }
+        .mega-cta {
+          padding: 28px 20px;
+          border-radius: var(--r-xl);
+          margin-top: 48px;
+        }
+        .dos-minis {
+          flex-direction: column;
+        }
+        .foot-grid {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+        .foot-bottom {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+        .pipeline-status {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 12px;
+        }
+        .art-modal-header {
+          height: 180px;
+        }
+        .art-modal-scroll {
+          padding: 20px 20px 24px;
+        }
+        .art-modal-title {
+          font-size: 20px;
+        }
+        .two-col {
+          margin-top: 48px;
+          gap: 32px;
+        }
+        .dossier-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 380px) {
+        .logo-name {
+          font-size: 14px;
+        }
+        .logo-tag {
+          display: none;
+        }
+        .feat-main-img {
+          height: 280px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ══ ARTICLE MODAL OVERLAY ══ -->
+    <div
+      class="art-overlay"
+      id="artOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Article"
+    >
+      <div class="art-backdrop" onclick="closeArticle()"></div>
+      <div class="art-modal" id="artModal">
+        <div class="art-modal-header" id="artHeader">
+          <img id="artImg" src="" alt="" loading="lazy" />
+          <div class="art-modal-header-fade"></div>
+          <button
+            class="art-modal-close"
+            onclick="closeArticle()"
+            aria-label="Fermer"
+          >
+            <svg
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18 18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+          <div class="art-modal-cat-overlay">
+            <span class="feat-cat cat-v" id="artCat">◈ Catégorie</span>
+          </div>
+        </div>
+        <div class="art-modal-scroll">
+          <h2 class="art-modal-title" id="artTitle"></h2>
+          <div class="art-modal-meta" id="artMeta"></div>
+          <div class="art-modal-body" id="artBody"></div>
+          <div class="art-modal-cta">
+            <a href="./intro.html" class="art-cta-btn art-cta-main">
+              ✦ Démarrer gratuitement
+            </a>
+
+            <a href="./contact.html" class="art-cta-btn art-cta-sec">
+              Parler à un expert
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SEARCH OVERLAY ══ -->
+    <div
+      class="s-overlay"
+      id="searchOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Recherche"
+    >
+      <div class="s-bg" onclick="closeSearch()"></div>
+      <div class="s-modal">
+        <div class="s-row">
+          <svg
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m21 21-4.35-4.35"
+            />
+          </svg>
+          <input
+            type="text"
+            class="s-input"
+            id="s-input"
+            placeholder="Taux, DPE, villes, investissement…"
+            autocomplete="off"
+          />
+          <button class="s-close" onclick="closeSearch()" aria-label="Fermer">
+            <svg
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M6 18 18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="s-body">
+          <div class="s-label">Suggestions</div>
+          <div class="s-sug">
+            <div class="s-ico">
+              <svg
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
+                />
+              </svg>
+            </div>
+            <span class="s-txt">Taux immobilier mai 2026</span>
+          </div>
+          <div class="s-sug">
+            <div class="s-ico">
+              <svg
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75"
+                />
+              </svg>
+            </div>
+            <span class="s-txt">Guide premier achat</span>
+          </div>
+          <div class="s-sug">
+            <div class="s-ico">
+              <svg
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"
+                />
+              </svg>
+            </div>
+            <span class="s-txt">Meilleures villes pour investir</span>
+          </div>
+          <div class="s-sug">
+            <div class="s-ico">
+              <svg
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636"
+                />
+              </svg>
+            </div>
+            <span class="s-txt">DPE — interdictions 2026</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ NAV ══ -->
+    <header class="nav" id="nav">
+      <div class="nav-inner">
+        <a
+          href="./index.html"
+          class="logo"
+          aria-label="Mon AiGENT Immobilier — Accueil"
+        >
+          <div class="logo-img-wrap">
+            <img
+              src="./images/logo.png"
+              alt="Mon AiGENT Immobilier"
+              onerror="this.style.display = 'none'"
+            />
+          </div>
+          <span class="logo-sep"></span>
+          <span class="logo-name"
+            >Mon <span class="ai">Ai</span>GENT Immobilier</span
+          >
+          <span class="logo-tag">Blog</span>
+        </a>
+        <nav class="nav-links" aria-label="Navigation principale">
+          <a href="#" class="nav-link active">Marché</a>
+          <a href="#" class="nav-link">Investir</a>
+          <a href="#" class="nav-link">Guides</a>
+          <a href="#" class="nav-link">IA & Tech</a>
+          <a href="#" class="nav-link">DPE</a>
+        </nav>
+        <div class="nav-right">
+          <button
+            class="nav-search"
+            onclick="openSearch()"
+            aria-label="Rechercher"
+          >
+            <svg
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m21 21-4.35-4.35"
+              />
+            </svg>
+          </button>
+          <a href="./intro.html" class="nav-btn nav-btn-ghost">Connexion</a>
+          <a href="./intro.html" class="nav-btn nav-btn-cta">Démarrer</a>
+          <button
+            class="nav-burger"
+            id="burgerBtn"
+            onclick="toggleDrawer()"
+            aria-label="Menu"
+            aria-expanded="false"
+          >
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+      </div>
+      <!-- Mobile drawer -->
+      <div class="nav-drawer" id="navDrawer">
+        <a href="#" class="nd-link active">Marché</a>
+        <a href="#" class="nd-link">Investir</a>
+        <a href="#" class="nd-link">Guides</a>
+        <a href="#" class="nd-link">IA & Tech</a>
+        <a href="#" class="nd-link">DPE</a>
+        <div class="nd-sep"></div>
+        <button
+          class="nd-btn"
+          style="
+            color: var(--ink-3);
+            border: 1.5px solid var(--border-2);
+            border-radius: 100px;
+            padding: 13px;
+            font-size: 14px;
+            font-weight: 700;
+          "
+        >
+          Connexion
+        </button>
+        <button class="nd-btn nd-cta">✦ Démarrer gratuitement</button>
+      </div>
+    </header>
+
+    <!-- ══ HERO ══ -->
+    <section class="blog-hero">
+      <div class="hero-glow"></div>
+      <div class="hero-inner">
+        <div class="hero-top">
+          <div class="ht-left">
+            <span class="ht-label">Mon AiGENT · Blog</span>
+            <span class="ht-pipe">|</span>
+            <span class="ht-line">Le média immobilier piloté par l'IA</span>
+          </div>
+          <div class="ht-right">
+            <div class="live-badge">
+              <span class="live-dot"></span>
+              Cerebras · <span id="articleCount">9</span> articles
+            </div>
+            <span class="ht-date" id="hero-date"></span>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <!-- Featured main -->
+          <div
+            class="feat-main"
+            onclick="openHeroArticle()"
+            role="button"
+            tabindex="0"
+            aria-label="Lire l'article à la une"
+          >
+            <div class="feat-main-img">
+              <img
+                src="https://images.unsplash.com/photo-1560472355-536de3962603?auto=format&fit=crop&w=1200&q=80"
+                alt="Taux immobilier mai 2026"
+                loading="eager"
+                referrerpolicy="no-referrer"
+              />
+              <div class="feat-main-fade"></div>
+            </div>
+            <span class="feat-main-num">№ 01 · À LA UNE</span>
+            <div class="feat-main-body">
+              <span class="feat-cat cat-v">◈ Analyse Marché</span>
+              <h1 class="feat-h1">
+                Les taux passent sous 3,4 % —<br /><em
+                  >ce que ça change vraiment</em
+                >
+              </h1>
+              <p class="feat-lede">
+                Pour la première fois depuis 18 mois, les banques jouent la
+                carte de l'attractivité. Ce que ça change pour votre projet — et
+                comment en profiter avant l'été.
+              </p>
+              <div class="feat-meta">
+                <span>1 mai 2026</span><span>·</span
+                ><span>6 min de lecture</span>
+              </div>
+              <span class="feat-read"
+                >Lire l'analyse
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  /></svg
+              ></span>
+            </div>
+          </div>
+
+          <!-- Secondary stack -->
+          <div class="feat-stack">
+            <div
+              class="feat-sec"
+              onclick="openSecArticle(0)"
+              role="button"
+              tabindex="0"
+            >
+              <span class="fs-rt">5 min</span>
+              <div class="fs-cat">◆ Investissement</div>
+              <div class="fs-title">
+                Top 5 des villes françaises à saisir avant le rebond du marché
+              </div>
+              <div class="fs-meta">22 avril 2026</div>
+            </div>
+            <div
+              class="feat-sec"
+              onclick="openSecArticle(1)"
+              role="button"
+              tabindex="0"
+            >
+              <span class="fs-rt">4 min</span>
+              <div class="fs-cat" style="color: var(--rose)">⬡ IA & Tech</div>
+              <div class="fs-title">
+                Comment l'IA révolutionne l'estimation immobilière en 2026
+              </div>
+              <div class="fs-meta">15 avril 2026</div>
+            </div>
+            <div
+              class="feat-sec"
+              onclick="openSecArticle(2)"
+              role="button"
+              tabindex="0"
+            >
+              <span class="fs-rt">5 min</span>
+              <div class="fs-cat" style="color: #7c6ed4">◎ DPE & Énergie</div>
+              <div class="fs-title">
+                Interdiction des logements G dès juillet — ce qui change pour
+                400 000 biens
+              </div>
+              <div class="fs-meta">8 avril 2026</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ MARKET TICKER ══ -->
+    <div
+      class="ticker-wrap"
+      role="marquee"
+      aria-label="Prix au m² en temps réel"
+    >
+      <div class="ticker-inner">
+        <span class="ticker-label">Prix m² · 2026</span>
+        <div class="ticker-items">
+          <div class="tk-item">
+            <span class="tk-city">Paris</span
+            ><span class="tk-price"
+              >9 850 <span class="tk-unit">€/m²</span></span
+            ><span class="tk-badge tk-dn">▼ −1,2 %</span>
+          </div>
+          <div class="tk-sep"></div>
+          <div class="tk-item">
+            <span class="tk-city">Lyon</span
+            ><span class="tk-price"
+              >4 120 <span class="tk-unit">€/m²</span></span
+            ><span class="tk-badge tk-up">▲ +0,8 %</span>
+          </div>
+          <div class="tk-sep"></div>
+          <div class="tk-item">
+            <span class="tk-city">Marseille</span
+            ><span class="tk-price"
+              >3 280 <span class="tk-unit">€/m²</span></span
+            ><span class="tk-badge tk-up">▲ +4,2 %</span>
+          </div>
+          <div class="tk-sep"></div>
+          <div class="tk-item">
+            <span class="tk-city">Toulouse</span
+            ><span class="tk-price"
+              >3 580 <span class="tk-unit">€/m²</span></span
+            ><span class="tk-badge tk-up">▲ +1,5 %</span>
+          </div>
+          <div class="tk-sep"></div>
+          <div class="tk-item">
+            <span class="tk-city">Bordeaux</span
+            ><span class="tk-price"
+              >4 050 <span class="tk-unit">€/m²</span></span
+            ><span class="tk-badge tk-dn">▼ −2,1 %</span>
+          </div>
+          <div class="tk-sep"></div>
+          <div class="tk-item">
+            <span class="tk-city">Rennes</span
+            ><span class="tk-price"
+              >3 890 <span class="tk-unit">€/m²</span></span
+            ><span class="tk-badge tk-up">▲ +0,4 %</span>
+          </div>
+          <div class="tk-sep"></div>
+          <div class="tk-item">
+            <span class="tk-city">Nantes</span
+            ><span class="tk-price"
+              >3 640 <span class="tk-unit">€/m²</span></span
+            ><span class="tk-badge tk-dn">▼ −0,6 %</span>
+          </div>
+          <div class="tk-sep"></div>
+          <div class="tk-item">
+            <span class="tk-city">Nice</span
+            ><span class="tk-price"
+              >5 120 <span class="tk-unit">€/m²</span></span
+            ><span class="tk-badge tk-up">▲ +2,3 %</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE BODY ══ -->
+    <main class="page-body" id="main">
+      <!-- Pipeline status -->
+      <div class="pipeline-status reveal">
+        <div class="ps-icon">
+          <svg
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"
+            />
+          </svg>
+        </div>
+        <div class="ps-body">
+          <div class="ps-label">Pipeline Cerebras IA — actif</div>
+          <div class="ps-text">
+            Génération séquentielle · 1 article à la fois · Sans rate-limit
+          </div>
+          <div class="ps-sub">
+            Fetch NewsData → Sélection → Génération → Publication — en continu
+          </div>
+        </div>
+        <div class="ps-steps">
+          <div class="pss">
+            <div class="pss-d done"></div>
+            <div class="pss-l">Sources</div>
+          </div>
+          <span class="pss-arr">›</span>
+          <div class="pss">
+            <div class="pss-d done"></div>
+            <div class="pss-l">Sélection</div>
+          </div>
+          <span class="pss-arr">›</span>
+          <div class="pss">
+            <div class="pss-d active"></div>
+            <div class="pss-l">Rédaction</div>
+          </div>
+          <span class="pss-arr">›</span>
+          <div class="pss">
+            <div class="pss-d idle"></div>
+            <div class="pss-l">Publication</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Articles section -->
+      <section aria-labelledby="articles-h">
+        <div class="sec-head reveal">
+          <div>
+            <div class="sec-eye">Édition Cerebras IA</div>
+            <h2 class="sec-h2" id="articles-h">Guides & <em>Analyses</em></h2>
+          </div>
+          <a href="#" class="sec-see-all"
+            >Voir tout
+            <svg
+              width="12"
+              height="12"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              /></svg
+          ></a>
+        </div>
+
+        <!-- Filtres -->
+        <div class="filters-wrap reveal d1">
+          <div class="filters-inner" id="ain-filters">
+            <button class="filter-btn active" data-filter="all">
+              Tous <span class="fc">9</span>
+            </button>
+            <button class="filter-btn" data-filter="marche">◈ Marché</button>
+            <button class="filter-btn" data-filter="investissement">
+              ◆ Investissement
+            </button>
+            <button class="filter-btn" data-filter="guide">◉ Guides</button>
+            <button class="filter-btn" data-filter="ia-tech">
+              ⬡ IA & Tech
+            </button>
+            <button class="filter-btn" data-filter="dpe">◎ DPE</button>
+            <button class="filter-btn" data-filter="actualite">
+              ◷ Actualité
+            </button>
+            <button class="filter-btn" data-filter="juridique">
+              ◈ Juridique
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="ain-loading">
+          <div class="load-ring"></div>
+          <div class="load-text">
+            Génération des articles par Cerebras IA…
+            <span id="ain-loading-msg"></span>
+          </div>
+          <div class="load-progress"><div id="ain-progress-bar"></div></div>
+        </div>
+
+        <div id="ain-articles" style="opacity: 0"></div>
+      </section>
+
+      <!-- Two col -->
+      <div class="two-col">
+        <div>
+          <!-- Dossiers -->
+          <section aria-labelledby="dos-h">
+            <div class="sec-head reveal">
+              <div>
+                <div class="sec-eye">Enquêtes longform</div>
+                <h2 class="sec-h2" id="dos-h">Dossiers de <em>fond</em></h2>
+              </div>
+              <a href="#" class="sec-see-all"
+                >Tous
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  /></svg
+              ></a>
+            </div>
+            <div class="dossier-grid">
+              <div
+                class="dos-main reveal"
+                onclick="openDossier(0)"
+                role="button"
+                tabindex="0"
+              >
+                <div class="dos-main-img">
+                  <img
+                    src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=900&q=80"
+                    alt="IA immobilier"
+                    loading="lazy"
+                    referrerpolicy="no-referrer"
+                  />
+                  <div class="dos-main-fade"></div>
+                  <span class="dos-num">Dossier 01</span>
+                  <div class="dos-cat-overlay">
+                    <span
+                      class="feat-cat cat-indigo"
+                      style="font-size: 9px; padding: 4px 12px"
+                      >⬡ IA & Immobilier</span
+                    >
+                  </div>
+                </div>
+                <div class="dos-body">
+                  <h3 class="dos-title">
+                    L'IA va-t-elle remplacer les agents immobiliers ? Enquête
+                    sur une mutation silencieuse
+                  </h3>
+                  <p class="dos-excerpt">
+                    Matching, estimation temps réel, visites autonomes — 40
+                    professionnels interrogés pour comprendre ce qui reste
+                    irréductiblement humain.
+                  </p>
+                  <div class="dos-foot">
+                    <span class="dos-read">Lire le dossier →</span>
+                    <span class="dos-time">12 min</span>
+                  </div>
+                </div>
+              </div>
+              <div class="dos-minis">
+                <div
+                  class="dos-mini reveal d1"
+                  onclick="openDossier(1)"
+                  role="button"
+                  tabindex="0"
+                >
+                  <div class="dm-img">
+                    <img
+                      src="https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=600&q=80"
+                      alt="Cycle immobilier"
+                      loading="lazy"
+                      referrerpolicy="no-referrer"
+                    />
+                  </div>
+                  <div class="dm-body">
+                    <div class="dm-kicker">Dossier · Cycle</div>
+                    <div class="dm-title">
+                      2024–2026 : la grande correction n'a pas eu lieu. Pourquoi
+                      ?
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="dos-mini reveal d2"
+                  onclick="openDossier(2)"
+                  role="button"
+                  tabindex="0"
+                >
+                  <div class="dm-img">
+                    <img
+                      src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80"
+                      alt="Scénarios 2028"
+                      loading="lazy"
+                      referrerpolicy="no-referrer"
+                    />
+                  </div>
+                  <div class="dm-body">
+                    <div class="dm-kicker">Dossier · Prospective</div>
+                    <div class="dm-title">
+                      5 scénarios pour l'immobilier français d'ici 2028
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="dos-mini reveal d3"
+                  onclick="openDossier(3)"
+                  role="button"
+                  tabindex="0"
+                >
+                  <div class="dm-img">
+                    <img
+                      src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80"
+                      alt="Locatif 2026"
+                      loading="lazy"
+                      referrerpolicy="no-referrer"
+                    />
+                  </div>
+                  <div class="dm-body">
+                    <div class="dm-kicker">Dossier · Fiscalité</div>
+                    <div class="dm-title">
+                      Locatif en 2026 : les nouvelles règles du jeu fiscal
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+          <div class="sb-box reveal">
+            <div class="sb-head">
+              <span class="sb-head-label">Tendances</span>
+              <span class="sb-live"></span>
+            </div>
+            <div class="sb-body">
+              <div class="tr-row">
+                <div class="tr-n">01</div>
+                <div>
+                  <div class="tr-title" onclick="openTrendArticle(0)">
+                    Taux mai 2026 : sous 3,4 %
+                  </div>
+                  <div class="tr-cat">Marché · 2 230 lectures</div>
+                </div>
+              </div>
+              <div class="tr-row">
+                <div class="tr-n">02</div>
+                <div>
+                  <div class="tr-title" onclick="openTrendArticle(1)">
+                    Top 5 villes pour investir
+                  </div>
+                  <div class="tr-cat">Investissement · 1 870 lectures</div>
+                </div>
+              </div>
+              <div class="tr-row">
+                <div class="tr-n">03</div>
+                <div>
+                  <div class="tr-title" onclick="openTrendArticle(2)">
+                    IA & estimation : la révolution
+                  </div>
+                  <div class="tr-cat">Tech · 1 540 lectures</div>
+                </div>
+              </div>
+              <div class="tr-row">
+                <div class="tr-n">04</div>
+                <div>
+                  <div class="tr-title" onclick="openTrendArticle(3)">
+                    DPE 2026 : ce que personne ne dit
+                  </div>
+                  <div class="tr-cat">Conseil · 1 210 lectures</div>
+                </div>
+              </div>
+              <div class="tr-row">
+                <div class="tr-n">05</div>
+                <div>
+                  <div class="tr-title" onclick="openTrendArticle(4)">
+                    7 techniques de négociation
+                  </div>
+                  <div class="tr-cat">Guide · 980 lectures</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sb-box reveal d1">
+            <div class="sb-head">
+              <span class="sb-head-label">Newsletter · Chaque lundi</span>
+            </div>
+            <div class="sb-body">
+              <p class="nl-text">
+                Marché, taux, opportunités — le point immo de la semaine. Lu par
+                12 000 lecteurs.
+              </p>
+              <input
+                type="email"
+                class="nl-input"
+                id="nl-email"
+                placeholder="votre@email.fr"
+              />
+              <button class="nl-btn" onclick="handleNL(this)" type="button">
+                S'abonner gratuitement
+              </button>
+              <p class="nl-note">🔒 Zéro spam · Désabonnement en 1 clic</p>
+            </div>
+          </div>
+
+          <div class="sb-box reveal d2">
+            <div class="sb-head">
+              <span class="sb-head-label">Explorer par thème</span>
+            </div>
+            <div class="sb-body">
+              <div class="tags-cloud">
+                <button class="tag-pill">Taux</button>
+                <button class="tag-pill">Achat</button>
+                <button class="tag-pill">Location</button>
+                <button class="tag-pill">DPE</button>
+                <button class="tag-pill">LMNP</button>
+                <button class="tag-pill">Paris</button>
+                <button class="tag-pill">Marseille</button>
+                <button class="tag-pill">Investissement</button>
+                <button class="tag-pill">PTZ</button>
+                <button class="tag-pill">Rénovation</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Mega CTA -->
+      <div class="mega-cta reveal">
+        <div class="mega-cta-bg"></div>
+        <div class="mc-accent"></div>
+        <div class="mc-text">
+          <div class="mc-eye">Mon AiGENT · IA + Expertise</div>
+          <h2 class="mc-h2">
+            Votre projet mérite<br />mieux qu'une <em>annonce.</em>
+          </h2>
+          <p class="mc-sub">
+            Matching IA, estimation en temps réel, alertes personnalisées.
+            Gratuit, sans engagement, sans commission.
+          </p>
+        </div>
+        <div class="mc-actions">
+          <button class="mc-btn-main">✦ Démarrer gratuitement</button>
+          <button class="mc-btn-sec">Parler à un expert</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- ══ FOOTER ══ -->
+    <footer>
+      <div class="foot-inner">
+        <div class="foot-grid">
+          <div>
+            <div class="foot-logo">
+              <img
+                class="foot-logo-img"
+                src="./images/logo.png"
+                alt="Mon AiGENT Immobilier"
+                onerror="this.style.display = 'none'"
+              />
+              <span class="foot-brand-name"
+                >Mon <span class="ai">Ai</span>GENT Immobilier</span
+              >
+            </div>
+            <p class="foot-desc">
+              Le média immobilier propulsé par l'IA. Analyses, guides et données
+              de marché — en continu, chaque jour.
+            </p>
+            <div class="foot-badges">
+              <div class="foot-badge">✦ Données DVF Notaires</div>
+              <div class="foot-badge">✦ RGPD · Données sécurisées</div>
+            </div>
+          </div>
+          <div class="foot-col">
+            <h6>Blog</h6>
+            <ul>
+              <li><a href="#">Marché immobilier</a></li>
+              <li><a href="#">Investissement</a></li>
+              <li><a href="#">Guides pratiques</a></li>
+              <li><a href="#">DPE & Rénovation</a></li>
+              <li><a href="#">IA & Technologie</a></li>
+            </ul>
+          </div>
+          <div class="foot-col">
+            <h6>Plateforme</h6>
+            <ul>
+              <li><a href="./index.html">Accueil</a></li>
+              <li><a href="#">Acheter</a></li>
+              <li><a href="#">Vendre</a></li>
+              <li><a href="#">Estimation IA</a></li>
+              <li><a href="#">Alertes prix</a></li>
+            </ul>
+          </div>
+          <div class="foot-col">
+            <h6>Mon AiGENT</h6>
+            <ul>
+              <li><a href="#">Notre mission</a></li>
+              <li><a href="#">Contact</a></li>
+              <li><a href="#">Confidentialité</a></li>
+              <li><a href="#">Mentions légales</a></li>
+              <li><a href="#">CGU</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <p class="foot-copy">
+            © 2026 Mon AiGENT Immobilier. Tous droits réservés.
+          </p>
+          <div class="foot-links">
+            <a href="#">Cookies</a><a href="#">Plan du site</a>
+          </div>
+          <div class="foot-socials">
+            <button class="soc">in</button>
+            <button class="soc">X</button>
+            <button class="soc">ig</button>
+            <button class="soc">yt</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script src="ai-news.js"></script>
+    <script>
+      /* ══ Date ══ */
+      document.getElementById("hero-date").textContent =
+        new Date().toLocaleDateString("fr-FR", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+
+      /* ══ Nav scroll ══ */
+      const nav = document.getElementById("nav");
+      window.addEventListener(
+        "scroll",
+        () => nav.classList.toggle("scrolled", scrollY > 40),
+        { passive: true },
+      );
+
+      /* ══ Mobile drawer ══ */
+      let drawerOpen = false;
+      function toggleDrawer() {
+        drawerOpen = !drawerOpen;
+        const drawer = document.getElementById("navDrawer");
+        const btn = document.getElementById("burgerBtn");
+        drawer.classList.toggle("open", drawerOpen);
+        btn.setAttribute("aria-expanded", drawerOpen);
+        document.body.style.overflow = drawerOpen ? "hidden" : "";
+      }
+      document.addEventListener("click", (e) => {
+        if (drawerOpen && !nav.contains(e.target)) {
+          drawerOpen = false;
+          document.getElementById("navDrawer").classList.remove("open");
+          document.body.style.overflow = "";
+        }
+      });
+
+      /* ══ Search ══ */
+      function openSearch() {
+        document.getElementById("searchOverlay").classList.add("open");
+        document.body.style.overflow = "hidden";
+        setTimeout(() => document.getElementById("s-input")?.focus(), 60);
+      }
+      function closeSearch() {
+        document.getElementById("searchOverlay").classList.remove("open");
+        document.body.style.overflow = "";
+      }
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeSearch();
+          closeArticle();
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+          e.preventDefault();
+          openSearch();
+        }
+      });
+
+      /* ══ Article modal ══ */
+      const articles = [
+        {
+          title: "Les taux passent sous 3,4 % — ce que ça change vraiment",
+          cat: "◈ Analyse Marché",
+          catClass: "cat-v",
+          date: "1 mai 2026",
+          read: "6 min de lecture",
+          img: "https://images.unsplash.com/photo-1560472355-536de3962603?auto=format&fit=crop&w=1200&q=80",
+          body: `<p>Pour la première fois depuis 18 mois, plusieurs grandes banques françaises ont abaissé leurs taux directeurs sous la barre symbolique des 3,4 %. Une nouvelle qui redistribue les cartes pour des milliers de ménages.</p>
+      <h2>Pourquoi cette baisse survient-elle maintenant ?</h2>
+      <p>La BCE a amorcé un cycle de détente monétaire en fin d'année 2025, ouvrant la voie aux établissements bancaires qui cherchaient à reconquérir une clientèle échaudée par deux années de taux élevés. La concurrence entre enseignes s'est intensifiée, notamment sur les profils primo-accédants.</p>
+      <blockquote>Un ménage qui emprunte 250 000 € sur 20 ans économise désormais environ 140 € par mois par rapport à début 2025.</blockquote>
+      <h2>Quels profils en bénéficient le plus ?</h2>
+      <p>Les primo-accédants avec un apport supérieur à 10 % restent les grands gagnants. Les profils dit <em>dual income</em> — deux revenus stables — obtiennent les meilleures offres. En revanche, les travailleurs indépendants continuent de faire face à des exigences accrues.</p>
+      <h3>Anticiper avant la rentrée</h3>
+      <p>Plusieurs courtiers estiment que cette fenêtre favorable pourrait se refermer dès septembre si l'inflation repart. L'heure est à l'action pour ceux qui ont un projet mûr.</p>`,
+        },
+        {
+          title:
+            "Top 5 des villes françaises à saisir avant le rebond du marché",
+          cat: "◆ Investissement",
+          catClass: "cat-teal",
+          date: "22 avril 2026",
+          read: "5 min de lecture",
+          img: "https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=1200&q=80",
+          body: `<p>Alors que Paris et Lyon restent sous pression, d'autres métropoles offrent des rendements locatifs attractifs et des prix encore accessibles. Notre sélection pour 2026.</p>
+      <h2>1. Marseille — le renouveau du Sud</h2>
+      <p>Avec une hausse de +4,2 % sur 12 mois et des prix toujours 60 % inférieurs à Paris, Marseille s'impose comme la ville de toutes les opportunités. Les arrondissements nord connaissent une gentrification accélérée.</p>
+      <h2>2. Toulouse — la dynamique de l'Occitanie</h2>
+      <p>La ville rose bénéficie de l'afflux constant de cadres et d'étudiants liés à l'aéronautique. Le marché locatif affiche un taux de vacance historiquement bas.</p>
+      <blockquote>À Toulouse, un T2 bien situé se loue en moyenne en 4 jours. Le rendement brut dépasse souvent 5,5 %.</blockquote>
+      <h2>3. Rennes — valeur refuge de l'Ouest</h2>
+      <p>Labellisée French Tech, Rennes attire les jeunes actifs et maintient une pression locative constante. L'extension de la ligne B du métro valorise plusieurs quartiers périphériques.</p>`,
+        },
+        {
+          title: "Comment l'IA révolutionne l'estimation immobilière en 2026",
+          cat: "⬡ IA & Tech",
+          catClass: "cat-rose",
+          date: "15 avril 2026",
+          read: "4 min de lecture",
+          img: "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?auto=format&fit=crop&w=1200&q=80",
+          body: `<p>L'estimation d'un bien immobilier ne repose plus uniquement sur l'œil d'un expert. Les algorithmes d'IA analysent désormais des milliers de paramètres en quelques secondes pour livrer une valorisation précise.</p>
+      <h2>Au-delà du prix au m²</h2>
+      <p>Les modèles actuels intègrent l'exposition solaire, le bruit environnant, la qualité de l'air, la proximité des transports en site propre, les projets urbains à venir — autant de facteurs qu'un agent humain évalue de façon subjective.</p>
+      <h2>L'IA, un outil ou un concurrent ?</h2>
+      <p>Contrairement aux craintes initiales, la majorité des agences a adopté ces outils comme assistants. L'IA génère un rapport en 30 secondes, l'agent apporte le contexte humain et la négociation.</p>
+      <blockquote>Mon AiGENT génère une estimation précise à ±3 % avec photos et données cadastrales — là où un expert prenait 48h.</blockquote>`,
+        },
+        {
+          title:
+            "Interdiction des logements G dès juillet — ce qui change pour 400 000 biens",
+          cat: "◎ DPE & Énergie",
+          catClass: "cat-v",
+          date: "8 avril 2026",
+          read: "5 min de lecture",
+          img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1200&q=80",
+          body: `<p>Juillet 2026 marque un tournant pour les propriétaires bailleurs de logements classés G. La location de ces biens devient illégale, sauf dérogation. Voici ce qu'il faut savoir.</p>
+      <h2>Quels biens sont concernés ?</h2>
+      <p>Environ 400 000 logements locatifs sont classés G en France. Les biens dont le DPE indique une consommation supérieure à 450 kWh/m²/an ne pourront plus être mis en location dès le 1er juillet 2026.</p>
+      <h2>Quelles sanctions ?</h2>
+      <p>Un propriétaire qui maintient un bien classé G à la location s'expose à une amende pouvant atteindre 15 000 €, et le locataire peut demander la mise en conformité sous astreinte judiciaire.</p>
+      <h2>Les aides disponibles</h2>
+      <p>MaPrimeRénov' reste le principal dispositif, avec une enveloppe revalorisée pour 2026. L'isolation des combles ou le remplacement d'une chaudière fioul peuvent faire passer un logement de G à D en quelques semaines.</p>`,
+        },
+      ];
+
+      const dossiers = [
+        {
+          title:
+            "L'IA va-t-elle remplacer les agents immobiliers ? Enquête sur une mutation silencieuse",
+          cat: "⬡ IA & Immobilier",
+          catClass: "cat-indigo",
+          date: "3 mai 2026",
+          read: "12 min de lecture",
+          img: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
+          body: `<p>Nous avons interrogé 40 professionnels de l'immobilier pour comprendre comment l'intelligence artificielle transforme leur métier — et ce qui reste irréductiblement humain.</p>
+      <h2>La montée en puissance des outils IA</h2>
+      <p>En 2026, plus de 70 % des agences françaises utilisent au moins un outil d'IA dans leur quotidien : estimation automatisée, matching acheteur-vendeur, rédaction d'annonces, analyse de solvabilité. La transformation est profonde.</p>
+      <h2>Ce que l'IA ne peut pas (encore) faire</h2>
+      <p>La négociation reste humaine. L'empathie face à un vendeur en situation de détresse, la lecture du langage non-verbal lors d'une visite, la gestion des conflits familiaux liés à une succession — autant de situations où l'algorithme est encore absent.</p>
+      <blockquote>L'IA nous libère des tâches répétitives pour nous recentrer sur ce qui fait vraiment notre valeur : la relation humaine. — Directrice d'agence, Lyon</blockquote>
+      <h2>Le nouveau rôle de l'agent augmenté</h2>
+      <p>Le professionnel de demain maîtrisera les outils IA pour les exploiter au maximum. Ce n'est pas la fin du métier — c'est sa mutation vers plus de conseil stratégique et moins d'administratif.</p>`,
+        },
+        {
+          title: "2024–2026 : la grande correction n'a pas eu lieu. Pourquoi ?",
+          cat: "Dossier · Cycle",
+          catClass: "cat-v",
+          date: "20 avril 2026",
+          read: "9 min de lecture",
+          img: "https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=1200&q=80",
+          body: `<p>Tous les économistes l'avaient prédit : la flambée des taux en 2023-2024 devait provoquer un effondrement des prix immobiliers. Deux ans plus tard, la correction n'a jamais vraiment eu lieu.</p>
+      <h2>L'effet vendeur retenu</h2>
+      <p>Plutôt que de vendre à perte, la majorité des propriétaires ont préféré attendre. Ce blocage de l'offre a mécaniquement soutenu les prix dans un contexte de demande certes atone, mais toujours présente.</p>
+      <h2>Le soutien des institutionnels</h2>
+      <p>Les grandes foncières et fonds d'investissement ont profité de la frilosité des acheteurs particuliers pour acquérir des actifs à décote légère. Ils ont ainsi créé un plancher sous les prix dans les marchés tendus.</p>`,
+        },
+        {
+          title: "5 scénarios pour l'immobilier français d'ici 2028",
+          cat: "Dossier · Prospective",
+          catClass: "cat-rose",
+          date: "10 avril 2026",
+          read: "10 min de lecture",
+          img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
+          body: `<p>De la reprise douce à la crise structurelle, les économistes dessinent des trajectoires très différentes pour le marché immobilier français. Analyse des cinq scénarios les plus probables.</p>
+      <h2>Scénario 1 — Rebond progressif (probabilité : 35 %)</h2>
+      <p>La baisse des taux se poursuit, la demande refoulée se libère progressivement. Les prix remontent de 3 à 5 % par an dans les grandes métropoles. C'est le scénario central des grandes banques.</p>
+      <h2>Scénario 2 — Stagnation durable (probabilité : 30 %)</h2>
+      <p>L'inflation persistante maintient les taux réels élevés. Le marché reste atone, les volumes d'échanges faibles. Les prix se stabilisent en valeur nominale mais reculent en termes réels.</p>`,
+        },
+        {
+          title: "Locatif en 2026 : les nouvelles règles du jeu fiscal",
+          cat: "Dossier · Fiscalité",
+          catClass: "cat-teal",
+          date: "1 avril 2026",
+          read: "8 min de lecture",
+          img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
+          body: `<p>La loi de finances 2026 a profondément remanié la fiscalité des revenus locatifs. Tour d'horizon des nouveautés qui impactent directement votre stratégie patrimoniale.</p>
+      <h2>La réforme du LMNP</h2>
+      <p>Le statut de Loueur en Meublé Non Professionnel (LMNP) a subi une cure de rigueur. L'amortissement du bien n'est désormais plus déduit lors de la revente, ce qui alourdit la fiscalité à la sortie.</p>
+      <h2>Le régime micro-BIC relevé</h2>
+      <p>En contrepartie, le plafond du régime micro-BIC passe à 100 000 € annuels, élargissant l'accès à l'abattement forfaitaire de 50 % pour les petits investisseurs.</p>`,
+        },
+      ];
+
+      const trendArticles = [
+        articles[0],
+        articles[1],
+        articles[2],
+        articles[3],
+        articles[1],
+      ];
+
+      function openArticleModal(art) {
+        document.getElementById("artImg").src = art.img;
+        document.getElementById("artImg").alt = art.title;
+        document.getElementById("artCat").className =
+          "feat-cat " + art.catClass;
+        document.getElementById("artCat").textContent = art.cat;
+        document.getElementById("artTitle").textContent = art.title;
+        document.getElementById("artMeta").innerHTML =
+          `<span>${art.date}</span><span class="dot">·</span><span>${art.read}</span>`;
+        document.getElementById("artBody").innerHTML = art.body;
+        document.getElementById("artOverlay").classList.add("open");
+        document.body.style.overflow = "hidden";
+        document.getElementById("artModal").scrollTop = 0;
+      }
+
+      function closeArticle() {
+        document.getElementById("artOverlay").classList.remove("open");
+        document.body.style.overflow = "";
+      }
+
+      function openHeroArticle() {
+        openArticleModal(articles[0]);
+      }
+      function openSecArticle(i) {
+        openArticleModal(articles[i + 1]);
+      }
+      function openDossier(i) {
+        openArticleModal(dossiers[i]);
+      }
+      function openTrendArticle(i) {
+        openArticleModal(trendArticles[i]);
+      }
+
+      /* ══ AiNews Init ══ */
+      if (typeof AiNews !== "undefined") {
+        AiNews.configure({ newsDataKey: "", aiApiKey: "" });
+        AiNews.init({
+          containerId: "ain-articles",
+          filtersId: "ain-filters",
+          perPage: 9,
+          onArticleClick(article) {
+            openArticleModal({
+              title: article.title || "Article",
+              cat: article.category || "◈ Immobilier",
+              catClass: "cat-v",
+              date: article.date || new Date().toLocaleDateString("fr-FR"),
+              read: (article.readTime || "5") + " min de lecture",
+              img:
+                article.image ||
+                "https://images.unsplash.com/photo-1560472355-536de3962603?auto=format&fit=crop&w=1200&q=80",
+              body:
+                "<p>" +
+                (article.content ||
+                  article.excerpt ||
+                  "Contenu en cours de chargement…") +
+                "</p>",
+            });
+          },
+        });
+        const countInterval = setInterval(() => {
+          const arts = AiNews.getArticles();
+          if (arts.length) {
+            document.getElementById("articleCount").textContent = arts.length;
+            clearInterval(countInterval);
+          }
+        }, 800);
+      }
+
+      /* ══ Newsletter ══ */
+      function handleNL(btn) {
+        const inp = document.getElementById("nl-email");
+        const email = (inp?.value || "").trim();
+        if (!email || !email.includes("@")) {
+          if (inp) {
+            inp.style.borderColor = "var(--rose)";
+            inp.focus();
+            setTimeout(() => (inp.style.borderColor = ""), 2000);
+          }
+          return;
+        }
+        const orig = btn.textContent;
+        btn.textContent = "✓ Inscrit avec succès !";
+        btn.style.background = "var(--v-2)";
+        if (inp) inp.value = "";
+        setTimeout(() => {
+          btn.textContent = orig;
+          btn.style.background = "";
+        }, 3500);
+      }
+
+      /* ══ Scroll reveal ══ */
+      const obs = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add("in");
+              obs.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.05, rootMargin: "0px 0px -20px 0px" },
+      );
+      document.querySelectorAll(".reveal").forEach((el) => obs.observe(el));
+
+      /* ══ Keyboard nav ══ */
+      document.querySelectorAll("[role='button']").forEach((el) => {
+        el.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            el.click();
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

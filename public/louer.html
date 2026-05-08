@@ -1,0 +1,1447 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guide du Marché Locatif 2026 | MonAiGENT</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,opsz,wght@0,5..1200,400..900;1,5..1200,400..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #0d0d0d;
+        --ink-2: #2a2a2a;
+        --ink-3: #5a5a5a;
+        --ink-4: #999;
+        --border: #e0ddd8;
+        --border-dark: #bbb;
+        --bg: #faf9f7;
+        --bg-white: #fff;
+        --accent: #0f1f3a;
+        --accent-mid: #185fa5;
+        --accent-soft: #eef4fb;
+        --max: 1160px;
+        --font: "DM Sans", sans-serif;
+        --font-serif: "Source Serif 4", serif;
+        --font-disp: "Playfair Display", serif;
+        --font-mono: "DM Mono", monospace;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(250, 249, 247, 0.97);
+        border-bottom: 1px solid var(--border);
+        height: 60px;
+        backdrop-filter: blur(4px);
+      }
+      .nav-inner {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 32px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .logo {
+        font-family: var(--font-disp);
+        font-weight: 800;
+        font-size: 20px;
+        letter-spacing: -0.02em;
+      }
+      .logo em {
+        color: var(--accent-mid);
+        font-style: italic;
+      }
+      .nav-links {
+        display: flex;
+        gap: 28px;
+      }
+      .nav-links a {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ink-3);
+        transition: color 0.15s;
+      }
+      .nav-links a:hover {
+        color: var(--ink);
+      }
+      .nav-links a.active {
+        color: var(--accent-mid);
+        border-bottom: 1.5px solid var(--accent-mid);
+        padding-bottom: 2px;
+      }
+      .btn-nav {
+        background: var(--accent);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 9px 18px;
+        border-radius: 3px;
+        transition: background 0.15s;
+      }
+      .btn-nav:hover {
+        background: var(--accent-mid);
+      }
+
+      .hero-wrap {
+        border-bottom: 1px solid var(--border);
+        padding: 72px 32px 56px;
+        max-width: var(--max);
+        margin: 0 auto;
+      }
+      .hero-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--accent-mid);
+        margin-bottom: 24px;
+      }
+      .hero-kicker::before {
+        content: "";
+        display: block;
+        width: 28px;
+        height: 1.5px;
+        background: var(--accent-mid);
+      }
+      .hero-title {
+        font-family: var(--font-disp);
+        font-size: clamp(40px, 5.5vw, 68px);
+        font-weight: 900;
+        line-height: 1.06;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+        max-width: 820px;
+        margin-bottom: 28px;
+      }
+      .hero-title em {
+        font-style: italic;
+        color: var(--accent-mid);
+      }
+      .hero-deck {
+        font-family: var(--font-serif);
+        font-size: 20px;
+        font-weight: 300;
+        line-height: 1.65;
+        color: var(--ink-2);
+        max-width: 640px;
+        margin-bottom: 32px;
+      }
+      .hero-byline {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        font-size: 12px;
+        color: var(--ink-4);
+        font-family: var(--font-mono);
+      }
+      .hero-byline strong {
+        color: var(--ink-3);
+        font-weight: 500;
+      }
+      .hero-byline span {
+        display: block;
+        width: 1px;
+        height: 14px;
+        background: var(--border-dark);
+      }
+
+      .stats-band {
+        background: var(--accent);
+        color: #fff;
+      }
+      .stats-band-inner {
+        max-width: var(--max);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .stat-cell {
+        padding: 28px 32px;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .stat-cell:last-child {
+        border-right: none;
+      }
+      .stat-cell-lbl {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.45);
+        margin-bottom: 8px;
+      }
+      .stat-cell-val {
+        font-family: var(--font-mono);
+        font-size: 26px;
+        font-weight: 500;
+        color: #fff;
+        line-height: 1;
+      }
+      .stat-cell-sub {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.35);
+        margin-top: 5px;
+      }
+      .stat-alert {
+        color: #f7a86e;
+      }
+      .stat-ok {
+        color: #7de0a8;
+      }
+
+      .perspective-band {
+        max-width: var(--max);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        border-bottom: 1px solid var(--border);
+      }
+      .perspective-tab {
+        padding: 20px 32px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ink-3);
+        border-right: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .perspective-tab:last-child {
+        border-right: none;
+      }
+      .perspective-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--border-dark);
+      }
+      .perspective-dot.loc {
+        background: var(--accent-mid);
+      }
+      .perspective-dot.bail {
+        background: #c2185b;
+      }
+
+      .layout {
+        max-width: var(--max);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 308px;
+        gap: 72px;
+        padding: 72px 32px 100px;
+        align-items: start;
+      }
+
+      .article p {
+        font-family: var(--font-serif);
+        font-size: 18.5px;
+        line-height: 1.82;
+        color: var(--ink-2);
+        margin-bottom: 26px;
+        font-weight: 300;
+      }
+      .article > p:first-of-type::first-letter {
+        font-family: var(--font-disp);
+        font-size: 92px;
+        font-weight: 900;
+        color: var(--ink);
+        float: left;
+        line-height: 0.78;
+        padding-right: 14px;
+        padding-top: 10px;
+        letter-spacing: -0.03em;
+      }
+      .article h2 {
+        font-family: var(--font-disp);
+        font-size: 34px;
+        font-weight: 800;
+        color: var(--ink);
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 68px 0 22px;
+        padding-top: 68px;
+        border-top: 2px solid var(--accent);
+      }
+      .article h3 {
+        font-size: 15px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--accent-mid);
+        margin: 40px 0 14px;
+      }
+      .article blockquote {
+        margin: 52px 0;
+        padding: 28px 32px;
+        border-left: 3px solid var(--accent-mid);
+        background: var(--accent-soft);
+      }
+      .article blockquote p {
+        font-family: var(--font-disp);
+        font-size: 22px;
+        font-style: italic;
+        color: var(--ink);
+        line-height: 1.45;
+        margin: 0 0 14px;
+        font-weight: 500;
+      }
+      .article blockquote footer {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ink-3);
+      }
+      .pull {
+        font-family: var(--font-disp);
+        font-size: 28px;
+        font-style: italic;
+        font-weight: 700;
+        color: var(--ink);
+        line-height: 1.3;
+        border-top: 2px solid var(--ink);
+        border-bottom: 1px solid var(--border);
+        padding: 28px 0;
+        margin: 52px 0;
+        letter-spacing: -0.01em;
+      }
+      .checklist {
+        background: var(--bg-white);
+        border: 1px solid var(--border);
+        padding: 32px;
+        margin: 40px 0;
+        border-radius: 2px;
+      }
+      .checklist-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ink-3);
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .checklist li {
+        font-family: var(--font-serif);
+        font-size: 16px;
+        line-height: 1.65;
+        color: var(--ink-2);
+        padding: 10px 0 10px 28px;
+        border-bottom: 1px solid var(--border);
+        list-style: none;
+        position: relative;
+      }
+      .checklist li:last-child {
+        border-bottom: none;
+      }
+      .checklist li::before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: var(--accent-mid);
+        font-weight: 700;
+        font-family: var(--font);
+      }
+      .data-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: baseline;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--font-serif);
+        font-size: 16px;
+        color: var(--ink-2);
+      }
+      .data-row:first-child {
+        border-top: 1px solid var(--border);
+      }
+      .data-row-val {
+        font-family: var(--font-mono);
+        font-size: 15px;
+        color: var(--ink);
+        font-weight: 500;
+      }
+      .section-divider {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin: 64px 0 32px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--ink-4);
+      }
+      .section-divider::before,
+      .section-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+      .dual-panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2px;
+        margin: 40px 0;
+        background: var(--border);
+      }
+      .panel {
+        background: var(--bg-white);
+        padding: 28px;
+      }
+      .panel-badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 4px 10px;
+        margin-bottom: 16px;
+      }
+      .panel-badge.loc {
+        background: var(--accent-soft);
+        color: var(--accent-mid);
+      }
+      .panel-badge.bail {
+        background: #fdf0f5;
+        color: #c2185b;
+      }
+      .panel h4 {
+        font-family: var(--font-disp);
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: var(--ink);
+      }
+      .panel p {
+        font-size: 15px;
+        line-height: 1.65;
+        color: var(--ink-2);
+        font-family: var(--font-serif);
+      }
+      .alert-box {
+        background: #fef3e2;
+        border: 1px solid #e8c06a;
+        padding: 24px 28px;
+        margin: 32px 0;
+      }
+      .alert-box-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #8a5a00;
+        margin-bottom: 10px;
+      }
+      .alert-box p {
+        font-size: 16px;
+        color: #5a3a00;
+        line-height: 1.65;
+        margin: 0;
+        font-family: var(--font-serif);
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 80px;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+      }
+      .widget {
+        border-top: 2px solid var(--accent);
+        padding-top: 20px;
+      }
+      .widget-title {
+        font-family: var(--font-disp);
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 20px;
+        letter-spacing: -0.01em;
+      }
+      .w-stat {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin-bottom: 18px;
+      }
+      .w-stat-lbl {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ink-4);
+      }
+      .w-stat-val {
+        font-family: var(--font-mono);
+        font-size: 22px;
+        color: var(--ink);
+      }
+      .w-stat-note {
+        font-size: 11px;
+        color: var(--ink-3);
+      }
+      .cta-box {
+        background: var(--accent);
+        padding: 28px;
+        color: #fff;
+      }
+      .cta-box h4 {
+        font-family: var(--font-disp);
+        font-size: 20px;
+        font-weight: 800;
+        margin-bottom: 12px;
+        line-height: 1.2;
+      }
+      .cta-box p {
+        font-size: 13px;
+        line-height: 1.65;
+        color: rgba(255, 255, 255, 0.65);
+        margin-bottom: 20px;
+      }
+      .btn-cta {
+        display: block;
+        background: var(--accent-mid);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 12px 16px;
+        text-align: center;
+        transition: opacity 0.15s;
+      }
+      .btn-cta:hover {
+        opacity: 0.85;
+      }
+      .toc li {
+        list-style: none;
+      }
+      .toc a {
+        display: block;
+        font-size: 13px;
+        color: var(--ink-3);
+        padding: 9px 0;
+        border-bottom: 1px solid var(--border);
+        transition: color 0.15s;
+        line-height: 1.4;
+      }
+      .toc a:hover {
+        color: var(--accent-mid);
+        padding-left: 6px;
+      }
+      .tension-meter {
+        margin: 20px 0;
+      }
+      .tension-bar-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .tension-city {
+        font-size: 12px;
+        color: var(--ink-3);
+        width: 80px;
+        flex-shrink: 0;
+      }
+      .tension-bar-bg {
+        flex: 1;
+        height: 6px;
+        background: var(--border);
+        border-radius: 1px;
+        overflow: hidden;
+      }
+      .tension-bar-fill {
+        height: 100%;
+        background: var(--accent-mid);
+        border-radius: 1px;
+      }
+      .tension-val {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--ink);
+        width: 40px;
+        text-align: right;
+        flex-shrink: 0;
+      }
+
+      @media (max-width: 960px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          position: static;
+        }
+        .stats-band-inner {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .dual-panel {
+          grid-template-columns: 1fr;
+        }
+        .perspective-band {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="nav-inner">
+        <a href="./index.html" class="logo">Mon<em>AiGENT</em></a>
+        <nav class="nav-links">
+          <a href="./acheter.html">Acheter</a>
+          <a href="./vendre.html">Vendre</a>
+          <a href="./louer.html" class="active">Louer</a>
+          <a href="./blog-marche.html">Données</a>
+        </nav>
+        <a href="./intro.html" class="btn-nav">Accéder au réseau</a>
+      </div>
+    </header>
+
+    <div class="hero-wrap">
+      <div class="hero-kicker">Guide stratégique · Marché locatif 2026</div>
+      <h1 class="hero-title">
+        Louer en 2026 :<br /><em>Naviguer dans la pénurie</em><br />côté
+        locataire et côté bailleur
+      </h1>
+      <p class="hero-deck">
+        Tension locative en hausse de 13,5 % sur un an, loyer moyen national à
+        818 €/mois pour 54 m², DPE réduisant l'offre disponible. Ce guide
+        complet s'adresse aux deux côtés d'un marché sous très haute pression.
+      </p>
+      <div class="hero-byline">
+        <strong>Observatoire MonAiGENT</strong>
+        <span></span>
+        <span id="dyn-date">Mai 2026</span>
+        <span></span>
+        <span>Lecture : 22 min</span>
+      </div>
+    </div>
+
+    <div class="stats-band">
+      <div class="stats-band-inner">
+        <div class="stat-cell">
+          <div class="stat-cell-lbl">Tension locative nationale</div>
+          <div class="stat-cell-val">
+            <span class="stat-alert">+13,5 %</span>
+          </div>
+          <div class="stat-cell-sub">
+            Hausse en un an · Observatoire GH Location
+          </div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-lbl">Loyer moyen national</div>
+          <div class="stat-cell-val">818 €</div>
+          <div class="stat-cell-sub">Pour 54 m² · T1 2026 · −0,7 m² / an</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-lbl">Loyers Paris T2 50 m²</div>
+          <div class="stat-cell-val">1 662 €</div>
+          <div class="stat-cell-sub">
+            Hors charges · <span class="stat-alert">+5,2 %</span> sur 12 mois
+          </div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-lbl">Stock locatif IDF</div>
+          <div class="stat-cell-val">
+            <span class="stat-alert">−6,8 %</span>
+          </div>
+          <div class="stat-cell-sub">En un an · pénurie structurelle</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="perspective-band">
+      <div class="perspective-tab">
+        <div class="perspective-dot loc"></div>
+        Locataires : décoder et décrocher le logement
+      </div>
+      <div class="perspective-tab">
+        <div class="perspective-dot bail"></div>
+        Bailleurs : optimiser la rentabilité dans un cadre contraint
+      </div>
+    </div>
+
+    <div class="layout">
+      <article class="article">
+        <p>
+          Le marché locatif français de 2026 est le terrain le plus complexe de
+          l'immobilier hexagonal. Tiraillé entre une pénurie structurelle que
+          personne ne conteste et une réglementation croissante censée protéger
+          les locataires mais qui accélère en réalité le retrait des bailleurs,
+          il est devenu le point de convergence de toutes les tensions du
+          logement. La tension locative nationale a bondi de 13,5 % en un an
+          selon l'Observatoire GH Location. Un T2 de 50 m² coûte désormais 858 €
+          en moyenne nationale hors charges — et 1 662 € à Paris. Dans les dix
+          plus grandes villes, la demande reste 42 % supérieure à son niveau
+          d'avant-crise. Ce guide donne des clés opérationnelles aux deux
+          parties d'un marché qui ne fonctionne plus selon ses règles
+          habituelles.
+        </p>
+
+        <h2 id="crise">
+          I. Anatomie de la crise locative 2026 : comprendre avant d'agir
+        </h2>
+
+        <p>
+          La crise locative actuelle n'est pas conjoncturelle. Elle résulte de
+          la convergence de cinq mécanismes distincts qui se renforcent
+          mutuellement. Le comprendre est indispensable pour adapter sa
+          stratégie — qu'on soit locataire ou bailleur.
+        </p>
+
+        <h3>Premier mécanisme : le gel de la mobilité résidentielle</h3>
+
+        <p>
+          Les ménages qui auraient dû acheter entre 2023 et 2025 — et libérer
+          leurs logements locatifs — ne l'ont pas fait, faute de capacité
+          d'emprunt. Les taux élevés de 2023-2024 ont bloqué l'accession à la
+          propriété d'environ 300 000 ménages par an. Ces ménages sont restés
+          locataires, n'ont pas libéré leurs logements, et ont bloqué la
+          rotation naturelle du parc. Depuis la stabilisation des taux mi-2025,
+          ce phénomène s'atténue progressivement — mais l'effet de stock
+          accumulé sur deux ans prendra encore 12 à 18 mois à se résorber.
+        </p>
+
+        <h3>Deuxième mécanisme : le retrait massif des bailleurs</h3>
+
+        <p>
+          Selon les données sectorielles, près de 47 % des bailleurs ayant
+          quitté la gestion locative en 2024-2025 ont préféré vendre plutôt que
+          rénover. À Paris, Lyon ou Nice, certaines agences de gestion ne
+          disposent plus que d'une vingtaine de logements en location contre 150
+          à 200 auparavant. Ce retrait s'explique par l'«&nbsp;effet
+          ciseau&nbsp;» : les loyers sont encadrés dans les grandes métropoles,
+          mais les charges de copropriété, les coûts d'entretien, la pression
+          fiscale et les obligations énergétiques progressent simultanément,
+          comprimant la rentabilité à des niveaux jugés insuffisants par rapport
+          au risque.
+        </p>
+
+        <h3>Troisième mécanisme : l'impact DPE sur l'offre disponible</h3>
+
+        <p>
+          L'interdiction de louer les biens classés G est entrée en vigueur le
+          1er janvier 2025. Elle a retiré du marché des dizaines de milliers de
+          logements — une proportion difficile à quantifier précisément car
+          certains bailleurs ont rénové, d'autres ont vendu, d'autres encore ont
+          basculé vers la location saisonnière. Le nouveau calcul du DPE adopté
+          au 1er janvier 2026 (coefficient de conversion de l'électricité
+          abaissé de 2,3 à 1,9) a permis à environ 850 000 logements de sortir
+          du statut de passoire thermique — un allègement bienvenu, mais qui ne
+          compense pas la contraction structurelle de l'offre. D'ici 2034, si le
+          rythme des rénovations ne s'accélère pas, jusqu'à 25 % du parc locatif
+          privé pourrait être concerné par les restrictions progressives liées
+          au DPE.
+        </p>
+
+        <h3>
+          Quatrième mécanisme : le basculement vers la location courte durée
+        </h3>
+
+        <p>
+          À Paris, la nouvelle équipe municipale élue en 2026 a renforcé la
+          limitation des locations Airbnb à 90 jours par an (contre 120
+          auparavant), avec des amendes pouvant atteindre 100 000 € par
+          logement. Ces mesures visent à restituer des logements au parc locatif
+          classique. Mais dans d'autres métropoles moins régulées — certaines
+          stations balnéaires, villes touristiques de province — le basculement
+          vers la location saisonnière se poursuit, soustrayant des milliers de
+          logements au marché de la location longue durée.
+        </p>
+
+        <h3>Cinquième mécanisme : la décohabitation démographique</h3>
+
+        <p>
+          La taille moyenne des ménages continue de diminuer — effet de
+          vieillissement de la population, divorces plus fréquents, jeunes qui
+          vivent seuls plus longtemps. 2,3 millions de ménages supplémentaires
+          sont attendus d'ici 2030 en France, sans construction neuve
+          proportionnelle pour les accueillir. Les mises en chantier de
+          logements neufs ont chuté de 33 % par rapport à leur niveau
+          d'avant-crise, et 500 000 logements pourraient manquer à l'appel d'ici
+          fin 2026 selon la Fédération Française du Bâtiment.
+        </p>
+
+        <blockquote>
+          <p>
+            «&nbsp;Le marché locatif est en train de changer de nature. Il n'est
+            plus seulement un segment de l'immobilier : il en devient le point
+            d'équilibre — et le principal révélateur des tensions du logement en
+            France.&nbsp;»
+          </p>
+          <footer>
+            Stéphane Fritz, président Guy Hoquet l'Immobilier · Observatoire T1
+            2026
+          </footer>
+        </blockquote>
+
+        <div class="section-divider">
+          Données de tension locative · Grandes villes · 2026
+        </div>
+
+        <div class="data-row">
+          <span>Lyon (score de tension : 13/20)</span
+          ><span class="data-row-val">Loyers +8 % / an</span>
+        </div>
+        <div class="data-row">
+          <span>Strasbourg</span
+          ><span class="data-row-val">Loyers +8,1 % / an</span>
+        </div>
+        <div class="data-row">
+          <span>Paris (loyer moyen 26,8 €/m²)</span
+          ><span class="data-row-val">+3,5 % / an</span>
+        </div>
+        <div class="data-row">
+          <span>Marseille (stock −31 % en 1 an)</span
+          ><span class="data-row-val">+3,9 % / an</span>
+        </div>
+        <div class="data-row">
+          <span>Toulouse (stock −58 % depuis 2021)</span
+          ><span class="data-row-val">Tension extrême</span>
+        </div>
+        <div class="data-row">
+          <span>Loyer moyen T2 50 m² France</span
+          ><span class="data-row-val">858 €/mois HC</span>
+        </div>
+        <div class="data-row">
+          <span>Loyer moyen T2 50 m² Paris</span
+          ><span class="data-row-val">1 662 €/mois HC</span>
+        </div>
+        <div class="data-row">
+          <span>Loyer moyen T3 1ère couronne Paris</span
+          ><span class="data-row-val">1 400–1 800 €/mois</span>
+        </div>
+
+        <h2 id="locataire">
+          II. Le guide du locataire 2026 : décrocher un logement dans un marché
+          de guerre
+        </h2>
+
+        <p>
+          En 2026, la recherche d'un logement en zone tendue s'apparente moins à
+          une transaction immobilière qu'à un concours de recrutement. Le
+          bailleur sélectionne parmi de nombreux candidats avec une rigueur que
+          les locataires n'avaient jamais connue à cette échelle. La bonne
+          nouvelle : cette sélection repose sur des critères identifiables et
+          préparables. Le locataire qui comprend la grille d'évaluation du
+          bailleur — et qui s'y prépare avant même de commencer ses recherches —
+          dispose d'un avantage considérable sur les autres candidats.
+        </p>
+
+        <h3>Comprendre la grille d'évaluation du bailleur</h3>
+
+        <p>
+          Tout bailleur — particulier ou professionnel — applique une grille
+          implicite ou explicite qui pondère trois dimensions : la solvabilité,
+          la stabilité et la fiabilité. La solvabilité se mesure par le rapport
+          entre le loyer (charges comprises) et les revenus nets mensuels. La
+          règle empirique des «&nbsp;trois fois le loyer&nbsp;» reste le minimum
+          absolu — certains bailleurs exigent désormais trois fois et demi ou
+          quatre fois le loyer pour les biens de petite surface en zone très
+          tendue. La stabilité professionnelle distingue le CDI confirmé
+          (ancienneté > 6 mois après période d'essai) de toutes les autres
+          situations. La fiabilité se mesure par la qualité du dossier : son
+          organisation, sa complétude, sa rapidité de transmission. Un dossier
+          complet reçu deux heures après la visite parle de la même chose que la
+          ponctualité parle d'un employé potentiel.
+        </p>
+
+        <h3>Construire un dossier inattaquable</h3>
+
+        <p>
+          Le dossier de location dématérialisé est devenu la norme. Les
+          plateformes DossierFacile (service public gratuit, certifié par
+          l'État), DossierSimple, ou les outils propriétaires des grandes
+          agences permettent de créer un dossier numérique sécurisé, vérifié et
+          transmissible instantanément. Un dossier certifié par DossierFacile
+          porte le sceau de l'État — ce signal de confiance est devenu un
+          argument de sélection réel auprès des bailleurs particuliers.
+        </p>
+
+        <div class="checklist">
+          <div class="checklist-title">
+            Dossier locataire · Documents obligatoires et différenciants
+          </div>
+          <ul>
+            <li>
+              <strong>Pièce d'identité</strong> recto-verso, en cours de
+              validité
+            </li>
+            <li>
+              <strong>Trois derniers bulletins de salaire</strong> — ou bilans +
+              déclarations fiscales N-1 et N-2 pour les indépendants
+            </li>
+            <li>
+              <strong>Avis d'imposition</strong> des deux dernières années (N-1
+              et N-2)
+            </li>
+            <li>
+              <strong>Justificatif de situation professionnelle</strong> :
+              contrat de travail CDI, ou attestation employeur récente (&lt;1
+              mois)
+            </li>
+            <li>
+              <strong>Trois dernières quittances de loyer</strong> — ou
+              attestation de propriétaire si logé à titre gratuit
+            </li>
+            <li>
+              <strong>Simulation de garantie Visale</strong> validée en ligne
+              (gratuit, renforcé votre dossier même si vous avez un garant
+              physique)
+            </li>
+            <li>
+              <strong>Lettre de motivation personnalisée</strong> (1 page) :
+              situation professionnelle, motivation pour le bien, projet de vie
+              stable
+            </li>
+            <li>
+              <strong>Certification DossierFacile</strong> : dossier vérifié par
+              l'État, transmissible en un lien
+            </li>
+          </ul>
+        </div>
+
+        <h3>La stratégie de recherche en zone tendue</h3>
+
+        <p>
+          La réactivité est la compétence n°1 du locataire en zone tendue. À
+          Paris, Lyon ou Nice, un bien mis en ligne à 8h du matin peut avoir
+          reçu 40 à 80 candidatures avant midi. Votre organisation doit être
+          préparée avant le début de la recherche, pas pendant. Configurez des
+          alertes instantanées sur les principaux portails (SeLoger, Leboncoin,
+          PAP, Bien'ici) avec des critères précis. Activez les notifications
+          push. Préparez votre dossier DossierFacile en amont pour pouvoir le
+          transmettre en un clic.
+        </p>
+
+        <p>
+          Au-delà des portails publics, explorez les canaux moins
+          concurrentiels. Les réseaux d'administrateurs de biens gèrent des
+          biens qui ne sont parfois jamais publiés sur les portails grand public
+          — remis en location entre deux locataires à des candidats du réseau.
+          Inscription directe auprès des agences de gestion locative des grandes
+          structures (Foncia, Nexity, Sergic, Citya) donne accès à ces biens en
+          avant-première. Les plateformes spécialisées par cible — résidences
+          services pour étudiants (Studapart, Lokaviz), résidences seniors,
+          colocations organisées (Homelike, Coloc & Logis) — offrent souvent une
+          meilleure disponibilité que le marché généraliste pour les profils
+          spécifiques.
+        </p>
+
+        <h3>Les garants : toutes les options disponibles en 2026</h3>
+
+        <p>
+          Le garant physique traditionnel — parent ou proche qui s'engage
+          solidairement — reste la solution la plus répandue (63 % des dossiers
+          selon LocService) mais aussi la plus discriminante : un locataire sans
+          famille capable de se porter garant est structurellement désavantagé.
+          Plusieurs alternatives existent. La garantie Visale d'Action Logement
+          est gratuite, accessible aux jeunes de moins de 30 ans et aux salariés
+          en mobilité professionnelle, et couvre jusqu'à 36 mois de loyers
+          impayés — un argument réel pour les bailleurs. La Garantie Loyer
+          Impayé (GLI) ou assurance impayés souscrite par le bailleur lui-même
+          (0,8 à 2,5 % du loyer annuel) est une alternative croissante qui
+          supprime le besoin de garant externe : proposer au bailleur de prendre
+          en charge cette assurance peut débloquer une candidature difficile.
+          Les garants institutionnels privés (Garantme, Cautioneo, Unkle)
+          proposent des garanties payantes (entre 2 et 3,5 % du loyer annuel)
+          qui se substituent au garant physique et sont de plus en plus
+          acceptées par les bailleurs professionnels.
+        </p>
+
+        <h3>
+          Négocier son loyer en 2026 : c'est encore possible, mais différemment
+        </h3>
+
+        <p>
+          En zone tendue, la négociation frontale du loyer est quasi impossible
+          sur les biens récemment mis sur le marché. En revanche, plusieurs
+          angles de négociation restent pertinents. La prise en charge de petits
+          travaux de finition (peintures, jardinage) en échange d'une réduction
+          de loyer ou d'une franchise du premier mois est acceptée par certains
+          bailleurs particuliers. La durée d'engagement — s'engager sur un bail
+          de 3 ans avec renouvellement tacite et préavis réduit à 1 mois — peut
+          valoir une légère remise pour un bailleur qui valorise la stabilité.
+          En zone détendue (villes moyennes, communes périphériques avec fort
+          stock), la négociation directe de 3 à 7 % sous le loyer affiché est
+          possible, surtout sur les biens vides depuis plus de 30 jours.
+        </p>
+
+        <div class="pull">
+          «&nbsp;Un locataire avec un dossier DossierFacile certifié, une
+          garantie Visale activée et une lettre de motivation personnalisée est
+          traité comme un candidat prioritaire dans plus de 70 % des agences
+          interrogées en 2026.&nbsp;»
+        </div>
+
+        <h3>L'encadrement des loyers : vos droits de locataire</h3>
+
+        <p>
+          L'encadrement des loyers est en vigueur dans les zones tendues
+          suivantes : Paris et sa petite couronne (arrêtés préfectoraux
+          annuels), Lyon, Montpellier, Bordeaux, Lille, et plusieurs autres
+          agglomérations adhérant au dispositif. Le principe : le loyer ne peut
+          dépasser le loyer de référence majoré, fixé par arrêté préfectoral,
+          sans justification par un «&nbsp;complément de loyer&nbsp;» légitime
+          et documenté. En pratique, une étude de la Confédération Syndicale des
+          Familles de Lyon révèle que près de 90 % des compléments de loyer
+          pratiqués seraient hors cadre légal — justifiés par des arguments
+          fantaisistes comme la présence d'un micro-ondes pour 60 €/mois
+          supplémentaires. Si vous suspectez un dépassement, l'outil officiel de
+          vérification est disponible sur encadrementdesloyers.gouv.fr. Un
+          recours auprès de la commission de conciliation permet d'obtenir la
+          restitution des trop-perçus, rétroactivement depuis la prise d'effet
+          du bail.
+        </p>
+
+        <h2 id="bailleur">
+          III. Le guide du bailleur 2026 : gérer et optimiser dans un
+          environnement contraint
+        </h2>
+
+        <p>
+          Être bailleur en 2026 requiert un niveau d'expertise et d'anticipation
+          que le marché n'exigeait pas il y a cinq ans. L'environnement
+          réglementaire et fiscal s'est durci, la rentabilité brute s'est
+          comprimée, et la sélection des locataires est devenue une discipline à
+          part entière. Mais pour le bailleur qui s'adapte, les fondamentaux
+          restent favorables : la vacance locative est quasi nulle en zone
+          tendue, les loyers progressent structurellement, et la valeur
+          patrimoniale des biens bien classés (DPE A/B/C) s'apprécie
+          durablement.
+        </p>
+
+        <h3>La tarification du loyer : trouver le juste niveau</h3>
+
+        <p>
+          La tentation du loyer maximal est compréhensible mais
+          contre-productive. Un loyer positionné au-dessus du marché allonge le
+          délai de relocation — chaque semaine de vacance locative représente
+          environ 0,5 % du loyer annuel perdu. Dans une métropole comme Lyon où
+          un T2 se loue en moyenne 850 € mensuel, deux semaines de vacance
+          représentent 425 € de manque à gagner, souvent supérieur à l'économie
+          réalisée sur les 12 mois du bail par un loyer surestimé de 20 €/mois.
+          La tarification optimale en zone tendue consiste à se positionner au
+          niveau des loyers de référence majorés (encadrement) ou, hors
+          encadrement, au niveau médian des annonces comparables sur les
+          portails — ce positionnement génère une concurrence de dossiers qui
+          permet de sélectionner le meilleur profil locataire.
+        </p>
+
+        <h3>Sélection des locataires : méthode et critères légaux</h3>
+
+        <p>
+          La sélection des locataires est encadrée par la loi Alur : il est
+          interdit de discriminer sur la base de l'origine, de la religion, du
+          sexe, de l'orientation sexuelle, du lieu de résidence, ou de toute
+          autre caractéristique protégée. En pratique, les critères légaux de
+          sélection sont strictement économiques et contractuels : revenus
+          justifiés, garanties produites, absence d'incidents de paiement
+          vérifiable. Le bailleur peut demander les pièces listées par le décret
+          du 5 novembre 2015 — et aucune autre. Demander un extrait de casier
+          judiciaire, une photo, ou des informations sur la situation
+          matrimoniale est illégal et expose à des sanctions.
+        </p>
+
+        <p>
+          Au-delà des revenus bruts, analysez la stabilité des revenus dans le
+          temps (CDI vs CDD, ancienneté), la cohérence entre revenus déclarés et
+          train de vie apparent, et la qualité de l'échange lors de la visite —
+          un locataire qui pose des questions précises sur les charges, les
+          voisins, les travaux prévus manifeste un comportement locataire
+          consciencieux. La plateforme DossierFacile vous permet de vérifier
+          l'authenticité des documents fournis (validation automatique des IBAN,
+          des avis d'imposition et des bulletins de salaire). Utilisez-la
+          systématiquement.
+        </p>
+
+        <h3>Les obligations DPE du bailleur en 2026</h3>
+
+        <p>
+          Depuis le 1er janvier 2025, la location de biens classés G est
+          interdite. La classe F sera concernée dès 2028. En 2026, tout DPE
+          réalisé avant le 1er juillet 2021 est caduc — vous devez le renouveler
+          avant toute nouvelle mise en location. Le nouveau calcul du DPE entré
+          en vigueur le 1er janvier 2026 (abaissement du coefficient
+          électricité) a permis à environ 850 000 logements de sortir du statut
+          de passoire — vérifiez si votre bien pourrait bénéficier d'un
+          reclassement favorable avant d'engager des travaux coûteux.
+        </p>
+
+        <div class="alert-box">
+          <div class="alert-box-title">
+            ⚠ Bailleur : attention au gel du loyer en cas de DPE dégradé
+          </div>
+          <p>
+            Pour les logements classés F ou G, le loyer est gelé : il ne peut
+            pas être réévalué lors d'un renouvellement de bail ni lors d'un
+            changement de locataire, tant que le DPE n'est pas amélioré. Cette
+            mesure, entrée en vigueur en 2022, s'applique dans toute la France.
+            Elle constitue une incitation financière directe à la rénovation
+            énergétique — et une pénalité réelle pour les bailleurs qui ne
+            rénovent pas.
+          </p>
+        </div>
+
+        <h3>Optimiser la fiscalité locative en 2026</h3>
+
+        <p>
+          Le régime fiscal de la location nue (revenus fonciers) au réel est
+          pertinent dès lors que les charges déductibles excèdent 30 % des
+          loyers bruts — seuil du régime micro-foncier. Les charges déductibles
+          comprennent les intérêts d'emprunt, les charges de copropriété non
+          récupérables, les primes d'assurance propriétaire non-occupant, les
+          frais de gestion (agence, comptable), et surtout les travaux de
+          réparation, d'entretien et d'amélioration. Le déficit foncier —
+          charges déductibles supérieures aux loyers perçus — est imputable sur
+          le revenu global dans la limite de 10 700 € par an (relevé à 21 400 €
+          pour les travaux de rénovation énergétique jusqu'en 2025). L'excédent
+          de déficit est reportable sur les revenus fonciers des dix années
+          suivantes.
+        </p>
+
+        <p>
+          Le statut LMNP (Loueur Meublé Non Professionnel) au régime réel offre
+          la possibilité d'amortir comptablement le bien (généralement sur 25 à
+          30 ans), les travaux, le mobilier, et les frais d'acquisition —
+          générant des revenus locatifs fiscalement neutres pendant une
+          décennie. Ce régime s'applique à la location meublée longue durée
+          (bail meublé de 1 an minimum, ou 9 mois pour les étudiants). La
+          location meublée représentait déjà 58 % des locations en France en
+          2025, une progression structurelle liée à la fiscalité avantageuse et
+          à la demande croissante de logements clés en main.
+        </p>
+
+        <div class="dual-panel">
+          <div class="panel">
+            <div class="panel-badge loc">Stratégie locataire</div>
+            <h4>Le dossier comme passeport</h4>
+            <p>
+              En zone très tendue, la compétition se joue avant la visite. Un
+              dossier DossierFacile certifié, une garantie Visale activée, et
+              trois mois de loyers versés en avance (légalement possible en
+              location meublée) peuvent faire la différence sur un bien où 50
+              dossiers s'affrontent.
+            </p>
+          </div>
+          <div class="panel">
+            <div class="panel-badge bail">Stratégie bailleur</div>
+            <h4>La garantie institutionnelle comme outil</h4>
+            <p>
+              Proposer à vos locataires de souscrire vous-même une GLI (Garantie
+              Loyer Impayé) élimine le besoin de garant physique et ouvre votre
+              bien à des profils solvables mais sans famille garante —
+              étudiants, jeunes actifs étrangers, indépendants récents — que la
+              concurrence écarte systématiquement.
+            </p>
+          </div>
+        </div>
+
+        <h3>La gestion locative déléguée : quand c'est rentable</h3>
+
+        <p>
+          Les honoraires de gestion locative — généralement entre 7 % et 10 %
+          des loyers HT hors charges — peuvent sembler élevés. Ils le sont moins
+          si on les compare au coût réel d'une mauvaise gestion en propre :
+          procédure d'impayé (1 500 à 4 000 € d'honoraires juridiques), vacance
+          prolongée entre deux locataires, travaux manquants non facturés au
+          locataire, régularisation de charges mal conduite, non-conformité DPE
+          ignorée. Un gestionnaire professionnel prend en charge l'état des
+          lieux d'entrée et de sortie (souvent la source de litiges les plus
+          coûteux), la régularisation des charges, les relations avec le syndic,
+          et la veille réglementaire. Pour tout bailleur gérant plus de deux
+          biens ou éloigné géographiquement de son patrimoine, la gestion
+          déléguée est un investissement rationnel.
+        </p>
+
+        <h2 id="investissement">
+          IV. L'investissement locatif en 2026 : recalibrer ses attentes
+        </h2>
+
+        <p>
+          L'investissement locatif classique — acheter un studio, le louer,
+          percevoir des revenus — est devenu plus complexe, plus risqué et moins
+          rentable qu'il y a dix ans dans les grandes métropoles. Ce n'est pas
+          une raison de l'écarter. C'est une raison de l'aborder avec une
+          sophistication que la décennie précédente ne requérait pas.
+        </p>
+
+        <h3>Calculer correctement la rentabilité réelle</h3>
+
+        <p>
+          La rentabilité brute — loyer annuel / prix d'acquisition × 100 — est
+          une métrique trompeuse. La rentabilité nette, après déduction des
+          charges non récupérables, de la taxe foncière, des frais de gestion,
+          de la vacance locative moyenne et des provisions pour travaux, est
+          systématiquement inférieure de 1,5 à 3 points. La rentabilité nette
+          après fiscalité — selon votre tranche marginale d'imposition et le
+          régime fiscal applicable — peut encore diminuer de 1 à 3 points
+          supplémentaires. En zone tendue, une rentabilité brute de 4 % se
+          traduit souvent par une rentabilité nette après fiscalité de 1,5 à 2 %
+          — à comparer aux rendements des SCPI (4 à 5 %), des obligations d'État
+          (3 %) ou des fonds euro d'assurance-vie (3,5 %).
+        </p>
+
+        <h3>Les deux stratégies gagnantes en 2026</h3>
+
+        <p>
+          La première stratégie est la passoire thermique décotée avec
+          rénovation intégrée. Un bien classé G dans une ville à fort bassin
+          locatif subit une décote de 12 à 18 % à l'achat. Si les travaux de
+          rénovation énergétique vers la classe D ou C représentent un coût
+          inférieur à cette décote — après prise en compte des aides
+          (MaPrimeRénov', Eco-PTZ, Certificats d'Économies d'Énergie) —
+          l'opération est arithmétiquement positive. Le déficit foncier généré
+          par les travaux est imputable sur le revenu global dans les limites
+          précitées. Et la valorisation post-travaux crée une plus-value latente
+          immédiate que le marché commence à reconnaître.
+        </p>
+
+        <p>
+          La seconde stratégie est la colocation organisée. Dans les villes
+          universitaires et les métropoles avec une forte population jeune
+          (Lyon, Toulouse, Montpellier, Bordeaux, Rennes), la colocation de
+          grande surface génère une rentabilité brute supérieure de 1,5 à 2,5
+          points à la location classique, pour un risque locatif inférieur
+          (chaque colocataire est solidaire des autres, réduisant le risque
+          d'impayé total). La gestion est plus intensive — états des lieux plus
+          fréquents, roulement des colocataires — mais les plateformes
+          spécialisées (La Coloc, Roomlala, appartager.com) ont professionnalisé
+          ce segment et proposent des services de gestion dédiés.
+        </p>
+
+        <h3>Les marchés locatifs à surveiller en 2026</h3>
+
+        <p>
+          Bordeaux, longtemps surévaluée, redevient attractive pour
+          l'investissement locatif grâce à une correction des prix d'achat sur
+          2023-2025 qui n'a pas été suivie d'une baisse des loyers — la
+          rentabilité brute y est remontée à 4,5-5 % pour les petites surfaces.
+          Strasbourg, avec sa tension locative en hausse de 8,1 % sur un an et
+          une dynamique institutionnelle et économique solide (Parlement
+          Européen, université de rang mondial), offre une combinaison rare :
+          prix d'achat modérés, demande locative forte, et profil de locataires
+          institutionnels (fonctionnaires européens, étudiants) généralement
+          fiables. Les villes universitaires de taille moyenne — Rennes,
+          Poitiers, Tours, Grenoble — maintiennent une demande locative
+          structurelle portée par les 200 000 à 50 000 étudiants de leurs
+          établissements, avec des rendements locatifs bruts entre 5 % et 6,5 %.
+        </p>
+
+        <blockquote>
+          <p>
+            «&nbsp;L'investissement immobilier locatif reste pertinent en 2026 —
+            mais uniquement pour les bailleurs capables d'anticiper la
+            réglementation, d'optimiser leur fiscalité, et d'intégrer le DPE
+            comme critère central de leur stratégie.&nbsp;»
+          </p>
+          <footer>Département Analyse Patrimoine · MonAiGENT Research</footer>
+        </blockquote>
+
+        <h2 id="droits">
+          V. Droits et obligations : ce que la loi impose à chaque partie en
+          2026
+        </h2>
+
+        <h3>Les droits fondamentaux du locataire</h3>
+
+        <p>
+          Le locataire a droit à un logement décent : surface minimum de 9 m²
+          pour une personne seule, hauteur sous plafond d'au moins 2,20 m,
+          installations électriques et de gaz conformes, absence d'humidité
+          excessive, accès à l'eau potable et au chauffage. Depuis 2023, le
+          critère de décence intègre une dimension énergétique : un bien avec
+          une consommation énergétique supérieure à 450 kWh/m²/an (classe G+)
+          est réputé indécent et le locataire peut en demander la mise en
+          conformité au bailleur sans risquer d'expulsion. Le droit au maintien
+          dans les lieux est garanti pendant la durée du bail et pendant les
+          périodes de trêve hivernale (du 1er novembre au 31 mars). Le préavis
+          de départ est de 3 mois pour un logement vide, et de 1 mois en zone
+          tendue — vérifiez si votre commune figure sur la liste des zones
+          tendues publiée par arrêté préfectoral.
+        </p>
+
+        <h3>Les obligations du bailleur : ce que la loi exige</h3>
+
+        <p>
+          Le bailleur doit remettre au locataire un logement décent, en bon état
+          d'usage, avec toutes les annexes mentionnées au contrat (cave,
+          parking, jardin). Il doit assurer la jouissance paisible des lieux —
+          ce qui inclut l'intervention en cas de sinistre, la réparation des
+          éléments de confort essentiels (chauffage, eau chaude), et la garantie
+          contre les vices cachés. Le dossier de diagnostics techniques (DDT)
+          complet doit être joint au bail : DPE, état des risques et pollutions,
+          diagnostic électrique et gaz, amiante, plomb selon les cas. Le
+          bailleur est tenu de délivrer une quittance de loyer mensuelle si le
+          locataire le demande — et cette obligation est gratuite. Il ne peut
+          pas augmenter le loyer en cours de bail autrement que par l'indice de
+          référence des loyers (IRL) publié trimestriellement par l'INSEE, et
+          uniquement si cette clause est prévue au bail.
+        </p>
+
+        <h3>Les recours en cas de litige</h3>
+
+        <p>
+          La commission de conciliation départementale est la première instance
+          à saisir pour tout litige locatif : elle traite gratuitement les
+          différends relatifs aux loyers, dépôts de garantie, charges,
+          réparations et état des lieux. Son saisissement est obligatoire avant
+          toute procédure judiciaire dans la plupart des cas. Le juge des
+          contentieux de la protection (anciennement juge d'instance) traite les
+          affaires locatives que la conciliation n'a pas pu résoudre. Les délais
+          sont longs (6 à 18 mois selon les juridictions) — la conciliation
+          reste de loin la voie la plus rapide et la moins coûteuse pour les
+          deux parties.
+        </p>
+      </article>
+
+      <aside class="sidebar">
+        <div class="widget">
+          <div class="widget-title">Tension locative · Baromètre</div>
+          <div class="tension-meter">
+            <div class="tension-bar-wrap">
+              <span class="tension-city">Lyon</span>
+              <div class="tension-bar-bg">
+                <div class="tension-bar-fill" style="width: 98%"></div>
+              </div>
+              <span class="tension-val">13/20</span>
+            </div>
+            <div class="tension-bar-wrap">
+              <span class="tension-city">Paris</span>
+              <div class="tension-bar-bg">
+                <div class="tension-bar-fill" style="width: 92%"></div>
+              </div>
+              <span class="tension-val">12/20</span>
+            </div>
+            <div class="tension-bar-wrap">
+              <span class="tension-city">Strasbourg</span>
+              <div class="tension-bar-bg">
+                <div class="tension-bar-fill" style="width: 82%"></div>
+              </div>
+              <span class="tension-val">11/20</span>
+            </div>
+            <div class="tension-bar-wrap">
+              <span class="tension-city">Bordeaux</span>
+              <div class="tension-bar-bg">
+                <div class="tension-bar-fill" style="width: 72%"></div>
+              </div>
+              <span class="tension-val">9/20</span>
+            </div>
+            <div class="tension-bar-wrap">
+              <span class="tension-city">Nantes</span>
+              <div class="tension-bar-bg">
+                <div class="tension-bar-fill" style="width: 65%"></div>
+              </div>
+              <span class="tension-val">8/20</span>
+            </div>
+          </div>
+          <p style="font-size: 11px; color: var(--ink-4); margin-top: 8px">
+            Source : LocService · Baromètre 2026
+          </p>
+        </div>
+
+        <div class="widget">
+          <div class="widget-title">Chiffres clés · T1 2026</div>
+          <div class="w-stat">
+            <span class="w-stat-lbl">Loyer moyen national</span>
+            <span class="w-stat-val">818 €/mois</span>
+            <span class="w-stat-note">Pour 54 m² · GH Location</span>
+          </div>
+          <div class="w-stat">
+            <span class="w-stat-lbl">Loyer Paris T2</span>
+            <span class="w-stat-val">1 662 €</span>
+            <span class="w-stat-note">Hors charges · +5,2 % / an</span>
+          </div>
+          <div class="w-stat">
+            <span class="w-stat-lbl">Part des meublés</span>
+            <span class="w-stat-val">58 %</span>
+            <span class="w-stat-note">Des locations réalisées en 2025</span>
+          </div>
+        </div>
+
+        <div class="widget">
+          <div class="widget-title">Sommaire</div>
+          <ul class="toc">
+            <li><a href="#crise">I. Anatomie de la crise</a></li>
+            <li><a href="#locataire">II. Guide du locataire 2026</a></li>
+            <li><a href="#bailleur">III. Guide du bailleur 2026</a></li>
+            <li><a href="#investissement">IV. Investissement locatif</a></li>
+            <li><a href="#droits">V. Droits et obligations</a></li>
+          </ul>
+        </div>
+
+        <div class="cta-box">
+          <h4>Passez la barrière du tri</h4>
+          <p>
+            Notre réseau connecte les locataires certifiés directement aux
+            propriétaires avant toute publication publique. Et aide les
+            bailleurs à identifier le meilleur dossier parmi des candidats
+            présélectionnés.
+          </p>
+          <a href="./intro.html" class="btn-cta">Accéder au réseau</a>
+        </div>
+      </aside>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const now = new Date();
+        const mois = [
+          "Janvier",
+          "Février",
+          "Mars",
+          "Avril",
+          "Mai",
+          "Juin",
+          "Juillet",
+          "Août",
+          "Septembre",
+          "Octobre",
+          "Novembre",
+          "Décembre",
+        ];
+        const el = document.getElementById("dyn-date");
+        if (el) el.textContent = mois[now.getMonth()] + " " + now.getFullYear();
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Prix Immobiliers & Data — Mon AiGENT</title>
+    <link rel="stylesheet" href="shared.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&family=Lora:ital,wght@0,600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        margin-top: 2rem;
+      }
+      .data-table th {
+        background: var(--dark-nav);
+        color: white;
+        padding: 1.2rem;
+        text-align: left;
+        font-size: 0.8rem;
+      }
+      .data-table td {
+        padding: 1.2rem;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.9rem;
+      }
+      .trend-up {
+        color: #10b981;
+        font-weight: 700;
+      }
+      .trend-down {
+        color: #ef4444;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <header id="main-nav"></header>
+
+    <main class="container">
+      <section
+        style="text-align: center; max-width: 800px; margin: 0 auto 4rem"
+      >
+        <h1
+          style="
+            font-family: var(--font-titles);
+            font-size: 3rem;
+            margin-bottom: 1rem;
+          "
+        >
+          L'Observatoire <span>Data</span>
+        </h1>
+        <p>
+          Accédez aux prix réels du marché calculés par Mon AiGENT. Nos données
+          sont mises à jour toutes les 24h sur la base des transactions et des
+          offres actives.
+        </p>
+      </section>
+
+      <div
+        style="
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 2rem;
+          margin-bottom: 3rem;
+        "
+      >
+        <div class="card" style="padding: 2rem; text-align: center">
+          <span
+            style="display: block; font-size: 2.5rem; font-weight: 800"
+            id="kpi-total-matchs"
+            >--</span
+          >
+          <span
+            style="
+              color: var(--text-muted);
+              font-size: 0.8rem;
+              text-transform: uppercase;
+            "
+            >Matchs ce mois</span
+          >
+        </div>
+        <div class="card" style="padding: 2rem; text-align: center">
+          <span
+            style="display: block; font-size: 2.5rem; font-weight: 800"
+            id="kpi-median-price"
+            >--</span
+          >
+          <span
+            style="
+              color: var(--text-muted);
+              font-size: 0.8rem;
+              text-transform: uppercase;
+            "
+            >Prix Médian France</span
+          >
+        </div>
+        <div class="card" style="padding: 2rem; text-align: center">
+          <span
+            style="
+              display: block;
+              font-size: 2.5rem;
+              font-weight: 800;
+              color: #10b981;
+            "
+            >+1.2%</span
+          >
+          <span
+            style="
+              color: var(--text-muted);
+              font-size: 0.8rem;
+              text-transform: uppercase;
+            "
+            >Tendance 30 jours</span
+          >
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>VILLE</th>
+            <th>PRIX MOYEN / M²</th>
+            <th>VARIATION</th>
+            <th>PROFILS ACTIFS</th>
+            <th>CONSEIL IA</th>
+          </tr>
+        </thead>
+        <tbody id="market-table-body">
+          <!-- Data injection -->
+        </tbody>
+      </table>
+    </main>
+
+    <footer id="main-footer"></footer>
+    <script src="blog-engine.js"></script>
+  </body>
+</html>

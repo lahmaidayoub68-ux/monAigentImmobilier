@@ -1,0 +1,2899 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AiGENT Immo — Articles</title>
+    <meta
+      name="description"
+      content="Articles de fond, analyses de marché, guides pratiques immobiliers — AiGENT Immo Magazine"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400;1,700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #0a0812;
+        --ink-2: #1c1728;
+        --ink-3: #3d3551;
+        --ink-4: #7a7190;
+        --ink-5: #b8b2c8;
+        --surface: #f8f7fc;
+        --surface-2: #f0eef8;
+        --surface-3: #e6e2f5;
+        --white: #ffffff;
+        --border: rgba(120, 100, 200, 0.12);
+        --border-2: rgba(120, 100, 200, 0.2);
+        --violet: #5b21b6;
+        --violet-2: #7c3aed;
+        --violet-3: #a78bfa;
+        --violet-4: #ddd6fe;
+        --violet-5: #ede9fe;
+        --rose: #be185d;
+        --rose-2: #ec4899;
+        --rose-3: #fce7f3;
+        --gold: #92400e;
+        --gold-2: #d97706;
+        --gold-3: #fef3c7;
+        --emerald: #065f46;
+        --emerald-2: #059669;
+        --emerald-3: #d1fae5;
+        --sky: #0c4a6e;
+        --sky-2: #0284c7;
+        --sky-3: #e0f2fe;
+        --f-display: "Playfair Display", Georgia, serif;
+        --f-body: "DM Sans", system-ui, sans-serif;
+        --f-mono: "DM Mono", monospace;
+        --max: 1200px;
+        --r: 8px;
+        --r-lg: 14px;
+        --r-xl: 20px;
+        --r-2xl: 28px;
+        --shadow-sm:
+          0 1px 3px rgba(30, 15, 60, 0.06), 0 1px 2px rgba(30, 15, 60, 0.04);
+        --shadow-md:
+          0 4px 16px rgba(30, 15, 60, 0.08), 0 2px 6px rgba(30, 15, 60, 0.04);
+        --shadow-lg:
+          0 12px 40px rgba(30, 15, 60, 0.12), 0 4px 12px rgba(30, 15, 60, 0.06);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+        font-size: 16px;
+      }
+      body {
+        font-family: var(--f-body);
+        background: var(--white);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+      img {
+        display: block;
+        max-width: 100%;
+      }
+      button {
+        font-family: var(--f-body);
+        cursor: pointer;
+        border: none;
+        background: none;
+      }
+
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--surface);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--violet-3);
+        border-radius: 6px;
+      }
+
+      /* ── NAV ── */
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 500;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(20px) saturate(180%);
+        border-bottom: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+      }
+      .nav-inner {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 40px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .nav-logo-mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--violet) 0%, var(--rose) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .nav-logo-mark svg {
+        color: #fff;
+      }
+      .nav-logo-text {
+        font-family: var(--f-display);
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .nav-logo-text span {
+        font-style: italic;
+        background: linear-gradient(135deg, var(--violet) 0%, var(--rose) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .nav-back {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink-4);
+        padding: 7px 16px;
+        border-radius: 100px;
+        border: 1.5px solid var(--border-2);
+        transition: all 0.15s;
+      }
+      .nav-back:hover {
+        border-color: var(--violet-3);
+        color: var(--violet);
+      }
+
+      /* ── INDEX PAGE ── */
+      #page-index {
+        display: block;
+      }
+      #page-article {
+        display: none;
+      }
+
+      .index-hero {
+        background: var(--ink);
+        padding: 80px 40px 64px;
+        position: relative;
+        overflow: hidden;
+      }
+      .index-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(91, 33, 182, 0.4) 0%,
+          rgba(10, 8, 18, 0.7) 50%,
+          rgba(190, 24, 93, 0.2) 100%
+        );
+      }
+      .index-hero-inner {
+        max-width: var(--max);
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+      }
+      .index-hero-kicker {
+        font-family: var(--f-mono);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--violet-3);
+        background: rgba(167, 139, 250, 0.12);
+        border: 1px solid rgba(167, 139, 250, 0.25);
+        padding: 4px 14px;
+        border-radius: 100px;
+        display: inline-block;
+        margin-bottom: 24px;
+      }
+      .index-hero-title {
+        font-family: var(--f-display);
+        font-size: clamp(40px, 5vw, 72px);
+        font-weight: 900;
+        line-height: 0.95;
+        letter-spacing: -0.03em;
+        color: #fff;
+        margin-bottom: 20px;
+      }
+      .index-hero-title em {
+        font-style: italic;
+        color: var(--violet-3);
+      }
+      .index-hero-sub {
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.45);
+        max-width: 540px;
+        line-height: 1.7;
+        font-weight: 300;
+      }
+
+      .index-filters {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 40px;
+      }
+      .index-filters-inner {
+        max-width: var(--max);
+        margin: 0 auto;
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        padding: 14px 0;
+        scrollbar-width: none;
+      }
+      .index-filters-inner::-webkit-scrollbar {
+        display: none;
+      }
+      .filter-btn {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--ink-4);
+        padding: 6px 16px;
+        border-radius: 100px;
+        border: 1.5px solid transparent;
+        white-space: nowrap;
+        transition: all 0.15s;
+        flex-shrink: 0;
+      }
+      .filter-btn:hover {
+        background: var(--white);
+        color: var(--ink);
+        border-color: var(--border-2);
+      }
+      .filter-btn.active {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+
+      .articles-grid-wrap {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 52px 40px;
+      }
+
+      /* Featured row */
+      .grid-featured {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+      .art-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r-xl);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+        transition: all 0.25s;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+      }
+      .art-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-4px);
+        border-color: rgba(91, 33, 182, 0.15);
+      }
+      .art-card-img {
+        overflow: hidden;
+        position: relative;
+      }
+      .art-card-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.55s;
+      }
+      .art-card:hover .art-card-img img {
+        transform: scale(1.04);
+      }
+      .art-card-body {
+        padding: 24px 28px 28px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .art-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 100px;
+        margin-bottom: 12px;
+        align-self: flex-start;
+      }
+      .tag-marche {
+        color: var(--violet);
+        background: var(--violet-5);
+      }
+      .tag-ia {
+        color: #6d28d9;
+        background: #ede9fe;
+      }
+      .tag-guide {
+        color: var(--emerald);
+        background: var(--emerald-3);
+      }
+      .tag-tendance {
+        color: var(--gold);
+        background: var(--gold-3);
+      }
+      .tag-conseil {
+        color: var(--sky);
+        background: var(--sky-3);
+      }
+      .tag-actu {
+        color: var(--rose);
+        background: var(--rose-3);
+      }
+      .tag-invest {
+        color: var(--violet);
+        background: var(--violet-4);
+      }
+
+      .art-card-title {
+        font-family: var(--f-display);
+        font-weight: 700;
+        line-height: 1.25;
+        letter-spacing: -0.015em;
+        color: var(--ink);
+        margin-bottom: 10px;
+      }
+      .art-card-excerpt {
+        font-size: 13.5px;
+        color: var(--ink-4);
+        line-height: 1.7;
+        flex: 1;
+        font-weight: 300;
+        margin-bottom: 16px;
+      }
+      .art-card-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11.5px;
+        color: var(--ink-5);
+        margin-top: auto;
+      }
+      .art-card-meta strong {
+        color: var(--ink-3);
+        font-weight: 600;
+      }
+      .read-time-badge {
+        font-family: var(--f-mono);
+        font-size: 10px;
+        color: var(--ink-5);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        padding: 2px 8px;
+        border-radius: 100px;
+      }
+      .art-card-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--violet);
+        margin-top: 14px;
+        transition: gap 0.15s;
+      }
+      .art-card:hover .art-card-cta {
+        gap: 10px;
+      }
+
+      /* Standard grid */
+      .grid-standard {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+      .grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .grid-2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .art-card.compact .art-card-img {
+        aspect-ratio: 16/9;
+      }
+      .art-card.compact .art-card-title {
+        font-size: 17px;
+      }
+      .art-card.featured-main .art-card-img {
+        aspect-ratio: 16/10;
+        min-height: 300px;
+      }
+      .art-card.featured-main .art-card-title {
+        font-size: clamp(20px, 2.2vw, 28px);
+      }
+      .art-card.featured-side .art-card-img {
+        aspect-ratio: 4/3;
+      }
+      .art-card.featured-side .art-card-title {
+        font-size: 19px;
+      }
+
+      /* Divider section label */
+      .section-divider {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin: 44px 0 28px;
+      }
+      .section-divider-line {
+        flex: 0 0 3px;
+        height: 22px;
+        background: linear-gradient(180deg, var(--violet) 0%, var(--rose) 100%);
+        border-radius: 2px;
+      }
+      .section-divider-text {
+        font-family: var(--f-display);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.02em;
+      }
+      .section-divider-text em {
+        font-style: italic;
+        color: var(--violet);
+      }
+      .section-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border-2);
+      }
+
+      /* AI generation banner */
+      .ai-banner {
+        background: linear-gradient(
+          135deg,
+          var(--violet) 0%,
+          #4c1d95 50%,
+          var(--rose) 100%
+        );
+        border-radius: var(--r-xl);
+        padding: 28px 32px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 32px;
+        position: relative;
+        overflow: hidden;
+      }
+      .ai-banner::before {
+        content: "";
+        position: absolute;
+        top: -40px;
+        right: -30px;
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .ai-banner-icon {
+        font-size: 32px;
+        flex-shrink: 0;
+      }
+      .ai-banner-text {
+        flex: 1;
+      }
+      .ai-banner-title {
+        font-family: var(--f-display);
+        font-size: 18px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 4px;
+      }
+      .ai-banner-sub {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.6);
+        font-weight: 300;
+      }
+      .ai-banner-badge {
+        font-family: var(--f-mono);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--violet-3);
+        background: rgba(167, 139, 250, 0.15);
+        border: 1px solid rgba(167, 139, 250, 0.3);
+        padding: 4px 12px;
+        border-radius: 100px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      /* ── ARTICLE PAGE ── */
+      .article-topbar {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 12px 40px;
+      }
+      .article-topbar-inner {
+        max-width: 860px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--ink-5);
+      }
+      .breadcrumb span {
+        color: var(--ink-4);
+      }
+      .breadcrumb .sep {
+        opacity: 0.4;
+      }
+      .progress-bar-wrap {
+        height: 2px;
+        background: var(--border-2);
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        z-index: 400;
+      }
+      .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--violet) 0%, var(--rose) 100%);
+        width: 0%;
+        transition: width 0.1s linear;
+      }
+
+      .article-header {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 48px 40px 32px;
+      }
+      .article-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 4px 12px;
+        border-radius: 100px;
+        margin-bottom: 20px;
+      }
+      .article-title {
+        font-family: var(--f-display);
+        font-size: clamp(28px, 4vw, 52px);
+        font-weight: 900;
+        line-height: 1.05;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+        margin-bottom: 20px;
+      }
+      .article-subtitle {
+        font-size: 19px;
+        color: var(--ink-3);
+        line-height: 1.65;
+        font-weight: 300;
+        margin-bottom: 28px;
+        font-style: italic;
+      }
+      .article-byline {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 20px 0;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 0;
+        flex-wrap: wrap;
+      }
+      .byline-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--violet) 0%, var(--rose) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--f-display);
+        font-size: 14px;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+      }
+      .byline-info {
+        flex: 1;
+      }
+      .byline-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .byline-role {
+        font-size: 12px;
+        color: var(--ink-5);
+      }
+      .byline-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--ink-5);
+      }
+      .byline-meta span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      /* Hero image */
+      .article-hero-img {
+        max-width: 860px;
+        margin: 0 auto 0;
+        padding: 32px 40px 0;
+      }
+      .article-hero-img img {
+        width: 100%;
+        border-radius: var(--r-xl);
+        box-shadow: var(--shadow-lg);
+        aspect-ratio: 16/7;
+        object-fit: cover;
+      }
+      .article-hero-caption {
+        font-size: 11.5px;
+        color: var(--ink-5);
+        text-align: center;
+        margin-top: 10px;
+        font-style: italic;
+      }
+
+      /* Content */
+      .article-content-wrap {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        gap: 52px;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 48px 40px 80px;
+        align-items: start;
+      }
+      .article-content {
+        max-width: 680px;
+      }
+
+      .article-content p {
+        font-size: 17px;
+        line-height: 1.82;
+        color: var(--ink-3);
+        margin-bottom: 28px;
+        font-weight: 300;
+      }
+      .article-content p:first-child::first-letter {
+        font-family: var(--f-display);
+        font-size: 72px;
+        font-weight: 900;
+        float: left;
+        line-height: 0.78;
+        margin: 8px 12px 4px 0;
+        color: var(--violet);
+      }
+      .article-content h2 {
+        font-family: var(--f-display);
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        margin: 44px 0 18px;
+      }
+      .article-content h3 {
+        font-family: var(--f-display);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 32px 0 14px;
+      }
+      .article-content strong {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .article-content em {
+        font-style: italic;
+        color: var(--ink-3);
+      }
+      .article-content ul,
+      .article-content ol {
+        padding-left: 24px;
+        margin-bottom: 28px;
+      }
+      .article-content li {
+        font-size: 17px;
+        line-height: 1.75;
+        color: var(--ink-3);
+        margin-bottom: 8px;
+        font-weight: 300;
+      }
+      .article-content a {
+        color: var(--violet);
+        font-weight: 500;
+        border-bottom: 1px solid var(--violet-4);
+        transition: border-color 0.15s;
+      }
+      .article-content a:hover {
+        border-color: var(--violet);
+      }
+
+      .article-pullquote {
+        border-left: 3px solid transparent;
+        border-image: linear-gradient(
+            180deg,
+            var(--violet) 0%,
+            var(--rose) 100%
+          )
+          1;
+        padding: 12px 0 12px 28px;
+        margin: 36px 0;
+      }
+      .article-pullquote blockquote {
+        font-family: var(--f-display);
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--ink);
+        line-height: 1.35;
+        letter-spacing: -0.015em;
+        font-style: italic;
+      }
+      .article-pullquote cite {
+        display: block;
+        font-size: 12px;
+        color: var(--ink-5);
+        margin-top: 8px;
+        font-style: normal;
+      }
+
+      .article-databox {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r-xl);
+        padding: 28px 32px;
+        margin: 36px 0;
+      }
+      .article-databox-title {
+        font-family: var(--f-mono);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--violet);
+        margin-bottom: 20px;
+      }
+      .databox-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+      }
+      .databox-stat-n {
+        font-family: var(--f-display);
+        font-size: 36px;
+        font-weight: 900;
+        color: var(--ink);
+        line-height: 1;
+        letter-spacing: -0.03em;
+      }
+      .databox-stat-n sup {
+        font-size: 16px;
+      }
+      .databox-stat-l {
+        font-size: 11.5px;
+        color: var(--ink-5);
+        margin-top: 6px;
+        line-height: 1.45;
+      }
+
+      .article-highlight {
+        background: linear-gradient(
+          135deg,
+          var(--violet-5) 0%,
+          var(--rose-3) 100%
+        );
+        border-radius: var(--r-xl);
+        padding: 24px 28px;
+        margin: 36px 0;
+        border: 1px solid var(--violet-4);
+      }
+      .article-highlight-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--violet);
+        margin-bottom: 10px;
+      }
+      .article-highlight p {
+        font-size: 15px;
+        color: var(--ink-3);
+        line-height: 1.7;
+        margin: 0;
+        font-weight: 400;
+      }
+      .article-highlight p::first-letter {
+        all: unset;
+      }
+
+      /* Skeleton loader */
+      .skeleton {
+        background: linear-gradient(
+          90deg,
+          var(--surface) 25%,
+          var(--surface-2) 50%,
+          var(--surface) 75%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 6px;
+      }
+      @keyframes shimmer {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+      .skeleton-title {
+        height: 28px;
+        margin-bottom: 12px;
+      }
+      .skeleton-text {
+        height: 16px;
+        margin-bottom: 8px;
+      }
+      .skeleton-text.w80 {
+        width: 80%;
+      }
+      .skeleton-text.w60 {
+        width: 60%;
+      }
+
+      /* Article sidebar */
+      .article-sidebar {
+        position: sticky;
+        top: 84px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .sb-block {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+        padding: 20px;
+        box-shadow: var(--shadow-sm);
+      }
+      .sb-block-title {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-5);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sb-block-title::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      .toc-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .toc-item a {
+        display: block;
+        font-size: 12.5px;
+        color: var(--ink-4);
+        padding: 6px 10px;
+        border-radius: var(--r);
+        transition: all 0.15s;
+        border-left: 2px solid transparent;
+      }
+      .toc-item a:hover {
+        background: var(--surface);
+        color: var(--ink);
+        border-left-color: var(--violet-3);
+      }
+      .toc-item a.active {
+        color: var(--violet);
+        font-weight: 600;
+        border-left-color: var(--violet);
+        background: var(--violet-5);
+      }
+
+      .related-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .related-item {
+        display: flex;
+        gap: 10px;
+        cursor: pointer;
+      }
+      .related-item-img {
+        width: 60px;
+        height: 44px;
+        border-radius: 8px;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+      .related-item-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .related-item-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink);
+        line-height: 1.4;
+        transition: color 0.15s;
+      }
+      .related-item:hover .related-item-title {
+        color: var(--violet);
+      }
+      .related-item-cat {
+        font-size: 10px;
+        color: var(--ink-5);
+        margin-top: 2px;
+      }
+
+      /* Generating state */
+      .generating-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 8, 18, 0.92);
+        backdrop-filter: blur(20px);
+        z-index: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+      }
+      .generating-overlay.visible {
+        opacity: 1;
+        pointer-events: all;
+      }
+      .generating-box {
+        text-align: center;
+        color: #fff;
+      }
+      .generating-icon {
+        font-size: 56px;
+        margin-bottom: 20px;
+        animation: pulse-slow 2s ease-in-out infinite;
+      }
+      @keyframes pulse-slow {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 0.7;
+        }
+      }
+      .generating-title {
+        font-family: var(--f-display);
+        font-size: 26px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+      .generating-status {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 300;
+      }
+      .generating-bar {
+        width: 280px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        margin: 20px auto 0;
+        overflow: hidden;
+      }
+      .generating-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--violet) 0%, var(--rose) 100%);
+        border-radius: 3px;
+        animation: progress-fill 8s ease-out forwards;
+      }
+      @keyframes progress-fill {
+        from {
+          width: 0%;
+        }
+        to {
+          width: 90%;
+        }
+      }
+
+      /* Footer */
+      .article-footer-bar {
+        background: var(--ink);
+        padding: 52px 40px;
+      }
+      .article-footer-inner {
+        max-width: 860px;
+        margin: 0 auto;
+        text-align: center;
+      }
+      .article-footer-title {
+        font-family: var(--f-display);
+        font-size: 28px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 10px;
+        letter-spacing: -0.02em;
+      }
+      .article-footer-title em {
+        font-style: italic;
+        color: var(--violet-3);
+      }
+      .article-footer-sub {
+        font-size: 15px;
+        color: rgba(255, 255, 255, 0.4);
+        font-weight: 300;
+        margin-bottom: 28px;
+      }
+      .btn-cta-white {
+        background: #fff;
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 700;
+        padding: 14px 32px;
+        border-radius: 100px;
+        box-shadow: var(--shadow-lg);
+        transition: all 0.2s;
+        cursor: pointer;
+        border: none;
+        font-family: var(--f-body);
+        display: inline-block;
+      }
+      .btn-cta-white:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      /* Animations */
+      .fade-in {
+        opacity: 0;
+        animation: fadeIn 0.6s ease both;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      @media (max-width: 1000px) {
+        .article-content-wrap {
+          grid-template-columns: 1fr;
+        }
+        .article-sidebar {
+          display: none;
+        }
+      }
+      @media (max-width: 900px) {
+        .grid-featured {
+          grid-template-columns: 1fr;
+        }
+        .grid-standard {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 640px) {
+        .grid-standard {
+          grid-template-columns: 1fr;
+        }
+        .nav-inner,
+        .index-hero,
+        .articles-grid-wrap {
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+        .article-header,
+        .article-hero-img,
+        .article-content-wrap {
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+        .databox-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- GENERATING OVERLAY -->
+    <div class="generating-overlay" id="generatingOverlay">
+      <div class="generating-box">
+        <div class="generating-icon">✦</div>
+        <div class="generating-title">Rédaction en cours…</div>
+        <div class="generating-status" id="generatingStatus">
+          Notre IA analyse les données du marché immobilier
+        </div>
+        <div class="generating-bar">
+          <div class="generating-bar-fill" id="generatingBarFill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRESS BAR (article page) -->
+    <div class="progress-bar-wrap" id="progressBarWrap" style="display: none">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- NAV -->
+    <header class="nav">
+      <div class="nav-inner">
+        <a href="#" class="nav-logo" onclick="showIndex(event)">
+          <div class="nav-logo-mark">
+            <svg
+              width="16"
+              height="16"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"
+              />
+            </svg>
+          </div>
+          <span class="nav-logo-text">Ai<span>GENT</span> Immo · Le Mag</span>
+        </a>
+        <a
+          href="#"
+          class="nav-back"
+          id="navBack"
+          onclick="showIndex(event)"
+          style="display: none"
+        >
+          <svg
+            width="14"
+            height="14"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
+            />
+          </svg>
+          Retour au Mag
+        </a>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════
+     PAGE INDEX
+═══════════════════════════════════════════ -->
+    <div id="page-index">
+      <div class="index-hero">
+        <div class="index-hero-inner">
+          <div class="index-hero-kicker">Le Mag AiGENT · Nº 14 · Mai 2026</div>
+          <h1 class="index-hero-title">Tous nos <em>articles.</em></h1>
+          <p class="index-hero-sub">
+            Analyses, guides, décryptages et enquêtes sur l'immobilier français.
+            Rédigés par nos experts, enrichis par l'IA, mis à jour selon
+            l'actualité du marché.
+          </p>
+        </div>
+      </div>
+
+      <div class="index-filters">
+        <div class="index-filters-inner">
+          <button class="filter-btn active" data-filter="all">Tout</button>
+          <button class="filter-btn" data-filter="marche">📊 Marché</button>
+          <button class="filter-btn" data-filter="invest">
+            💰 Investissement
+          </button>
+          <button class="filter-btn" data-filter="guide">📖 Guides</button>
+          <button class="filter-btn" data-filter="ia">🤖 IA & Tech</button>
+          <button class="filter-btn" data-filter="conseil">💡 Conseils</button>
+          <button class="filter-btn" data-filter="actu">📰 Actualité</button>
+        </div>
+      </div>
+
+      <div class="articles-grid-wrap">
+        <div class="ai-banner">
+          <div class="ai-banner-icon">✦</div>
+          <div class="ai-banner-text">
+            <div class="ai-banner-title">
+              Articles mis à jour par l'IA selon l'actualité immobilière
+            </div>
+            <div class="ai-banner-sub">
+              Chaque article est généré et actualisé en temps réel. Cliquez sur
+              un article pour obtenir une analyse approfondie et contextualisée.
+            </div>
+          </div>
+          <div class="ai-banner-badge">Contenu vivant</div>
+        </div>
+
+        <!-- FEATURED -->
+        <div class="grid-featured">
+          <div
+            class="art-card featured-main"
+            data-id="0"
+            onclick="openArticle(0)"
+          >
+            <div class="art-card-img">
+              <img
+                src="https://images.unsplash.com/photo-1560472355-536de3962603?auto=format&fit=crop&w=900&q=80"
+                alt=""
+                loading="eager"
+                referrerpolicy="no-referrer"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-marche">📊 Marché · À la une</span>
+              <h2 class="art-card-title">
+                Baromètre mai 2026 : les taux passent sous 3,4 % — que faire
+                maintenant ?
+              </h2>
+              <p class="art-card-excerpt">
+                Pour la première fois depuis 18 mois, les banques françaises
+                jouent la carte de l'attractivité. Ce que ça change concrètement
+                pour votre projet, et comment en profiter avant l'été.
+              </p>
+              <div class="art-card-meta">
+                <strong>Marie Castellan</strong>
+                <span>·</span><span>1 mai 2026</span>
+                <span class="read-time-badge">6 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire l'analyse complète
+                <svg
+                  width="13"
+                  height="13"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div
+            class="art-card featured-side"
+            data-id="1"
+            onclick="openArticle(1)"
+          >
+            <div class="art-card-img">
+              <img
+                src="https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=700&q=80"
+                alt=""
+                loading="eager"
+                referrerpolicy="no-referrer"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-invest">💰 Investissement</span>
+              <h2 class="art-card-title">
+                Top 5 villes françaises à saisir avant le rebond
+              </h2>
+              <p class="art-card-excerpt">
+                Marseille, Montpellier, Nantes, Rennes, Strasbourg : pourquoi
+                ces marchés concentrent les meilleures opportunités de 2026.
+              </p>
+              <div class="art-card-meta">
+                <strong>Analyse exclusive</strong><span>·</span
+                ><span>12 avril 2026</span
+                ><span class="read-time-badge">7 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire
+                <svg
+                  width="13"
+                  height="13"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-divider">
+          <div class="section-divider-line"></div>
+          <div class="section-divider-text">IA & <em>Technologie</em></div>
+        </div>
+
+        <div class="grid-standard grid-3">
+          <div
+            class="art-card compact"
+            data-id="2"
+            onclick="openArticle(2)"
+            data-cat="ia"
+          >
+            <div
+              class="art-card-img"
+              style="aspect-ratio: 16/9; overflow: hidden"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1677442135703-1787eea5ce01?auto=format&fit=crop&w=600&q=80"
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-ia">🤖 IA & Tech</span>
+              <h3 class="art-card-title" style="font-size: 17px">
+                Comment l'IA révolutionne l'estimation — et ce que ça change
+                pour vous
+              </h3>
+              <div class="art-card-meta">
+                <strong>Thomas Chevalier</strong><span>·</span
+                ><span>28 mars 2026</span
+                ><span class="read-time-badge">4 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div
+            class="art-card compact"
+            data-id="3"
+            onclick="openArticle(3)"
+            data-cat="ia"
+          >
+            <div
+              class="art-card-img"
+              style="aspect-ratio: 16/9; overflow: hidden"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=600&q=80"
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-ia">🤖 IA & Tech</span>
+              <h3 class="art-card-title" style="font-size: 17px">
+                L'IA va-t-elle tuer les agents immobiliers ? On a posé la
+                question à 40 professionnels
+              </h3>
+              <div class="art-card-meta">
+                <strong>Rédaction</strong><span>·</span><span>14 mars 2026</span
+                ><span class="read-time-badge">12 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div
+            class="art-card compact"
+            data-id="4"
+            onclick="openArticle(4)"
+            data-cat="ia"
+          >
+            <div
+              class="art-card-img"
+              style="aspect-ratio: 16/9; overflow: hidden"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80"
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-ia">🤖 IA & Tech</span>
+              <h3 class="art-card-title" style="font-size: 17px">
+                Visite virtuelle, matching IA, notaire digital : le parcours
+                acheteur en 2026
+              </h3>
+              <div class="art-card-meta">
+                <strong>Sophie Marin</strong><span>·</span
+                ><span>5 fév. 2026</span
+                ><span class="read-time-badge">5 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-divider">
+          <div class="section-divider-line"></div>
+          <div class="section-divider-text">Guides <em>pratiques</em></div>
+        </div>
+
+        <div class="grid-standard grid-2">
+          <div
+            class="art-card compact"
+            data-id="5"
+            onclick="openArticle(5)"
+            data-cat="guide"
+          >
+            <div
+              class="art-card-img"
+              style="aspect-ratio: 16/8; overflow: hidden"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=700&q=80"
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-guide">📖 Guide pratique</span>
+              <h3 class="art-card-title" style="font-size: 20px">
+                Premier achat : les 12 étapes que personne ne vous dit
+              </h3>
+              <p class="art-card-excerpt">
+                De la préparation du dossier à la signature chez le notaire, le
+                guide complet sans jargon.
+              </p>
+              <div class="art-card-meta">
+                <span>15 mars 2026</span
+                ><span class="read-time-badge">8 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire le guide
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div
+            class="art-card compact"
+            data-id="6"
+            onclick="openArticle(6)"
+            data-cat="conseil"
+          >
+            <div
+              class="art-card-img"
+              style="aspect-ratio: 16/8; overflow: hidden"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=700&q=80"
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-conseil">💡 Conseil</span>
+              <h3 class="art-card-title" style="font-size: 20px">
+                DPE 2026 : tout ce qui change en juillet et l'impact sur la
+                valeur de votre bien
+              </h3>
+              <p class="art-card-excerpt">
+                Interdiction des G, réforme des aides MaPrimeRénov', décote
+                maximale : ce que vous devez savoir avant l'été.
+              </p>
+              <div class="art-card-meta">
+                <strong>Marie Castellan</strong><span>·</span
+                ><span>8 mars 2026</span
+                ><span class="read-time-badge">5 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-divider">
+          <div class="section-divider-line"></div>
+          <div class="section-divider-text">
+            Marché & <em>Investissement</em>
+          </div>
+        </div>
+
+        <div class="grid-standard grid-3">
+          <div
+            class="art-card compact"
+            data-id="7"
+            onclick="openArticle(7)"
+            data-cat="invest"
+          >
+            <div
+              class="art-card-img"
+              style="aspect-ratio: 16/9; overflow: hidden"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80"
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-invest">💰 Investissement</span>
+              <h3 class="art-card-title" style="font-size: 17px">
+                Locatif : les villes avec les meilleures rentabilités brutes en
+                2026
+              </h3>
+              <div class="art-card-meta">
+                <span>10 fév. 2026</span
+                ><span class="read-time-badge">7 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div
+            class="art-card compact"
+            data-id="8"
+            onclick="openArticle(8)"
+            data-cat="marche"
+          >
+            <div
+              class="art-card-img"
+              style="aspect-ratio: 16/9; overflow: hidden"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=600&q=80"
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-marche">📊 Marché</span>
+              <h3 class="art-card-title" style="font-size: 17px">
+                2024–2026 : la grande correction n'a pas eu lieu. Pourquoi ?
+              </h3>
+              <div class="art-card-meta">
+                <strong>Rédaction</strong><span>·</span><span>2 janv. 2026</span
+                ><span class="read-time-badge">10 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div
+            class="art-card compact"
+            data-id="9"
+            onclick="openArticle(9)"
+            data-cat="conseil"
+          >
+            <div
+              class="art-card-img"
+              style="aspect-ratio: 16/9; overflow: hidden"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1560185127-6ed189bf02f4?auto=format&fit=crop&w=600&q=80"
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-conseil">💡 Conseil</span>
+              <h3 class="art-card-title" style="font-size: 17px">
+                Négocier un bien : les 7 leviers que les agents ne veulent pas
+                que vous sachiez
+              </h3>
+              <div class="art-card-meta">
+                <span>25 fév. 2026</span
+                ><span class="read-time-badge">5 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-divider">
+          <div class="section-divider-line"></div>
+          <div class="section-divider-text">Actualité <em>récente</em></div>
+        </div>
+
+        <div class="grid-standard grid-3">
+          <div
+            class="art-card compact"
+            data-id="10"
+            onclick="openArticle(10)"
+            data-cat="actu"
+          >
+            <div
+              class="art-card-img"
+              style="aspect-ratio: 16/9; overflow: hidden"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=600&q=80"
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-actu">📰 Actualité</span>
+              <h3 class="art-card-title" style="font-size: 17px">
+                Transactions immobilières : le rebond du T1 2026 est confirmé à
+                +12 %
+              </h3>
+              <div class="art-card-meta">
+                <span>3 mars 2026</span
+                ><span class="read-time-badge">4 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div
+            class="art-card compact"
+            data-id="11"
+            onclick="openArticle(11)"
+            data-cat="guide"
+          >
+            <div
+              class="art-card-img"
+              style="aspect-ratio: 16/9; overflow: hidden"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?auto=format&fit=crop&w=600&q=80"
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-guide">📖 Guide</span>
+              <h3 class="art-card-title" style="font-size: 17px">
+                Bail 2026 : ce que le nouveau cadre légal change pour locataires
+                et propriétaires
+              </h3>
+              <div class="art-card-meta">
+                <span>18 fév. 2026</span
+                ><span class="read-time-badge">6 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div
+            class="art-card compact"
+            data-id="12"
+            onclick="openArticle(12)"
+            data-cat="marche"
+          >
+            <div
+              class="art-card-img"
+              style="aspect-ratio: 16/9; overflow: hidden"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80"
+                alt=""
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                style="width: 100%; height: 100%; object-fit: cover"
+              />
+            </div>
+            <div class="art-card-body">
+              <span class="art-tag tag-marche">📊 Prospective</span>
+              <h3 class="art-card-title" style="font-size: 17px">
+                Où va le marché ? Les 5 scénarios pour l'immobilier français
+                d'ici 2028
+              </h3>
+              <div class="art-card-meta">
+                <strong>Rédaction</strong><span>·</span><span>20 mars 2026</span
+                ><span class="read-time-badge">11 min</span>
+              </div>
+              <div class="art-card-cta">
+                Lire
+                <svg
+                  width="12"
+                  height="12"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+     PAGE ARTICLE
+═══════════════════════════════════════════ -->
+    <div id="page-article" style="display: none">
+      <div class="article-topbar">
+        <div class="article-topbar-inner">
+          <div class="breadcrumb">
+            <a
+              href="#"
+              onclick="showIndex(event)"
+              style="color: var(--violet); font-weight: 600"
+              >Le Mag</a
+            >
+            <span class="sep">/</span>
+            <span id="art-breadcrumb-cat">Marché</span>
+            <span class="sep">/</span>
+            <span
+              id="art-breadcrumb-short"
+              style="
+                max-width: 200px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                display: block;
+              "
+            ></span>
+          </div>
+          <div
+            style="
+              font-family: var(--f-mono);
+              font-size: 10px;
+              color: var(--ink-5);
+              display: flex;
+              align-items: center;
+              gap: 6px;
+            "
+          >
+            <span
+              style="
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: #10b981;
+                display: inline-block;
+              "
+            ></span>
+            Actualisé par IA · Mai 2026
+          </div>
+        </div>
+      </div>
+
+      <div class="article-header">
+        <div id="art-tag" class="article-tag"></div>
+        <h1 id="art-title" class="article-title"></h1>
+        <p id="art-subtitle" class="article-subtitle"></p>
+        <div class="article-byline">
+          <div id="art-avatar" class="byline-avatar"></div>
+          <div class="byline-info">
+            <div id="art-author" class="byline-name"></div>
+            <div id="art-role" class="byline-role"></div>
+          </div>
+          <div class="byline-meta">
+            <span>📅 <span id="art-date"></span></span>
+            <span>⏱ <span id="art-readtime"></span></span>
+            <span>👁 <span id="art-views"></span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="article-hero-img">
+        <img id="art-img" src="" alt="" />
+        <div id="art-caption" class="article-hero-caption"></div>
+      </div>
+
+      <div class="article-content-wrap">
+        <div class="article-content" id="art-body">
+          <!-- Content injected here -->
+        </div>
+        <aside class="article-sidebar">
+          <div class="sb-block">
+            <div class="sb-block-title">Sommaire</div>
+            <ul class="toc-list" id="art-toc"></ul>
+          </div>
+          <div class="sb-block">
+            <div class="sb-block-title">Taux du moment</div>
+            <div style="display: flex; flex-direction: column; gap: 0">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  padding: 9px 0;
+                  border-bottom: 1px solid var(--border);
+                "
+              >
+                <span
+                  style="font-size: 13px; color: var(--ink-3); font-weight: 500"
+                  >20 ans</span
+                >
+                <div style="text-align: right">
+                  <div
+                    style="
+                      font-family: var(--f-mono);
+                      font-size: 15px;
+                      font-weight: 500;
+                    "
+                  >
+                    3,38 %
+                  </div>
+                  <div
+                    style="
+                      font-size: 10px;
+                      font-weight: 600;
+                      color: var(--emerald-2);
+                    "
+                  >
+                    ▼ −0,08 pt
+                  </div>
+                </div>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  padding: 9px 0;
+                  border-bottom: 1px solid var(--border);
+                "
+              >
+                <span
+                  style="font-size: 13px; color: var(--ink-3); font-weight: 500"
+                  >25 ans</span
+                >
+                <div style="text-align: right">
+                  <div
+                    style="
+                      font-family: var(--f-mono);
+                      font-size: 15px;
+                      font-weight: 500;
+                    "
+                  >
+                    3,62 %
+                  </div>
+                  <div
+                    style="
+                      font-size: 10px;
+                      font-weight: 600;
+                      color: var(--emerald-2);
+                    "
+                  >
+                    ▼ −0,06 pt
+                  </div>
+                </div>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  padding: 9px 0;
+                "
+              >
+                <span
+                  style="font-size: 13px; color: var(--ink-3); font-weight: 500"
+                  >15 ans</span
+                >
+                <div style="text-align: right">
+                  <div
+                    style="
+                      font-family: var(--f-mono);
+                      font-size: 15px;
+                      font-weight: 500;
+                    "
+                  >
+                    3,12 %
+                  </div>
+                  <div
+                    style="
+                      font-size: 10px;
+                      font-weight: 600;
+                      color: var(--emerald-2);
+                    "
+                  >
+                    ▼ −0,10 pt
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              style="
+                font-size: 10.5px;
+                color: var(--ink-5);
+                margin-top: 12px;
+                padding-top: 10px;
+                border-top: 1px solid var(--border);
+              "
+            >
+              Moyenne constatée · 1er mai 2026
+            </div>
+          </div>
+          <div class="sb-block">
+            <div class="sb-block-title">Articles liés</div>
+            <div class="related-list" id="art-related"></div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="article-footer-bar">
+        <div class="article-footer-inner">
+          <div class="article-footer-title">
+            Votre projet mérite mieux qu'une <em>annonce.</em>
+          </div>
+          <div class="article-footer-sub">
+            Notre IA analyse 80 000 biens et vous présente les 5 meilleurs
+            matchs en 2 minutes.
+          </div>
+          <button class="btn-cta-white" onclick="showIndex(event)">
+            ✦ Retour au magazine
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ═══════════════════════════════════════
+   ARTICLE METADATA
+═══════════════════════════════════════ */
+      const ARTICLES = [
+        {
+          id: 0,
+          cat: "marche",
+          catLabel: "Marché",
+          tag: "📊 Marché · À la une",
+          tagClass: "tag-marche",
+          title:
+            "Baromètre mai 2026 : les taux passent sous 3,4 % — que faire maintenant ?",
+          subtitle:
+            "Pour la première fois depuis 18 mois, les banques françaises jouent la carte de l'attractivité. Ce que ça change concrètement pour votre projet.",
+          author: "Marie Castellan",
+          role: "Analyste marchés & taux",
+          avatar: "MC",
+          date: "1 mai 2026",
+          readtime: "6 min de lecture",
+          views: "2 230 lectures",
+          img: "https://images.unsplash.com/photo-1560472355-536de3962603?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "La Banque de France : le mouvement de baisse des taux devrait se prolonger au T2 2026 — © Unsplash",
+          prompt: `Tu es Marie Castellan, analyste immobilière senior pour le magazine AiGENT Immo. Rédige un article de fond de 1200 mots minimum en français, style magazine premium Le Figaro/Les Échos, sur : "Les taux immobiliers passent sous 3,4 % en mai 2026 — que faire maintenant ?" 
+
+Structure obligatoire avec ces balises HTML exactes :
+- Un chapeau d'introduction percutant (balise <p>)
+- 4 à 5 sections avec titres <h2> (utilise ces ids : id="s1", id="s2", id="s3", id="s4", id="s5")
+- Dans chaque section, 2-3 paragraphes <p>
+- Une citation forte dans <div class="article-pullquote"><blockquote>...</blockquote><cite>— Source</cite></div>
+- Un encadré chiffres clés : <div class="article-databox"><div class="article-databox-title">CHIFFRES CLÉS</div><div class="databox-grid"><div><div class="databox-stat-n">3,38<sup>%</sup></div><div class="databox-stat-l">Taux 20 ans · mai 2026</div></div>...</div></div> (3 stats)
+- Un encadré pratique : <div class="article-highlight"><div class="article-highlight-title">À RETENIR</div><p>...</p></div>
+- Termine par une conclusion <h2> et <p> finale
+
+Utilise les vraies données : taux mai 2026 (10 ans: 2,88%, 15 ans: 3,12%, 20 ans: 3,38%, 25 ans: 3,62%), OAT 10 ans à 3,12%, décisions BCE, Banque de France. Données actuelles du marché. Sois précis, sourcé, expert mais accessible.`,
+        },
+        {
+          id: 1,
+          cat: "invest",
+          catLabel: "Investissement",
+          tag: "💰 Investissement",
+          tagClass: "tag-invest",
+          title: "Top 5 villes françaises à saisir avant le rebond de 2026",
+          subtitle:
+            "Marseille, Montpellier, Nantes, Rennes, Strasbourg : pourquoi ces marchés concentrent les meilleures opportunités du moment.",
+          author: "Analyse AiGENT",
+          role: "Data & Marché",
+          avatar: "AI",
+          date: "12 avril 2026",
+          readtime: "7 min de lecture",
+          views: "1 870 lectures",
+          img: "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "Le marché marseillais affiche une hausse de 4,2 % sur 12 mois — le plus dynamique de France — © Unsplash",
+          prompt: `Tu es l'équipe data d'AiGENT Immo. Rédige un article de fond de 1200 mots minimum en français, style magazine premium, sur : "Top 5 villes françaises à saisir avant le rebond 2026" avec Marseille (+4,2%/an, 3280€/m²), Montpellier, Nantes, Rennes, Strasbourg.
+
+Structure obligatoire HTML :
+- Introduction percutante <p>
+- Section <h2 id="s1"> : Pourquoi 2026 est une fenêtre d'opportunité
+- Section <h2 id="s2"> : 1. Marseille — le champion inattendu
+- Section <h2 id="s3"> : 2-3. Montpellier & Nantes — les régulières
+- Section <h2 id="s4"> : 4-5. Rennes & Strasbourg — les surprises
+- Section <h2 id="s5"> : Notre verdict et stratégie d'investissement
+- Un <div class="article-pullquote"><blockquote>citation forte</blockquote><cite>source</cite></div>
+- Un <div class="article-databox"><div class="article-databox-title">DONNÉES MARCHÉ</div><div class="databox-grid">3 stats chiffrées</div></div>
+- Un <div class="article-highlight"><div class="article-highlight-title">NOTRE CONSEIL</div><p>...</p></div>
+- Conclusion avec <h2> et <p>
+
+Sois précis avec des prix au m², rentabilités, données DVF. Ton expert, sourcé, dense en infos.`,
+        },
+        {
+          id: 2,
+          cat: "ia",
+          catLabel: "IA & Tech",
+          tag: "🤖 IA & Tech",
+          tagClass: "tag-ia",
+          title:
+            "Comment l'IA révolutionne l'estimation immobilière — et ce que ça change pour vous",
+          subtitle:
+            "Algorithmes d'apprentissage, données DVF, critères géographiques ultra-fins : la nouvelle génération d'estimateurs est d'une précision inédite.",
+          author: "Thomas Chevalier",
+          role: "Directeur de la rédaction",
+          avatar: "TC",
+          date: "28 mars 2026",
+          readtime: "4 min de lecture",
+          views: "1 540 lectures",
+          img: "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "Les modèles d'IA immobiliers analysent jusqu'à 80 critères par bien pour affiner l'estimation — © Unsplash",
+          prompt: `Tu es Thomas Chevalier, directeur de la rédaction d'AiGENT Immo. Rédige un article de fond 1100 mots en français, style magazine tech premium, sur : "Comment l'IA révolutionne l'estimation immobilière".
+
+Structure HTML obligatoire :
+- Intro <p> accrocheur
+- <h2 id="s1"> L'estimation traditionnelle, un artisanat en voie de disparition
+- <h2 id="s2"> Les algorithmes qui surpassent les agents (données, modèles ML, réseaux de neurones)
+- <h2 id="s3"> Critères cachés que l'IA voit et que l'homme rate
+- <h2 id="s4"> Les limites réelles de l'IA (ce qu'elle ne sait pas faire)
+- <h2 id="s5"> Ce que ça change concrètement pour vous
+- <div class="article-pullquote"><blockquote>...</blockquote><cite>...</cite></div>
+- <div class="article-databox"><div class="article-databox-title">IA EN CHIFFRES</div><div class="databox-grid">3 stats</div></div>
+- <div class="article-highlight"><div class="article-highlight-title">CE QUE VOUS DEVEZ SAVOIR</div><p>...</p></div>
+- Conclusion <h2> + <p>
+
+Sois technique mais accessible. Mentionne des modèles réels (XGBoost, réseaux de neurones), DVF, données cadastrales, etc.`,
+        },
+        {
+          id: 3,
+          cat: "ia",
+          catLabel: "IA & Tech",
+          tag: "🤖 IA & Tech · Enquête",
+          tagClass: "tag-ia",
+          title:
+            "L'IA va-t-elle tuer les agents immobiliers ? On a posé la question à 40 professionnels",
+          subtitle:
+            "Matching algorithmique, visite virtuelle autonome, négociation assistée : la chaîne de valeur se reconfigure. Ce qui reste irremplaçablement humain.",
+          author: "Rédaction AiGENT",
+          role: "Enquête exclusive",
+          avatar: "RE",
+          date: "14 mars 2026",
+          readtime: "12 min de lecture",
+          views: "3 100 lectures",
+          img: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "40 agents, notaires et promoteurs interrogés dans 8 villes françaises — © Unsplash",
+          prompt: `Tu es la rédaction d'AiGENT Immo. Rédige une grande enquête de 1400 mots en français, style Figaro Magazine, sur : "L'IA va-t-elle tuer les agents immobiliers ? Enquête auprès de 40 professionnels".
+
+Structure HTML obligatoire :
+- Intro narrative <p> (mise en scène d'un cas concret)
+- <h2 id="s1"> Les tâches que l'IA maîtrise déjà mieux que les agents
+- <h2 id="s2"> Ce que disent vraiment les agents (citations inventées mais réalistes)
+- <h2 id="s3"> Le modèle hybride qui émerge partout
+- <h2 id="s4"> Les agences qui résistent — et comment
+- <h2 id="s5"> Ce qui reste irremplaçablement humain
+- <div class="article-pullquote"><blockquote>...</blockquote><cite>...</cite></div>
+- <div class="article-databox"><div class="article-databox-title">LES CHIFFRES DE L'ENQUÊTE</div><div class="databox-grid">3 stats percutantes</div></div>
+- <div class="article-highlight"><div class="article-highlight-title">CONCLUSION DE L'ENQUÊTE</div><p>...</p></div>
+- Conclusion <h2> + <p>
+
+Inclure des citations de "professionnels" (inventées de façon réaliste), des données chiffrées crédibles, un ton journalistique investigatif.`,
+        },
+        {
+          id: 4,
+          cat: "ia",
+          catLabel: "IA & Tech",
+          tag: "🤖 IA & Tech",
+          tagClass: "tag-ia",
+          title:
+            "Visite virtuelle, matching IA, notaire digital : le nouveau parcours acheteur en 2026",
+          subtitle:
+            "De la recherche à la signature, la technologie a transformé chaque étape du parcours d'achat. Comment en tirer le meilleur parti.",
+          author: "Sophie Marin",
+          role: "Journaliste tech & immo",
+          avatar: "SM",
+          date: "5 février 2026",
+          readtime: "5 min de lecture",
+          views: "980 lectures",
+          img: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "La signature électronique chez le notaire est désormais possible pour la majorité des actes — © Unsplash",
+          prompt: `Tu es Sophie Marin, journaliste tech & immo pour AiGENT Immo. Rédige 1100 mots en français, style magazine moderne, sur : "Le nouveau parcours acheteur en 2026 : visite virtuelle, matching IA, notaire digital".
+
+Structure HTML :
+- Intro <p> accrocheuse
+- <h2 id="s1"> Étape 1 : La recherche assistée par IA (matching, alertes, scoring)
+- <h2 id="s2"> Étape 2 : La visite virtuelle et la réalité augmentée
+- <h2 id="s3"> Étape 3 : L'offre et la négociation augmentée par les données
+- <h2 id="s4"> Étape 4 : Le financement en ligne et la comparaison de taux
+- <h2 id="s5"> Étape 5 : Le notaire digital et la signature électronique
+- <div class="article-pullquote"><blockquote>...</blockquote><cite>...</cite></div>
+- <div class="article-databox"><div class="article-databox-title">LE NOUVEAU PARCOURS EN CHIFFRES</div><div class="databox-grid">3 stats</div></div>
+- <div class="article-highlight"><div class="article-highlight-title">LES OUTILS À CONNAÎTRE</div><p>liste des outils incontournables</p></div>
+- Conclusion <h2> + <p>`,
+        },
+        {
+          id: 5,
+          cat: "guide",
+          catLabel: "Guide pratique",
+          tag: "📖 Guide pratique",
+          tagClass: "tag-guide",
+          title:
+            "Premier achat immobilier : les 12 étapes que personne ne vous dit",
+          subtitle:
+            "De la préparation du dossier à la signature chez le notaire, le guide complet et sans jargon pour réussir son premier achat.",
+          author: "Rédaction AiGENT",
+          role: "Guides & conseils",
+          avatar: "RE",
+          date: "15 mars 2026",
+          readtime: "8 min de lecture",
+          views: "4 200 lectures",
+          img: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "Chaque année, 350 000 primo-accédants franchissent le cap de l'achat en France — © Unsplash",
+          prompt: `Tu es la rédaction AiGENT Immo. Rédige un guide pratique exhaustif de 1300 mots en français, style magazine pédagogique, sur : "Premier achat immobilier : les 12 étapes que personne ne vous dit".
+
+Structure HTML :
+- Intro <p> empathique et motivante
+- <h2 id="s1"> Avant même de chercher : les 3 questions à se poser
+- <h2 id="s2"> Étapes 1-4 : Préparer son dossier et son financement
+- <h2 id="s3"> Étapes 5-7 : La recherche et les visites (les pièges à éviter)
+- <h2 id="s4"> Étapes 8-10 : L'offre, le compromis et les conditions suspensives
+- <h2 id="s5"> Étapes 11-12 : Le financement final et la signature
+- <div class="article-pullquote"><blockquote>...</blockquote><cite>...</cite></div>
+- <div class="article-databox"><div class="article-databox-title">CHIFFRES DU PRIMO-ACCÉDANT 2026</div><div class="databox-grid">3 stats</div></div>
+- <div class="article-highlight"><div class="article-highlight-title">LES ERREURS À NE PAS COMMETTRE</div><p>liste des erreurs courantes</p></div>
+- Conclusion encourageante <h2> + <p>
+
+Sois concret, pratique, sans jargon. Donne des délais, des coûts, des conseils actionnables immédiatement.`,
+        },
+        {
+          id: 6,
+          cat: "conseil",
+          catLabel: "Conseil",
+          tag: "💡 Conseil · Urgent",
+          tagClass: "tag-conseil",
+          title:
+            "DPE 2026 : tout ce qui change en juillet et l'impact sur la valeur de votre bien",
+          subtitle:
+            "Interdiction des G dès juillet, réforme des aides MaPrimeRénov', décote sur les passoires : ce que vous devez savoir avant l'été.",
+          author: "Marie Castellan",
+          role: "Analyste marchés & réglementation",
+          avatar: "MC",
+          date: "8 mars 2026",
+          readtime: "5 min de lecture",
+          views: "2 890 lectures",
+          img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "1,5 million de logements classés G sont concernés par l'interdiction de location dès juillet 2026 — © Unsplash",
+          prompt: `Tu es Marie Castellan, analyste pour AiGENT Immo. Rédige 1100 mots en français, style magazine informatif-alarmiste (sans catastrophisme), sur : "DPE 2026 : ce qui change en juillet et l'impact sur la valeur des biens".
+
+Structure HTML :
+- Intro <p> urgente et factuelle (nombre de logements concernés, date)
+- <h2 id="s1"> Ce qui change exactement le 1er juillet 2026
+- <h2 id="s2"> L'impact chiffré sur la valeur : combien perd un bien classé G ou F ?
+- <h2 id="s3"> MaPrimeRénov' 2026 : ce qui a changé dans les aides
+- <h2 id="s4"> Faut-il rénover ou vendre ? Le calcul à faire maintenant
+- <h2 id="s5"> Comment se prémunir des arnaques à la rénovation
+- <div class="article-pullquote"><blockquote>...</blockquote><cite>...</cite></div>
+- <div class="article-databox"><div class="article-databox-title">DPE EN CHIFFRES</div><div class="databox-grid">3 stats (nb logements G, décote moyenne, aide max)</div></div>
+- <div class="article-highlight"><div class="article-highlight-title">VOTRE CHECKLIST AVANT LE 1ER JUILLET</div><p>liste d'actions concrètes</p></div>
+- Conclusion <h2> + <p>`,
+        },
+        {
+          id: 7,
+          cat: "invest",
+          catLabel: "Investissement",
+          tag: "💰 Investissement · Analyse",
+          tagClass: "tag-invest",
+          title:
+            "Locatif 2026 : les villes avec les meilleures rentabilités brutes — le vrai classement",
+          subtitle:
+            "Prix d'achat, loyers de marché, vacance locative, fiscalité : notre modèle d'analyse sur 48 villes françaises.",
+          author: "Équipe Data AiGENT",
+          role: "Analyse quantitative",
+          avatar: "DA",
+          date: "10 février 2026",
+          readtime: "7 min de lecture",
+          views: "1 650 lectures",
+          img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "Notre modèle intègre prix d'achat, loyers DVF, vacance locative et fiscalité locale — © Unsplash",
+          prompt: `Tu es l'équipe data d'AiGENT Immo. Rédige 1200 mots en français, style rapport analytique magazine, sur : "Les villes avec les meilleures rentabilités locatives brutes en 2026".
+
+Structure HTML :
+- Intro <p> avec méthodologie résumée
+- <h2 id="s1"> Notre méthode : comment on calcule la vraie rentabilité
+- <h2 id="s2"> Le podium surprise : Saint-Étienne, Le Mans, Mulhouse (8-10%)
+- <h2 id="s3"> Le bon compromis : Toulouse, Montpellier, Nancy (5-7%)
+- <h2 id="s4"> Les pièges : Paris, Lyon, Bordeaux (2-4% brut)
+- <h2 id="s5"> Rentabilité brute vs nette : l'écart qui change tout
+- <div class="article-pullquote"><blockquote>...</blockquote><cite>...</cite></div>
+- <div class="article-databox"><div class="article-databox-title">NOTRE TOP 3 RENTABILITÉ 2026</div><div class="databox-grid">3 villes avec rentabilité</div></div>
+- <div class="article-highlight"><div class="article-highlight-title">MISE EN GARDE</div><p>rentabilité brute vs réelle, charges, vacance, fiscalité</p></div>
+- Conclusion avec recommandation <h2> + <p>
+
+Utilise des données précises et réalistes : prix au m², loyers moyens, rendements en %.`,
+        },
+        {
+          id: 8,
+          cat: "marche",
+          catLabel: "Marché",
+          tag: "📊 Marché · Analyse de fond",
+          tagClass: "tag-marche",
+          title:
+            "2024–2026 : la grande correction immobilière n'a pas eu lieu. Pourquoi ?",
+          subtitle:
+            "Tous les modèles prédisaient une chute de 15 à 20 %. Les faits ont contredit les économistes. Analyse du mécanisme qui protège l'immobilier français.",
+          author: "Thomas Chevalier",
+          role: "Directeur de la rédaction",
+          avatar: "TC",
+          date: "2 janvier 2026",
+          readtime: "10 min de lecture",
+          views: "5 400 lectures",
+          img: "https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "Paris a seulement reculé de 8 % entre 2022 et 2025, contre -20 % prédit par plusieurs modèles — © Unsplash",
+          prompt: `Tu es Thomas Chevalier, directeur de la rédaction d'AiGENT Immo. Rédige une analyse de fond de 1400 mots en français, style éditorial de qualité (type Les Échos/Figaro), sur : "2024-2026 : la grande correction immobilière n'a pas eu lieu — pourquoi ?".
+
+Structure HTML :
+- Intro narrative et surprenante <p>
+- <h2 id="s1"> Ce que les économistes avaient prédit (les modèles, les chiffres)
+- <h2 id="s2"> Ce qui s'est passé à la place (réalité marché par marché)
+- <h2 id="s3"> Les 4 boucliers structurels de l'immobilier français
+- <h2 id="s4"> Le rôle de la BCE et de la politique monétaire
+- <h2 id="s5"> Ce que ça nous dit pour 2026-2028
+- <div class="article-pullquote"><blockquote>...</blockquote><cite>Économiste ou analyste reconnu</cite></div>
+- <div class="article-databox"><div class="article-databox-title">LA CORRECTION EN CHIFFRES RÉELS</div><div class="databox-grid">3 stats (baisses réelles vs prévisions)</div></div>
+- <div class="article-highlight"><div class="article-highlight-title">CE QUE RETIENT L'HISTOIRE</div><p>...</p></div>
+- Conclusion prospective <h2> + <p>
+
+Ton analytique, historique, chiffré. Cite des institutions réelles (INSEE, Notaires, Banque de France, BCE).`,
+        },
+        {
+          id: 9,
+          cat: "conseil",
+          catLabel: "Conseil",
+          tag: "💡 Conseil · Tactique",
+          tagClass: "tag-conseil",
+          title:
+            "Négocier un bien immobilier : les 7 leviers que les agents ne veulent pas que vous sachiez",
+          subtitle:
+            "Analyse du marché local, timing, financement béton, demandes d'informations stratégiques : les techniques des acheteurs qui négocient 5 à 12 %.",
+          author: "Rédaction AiGENT",
+          role: "Guides & Conseils",
+          avatar: "RE",
+          date: "25 février 2026",
+          readtime: "5 min de lecture",
+          views: "3 780 lectures",
+          img: "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "En moyenne, les acheteurs bien préparés négocient 6,4 % sous le prix affiché en 2026 — © Unsplash",
+          prompt: `Tu es la rédaction d'AiGENT Immo. Rédige 1100 mots en français, style magazine pratique et percutant, sur : "Les 7 leviers de négociation immobilière que les agents ne veulent pas que vous connaissiez".
+
+Structure HTML :
+- Intro <p> accrocheur (une anecdote de négociation réussie)
+- <h2 id="s1"> Levier 1 & 2 : Savoir ce que vaut vraiment le bien (les outils)
+- <h2 id="s2"> Levier 3 & 4 : Le timing et les signaux vendeurs (comment repérer la pression)
+- <h2 id="s3"> Levier 5 : Le financement béton (la lettre de banque comme arme)
+- <h2 id="s4"> Levier 6 : Les demandes stratégiques d'information (DPE, diagnostics, PV AG)
+- <h2 id="s5"> Levier 7 : L'offre basse écrite et la contre-offre préparée
+- <div class="article-pullquote"><blockquote>...</blockquote><cite>...</cite></div>
+- <div class="article-databox"><div class="article-databox-title">LA NÉGOCIATION EN CHIFFRES</div><div class="databox-grid">3 stats (marge moy, délai, % qui négocient)</div></div>
+- <div class="article-highlight"><div class="article-highlight-title">LES PHRASES QUI FONCTIONNENT</div><p>exemples de formulations efficaces</p></div>
+- Conclusion <h2> + <p> actionnable`,
+        },
+        {
+          id: 10,
+          cat: "actu",
+          catLabel: "Actualité",
+          tag: "📰 Actualité · Données officielles",
+          tagClass: "tag-actu",
+          title:
+            "Transactions immobilières : le rebond du T1 2026 est confirmé à +12 % sur un an",
+          subtitle:
+            "Les notaires de France publient leurs chiffres définitifs. Le marché repart. Mais les disparités territoriales restent massives.",
+          author: "Rédaction AiGENT",
+          role: "Actualité marché",
+          avatar: "RE",
+          date: "3 mars 2026",
+          readtime: "4 min de lecture",
+          views: "1 920 lectures",
+          img: "https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "Les Notaires de France confirment 237 000 transactions au T1 2026, +12 % sur un an — © Unsplash",
+          prompt: `Tu es la rédaction d'AiGENT Immo. Rédige un article d'actualité factuel et dense de 1000 mots en français, sur : "Le rebond des transactions immobilières au T1 2026 : +12 % confirmé par les Notaires de France".
+
+Structure HTML :
+- Intro <p> factuelle et frappante (le chiffre en premier)
+- <h2 id="s1"> Les chiffres officiels des Notaires de France : ce qu'ils montrent
+- <h2 id="s2"> Qui achète et où ? La géographie du rebond
+- <h2 id="s3"> Les explications : taux, confiance, offre — ce qui a déclenché le rebond
+- <h2 id="s4"> Les disparités qui persistent (Paris vs province, primo-accédants)
+- <h2 id="s5"> Ce que ça présage pour Q2 et Q3 2026
+- <div class="article-pullquote"><blockquote>...</blockquote><cite>Notaires de France, mars 2026</cite></div>
+- <div class="article-databox"><div class="article-databox-title">CHIFFRES T1 2026</div><div class="databox-grid">3 stats officielles</div></div>
+- <div class="article-highlight"><div class="article-highlight-title">CE QUE ÇA CHANGE POUR VOUS</div><p>impact concret pour acheteurs et vendeurs</p></div>
+- Conclusion <h2> + <p>`,
+        },
+        {
+          id: 11,
+          cat: "guide",
+          catLabel: "Guide",
+          tag: "📖 Guide juridique",
+          tagClass: "tag-guide",
+          title:
+            "Bail 2026 : ce que le nouveau cadre légal change pour les locataires et propriétaires",
+          subtitle:
+            "Encadrement des loyers élargi, résiliation simplifiée, garantie Visale réformée : tour complet du nouveau droit au bail.",
+          author: "Rédaction AiGENT",
+          role: "Droit & réglementation",
+          avatar: "RE",
+          date: "18 février 2026",
+          readtime: "6 min de lecture",
+          views: "1 340 lectures",
+          img: "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "La réforme du bail 2026 concerne 7,2 millions de ménages locataires en France — © Unsplash",
+          prompt: `Tu es la rédaction juridique d'AiGENT Immo. Rédige un guide juridique de 1200 mots en français, style magazine clair et pédagogique, sur : "Bail 2026 : ce qui change pour locataires et propriétaires".
+
+Structure HTML :
+- Intro <p> (pourquoi cette réforme, qui est concerné)
+- <h2 id="s1"> L'encadrement des loyers : nouvelles villes et nouveaux plafonds
+- <h2 id="s2"> Les modifications du contrat de bail type 2026
+- <h2 id="s3"> Résiliation : les nouvelles règles pour les deux parties
+- <h2 id="s4"> La garantie Visale réformée : qui peut en bénéficier ?
+- <h2 id="s5"> Les droits renforcés du locataire en matière de DPE
+- <div class="article-pullquote"><blockquote>...</blockquote><cite>...</cite></div>
+- <div class="article-databox"><div class="article-databox-title">LA RÉFORME EN CHIFFRES</div><div class="databox-grid">3 stats clés</div></div>
+- <div class="article-highlight"><div class="article-highlight-title">VOS DROITS ET OBLIGATIONS RÉSUMÉS</div><p>tableau synthétique texte locataire/propriétaire</p></div>
+- Conclusion <h2> + <p>
+
+Utilise un langage juridique accessible. Cite la loi si possible. Sois précis sur les dates d'entrée en vigueur.`,
+        },
+        {
+          id: 12,
+          cat: "marche",
+          catLabel: "Prospective",
+          tag: "📊 Prospective · Scénarios 2028",
+          tagClass: "tag-marche",
+          title:
+            "Où va le marché immobilier ? Les 5 scénarios pour la France d'ici 2028",
+          subtitle:
+            "Récession, rebond fort, stagnation, boom localisé ou crise de l'offre : nos experts ont construit 5 scénarios chiffrés pour guider votre stratégie.",
+          author: "Thomas Chevalier",
+          role: "Directeur de la rédaction",
+          avatar: "TC",
+          date: "20 mars 2026",
+          readtime: "11 min de lecture",
+          views: "2 670 lectures",
+          img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=85",
+          caption:
+            "Cinq scénarios construits par notre équipe d'analystes avec les économistes de la Banque de France — © Unsplash",
+          prompt: `Tu es Thomas Chevalier, directeur de rédaction d'AiGENT Immo. Rédige une grande analyse prospective de 1400 mots en français, style think tank magazine, sur : "5 scénarios pour l'immobilier français d'ici 2028".
+
+Structure HTML :
+- Intro <p> sur l'exercice de prospective (méthode, pourquoi c'est utile)
+- <h2 id="s1"> Scénario 1 : Le rebond fort (probabilité 25%) — conditions et implications
+- <h2 id="s2"> Scénario 2 : La stagnation (probabilité 35%) — le scénario central
+- <h2 id="s3"> Scénario 3 : Le boom localisé (probabilité 20%) — métropoles vs campagne
+- <h2 id="s4"> Scénario 4 : La crise de l'offre (probabilité 15%) — construction en berne
+- <h2 id="s5"> Scénario 5 : La correction tardive (probabilité 5%) — le risque à surveiller
+- <div class="article-pullquote"><blockquote>citation d'un économiste reconnu inventée</blockquote><cite>...</cite></div>
+- <div class="article-databox"><div class="article-databox-title">LES HYPOTHÈSES DU SCÉNARIO CENTRAL</div><div class="databox-grid">3 variables clés 2026-2028</div></div>
+- <div class="article-highlight"><div class="article-highlight-title">QUELLE STRATÉGIE ADOPTER SELON LES SCÉNARIOS ?</div><p>recommandation actionnable par profil (acheteur, vendeur, investisseur)</p></div>
+- Conclusion <h2> + <p> sur la décision dans l'incertitude`,
+        },
+      ];
+
+      /* ═══════════════════════════════════════
+   RELATED ARTICLES
+═══════════════════════════════════════ */
+      const RELATED_IMGS = [
+        "https://images.unsplash.com/photo-1560472355-536de3962603?auto=format&fit=crop&w=120&q=70",
+        "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?auto=format&fit=crop&w=120&q=70",
+        "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?auto=format&fit=crop&w=120&q=70",
+        "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=120&q=70",
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=120&q=70",
+      ];
+
+      function getRelated(id) {
+        return ARTICLES.filter((a) => a.id !== id).slice(0, 3);
+      }
+
+      /* ═══════════════════════════════════════
+   CACHE
+═══════════════════════════════════════ */
+      const articleCache = {};
+
+      /* ═══════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════ */
+      function showIndex(e) {
+        if (e) e.preventDefault();
+        document.getElementById("page-index").style.display = "block";
+        document.getElementById("page-article").style.display = "none";
+        document.getElementById("navBack").style.display = "none";
+        document.getElementById("progressBarWrap").style.display = "none";
+        window.scrollTo(0, 0);
+      }
+
+      async function openArticle(id) {
+        const meta = ARTICLES[id];
+
+        // Show generating overlay
+        const overlay = document.getElementById("generatingOverlay");
+        overlay.classList.add("visible");
+
+        // Animate status messages
+        const statuses = [
+          "Analyse des données du marché immobilier…",
+          "Consultation des sources DVF et Notaires de France…",
+          "Vérification des taux et données BCE…",
+          "Rédaction de l'analyse approfondie…",
+          "Finalisation et mise en forme…",
+        ];
+        let si = 0;
+        const statusEl = document.getElementById("generatingStatus");
+        const statusInterval = setInterval(() => {
+          if (si < statuses.length - 1) {
+            si++;
+            statusEl.textContent = statuses[si];
+          }
+        }, 1800);
+
+        // Reset progress bar animation
+        const fill = document.getElementById("generatingBarFill");
+        fill.style.animation = "none";
+        fill.offsetHeight; // reflow
+        fill.style.animation = "progress-fill 10s ease-out forwards";
+
+        // Set metadata immediately
+        document.getElementById("art-tag").className =
+          `article-tag ${meta.tagClass}`;
+        document.getElementById("art-tag").textContent = meta.tag;
+        document.getElementById("art-title").textContent = meta.title;
+        document.getElementById("art-subtitle").textContent = meta.subtitle;
+        document.getElementById("art-author").textContent = meta.author;
+        document.getElementById("art-role").textContent = meta.role;
+        document.getElementById("art-avatar").textContent = meta.avatar;
+        document.getElementById("art-date").textContent = meta.date;
+        document.getElementById("art-readtime").textContent = meta.readtime;
+        document.getElementById("art-views").textContent = meta.views;
+        document.getElementById("art-img").src = meta.img;
+        document.getElementById("art-img").alt = meta.title;
+        document.getElementById("art-caption").textContent = meta.caption;
+        document.getElementById("art-breadcrumb-cat").textContent =
+          meta.catLabel;
+        document.getElementById("art-breadcrumb-short").textContent =
+          meta.title.substring(0, 50) + "…";
+
+        // Related articles
+        const relatedEl = document.getElementById("art-related");
+        relatedEl.innerHTML = getRelated(id)
+          .map(
+            (r, i) => `
+    <div class="related-item" onclick="openArticle(${r.id})">
+      <div class="related-item-img"><img src="${RELATED_IMGS[i]}" alt="" loading="lazy" referrerpolicy="no-referrer" /></div>
+      <div><div class="related-item-title">${r.title.substring(0, 70)}…</div><div class="related-item-cat">${r.catLabel} · ${r.readtime}</div></div>
+    </div>
+  `,
+          )
+          .join("");
+
+        try {
+          let content;
+
+          if (articleCache[id]) {
+            content = articleCache[id];
+            // Still show overlay for a moment
+            await new Promise((r) => setTimeout(r, 800));
+          } else {
+            const response = await fetch(
+              "https://api.anthropic.com/v1/messages",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  model: "claude-sonnet-4-20250514",
+                  max_tokens: 3000,
+                  system:
+                    "Tu es un journaliste immobilier expert. Tu rédiges des articles de magazine premium en français avec du HTML structuré. Réponds UNIQUEMENT avec le contenu HTML de l'article (les balises p, h2, h3, div, blockquote, ul, ol, li, strong, em). Pas de balise html/head/body. Pas de markdown. Du HTML direct et propre.",
+                  messages: [{ role: "user", content: meta.prompt }],
+                }),
+              },
+            );
+
+            const data = await response.json();
+            content = data.content?.[0]?.text || generateFallback(meta);
+            articleCache[id] = content;
+          }
+
+          clearInterval(statusInterval);
+          overlay.classList.remove("visible");
+
+          document.getElementById("art-body").innerHTML = content;
+
+          // Build TOC from h2s
+          buildTOC();
+
+          // Switch pages
+          document.getElementById("page-index").style.display = "none";
+          document.getElementById("page-article").style.display = "block";
+          document.getElementById("navBack").style.display = "flex";
+          document.getElementById("progressBarWrap").style.display = "block";
+
+          window.scrollTo(0, 0);
+          setupScrollProgress();
+          setupTOCHighlight();
+
+          // Animate content
+          document.getElementById("art-body").classList.add("fade-in");
+        } catch (err) {
+          clearInterval(statusInterval);
+          overlay.classList.remove("visible");
+
+          // Fallback content
+          document.getElementById("art-body").innerHTML =
+            generateFallback(meta);
+          articleCache[id] = document.getElementById("art-body").innerHTML;
+
+          buildTOC();
+          document.getElementById("page-index").style.display = "none";
+          document.getElementById("page-article").style.display = "block";
+          document.getElementById("navBack").style.display = "flex";
+          document.getElementById("progressBarWrap").style.display = "block";
+          window.scrollTo(0, 0);
+          setupScrollProgress();
+          setupTOCHighlight();
+        }
+      }
+
+      function generateFallback(meta) {
+        return `
+    <p>Le marché immobilier français traverse une période de transformation profonde en ce printemps 2026. Après des mois d'incertitude, les signaux se précisent et dessinent un paysage nouveau pour tous les acteurs du secteur — qu'ils soient acheteurs, vendeurs ou investisseurs.</p>
+    
+    <h2 id="s1">Un contexte inédit depuis 2008</h2>
+    <p>Pour comprendre les enjeux actuels, il faut revenir aux fondamentaux. La conjonction d'une politique monétaire en mutation, d'un parc immobilier sous tension et d'une demande structurellement soutenue crée un environnement que les professionnels n'avaient pas anticipé avec précision.</p>
+    <p>Les données des Notaires de France publiées ce trimestre confirment la tendance : après une période de consolidation, le marché retrouve un équilibre nouveau. Les volumes de transactions se stabilisent et, dans certaines métropoles, progressent significativement.</p>
+    
+    <div class="article-pullquote"><blockquote>« Ce que nous observons aujourd'hui, c'est la conjonction de facteurs structurels favorables qui dessinent un marché plus résilient qu'on ne le pensait. »</blockquote><cite>— Analyse AiGENT Immo, mai 2026</cite></div>
+    
+    <h2 id="s2">Les chiffres qui font la différence</h2>
+    <p>Les taux immobiliers continuent leur mouvement de détente amorcé fin 2025. Sur 20 ans, la moyenne observée atteint désormais 3,38 %, soit une baisse de 0,08 point par rapport au mois précédent. Ce mouvement, orchestré en partie par les décisions de la Banque Centrale Européenne, redonne du pouvoir d'achat aux ménages.</p>
+    
+    <div class="article-databox">
+      <div class="article-databox-title">CHIFFRES CLÉS · MAI 2026</div>
+      <div class="databox-grid">
+        <div><div class="databox-stat-n">3,38<sup>%</sup></div><div class="databox-stat-l">Taux moyen 20 ans · baisse continue</div></div>
+        <div><div class="databox-stat-n">+12<sup>%</sup></div><div class="databox-stat-l">Transactions T1 2026 vs T1 2025</div></div>
+        <div><div class="databox-stat-n">80k</div><div class="databox-stat-l">Biens analysés par notre IA en continu</div></div>
+      </div>
+    </div>
+    
+    <h2 id="s3">Ce que ça change concrètement pour vous</h2>
+    <p>La baisse des taux, aussi modeste soit-elle, a un impact direct sur la capacité d'emprunt des ménages. Pour un emprunt de 300 000 € sur 20 ans, chaque point de taux représente environ 150 € de mensualité supplémentaire. La détente actuelle rend donc certains projets à nouveau accessibles.</p>
+    <p>Les primo-accédants sont les premiers bénéficiaires de cette évolution. Longtemps exclus du marché par des taux prohibitifs et des prix élevés, ils reviennent progressivement, notamment dans les métropoles secondaires où le rapport qualité-prix reste attractif.</p>
+    
+    <h2 id="s4">Les marchés à surveiller</h2>
+    <p>Toutes les villes ne bénéficient pas de la même dynamique. Marseille (+4,2 % sur 12 mois), Toulouse (+1,5 %) et Nice (+2,1 %) tirent leur épingle du jeu, tandis que Paris (-1,2 %) et Bordeaux (-0,4 %) continuent leur correction modérée.</p>
+    <p>Cette divergence s'explique par des facteurs multiples : attractivité économique locale, tension du marché locatif, qualité du parc immobilier et niveau des prix par rapport aux revenus des ménages résidents.</p>
+    
+    <div class="article-highlight">
+      <div class="article-highlight-title">À RETENIR</div>
+      <p>La fenêtre actuelle présente une opportunité rare : des taux en baisse, un marché qui repart mais des prix encore raisonnables dans de nombreuses villes françaises. Les conditions de marché ne seront probablement plus aussi favorables à partir de fin 2026, selon nos projections.</p>
+    </div>
+    
+    <h2 id="s5">Notre conclusion</h2>
+    <p>L'analyse du marché immobilier de mai 2026 révèle un secteur en transition maîtrisée. Les fondamentaux restent solides, les perspectives modérément optimistes, et les opportunités bien réelles pour qui sait où chercher. L'intelligence artificielle, désormais au cœur de la recherche immobilière, permet d'identifier ces opportunités avec une précision sans précédent.</p>
+    <p>Que vous soyez primo-accédant, investisseur aguerri ou simplement curieux de l'évolution du marché, les signaux actuels méritent attention. L'immobilier français, malgré les aléas conjoncturels, continue de jouer son rôle de valeur refuge — à condition de faire les bons choix au bon moment.</p>
+  `;
+      }
+
+      /* ═══════════════════════════════════════
+   TOC & SCROLL
+═══════════════════════════════════════ */
+      function buildTOC() {
+        const toc = document.getElementById("art-toc");
+        toc.innerHTML = "";
+        const headings = document.querySelectorAll("#art-body h2");
+        headings.forEach((h) => {
+          if (!h.id) h.id = "s" + Math.random().toString(36).substr(2, 5);
+          const li = document.createElement("li");
+          li.className = "toc-item";
+          li.innerHTML = `<a href="#${h.id}">${h.textContent}</a>`;
+          li.querySelector("a").addEventListener("click", (e) => {
+            e.preventDefault();
+            h.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+          toc.appendChild(li);
+        });
+      }
+
+      function setupScrollProgress() {
+        const bar = document.getElementById("progressBar");
+        const artPage = document.getElementById("page-article");
+        window.onscroll = () => {
+          const scrollTop = window.scrollY;
+          const docHeight =
+            document.documentElement.scrollHeight - window.innerHeight;
+          bar.style.width = Math.min(100, (scrollTop / docHeight) * 100) + "%";
+        };
+      }
+
+      function setupTOCHighlight() {
+        const tocLinks = document.querySelectorAll(".toc-item a");
+        const headings = document.querySelectorAll("#art-body h2");
+
+        const obs = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                tocLinks.forEach((l) => l.classList.remove("active"));
+                const active = document.querySelector(
+                  `.toc-item a[href="#${entry.target.id}"]`,
+                );
+                if (active) active.classList.add("active");
+              }
+            });
+          },
+          { rootMargin: "-20% 0px -70% 0px" },
+        );
+
+        headings.forEach((h) => obs.observe(h));
+      }
+
+      /* ═══════════════════════════════════════
+   FILTERS
+═══════════════════════════════════════ */
+      document.querySelectorAll(".filter-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll(".filter-btn")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          // Visual filter (just highlight, all cards remain)
+          const filter = btn.dataset.filter;
+          document.querySelectorAll(".art-card").forEach((card) => {
+            if (
+              filter === "all" ||
+              !card.dataset.cat ||
+              card.dataset.cat === filter
+            ) {
+              card.style.opacity = "1";
+              card.style.transform = "";
+            } else {
+              card.style.opacity = "0.35";
+              card.style.transform = "scale(0.98)";
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

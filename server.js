@@ -9,6 +9,7 @@ import helmet from "helmet";
 import compression from "compression";
 import morgan from "morgan";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import Cerebras from "@cerebras/cerebras_cloud_sdk";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import path from "path";
@@ -171,6 +172,7 @@ app.use(
           "'self'",
           "data:",
           "blob:",
+          "https:", // ← autorise toutes les images HTTPS (nécessaire pour NewsData)
           "https://images.unsplash.com",
           "https://plus.unsplash.com",
           "https://*.tile.openstreetmap.org",
@@ -191,8 +193,9 @@ app.use(
           "https://overpass-api.de",
           "https://threejs.org",
           "https://api.languagetoolplus.com",
+          "https://newsdata.io",
+          "https://api.deepseek.com",
         ],
-
         fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
 
         frameSrc: ["'self'"],
@@ -2999,6 +3002,228 @@ app.get("/api/marche", authenticateToken, async function (req, res) {
   } catch (err) {
     console.error("[/api/marche]", err);
     res.status(500).json({ error: "Erreur serveur stats marché" });
+  }
+});
+
+// ================== CONFIG PUBLIC POUR AI-NEWS ==================
+// ================== CONFIG PUBLIC POUR AI-NEWS ==================
+const cerebras = new Cerebras({
+  apiKey: process.env.CEREBRAS_API_KEY,
+});
+
+const MODELS_FALLBACK = [
+  "gpt-oss-120b",
+  "qwen-3-235b-a22b-instruct-2507",
+  "zai-glm-4.7",
+  "llama3.1-8b",
+];
+async function listModels() {
+  try {
+    const models = await cerebras.models.list();
+
+    console.log("📦 Modèles disponibles :");
+
+    models.data.forEach((m, i) => {
+      console.log(`${i + 1}. ${m.id}`);
+    });
+
+    return models.data;
+  } catch (err) {
+    console.error("❌ Erreur list models:", err.message);
+  }
+}
+app.get("/api/config", (req, res) => {
+  const newsKey = process.env.NEWSDATA_API_KEY || "";
+
+  if (!newsKey) {
+    console.error("[CONFIG] ❌ NEWSDATA_API_KEY absente du .env");
+  } else {
+    console.log("[CONFIG] ✅ NEWSDATA_API_KEY →", newsKey.slice(0, 8) + "…");
+  }
+
+  res.json({
+    newsDataKey: newsKey,
+    aiApiKey: "",
+  });
+});
+async function cerebrasChatWithFallback({
+  messages,
+  temperature,
+  max_completion_tokens,
+}) {
+  let lastError;
+
+  for (const model of MODELS_FALLBACK) {
+    try {
+      console.log(`[CEREBRAS] 🤖 Tentative modèle: ${model}`);
+
+      const response = await cerebras.chat.completions.create({
+        model,
+        temperature,
+        max_completion_tokens,
+        messages,
+      });
+
+      console.log(`[CEREBRAS] ✅ Succès avec: ${model}`);
+
+      return response;
+    } catch (err) {
+      console.warn(`[CEREBRAS] ⚠️ Échec ${model}:`, err.message);
+      lastError = err;
+    }
+  }
+
+  throw lastError;
+}
+// ================== SÉLECTION ARTICLES IA ==================
+app.post("/api/select-articles", async (req, res) => {
+  try {
+    const { items } = req.body;
+
+    if (!items?.length) {
+      return res.status(400).json({ error: "items requis" });
+    }
+
+    if (!process.env.CEREBRAS_API_KEY) {
+      console.error("[select-articles] ❌ CEREBRAS_API_KEY absente");
+
+      return res.json({
+        selected: items.slice(0, 6).map((_, i) => i),
+      });
+    }
+
+    const prompt = `Tu es expert en immobilier français.
+
+Réponds UNIQUEMENT en JSON valide, sans markdown ni commentaire.
+
+Voici ${items.length} titres.
+
+Sélectionne les ${Math.min(6, items.length)} plus pertinents pour un média immobilier premium.
+
+Réponds uniquement :
+{ "selected": [0,1,3] }
+
+Articles :
+${items.map((a, i) => `${i}. ${a.title}`).join("\n")}`;
+
+    console.log("[select-articles] 🤖 Appel Cerebras…");
+
+    const response = await cerebrasChatWithFallback({
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2,
+      max_completion_tokens: 200,
+    });
+
+    const text = response.choices?.[0]?.message?.content || "";
+
+    console.log("[select-articles] ✅ Réponse Cerebras:", text.slice(0, 100));
+
+    const jsonMatch = text
+      .replace(/```json|```/g, "")
+      .trim()
+      .match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) {
+      console.warn("[select-articles] ⚠️ Pas de JSON");
+
+      return res.json({
+        selected: items.slice(0, 6).map((_, i) => i),
+      });
+    }
+
+    const { selected } = JSON.parse(jsonMatch[0]);
+
+    res.json({
+      selected: Array.isArray(selected)
+        ? selected
+        : items.slice(0, 6).map((_, i) => i),
+    });
+  } catch (err) {
+    console.error("[select-articles] ❌ Erreur fatale:", err);
+
+    res.json({
+      selected: req.body.items?.slice(0, 6).map((_, i) => i) || [],
+    });
+  }
+});
+// ================== GÉNÉRATION ARTICLE IA (côté serveur) ==================
+// ================== GÉNÉRATION ARTICLE IA ==================
+app.post("/api/generate-article", async (req, res) => {
+  try {
+    const { title, description } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ error: "title requis" });
+    }
+
+    if (!process.env.CEREBRAS_API_KEY) {
+      console.error("[generate-article] ❌ CEREBRAS_API_KEY absente");
+
+      return res.status(500).json({
+        error: "CEREBRAS_API_KEY manquante",
+      });
+    }
+
+    const prompt = `Tu es rédacteur senior pour un média immobilier premium français (AiGENT).
+
+Réponds UNIQUEMENT en JSON valide, sans markdown ni commentaire.
+
+À partir de cette actualité, génère un article complet.
+
+Titre original : "${title}"
+Résumé : "${description || ""}"
+
+JSON attendu :
+
+{
+  "title": "titre accrocheur SEO (max 90 car.)",
+  "slug": "slug-url-propre",
+  "category": "marche|investissement|guide|ia-tech|dpe|actualite|tendance|juridique",
+  "tags": ["tag1","tag2","tag3"],
+  "metaDescription": "meta description SEO (max 160 car.)",
+  "excerpt": "chapô accrocheur (2 phrases max)",
+  "content": "article en HTML (800-1200 mots)",
+  "readTime": 5
+}`;
+
+    console.log(
+      "[generate-article] 🤖 Appel Cerebras pour:",
+      title.slice(0, 60),
+    );
+
+    const response = await cerebrasChatWithFallback({
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_completion_tokens: 2500,
+    });
+
+    const text = response.choices?.[0]?.message?.content || "";
+
+    console.log("[generate-article] ✅ Réponse reçue:", text.length, "chars");
+
+    const jsonMatch = text
+      .replace(/```json|```/g, "")
+      .trim()
+      .match(/\{[\s\S]*\}/);
+
+    if (!jsonMatch) {
+      console.error("[generate-article] ❌ Pas de JSON:", text.slice(0, 200));
+
+      return res.status(500).json({
+        error: "Pas de JSON dans la réponse Cerebras",
+        raw: text.slice(0, 200),
+      });
+    }
+
+    const article = JSON.parse(jsonMatch[0]);
+
+    res.json({ article });
+  } catch (err) {
+    console.error("[generate-article] ❌ Erreur fatale:", err);
+
+    res.status(500).json({
+      error: err.message,
+    });
   }
 });
 // ================== START ==================

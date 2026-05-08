@@ -1,0 +1,142 @@
+:root {
+  --primary: #4f46e5;
+  --dark-nav: #0f172a;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --bg-light: #f8fafc;
+  --white: #ffffff;
+  --border: #e2e8f0;
+  --font-titles: "Lora", serif;
+  --font-sans: "Sora", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-light);
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+/* HEADER PREMIUM CONTRASTÉ */
+header {
+  background: var(--dark-nav);
+  color: white;
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2rem;
+}
+.logo {
+  font-weight: 800;
+  font-size: 1.4rem;
+  text-decoration: none;
+  color: white;
+  letter-spacing: -1px;
+}
+.logo span {
+  color: var(--primary);
+}
+nav ul {
+  display: flex;
+  list-style: none;
+  gap: 2rem;
+}
+nav a {
+  text-decoration: none;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: 0.3s;
+}
+nav a:hover,
+nav a.active {
+  color: white;
+}
+.btn-match {
+  background: var(--primary);
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* LAYOUTS */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2rem;
+}
+
+/* CARDS MAGAZINE */
+.card {
+  background: var(--white);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: 0.4s;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+}
+.card-img {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+}
+.card-body {
+  padding: 1.5rem;
+}
+.card-tag {
+  color: var(--primary);
+  font-weight: 800;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+.card h3 {
+  font-family: var(--font-titles);
+  font-size: 1.3rem;
+  margin-bottom: 0.75rem;
+}
+.card p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* FOOTER */
+footer {
+  background: var(--dark-nav);
+  color: #94a3b8;
+  padding: 4rem 2rem;
+  text-align: center;
+  margin-top: 4rem;
+}
+footer strong {
+  color: white;
+}

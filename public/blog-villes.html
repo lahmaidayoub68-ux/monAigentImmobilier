@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Les Villes à surveiller en 2026 | AiGENT</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --rose: #c2185b;
+        --rose-light: #fce4ec;
+        --rose-pale: #fdf0f5;
+        --violet: #6a1b9a;
+        --violet-dark: #4a148c;
+        --grad: linear-gradient(135deg, #c2185b 0%, #7b1fa2 100%);
+        --grad-text: linear-gradient(135deg, #c2185b 0%, #8e24aa 100%);
+        --ink: #1a0a10;
+        --ink-2: #3d1f2c;
+        --ink-3: #8d6a78;
+        --border: #e8d5dc;
+        --border-light: #f2e5ea;
+        --bg: #fdf7f9;
+        --white: #ffffff;
+        --max: 1200px;
+        --r: 12px;
+        --r-lg: 20px;
+        --sh: 0 4px 16px rgba(90, 10, 40, 0.06);
+        --sh-md: 0 8px 32px rgba(90, 10, 40, 0.1);
+        --font: "DM Sans", system-ui, sans-serif;
+        --font-disp: "Playfair Display", Georgia, serif;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--ink);
+      }
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+
+      /* NAV */
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 300;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(24px);
+        border-bottom: 1px solid var(--border-light);
+        height: 62px;
+      }
+      .nav-inner {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 28px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+      }
+      .logo-mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        background: var(--grad);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+      }
+      .logo-name {
+        font-family: var(--font-disp);
+        font-weight: 700;
+        font-size: 20px;
+        color: var(--ink);
+      }
+      .nav-links {
+        display: flex;
+        gap: 16px;
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--ink-2);
+      }
+      .nav-links a:hover,
+      .nav-links a.active {
+        color: var(--rose);
+        font-weight: 600;
+      }
+
+      /* HEADER */
+      .villes-header {
+        padding: 80px 28px;
+        text-align: center;
+        background: var(--white);
+        border-bottom: 1px solid var(--border);
+      }
+      .villes-eyebrow {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--rose);
+        margin-bottom: 16px;
+      }
+      .villes-title {
+        font-family: var(--font-disp);
+        font-size: clamp(36px, 4vw, 56px);
+        font-weight: 800;
+        color: var(--ink);
+        margin-bottom: 20px;
+        letter-spacing: -0.02em;
+      }
+      .villes-title em {
+        color: var(--rose);
+        font-style: italic;
+      }
+      .villes-sub {
+        font-size: 16px;
+        color: var(--ink-3);
+        max-width: 640px;
+        margin: 0 auto;
+        line-height: 1.7;
+      }
+
+      /* GRID */
+      .villes-wrap {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 80px 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 64px;
+      }
+      .ville-card {
+        display: flex;
+        align-items: center;
+        gap: 48px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+        padding: 32px;
+        box-shadow: var(--sh);
+        transition:
+          transform 0.4s,
+          box-shadow 0.4s;
+      }
+      .ville-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--sh-md);
+        border-color: rgba(194, 24, 91, 0.3);
+      }
+
+      .ville-card:nth-child(even) {
+        flex-direction: row-reverse;
+      }
+
+      .ville-img {
+        flex: 0 0 50%;
+        height: 360px;
+        border-radius: var(--r);
+        overflow: hidden;
+        position: relative;
+      }
+      .ville-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s;
+      }
+      .ville-card:hover .ville-img img {
+        transform: scale(1.05);
+      }
+
+      .ville-body {
+        flex: 1;
+        padding: 24px 0;
+      }
+      .ville-rank {
+        font-family: var(--font-disp);
+        font-size: 64px;
+        font-weight: 800;
+        color: var(--rose-pale);
+        line-height: 1;
+        margin-bottom: -20px;
+        position: relative;
+        z-index: 0;
+      }
+      .ville-name {
+        font-family: var(--font-disp);
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 16px;
+        position: relative;
+        z-index: 1;
+      }
+      .ville-desc {
+        font-size: 15px;
+        line-height: 1.75;
+        color: var(--ink-2);
+        margin-bottom: 32px;
+      }
+
+      .ville-stats {
+        display: flex;
+        gap: 40px;
+        border-top: 1px solid var(--border-light);
+        padding-top: 24px;
+      }
+      .v-stat-lbl {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin-bottom: 8px;
+      }
+      .v-stat-val {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--violet);
+        font-family: var(--font-mono);
+      }
+      .trend-up {
+        font-size: 13px;
+        font-weight: 700;
+        color: #2e7d32;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 4px;
+      }
+      .trend-down {
+        font-size: 13px;
+        font-weight: 700;
+        color: #c62828;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 4px;
+      }
+
+      @media (max-width: 900px) {
+        .ville-card,
+        .ville-card:nth-child(even) {
+          flex-direction: column;
+          padding: 24px;
+          gap: 24px;
+        }
+        .ville-img {
+          flex: none;
+          width: 100%;
+          height: 280px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="nav-inner">
+        <a href="./index.html" class="logo"
+          ><div class="logo-mark">Ai</div>
+          <span class="logo-name">Mon <span>AiGENT</span></span></a
+        >
+        <div class="nav-links">
+          <a href="./index.html#marche">Marché</a>
+          <a href="./blog-villes.html" class="active">Villes</a>
+          <a href="./actus.html">Actualités</a>
+          <a href="./guides.html">Guides</a>
+        </div>
+      </div>
+    </header>
+
+    <section class="villes-header">
+      <div class="villes-eyebrow">Perspectives Data</div>
+      <h1 class="villes-title">Les 5 marchés à surveiller en <em>2026</em></h1>
+      <p class="villes-sub">
+        Où investir cette année ? Notre moteur IA analyse des centaines de
+        milliers de critères pour vous dévoiler les marchés les plus rentables
+        et dynamiques en temps réel.
+      </p>
+    </section>
+
+    <section class="villes-wrap">
+      <!-- MARSEILLE -->
+      <div class="ville-card">
+        <div class="ville-img">
+          <img
+            src="https://images.unsplash.com/photo-1603199506016-b9a594b593c0?auto=format&fit=crop&w=1000&q=80"
+            alt="Marseille"
+          />
+        </div>
+        <div class="ville-body">
+          <div class="ville-rank">01</div>
+          <h2 class="ville-name">Marseille</h2>
+          <p class="ville-desc">
+            La cité phocéenne confirme son attractivité avec l'achèvement
+            d'Euroméditerranée. Les données de matching AiGENT montrent une
+            explosion de la demande (+32%) pour les biens avec extérieur dans
+            les 2ème et 3ème arrondissements. La rentabilité locative brute y
+            frôle les 6%.
+          </p>
+          <div class="ville-stats">
+            <div>
+              <div class="v-stat-lbl">Prix Médian IA</div>
+              <div class="v-stat-val" id="price-marseille">3 280 €/m²</div>
+              <div class="trend-up" id="trend-marseille">▲ +4.2%</div>
+            </div>
+            <div>
+              <div class="v-stat-lbl">Tension Matchs</div>
+              <div class="v-stat-val" style="color: var(--rose)">
+                Très Forte
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LYON -->
+      <div class="ville-card">
+        <div class="ville-img">
+          <img
+            src="https://images.unsplash.com/photo-1524396309943-e03f5249f002?auto=format&fit=crop&w=1000&q=80"
+            alt="Lyon"
+          />
+        </div>
+        <div class="ville-body">
+          <div class="ville-rank">02</div>
+          <h2 class="ville-name">Lyon</h2>
+          <p class="ville-desc">
+            Après une stabilisation salutaire en 2025, le marché lyonnais repart
+            sur des bases saines. L'IA observe un fort taux de compatibilité sur
+            les T3 et T4 pour les familles visant Gerland et Vaise. Les
+            passoires thermiques y décotent fortement, offrant d'excellentes
+            opportunités de déficit foncier.
+          </p>
+          <div class="ville-stats">
+            <div>
+              <div class="v-stat-lbl">Prix Médian IA</div>
+              <div class="v-stat-val" id="price-lyon">4 120 €/m²</div>
+              <div class="trend-up" id="trend-lyon">▲ +0.8%</div>
+            </div>
+            <div>
+              <div class="v-stat-lbl">Tension Matchs</div>
+              <div class="v-stat-val" style="color: var(--violet)">Stable</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BORDEAUX -->
+      <div class="ville-card">
+        <div class="ville-img">
+          <img
+            src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=1000&q=80"
+            alt="Bordeaux"
+          />
+        </div>
+        <div class="ville-body">
+          <div class="ville-rank">03</div>
+          <h2 class="ville-name">Bordeaux</h2>
+          <p class="ville-desc">
+            Le marché bordelais s'est complètement assaini. Les vendeurs ont
+            ajusté leurs prix, permettant le retour en force des
+            primo-accédants. L'algorithme AiGENT enregistre des scores de
+            compatibilité records sur la première couronne (Pessac, Mérignac).
+          </p>
+          <div class="ville-stats">
+            <div>
+              <div class="v-stat-lbl">Prix Médian IA</div>
+              <div class="v-stat-val" id="price-bordeaux">3 890 €/m²</div>
+              <div class="trend-down" id="trend-bordeaux">▼ -0.4%</div>
+            </div>
+            <div>
+              <div class="v-stat-lbl">Tension Matchs</div>
+              <div class="v-stat-val" style="color: var(--violet)">Reprise</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LILLE -->
+      <div class="ville-card">
+        <div class="ville-img">
+          <img
+            src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1000&q=80"
+            alt="Lille"
+          />
+        </div>
+        <div class="ville-body">
+          <div class="ville-rank">04</div>
+          <h2 class="ville-name">Lille</h2>
+          <p class="ville-desc">
+            La capitale des Flandres est le paradis des investisseurs cherchant
+            du rendement étudiant. Sur AiGENT, les petits espaces (Studios, T2)
+            trouvent preneur en moins de 14 jours de moyenne. Les quartiers
+            Vauban et Wazemmes sont ultra-sollicités.
+          </p>
+          <div class="ville-stats">
+            <div>
+              <div class="v-stat-lbl">Prix Médian IA</div>
+              <div class="v-stat-val" id="price-lille">3 450 €/m²</div>
+              <div class="trend-up" id="trend-lille">▲ +1.5%</div>
+            </div>
+            <div>
+              <div class="v-stat-lbl">Tension Matchs</div>
+              <div class="v-stat-val" style="color: var(--rose)">Forte</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      // Récupération asynchrone BDD
+      async function syncMarket() {
+        try {
+          const res = await fetch("/api/marche");
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.villes) {
+            data.villes.forEach((v) => {
+              const slug = v.ville
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "");
+              const pEl = document.getElementById("price-" + slug);
+              const tEl = document.getElementById("trend-" + slug);
+              if (pEl)
+                pEl.textContent = v.prixM2.toLocaleString("fr-FR") + " €/m²";
+              if (tEl) {
+                const up = v.variation >= 0;
+                tEl.className = up ? "trend-up" : "trend-down";
+                tEl.textContent =
+                  (up ? "▲ +" : "▼ ") + Math.abs(v.variation).toFixed(1) + "%";
+              }
+            });
+          }
+        } catch (e) {}
+      }
+      syncMarket();
+    </script>
+  </body>
+</html>

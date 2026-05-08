@@ -1,0 +1,1256 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guide du Vendeur 2026 | MonAiGENT</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,opsz,wght@0,5..1200,400..900;1,5..1200,400..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #0d0d0d;
+        --ink-2: #2a2a2a;
+        --ink-3: #5a5a5a;
+        --ink-4: #999;
+        --border: #e0ddd8;
+        --border-dark: #bbb;
+        --bg: #faf9f7;
+        --bg-white: #fff;
+        --accent: #2a1142;
+        --accent-mid: #6a1b9a;
+        --accent-soft: #f4f0f8;
+        --gold: #9a7c2e;
+        --max: 1160px;
+        --font: "DM Sans", sans-serif;
+        --font-serif: "Source Serif 4", serif;
+        --font-disp: "Playfair Display", serif;
+        --font-mono: "DM Mono", monospace;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(250, 249, 247, 0.97);
+        border-bottom: 1px solid var(--border);
+        height: 60px;
+        backdrop-filter: blur(4px);
+      }
+      .nav-inner {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 32px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .logo {
+        font-family: var(--font-disp);
+        font-weight: 800;
+        font-size: 20px;
+        letter-spacing: -0.02em;
+      }
+      .logo em {
+        color: var(--accent-mid);
+        font-style: italic;
+      }
+      .nav-links {
+        display: flex;
+        gap: 28px;
+      }
+      .nav-links a {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ink-3);
+        transition: color 0.15s;
+      }
+      .nav-links a:hover {
+        color: var(--ink);
+      }
+      .nav-links a.active {
+        color: var(--accent-mid);
+        border-bottom: 1.5px solid var(--accent-mid);
+        padding-bottom: 2px;
+      }
+      .btn-nav {
+        background: var(--ink);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 9px 18px;
+        border-radius: 3px;
+        transition: background 0.15s;
+      }
+      .btn-nav:hover {
+        background: var(--accent-mid);
+      }
+
+      .hero-wrap {
+        border-bottom: 1px solid var(--border);
+        padding: 72px 32px 56px;
+        max-width: var(--max);
+        margin: 0 auto;
+      }
+      .hero-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--accent-mid);
+        margin-bottom: 24px;
+      }
+      .hero-kicker::before {
+        content: "";
+        display: block;
+        width: 28px;
+        height: 1.5px;
+        background: var(--accent-mid);
+      }
+      .hero-title {
+        font-family: var(--font-disp);
+        font-size: clamp(40px, 5.5vw, 68px);
+        font-weight: 900;
+        line-height: 1.06;
+        letter-spacing: -0.025em;
+        color: var(--ink);
+        max-width: 820px;
+        margin-bottom: 28px;
+      }
+      .hero-title em {
+        font-style: italic;
+        color: var(--accent-mid);
+      }
+      .hero-deck {
+        font-family: var(--font-serif);
+        font-size: 20px;
+        font-weight: 300;
+        line-height: 1.65;
+        color: var(--ink-2);
+        max-width: 640px;
+        margin-bottom: 32px;
+      }
+      .hero-byline {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        font-size: 12px;
+        color: var(--ink-4);
+        font-family: var(--font-mono);
+      }
+      .hero-byline strong {
+        color: var(--ink-3);
+        font-weight: 500;
+      }
+      .hero-byline span {
+        display: block;
+        width: 1px;
+        height: 14px;
+        background: var(--border-dark);
+      }
+
+      .stats-band {
+        background: var(--accent);
+        color: #fff;
+      }
+      .stats-band-inner {
+        max-width: var(--max);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .stat-cell {
+        padding: 28px 32px;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .stat-cell:last-child {
+        border-right: none;
+      }
+      .stat-cell-lbl {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.45);
+        margin-bottom: 8px;
+      }
+      .stat-cell-val {
+        font-family: var(--font-mono);
+        font-size: 26px;
+        font-weight: 500;
+        color: #fff;
+        line-height: 1;
+      }
+      .stat-cell-sub {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.35);
+        margin-top: 5px;
+      }
+      .stat-warn {
+        color: #f7a86e;
+      }
+      .stat-ok {
+        color: #7de0a8;
+      }
+
+      .layout {
+        max-width: var(--max);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 308px;
+        gap: 72px;
+        padding: 72px 32px 100px;
+        align-items: start;
+      }
+
+      .article p {
+        font-family: var(--font-serif);
+        font-size: 18.5px;
+        line-height: 1.82;
+        color: var(--ink-2);
+        margin-bottom: 26px;
+        font-weight: 300;
+      }
+      .article > p:first-of-type::first-letter {
+        font-family: var(--font-disp);
+        font-size: 92px;
+        font-weight: 900;
+        color: var(--ink);
+        float: left;
+        line-height: 0.78;
+        padding-right: 14px;
+        padding-top: 10px;
+        letter-spacing: -0.03em;
+      }
+      .article h2 {
+        font-family: var(--font-disp);
+        font-size: 34px;
+        font-weight: 800;
+        color: var(--ink);
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 68px 0 22px;
+        padding-top: 68px;
+        border-top: 2px solid var(--accent);
+      }
+      .article h3 {
+        font-size: 15px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--accent-mid);
+        margin: 40px 0 14px;
+      }
+      .article blockquote {
+        margin: 52px 0;
+        padding: 28px 32px;
+        border-left: 3px solid var(--accent-mid);
+        background: var(--accent-soft);
+      }
+      .article blockquote p {
+        font-family: var(--font-disp);
+        font-size: 22px;
+        font-style: italic;
+        color: var(--ink);
+        line-height: 1.45;
+        margin: 0 0 14px;
+        font-weight: 500;
+      }
+      .article blockquote footer {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ink-3);
+      }
+      .pull {
+        font-family: var(--font-disp);
+        font-size: 28px;
+        font-style: italic;
+        font-weight: 700;
+        color: var(--ink);
+        line-height: 1.3;
+        border-top: 2px solid var(--ink);
+        border-bottom: 1px solid var(--border);
+        padding: 28px 0;
+        margin: 52px 0;
+        letter-spacing: -0.01em;
+      }
+      .checklist {
+        background: var(--bg-white);
+        border: 1px solid var(--border);
+        padding: 32px;
+        margin: 40px 0;
+        border-radius: 2px;
+      }
+      .checklist-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ink-3);
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .checklist li {
+        font-family: var(--font-serif);
+        font-size: 16px;
+        line-height: 1.65;
+        color: var(--ink-2);
+        padding: 10px 0 10px 28px;
+        border-bottom: 1px solid var(--border);
+        list-style: none;
+        position: relative;
+      }
+      .checklist li:last-child {
+        border-bottom: none;
+      }
+      .checklist li::before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: var(--accent-mid);
+        font-weight: 700;
+        font-family: var(--font);
+      }
+      .data-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: baseline;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--font-serif);
+        font-size: 16px;
+        color: var(--ink-2);
+      }
+      .data-row:first-child {
+        border-top: 1px solid var(--border);
+      }
+      .data-row-val {
+        font-family: var(--font-mono);
+        font-size: 15px;
+        color: var(--ink);
+        font-weight: 500;
+      }
+      .section-divider {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin: 64px 0 32px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--ink-4);
+      }
+      .section-divider::before,
+      .section-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+      figure {
+        margin: 48px 0;
+      }
+      figure img {
+        width: 100%;
+        aspect-ratio: 16/9;
+        object-fit: cover;
+      }
+      figcaption {
+        font-size: 12px;
+        color: var(--ink-4);
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--font-mono);
+      }
+      .alert-box {
+        background: #fef3e2;
+        border: 1px solid #e8c06a;
+        padding: 24px 28px;
+        margin: 32px 0;
+      }
+      .alert-box-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #8a5a00;
+        margin-bottom: 10px;
+      }
+      .alert-box p {
+        font-size: 16px;
+        color: #5a3a00;
+        line-height: 1.65;
+        margin: 0;
+        font-family: var(--font-serif);
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 80px;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+      }
+      .widget {
+        border-top: 2px solid var(--accent);
+        padding-top: 20px;
+      }
+      .widget-title {
+        font-family: var(--font-disp);
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 20px;
+        letter-spacing: -0.01em;
+      }
+      .w-stat {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin-bottom: 18px;
+      }
+      .w-stat-lbl {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ink-4);
+      }
+      .w-stat-val {
+        font-family: var(--font-mono);
+        font-size: 22px;
+        color: var(--ink);
+      }
+      .w-stat-note {
+        font-size: 11px;
+        color: var(--ink-3);
+      }
+      .cta-box {
+        background: var(--accent);
+        padding: 28px;
+        color: #fff;
+      }
+      .cta-box h4 {
+        font-family: var(--font-disp);
+        font-size: 20px;
+        font-weight: 800;
+        margin-bottom: 12px;
+        line-height: 1.2;
+      }
+      .cta-box p {
+        font-size: 13px;
+        line-height: 1.65;
+        color: rgba(255, 255, 255, 0.65);
+        margin-bottom: 20px;
+      }
+      .btn-cta {
+        display: block;
+        background: var(--accent-mid);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 12px 16px;
+        text-align: center;
+        transition: opacity 0.15s;
+      }
+      .btn-cta:hover {
+        opacity: 0.85;
+      }
+      .toc li {
+        list-style: none;
+      }
+      .toc a {
+        display: block;
+        font-size: 13px;
+        color: var(--ink-3);
+        padding: 9px 0;
+        border-bottom: 1px solid var(--border);
+        transition: color 0.15s;
+        line-height: 1.4;
+      }
+      .toc a:hover {
+        color: var(--accent-mid);
+        padding-left: 6px;
+      }
+      .dpe-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 28px 0;
+      }
+      .dpe-table td {
+        padding: 10px 12px;
+        font-size: 13px;
+        border-bottom: 1px solid var(--border);
+      }
+      .dpe-table th {
+        padding: 8px 12px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ink-4);
+        font-weight: 700;
+        text-align: left;
+        border-bottom: 2px solid var(--border);
+      }
+      .dpe-badge {
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 500;
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+        color: #fff;
+        border-radius: 2px;
+      }
+
+      @media (max-width: 960px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          position: static;
+        }
+        .stats-band-inner {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="nav-inner">
+        <a href="./index.html" class="logo">Mon<em>AiGENT</em></a>
+        <nav class="nav-links">
+          <a href="./acheter.html">Acheter</a>
+          <a href="./vendre.html" class="active">Vendre</a>
+          <a href="./louer.html">Louer</a>
+          <a href="./blog-marche.html">Données</a>
+        </nav>
+        <a href="./intro.html" class="btn-nav">Estimer mon bien</a>
+      </div>
+    </header>
+
+    <div class="hero-wrap">
+      <div class="hero-kicker">Guide stratégique · Cession 2026</div>
+      <h1 class="hero-title">
+        Vendre en 2026 :<br /><em>Précision, timing</em><br />et maîtrise du
+        rapport de force
+      </h1>
+      <p class="hero-deck">
+        Marché en reprise mais exigeant, acheteurs informés et sélectifs, DPE
+        comme juge de paix de la valorisation. Le guide complet pour vendre au
+        bon prix, sans s'enkyster, sans brader.
+      </p>
+      <div class="hero-byline">
+        <strong>Observatoire MonAiGENT</strong>
+        <span></span>
+        <span id="dyn-date">Mai 2026</span>
+        <span></span>
+        <span>Lecture : 20 min</span>
+      </div>
+    </div>
+
+    <div class="stats-band">
+      <div class="stats-band-inner">
+        <div class="stat-cell">
+          <div class="stat-cell-lbl">Hausse des prix nationale</div>
+          <div class="stat-cell-val"><span class="stat-ok">+1,7 %</span></div>
+          <div class="stat-cell-sub">
+            Sur 12 mois · Données PAP / MeilleursAgents
+          </div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-lbl">Délai médian de vente</div>
+          <div class="stat-cell-val">68 jours</div>
+          <div class="stat-cell-sub">Toutes typologies · marché national</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-lbl">Décote DPE G vs D</div>
+          <div class="stat-cell-val"><span class="stat-warn">−12 %</span></div>
+          <div class="stat-cell-sub">
+            Moyenne notariale · jusqu'à −18 % en pratique
+          </div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-cell-lbl">Marge négo. Nantes</div>
+          <div class="stat-cell-val">
+            <span class="stat-warn">−12,7 %</span>
+          </div>
+          <div class="stat-cell-sub">Lyon : −2,8 % · Paris : −3,8 %</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <article class="article">
+        <p>
+          Vendre en 2026, c'est vendre dans un marché de haute précision. La
+          reprise des transactions — 940 000 ventes attendues cette année, +12 %
+          par rapport à 2024 — ne signifie pas que n'importe quel bien se vend à
+          n'importe quel prix. L'acquéreur de 2026 est armé : il dispose des
+          bases de données des ventes notariées, des estimations algorithmiques
+          en temps réel, et d'un accès direct aux diagnostics techniques. Il a
+          appris à attendre et à comparer. Face à ce profil, le vendeur qui
+          réussit n'est pas celui qui espère — c'est celui qui prépare, qui
+          documente, qui comprend la mécanique de valorisation et l'utilise à
+          son avantage. Ce guide est un manuel de cette préparation.
+        </p>
+
+        <h2 id="estimation">
+          I. L'estimation juste : la décision la plus stratégique de toute la
+          vente
+        </h2>
+
+        <p>
+          L'estimation du prix de mise en vente est la décision qui conditionne
+          toutes les autres. Ni trop haute — le bien s'enkystera et sera associé
+          dans les portails à un signal négatif —, ni trop basse — vous laissez
+          de l'argent sur la table et pouvez même créer une défiance
+          («&nbsp;pourquoi si peu ?&nbsp;»). La bonne estimation est celle qui
+          attire des visites dans les deux premières semaines et génère une
+          offre dans les quatre à six semaines. Au-delà, le bien entre dans ce
+          que les professionnels appellent le «&nbsp;cimetière des
+          surestimés&nbsp;».
+        </p>
+
+        <h3>Les trois méthodes d'estimation et comment les combiner</h3>
+
+        <p>
+          La méthode comparative est la référence du notariat. Elle consiste à
+          identifier les ventes comparables réalisées dans un rayon géographique
+          précis, sur un bien de caractéristiques similaires (surface ±15 %,
+          même type, même état général, même époque), dans les 18 derniers mois.
+          La base DVF (Demande de Valeur Foncière), accessible gratuitement sur
+          data.gouv.fr, recense toutes les ventes notariées depuis 2014. C'est
+          la source la plus fiable, car elle repose sur des actes authentiques
+          et non sur des prix affichés — qui peuvent différer de la réalité de 5
+          à 15 %.
+        </p>
+
+        <p>
+          La méthode hédoniste, utilisée par les algorithmes des grands portails
+          (MeilleursAgents, SeLoger, Meilleurs Prix), attribue une valeur à
+          chaque caractéristique du bien — étage, exposition, état, présence
+          d'un extérieur, DPE — et les agrège pour produire un prix estimé. Ces
+          outils sont utiles comme cadrage, mais ils ne peuvent pas intégrer des
+          facteurs qualitatifs fins : la luminosité réelle, la qualité des
+          finitions, la nuisance sonore d'un carrefour proche. Utilisez-les
+          comme plancher de validation, non comme référence unique.
+        </p>
+
+        <p>
+          La méthode par le revenu s'applique aux biens loués ou susceptibles
+          d'être loués. Elle consiste à capitaliser le loyer annuel net par un
+          taux de rendement de marché (en 2026, entre 3,5 % et 5,5 % selon la
+          localisation) pour obtenir une valeur de marché. Cette méthode est
+          pertinente pour des appartements en zone tendue, mais elle doit être
+          croisée avec les deux précédentes — la valeur d'usage pour un
+          propriétaire occupant peut différer sensiblement de la valeur locative
+          capitalisée.
+        </p>
+
+        <div class="alert-box">
+          <div class="alert-box-title">
+            ⚠ L'erreur la plus coûteuse du vendeur
+          </div>
+          <p>
+            Un bien affiché 5 % au-dessus de sa valeur de marché perd en moyenne
+            85 % de ses visites potentielles dans les quinze premiers jours.
+            Passé 45 jours sans offre, chaque semaine supplémentaire accentue la
+            défiance et réduit de 1,5 à 2 % le prix de vente final constaté. Le
+            coût d'une surestimation initiale de 5 % se traduit souvent par une
+            vente finale à −8 % ou −10 % du juste prix — soit l'exact inverse de
+            l'effet recherché.
+          </p>
+        </div>
+
+        <h3>Les facteurs de décote à anticiper impérativement</h3>
+
+        <p>
+          Tout vendeur doit réaliser, avant toute chose, un audit de sa propre
+          propriété comme le ferait un acheteur rigoureux. Certains éléments
+          constituent des facteurs de décote systématiques que le marché
+          intégrera — avec ou sans votre accord. Le DPE dégradé est le premier.
+          Un bien classé F ou G subit une décote moyenne de 12 % selon le
+          Conseil Supérieur du Notariat, pouvant atteindre 18 % dans les cas
+          extrêmes. Les travaux de structure (toiture, façade, réseaux vétustes)
+          sont le deuxième facteur majeur : l'acheteur qui les identifie déduira
+          systématiquement un montant supérieur au coût réel, car il intègre une
+          prime de risque et d'inconfort. L'environnement immédiat — proximité
+          d'une voie bruyante, vue dégradée, vis-à-vis important — est
+          impossible à chiffrer avec précision mais réduit le bassin d'acheteurs
+          et allonge mécaniquement le délai de vente. Enfin, pour les
+          copropriétés : un immeuble mal entretenu, avec des charges élevées ou
+          des travaux votés non réalisés, constitue un repoussoir que l'acheteur
+          calculateur quantifiera précisément.
+        </p>
+
+        <h2 id="dpe-vendeur">
+          II. Le DPE côté vendeur : anticiper, valoriser ou négocier
+        </h2>
+
+        <p>
+          Le DPE est devenu le critère n°1 de valorisation ou de décote d'un
+          bien. Pour le vendeur, il représente à la fois un risque et un levier.
+          La stratégie à adopter dépend de la classe actuelle du bien et de sa
+          capacité d'investissement avant la mise en vente.
+        </p>
+
+        <h3>Rénover avant de vendre : quand c'est rentable</h3>
+
+        <p>
+          La question n'est pas philosophique, elle est arithmétique. Si la
+          décote associée à votre classe DPE actuelle excède le coût des travaux
+          nécessaires pour passer d'une classe, rénover avant de vendre est
+          rentable. En pratique, pour un appartement parisien de 60 m² classé E
+          dont la valeur de marché «&nbsp;parfaite&nbsp;» serait de 420 000 €,
+          la décote de classe E représente environ 4 à 6 % soit 17 000 à 25 000
+          €. Si des travaux d'isolation des combles et de remplacement du
+          système de chauffage coûtent 12 000 à 15 000 € et permettent
+          d'atteindre la classe D, l'opération est financièrement positive — et
+          la vente sera plus rapide.
+        </p>
+
+        <div class="section-divider">
+          Tableau d'impact · DPE et valorisation 2026
+        </div>
+
+        <table class="dpe-table">
+          <thead>
+            <tr>
+              <th>Classe DPE</th>
+              <th>Impact sur le prix</th>
+              <th>Délai de vente estimé</th>
+              <th>Risque réglementaire</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <span class="dpe-badge" style="background: #2e7d32">A</span> /
+                <span class="dpe-badge" style="background: #43a047">B</span>
+              </td>
+              <td>Prime de marché +3 à +8 %</td>
+              <td>&lt; 30 jours</td>
+              <td>Nul</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="dpe-badge" style="background: #8bc34a">C</span>
+              </td>
+              <td>Référence neutre</td>
+              <td>30-50 jours</td>
+              <td>Nul</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="dpe-badge" style="background: #ffb300">D</span>
+              </td>
+              <td>Légère décote 0 à −3 %</td>
+              <td>40-65 jours</td>
+              <td>Nul</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="dpe-badge" style="background: #f57c00">E</span>
+              </td>
+              <td>Décote −4 à −7 %</td>
+              <td>55-80 jours</td>
+              <td>Classe F interdite 2028</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="dpe-badge" style="background: #e64a19">F</span>
+              </td>
+              <td>Décote −7 à −13 %</td>
+              <td>75-110 jours</td>
+              <td>Interdite à la location depuis jan. 2028</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="dpe-badge" style="background: #b71c1c">G</span>
+              </td>
+              <td>Décote −12 à −18 %</td>
+              <td>90-150 jours</td>
+              <td>Interdite à la location depuis jan. 2025</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Quand rénover ne vaut pas la peine</h3>
+
+        <p>
+          Pour les biens classés G avec une structure vétuste nécessitant une
+          rénovation globale (isolation par l'extérieur, changement de
+          charpente, réfection complète des réseaux), le coût des travaux peut
+          excéder la valeur de la décote. Dans ce cas, la stratégie optimale est
+          d'assumer la décote, de la documenter via un devis professionnel
+          détaillé, et de la présenter à l'acheteur comme une opportunité
+          chiffrée. Un dossier de vente qui inclut trois devis d'artisans RGE,
+          une simulation d'éligibilité MaPrimeRénov', et une estimation de la
+          valeur post-travaux est infiniment plus vendable qu'un bien G sans
+          aucune documentation — même à prix équivalent. L'acheteur informé
+          préfère la transparence à l'incertitude.
+        </p>
+
+        <h2 id="preparation">
+          III. Préparer son bien pour la mise en vente : la valeur de la mise en
+          scène
+        </h2>
+
+        <p>
+          La présentation d'un bien immobilier est devenue une discipline à part
+          entière. Le premier contact entre un acheteur potentiel et votre bien
+          se fait désormais en ligne, sur écran, via des photos — souvent avant
+          même de savoir dans quelle rue se situe le bien. Cette réalité impose
+          une préparation rigoureuse, qui n'est pas une question de dépenses
+          mais de méthode.
+        </p>
+
+        <h3>Le home staging : investissement ou coût ?</h3>
+
+        <p>
+          Le home staging — art de valoriser un bien sans le rénover — génère en
+          moyenne une réduction du délai de vente de 30 à 50 % et une
+          augmentation du prix final de 3 à 5 % selon les études menées par les
+          réseaux Century 21 et IAD sur le marché français. Pour un bien de 300
+          000 €, ce différentiel représente entre 9 000 € et 15 000 € de valeur
+          créée, pour un investissement de home staging rarement supérieur à 2
+          000 à 5 000 €. Le retour sur investissement est massif.
+        </p>
+
+        <p>
+          Les interventions les plus efficaces, par ordre de retour sur
+          investissement : désencombrement radical et dépersonnalisation (coût
+          nul ou quasi nul), rafraîchissement des peintures dans des tons
+          neutres (blanc cassé, gris clair) dans les pièces à vivre,
+          remplacement des éléments vieillissants très visibles (poignées de
+          porte, robinetterie, luminaires), et nettoyage professionnel intégral
+          incluant les vitres, joints et espaces cachés. Sur les espaces
+          extérieurs — terrasse, jardin, balcon — une intervention systématique
+          est nécessaire : ils sont les premiers espaces qui
+          «&nbsp;vendent&nbsp;» ou qui refroidissent un acheteur lors d'une
+          visite.
+        </p>
+
+        <h3>La photographie professionnelle : non négociable</h3>
+
+        <p>
+          En 2026, une annonce immobilière avec des photos de mauvaise qualité —
+          floues, mal éclairées, prises avec un smartphone sans recul — génère
+          65 à 70 % de clics en moins que la même annonce avec des photos
+          professionnelles. Le coût d'un photographe immobilier professionnel
+          est compris entre 180 € et 400 € selon la surface et la région. C'est
+          l'investissement à retour le plus rapide de toute la vente. Certains
+          agents proposent désormais des visites virtuelles 3D (Matterport,
+          Cupix) qui réduisent les visites physiques non qualifiées de 40 % —
+          vous ne recevez plus que des acheteurs déjà convaincus par le bien
+          dans ses moindres détails.
+        </p>
+
+        <blockquote>
+          <p>
+            «&nbsp;Un bien correctement estimé, présenté avec des photos
+            professionnelles et documenté sur ses diagnostics, se vend en 2026
+            dans les délais normaux de marché. Un bien négligé sur l'un de ces
+            trois points met en moyenne 2,4 fois plus de temps à trouver
+            preneur.&nbsp;»
+          </p>
+          <footer>Observatoire des Performances de Vente · Q1 2026</footer>
+        </blockquote>
+
+        <h2 id="mandat">IV. Choisir son mode de vente et son mandat</h2>
+
+        <p>
+          La décision de vendre seul ou via une agence, et si via agence, de
+          choisir un mandat simple ou exclusif, est une décision stratégique qui
+          impacte directement le prix et le délai de vente. Elle mérite une
+          analyse sans idéologie.
+        </p>
+
+        <h3>Vente entre particuliers : avantages réels, limites réelles</h3>
+
+        <p>
+          La vente de particulier à particulier (PAP, Leboncoin Immobilier,
+          etc.) représente environ 30 % des transactions en France. L'avantage
+          principal est l'économie de commission : entre 4 % et 6 % du prix de
+          vente, parfois répartie entre vendeur et acheteur. Sur un bien de 350
+          000 €, cela représente 14 000 à 21 000 € d'économie. L'inconvénient
+          est la gestion complète du processus : rédaction de l'annonce,
+          organisation des visites, filtrage des candidats (solvabilité,
+          sérieux), négociation, suivi des conditions suspensives. Une erreur
+          dans le compromis — clause mal rédigée, condition suspensive manquante
+          — peut se transformer en litige coûteux. La vente entre particuliers
+          est pertinente pour les vendeurs qui disposent du temps, de la rigueur
+          juridique et de la maîtrise du prix de marché. Pour les autres, le
+          recours à un professionnel est un investissement, pas une dépense.
+        </p>
+
+        <h3>Mandat exclusif vs mandat simple : le vrai débat</h3>
+
+        <p>
+          Le mandat exclusif confie la vente à un seul agent pour une durée
+          convenue (généralement 3 mois). L'agent s'engage à y consacrer un
+          effort marketing maximal — car il est sûr de percevoir sa commission
+          si le bien se vend. En contrepartie, le vendeur renonce à la
+          possibilité de vendre par lui-même ou via un autre agent pendant cette
+          période. Le mandat simple laisse cette liberté mais désincitatif les
+          agents : pourquoi investir dans la commercialisation d'un bien que le
+          concurrent peut lui vendre demain ? Les études montrent de façon
+          convergente que le mandat exclusif génère des délais de vente
+          inférieurs de 25 à 40 % et des prix de vente supérieurs de 2 à 4 % au
+          mandat simple, toutes choses égales par ailleurs.
+        </p>
+
+        <h3>La négociation de la commission : ce que vous pouvez obtenir</h3>
+
+        <p>
+          La commission d'agence est négociable dans presque tous les cas. Le
+          taux affiché de 4 à 6 % est un point de départ, non un impératif. Pour
+          un bien valorisé au-dessus de 400 000 €, une commission de 3 à 3,5 %
+          est souvent acceptable pour un réseau national. Pour un bien atypique
+          difficile à vendre, la commission peut en revanche être justifiée à un
+          niveau supérieur. L'émergence des agences en ligne à honoraires fixes
+          (500 à 3 000 € quelle que soit la valeur du bien) constitue une
+          alternative crédible pour les vendeurs qui maîtrisent le processus de
+          vente mais souhaitent s'appuyer sur les outils de diffusion
+          professionnels.
+        </p>
+
+        <div class="checklist">
+          <div class="checklist-title">
+            Documents à préparer avant la mise en vente
+          </div>
+          <ul>
+            <li>
+              DPE récent (moins de 10 ans, mais idéalement moins de 2 ans pour
+              crédibilité maximale)
+            </li>
+            <li>
+              Diagnostic électrique et gaz (obligatoires pour tout bien de plus
+              de 15 ans)
+            </li>
+            <li>État des risques et pollutions (ERP) — validité 6 mois</li>
+            <li>
+              Diagnostic amiante (biens construits avant 1997) et plomb (avant
+              1949)
+            </li>
+            <li>Métrage Loi Carrez certifié par géomètre si copropriété</li>
+            <li>
+              Trois derniers PV d'assemblée générale + carnet d'entretien +
+              règlement de copropriété
+            </li>
+            <li>
+              Diagnostics complémentaires : termites (zones concernées),
+              assainissement (maisons individuelles)
+            </li>
+            <li>
+              Dernière taxe foncière + relevé de charges de copropriété des 3
+              dernières années
+            </li>
+          </ul>
+        </div>
+
+        <h2 id="negociation">V. Maîtriser la négociation côté vendeur</h2>
+
+        <p>
+          La négociation est le moment où l'acheteur dispose d'une information
+          que vous n'avez pas : l'intensité réelle de son désir pour votre bien.
+          Votre rôle est de gérer cette asymétrie sans la subir.
+        </p>
+
+        <h3>Répondre à une offre basse : la méthode</h3>
+
+        <p>
+          Une offre inférieure de 8 à 12 % au prix affiché sur un marché où la
+          marge habituelle est de 5 % est une ouverture de négociation — pas une
+          insulte. La pire réponse est le refus sec sans contre-proposition. La
+          meilleure réponse est une contre-offre écrite, motivée par des
+          éléments objectifs (ventes comparables, état du bien, qualité de la
+          présentation), revenant à 2 à 3 % sous votre prix de départ si ce prix
+          est correctement calibré. Cette contre-offre signale votre sérieux,
+          maintient le dialogue, et replace la balle dans le camp de l'acheteur.
+          Si ce dernier revient avec une deuxième contre-offre, vous êtes dans
+          un couloir de négociation classique : la transaction se fermera dans
+          cet espace.
+        </p>
+
+        <h3>Gérer la pluralité d'offres</h3>
+
+        <p>
+          Sur les marchés tendus — Paris, Lyon, biens A/B en zone attractive —
+          il est possible de recevoir plusieurs offres simultanément. La gestion
+          de cette situation est délicate juridiquement et moralement. En
+          l'absence d'offre au prix, vous n'êtes pas tenu d'accepter la première
+          offre reçue — le principe du «&nbsp;premier arrivé, premier
+          servi&nbsp;» n'existe pas en droit français avant la signature du
+          compromis. Vous pouvez indiquer à chaque acheteur que d'autres offres
+          existent et lui demander de soumettre sa «&nbsp;meilleure offre&nbsp;»
+          dans un délai de 24 heures. Cette procédure informelle — analogue aux
+          enchères silencieuses — est légale et peut permettre de maximiser le
+          prix de vente de 2 à 5 % dans les cas favorables.
+        </p>
+
+        <h3>Les conditions qui font ou défont une transaction</h3>
+
+        <p>
+          Au-delà du prix, une offre d'achat se juge sur ses conditions. Un
+          acheteur avec un apport de 25 % et un accord de principe bancaire est
+          intrinsèquement plus fiable qu'un acheteur au prix sans financement
+          sécurisé. Un acheteur sans clause suspensive d'obtention de
+          financement (achat cash ou financement pré-sécurisé) est une
+          opportunité rare — même à un prix légèrement inférieur. La date
+          souhaitée de signature de l'acte authentique est également un critère
+          : si vous avez besoin de temps pour votre propre déménagement, un
+          acheteur flexible sur le délai est plus précieux qu'un acheteur
+          impatient.
+        </p>
+
+        <div class="pull">
+          «&nbsp;En 2026, le bien correctement estimé et bien présenté ne doit
+          pas survivre plus de quatre semaines sur le marché. Au-delà, le signal
+          envoyé aux acheteurs est qu'il y a un problème — réel ou imaginaire —
+          qui les pousse à passer leur chemin.&nbsp;»
+        </div>
+
+        <h2 id="timing">VI. Timing et saisonnalité : vendre au bon moment</h2>
+
+        <p>
+          Le marché immobilier suit des cycles saisonniers stables depuis des
+          décennies, indépendamment des conditions macroéconomiques. Comprendre
+          ces cycles permet d'optimiser le timing de mise en vente pour
+          maximiser l'exposition à une demande qualifiée.
+        </p>
+
+        <h3>Les deux fenêtres optimales de l'année</h3>
+
+        <p>
+          La période de janvier à mi-avril constitue la première grande fenêtre.
+          Les acheteurs reviennent sur le marché après les fêtes avec des
+          projets mûris pendant l'hiver, un budget révisé, et souvent une lettre
+          d'accord de principe bancaire obtenue en début d'année. Les journées
+          plus longues permettent des visites en lumière naturelle dès mars.
+          C'est la période où le rapport offre/demande est le plus favorable au
+          vendeur, car de nombreux vendeurs hésitent encore à se lancer. La
+          deuxième fenêtre, de mi-août à mi-novembre, est la plus active en
+          volume brut. Les familles qui veulent s'installer avant la rentrée
+          scolaire sont remplacées par des acheteurs au profil souvent plus
+          autonome (investisseurs, couples sans enfants), moins contraints par
+          les délais et souvent plus flexibles sur les conditions.
+        </p>
+
+        <h3>Les périodes à éviter pour une mise en marché initiale</h3>
+
+        <p>
+          Lancer une vente entre la mi-juillet et la fin août est rarement
+          optimal sur les marchés urbains : l'audience est réduite de 40 à 50 %,
+          et les visites organisées en plein été créent une première impression
+          souvent moins favorable (absence de verdure, ensoleillement agressif
+          révélant les défauts). De même, la période de mi-novembre à mi-janvier
+          est creuse : les acheteurs reportent leurs décisions après les fêtes
+          et les banques ralentissent l'instruction des dossiers. Si vous êtes
+          contraint de lancer pendant ces périodes, compensez par une
+          présentation exceptionnelle et un prix d'entrée légèrement plus
+          agressif.
+        </p>
+
+        <h2 id="fiscal">
+          VII. Les implications fiscales de la vente : ce que vous devez
+          anticiper
+        </h2>
+
+        <p>
+          La vente de votre résidence principale est exonérée d'impôt sur la
+          plus-value — sans condition de durée de détention. C'est l'un des
+          avantages fiscaux les plus puissants du droit français. Mais cette
+          exonération est strictement conditionnée à l'occupation effective et
+          continue du bien comme résidence principale jusqu'à la vente. Une
+          chambre meublée sous-louée ponctuellement, un pied-à-terre non déclaré
+          : ces situations peuvent remettre en cause l'exonération et exposer le
+          vendeur à une imposition sur la plus-value totale.
+        </p>
+
+        <h3>
+          La plus-value sur résidence secondaire ou investissement locatif
+        </h3>
+
+        <p>
+          Pour les ventes de résidences secondaires ou de biens locatifs, la
+          plus-value nette est soumise à l'impôt sur le revenu au taux de 19 %
+          et aux prélèvements sociaux au taux de 17,2 %, soit une imposition
+          globale de 36,2 % — avant abattements pour durée de détention. Ces
+          abattements sont progressifs : à partir de la 6e année de détention,
+          chaque année supplémentaire réduit la base taxable. L'exonération
+          totale est atteinte après 22 ans de détention pour l'impôt sur le
+          revenu, et 30 ans pour les prélèvements sociaux. Le calcul de la
+          plus-value nette doit intégrer les frais d'acquisition (notaire,
+          agence) et les travaux réalisés — à condition qu'ils soient justifiés
+          par des factures d'entreprises. Ces dépenses réduisent la base taxable
+          et peuvent substantiellement réduire l'imposition finale.
+        </p>
+
+        <blockquote>
+          <p>
+            «&nbsp;La fiscalité de la plus-value immobilière est complexe et les
+            erreurs de calcul sont fréquentes. Une consultation notariale
+            préalable à la vente, pour estimer l'imposition prévisible, est un
+            investissement rentable pour tout bien dont la plus-value dépasse 30
+            000 €.&nbsp;»
+          </p>
+          <footer>Chambre des Notaires de France · Guide pratique 2026</footer>
+        </blockquote>
+
+        <h2 id="apres">
+          VIII. Après le compromis : gérer les quarante-cinq jours les plus
+          délicats
+        </h2>
+
+        <p>
+          La signature du compromis n'est pas la fin de la vente — c'est le
+          début de sa phase la plus technique et la plus risquée. La période
+          entre le compromis et l'acte authentique dure en moyenne 45 à 75
+          jours. Pendant ce temps, le financement de l'acheteur est instruit,
+          les conditions suspensives sont levées, et les deux parties peuvent se
+          retrouver exposées à des événements imprévus.
+        </p>
+
+        <p>
+          En tant que vendeur, votre principal risque est la défaillance du
+          financement de l'acheteur — qui entraîne la caducité du compromis et
+          le remboursement de l'indemnité d'immobilisation (5 à 10 % du prix).
+          Pour limiter ce risque, exigez dès la signature du compromis une
+          attestation bancaire récente, un relevé de compte justifiant de
+          l'apport, et si possible une offre de prêt déjà reçue (pas seulement
+          une simulation). Votre notaire peut insérer une clause prévoyant qu'en
+          cas de refus de financement manifestement dû à un changement de
+          situation de l'acheteur après le compromis (perte d'emploi volontaire,
+          nouvel emprunt souscrit entre le compromis et l'acte), l'acheteur ne
+          puisse pas invoquer la clause suspensive pour récupérer son dépôt.
+        </p>
+
+        <p>
+          Côté pratique : maintenez le bien dans l'état exact dans lequel il a
+          été visité et pour lequel l'offre a été faite. Toute dégradation
+          constatée lors de la contre-visite de l'acheteur avant la signature de
+          l'acte (droit contractuel dans presque tous les compromis) peut ouvrir
+          une demande de diminution du prix. Veillez également à ne pas retirer
+          du bien des éléments qui n'ont pas été explicitement listés comme
+          exclus dans le compromis (cuisine équipée intégrée, éclairages
+          encastrés, luminaires sur rails) : ces éléments sont présumés vendus
+          avec le bien sauf mention contraire expresse.
+        </p>
+      </article>
+
+      <aside class="sidebar">
+        <div class="widget">
+          <div class="widget-title">Données Vendeurs · 2026</div>
+          <div class="w-stat">
+            <span class="w-stat-lbl">Délai médian vente</span>
+            <span class="w-stat-val">68 jours</span>
+            <span class="w-stat-note">Toutes typologies France</span>
+          </div>
+          <div class="w-stat">
+            <span class="w-stat-lbl">Variation des prix</span>
+            <span class="w-stat-val">+1,7 %</span>
+            <span class="w-stat-note">Sur 12 mois · source PAP</span>
+          </div>
+          <div class="w-stat">
+            <span class="w-stat-lbl">Décote DPE G</span>
+            <span class="w-stat-val">−12 à −18 %</span>
+            <span class="w-stat-note">Vs bien équivalent classe D</span>
+          </div>
+          <div class="w-stat">
+            <span class="w-stat-lbl">Taux d'épargne ménages</span>
+            <span class="w-stat-val">&gt; 18 %</span>
+            <span class="w-stat-note"
+              >Acheteurs plus patients, plus sélectifs</span
+            >
+          </div>
+        </div>
+
+        <div class="widget">
+          <div class="widget-title">Sommaire</div>
+          <ul class="toc">
+            <li><a href="#estimation">I. L'estimation juste</a></li>
+            <li><a href="#dpe-vendeur">II. Le DPE côté vendeur</a></li>
+            <li><a href="#preparation">III. Préparer son bien</a></li>
+            <li><a href="#mandat">IV. Mandat et mode de vente</a></li>
+            <li><a href="#negociation">V. Maîtriser la négociation</a></li>
+            <li><a href="#timing">VI. Timing et saisonnalité</a></li>
+            <li><a href="#fiscal">VII. Fiscalité de la vente</a></li>
+            <li><a href="#apres">VIII. Après le compromis</a></li>
+          </ul>
+        </div>
+
+        <div class="cta-box">
+          <h4>Votre bien face aux acheteurs réels</h4>
+          <p>
+            Notre algorithme analyse votre bien face aux 2 300 acheteurs actifs
+            de notre réseau et vous donne une estimation fondée sur les
+            transactions réelles — pas sur les prix affichés.
+          </p>
+          <a href="./intro.html" class="btn-cta">Obtenir mon estimation</a>
+        </div>
+      </aside>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const now = new Date();
+        const mois = [
+          "Janvier",
+          "Février",
+          "Mars",
+          "Avril",
+          "Mai",
+          "Juin",
+          "Juillet",
+          "Août",
+          "Septembre",
+          "Octobre",
+          "Novembre",
+          "Décembre",
+        ];
+        const el = document.getElementById("dyn-date");
+        if (el) el.textContent = mois[now.getMonth()] + " " + now.getFullYear();
+      });
+    </script>
+  </body>
+</html>

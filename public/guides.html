@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Architecture & Algorithmes | Livre Blanc Mon AiGENT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* =========================
+   DESIGN SYSTEM — PRO PROPTECH
+========================= */
+      :root {
+        --black-header: #050505;
+        --black-ink: #0f0f14;
+
+        --grey-dark: #3f3f46;
+        --grey-mid: #71717a;
+        --grey-light: #e4e4e7;
+        --grey-bg: #fafafa;
+
+        /* VIOLET DOMINANT (plus riche) */
+        --violet-ultra-dark: #14051f;
+        --violet-dark: #2e1065;
+        --violet-main: #6d28d9;
+        --violet-soft: #ede9fe;
+
+        /* ROSE ACCENT (contrôle fort) */
+        --rose-accent: #db2777;
+        --rose-soft: #fce7f3;
+
+        --font-ui: "DM Sans", system-ui, sans-serif;
+        --font-code: "JetBrains Mono", monospace;
+
+        --max-width: 1440px;
+        --content-width: 840px;
+
+        --r: 8px;
+
+        --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.04);
+        --shadow-deep: 0 20px 50px rgba(20, 5, 31, 0.08);
+      }
+
+      /* RESET */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: var(--font-ui);
+        margin: 0;
+        background: #fff;
+        color: var(--black-ink);
+        line-height: 1.7;
+      }
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+
+      /* =========================
+   HEADER — ULTRA PRO
+========================= */
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 500;
+        background: rgba(5, 5, 5, 0.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .nav-inner {
+        max-width: var(--max-width);
+        margin: auto;
+        padding: 0 40px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 600;
+        color: #fff;
+      }
+      .logo img {
+        height: 34px;
+      }
+
+      /* NAV */
+      .nav-links {
+        display: flex;
+        gap: 26px;
+      }
+      .nav-links a {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.65);
+        transition: 0.2s;
+      }
+      .nav-links a:hover,
+      .nav-links a.active {
+        color: #fff;
+      }
+
+      /* BUTTONS */
+      .nav-right {
+        display: flex;
+        gap: 12px;
+      }
+      .btn-outline {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 8px 16px;
+        border-radius: var(--r);
+        font-size: 13px;
+        color: #fff;
+      }
+      .btn-outline:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .btn-accent {
+        background: linear-gradient(
+          135deg,
+          var(--rose-accent),
+          var(--violet-main)
+        );
+        padding: 8px 16px;
+        border-radius: var(--r);
+        font-size: 13px;
+        color: #fff;
+        font-weight: 600;
+      }
+
+      /* =========================
+   HERO — VERSION PREMIUM
+========================= */
+      .hero {
+        position: relative;
+        padding: 120px 40px 100px;
+        background:
+          radial-gradient(
+            circle at 20% 20%,
+            rgba(109, 40, 217, 0.15),
+            transparent 40%
+          ),
+          radial-gradient(
+            circle at 80% 0%,
+            rgba(219, 39, 119, 0.1),
+            transparent 40%
+          ),
+          #fafafa;
+        border-bottom: 1px solid var(--grey-light);
+      }
+
+      .hero-inner {
+        max-width: var(--max-width);
+        margin: auto;
+      }
+
+      .hero-tag {
+        font-family: var(--font-code);
+        font-size: 11px;
+        color: var(--violet-main);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+      }
+
+      .hero-title {
+        font-size: clamp(44px, 5vw, 64px);
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        max-width: 900px;
+        background: linear-gradient(90deg, #000, #5b21b6);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .hero-desc {
+        margin-top: 24px;
+        font-size: 20px;
+        color: var(--grey-dark);
+        max-width: 720px;
+      }
+
+      /* =========================
+   LAYOUT
+========================= */
+      .layout {
+        max-width: var(--max-width);
+        margin: auto;
+        padding: 80px 40px;
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 80px;
+      }
+
+      /* =========================
+   SIDEBAR (STYLE STRIPE)
+========================= */
+      .toc-wrapper {
+        position: sticky;
+        top: 120px;
+        padding-left: 20px;
+        border-left: 1px solid var(--grey-light);
+      }
+
+      .toc-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--grey-mid);
+        margin-bottom: 16px;
+      }
+
+      .toc-link {
+        display: block;
+        font-size: 14px;
+        color: var(--grey-mid);
+        padding: 6px 0;
+        transition: 0.2s;
+      }
+
+      .toc-link:hover {
+        color: var(--violet-main);
+      }
+
+      .toc-link.active {
+        color: var(--violet-main);
+        font-weight: 600;
+      }
+
+      /* =========================
+   CONTENT
+========================= */
+      .doc-section {
+        margin-bottom: 100px;
+      }
+
+      .doc-section h2 {
+        font-size: 34px;
+        margin-bottom: 24px;
+        color: var(--violet-dark);
+      }
+
+      .doc-section h3 {
+        font-size: 20px;
+        margin: 40px 0 10px;
+      }
+
+      .doc-section p {
+        font-size: 17px;
+        color: var(--grey-dark);
+      }
+
+      /* HIGHLIGHT */
+      .highlight {
+        background: var(--violet-soft);
+        color: var(--violet-main);
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+
+      /* IMAGE */
+      .doc-figure {
+        margin: 40px 0;
+        border-radius: var(--r);
+        overflow: hidden;
+        box-shadow: var(--shadow-soft);
+      }
+
+      /* CODE */
+      .code-block {
+        background: #050505;
+        color: #e4e4e7;
+        padding: 24px;
+        border-radius: var(--r);
+        font-family: var(--font-code);
+        font-size: 13px;
+        margin: 30px 0;
+      }
+
+      /* TABLE */
+      .doc-table {
+        width: 100%;
+        margin: 30px 0;
+        border-collapse: collapse;
+        box-shadow: var(--shadow-soft);
+      }
+
+      .doc-table th {
+        background: var(--violet-soft);
+        text-align: left;
+        padding: 14px;
+      }
+      .doc-table td {
+        padding: 14px;
+        border-top: 1px solid var(--grey-light);
+      }
+
+      /* CALLOUT */
+      .doc-callout {
+        display: flex;
+        gap: 20px;
+        padding: 24px;
+        border-left: 4px solid var(--violet-main);
+        background: linear-gradient(
+          90deg,
+          var(--violet-soft),
+          rgba(255, 255, 255, 0)
+        );
+        border-radius: var(--r);
+      }
+      .doc-figure {
+        margin: 48px 0;
+        border-radius: var(--r);
+        overflow: hidden;
+        box-shadow: var(--shadow-soft);
+        background: #fff;
+        border: 1px solid var(--grey-light);
+      }
+
+      /* FIX CRITIQUE */
+      .doc-figure img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      /* Caption améliorée */
+      .doc-figcaption {
+        font-size: 12px;
+        color: var(--grey-mid);
+        padding: 12px 16px;
+        background: #fff;
+        border-top: 1px solid var(--grey-light);
+        font-family: var(--font-code);
+      }
+      img {
+        max-width: 100%;
+        height: auto;
+      }
+
+      /* =========================
+   RESPONSIVE
+========================= */
+      @media (max-width: 1024px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .toc-wrapper {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- HEADER NOIR TRANCHANT -->
+    <header class="nav">
+      <div class="nav-inner">
+        <!-- Logo + Brand -->
+        <a href="./index.html" class="logo">
+          <img src="./images/logo.png" alt="Mon AiGENT Immobilier" />
+          <span>Mon AiGENT Immobilier</span>
+        </a>
+
+        <!-- Navigation -->
+        <nav class="nav-links">
+          <a href="./acheter.html">Acheter</a>
+          <a href="./vendre.html">Vendre</a>
+          <a href="./louer.html">Louer</a>
+          <a href="./blog-marche.html">Données</a>
+          <a href="./guides.html" class="active">Technologie</a>
+        </nav>
+
+        <!-- Actions -->
+        <div class="nav-right">
+          <a href="./contact.html" class="btn-outline">Contact</a>
+          <a href="./intro.html" class="btn-accent">Plateforme</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="hero-tag">Documentation & Ingénierie</span>
+        <h1 class="hero-title">
+          L'architecture algorithmique derrière Mon AiGENT.
+        </h1>
+        <p class="hero-desc">
+          Découvrez comment notre moteur de traitement du langage naturel (NLP)
+          et nos modèles mathématiques de matching redéfinissent la liquidité et
+          la transparence du marché immobilier.
+        </p>
+      </div>
+    </section>
+
+    <!-- MAIN LAYOUT -->
+    <div class="layout">
+      <!-- SIDEBAR SCROLL SPY -->
+      <aside class="toc-wrapper">
+        <div class="toc-title">Sommaire Technique</div>
+        <nav class="toc-nav">
+          <a href="#vision" class="toc-link">1. Asymétrie d'information</a>
+          <a href="#nlp" class="toc-link">2. Moteur d'Analyse Sémantique</a>
+          <a href="#matching" class="toc-link">3. Scoring Multidimensionnel</a>
+          <a href="#analytics" class="toc-link">4. Intelligence de Marché</a>
+          <a href="#desintermediation" class="toc-link"
+            >5. Désintermédiation P2P</a
+          >
+        </nav>
+      </aside>
+
+      <!-- CONTENT -->
+      <main class="doc-content">
+        <!-- SECTION 1 -->
+        <section id="vision" class="doc-section">
+          <h2>1. Répondre à l'asymétrie d'information</h2>
+          <p>
+            Le marché immobilier transactionnel souffre d'un défaut structurel
+            majeur : l'asymétrie d'information entre l'offre et la demande.
+            Historiquement, les portails de diffusion immobilière ont adopté un
+            modèle asymétrique (le vendeur paie pour exposer, l'acheteur cherche
+            dans le bruit). Ce modèle engendre de la friction, des délais
+            d'écoulement longs et des honoraires d'intermédiation élevés.
+          </p>
+          <p>
+            L'architecture de <span class="highlight">Mon AiGENT</span> repose
+            sur un paradigme inverse :
+            <strong>le matching bilatéral simultané</strong>. Nous ne listons
+            pas des annonces ; nous indexons des
+            <em>intentions de transaction</em> qualifiées, que notre moteur
+            croise en temps réel à l'échelle nationale.
+          </p>
+
+          <figure class="doc-figure">
+            <img
+              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=80"
+              alt="Data visualization dashboard"
+            />
+            <figcaption>
+              Figure 1.1 : Interface de supervision des intentions de
+              transaction en temps réel.
+            </figcaption>
+          </figure>
+        </section>
+
+        <!-- SECTION 2 -->
+        <section id="nlp" class="doc-section">
+          <h2>2. Le Moteur d'Analyse Sémantique (NLP)</h2>
+          <p>
+            La friction initiale dans l'immobilier réside dans la saisie des
+            données. Les formulaires rigides à 40 champs découragent la
+            qualification des profils. Pour pallier cela, notre plateforme
+            intègre un module de
+            <strong>Traitement du Langage Naturel (NLP)</strong> capable de
+            vectoriser une intention formulée en langage courant.
+          </p>
+
+          <h3>Extraction et Vectorisation</h3>
+          <p>
+            Lorsqu'un utilisateur soumet une requête via notre interface
+            conversationnelle, le modèle isole, nettoie et type les données pour
+            alimenter le vecteur de recherche.
+          </p>
+
+          <div class="code-block">
+            <span class="code-key">// Entrée Utilisateur (Raw String)</span
+            ><br />
+            "Je cherche un grand T4 autour de Bordeaux, budget max 450k€, pas de
+            passoire thermique."<br /><br />
+            <span class="code-key"
+              >// Sortie du Parser AiGENT (JSON Payload)</span
+            ><br />
+            {<br />
+            &nbsp;&nbsp;<span class="code-key">"intent"</span>:
+            <span class="code-str">"buyer"</span>,<br />
+            &nbsp;&nbsp;<span class="code-key">"criteria"</span>: {<br />
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"ville"</span>:
+            <span class="code-str">"Bordeaux"</span>,<br />
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"toleranceKm"</span>:
+            <span class="code-num">15</span>,<br />
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"type"</span>:
+            <span class="code-str">"appartement"</span>,<br />
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"piecesMin"</span>:
+            <span class="code-num">4</span>,<br />
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"budgetMax"</span>:
+            <span class="code-num">450000</span>,<br />
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"dpeMin"</span>:
+            <span class="code-str">"E"</span><br />
+            &nbsp;&nbsp;}<br />
+            }
+          </div>
+
+          <p>
+            Cette approche permet non seulement une qualification de la base de
+            données <strong>300% plus rapide</strong> qu'un flux classique, mais
+            elle permet également à l'IA de repérer les variables manquantes. Si
+            l'utilisateur omet de préciser s'il tolère des travaux, l'algorithme
+            génère un prompt conditionnel pour affiner le vecteur avant de
+            déclencher la fonction de matching.
+          </p>
+        </section>
+
+        <!-- SECTION 3 -->
+        <section id="matching" class="doc-section">
+          <h2>3. Algorithmique : Le Scoring Multidimensionnel</h2>
+          <p>
+            Le cœur nucléaire de Mon AiGENT est son algorithme de calcul de
+            compatibilité. À chaque nouvelle insertion dans la base de données
+            (Acheteur ou Vendeur), le moteur exécute une matrice de corrélation
+            <code>O(N)</code> sur le pool inverse.
+          </p>
+
+          <h3>Formule de pondération dynamique</h3>
+          <p>
+            Le score final (sur 100 points) n'est pas un simple filtre booléen.
+            Il s'agit d'un score de proximité calculé sur trois axes majeurs :
+          </p>
+
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>Vecteur</th>
+                <th>Poids (%)</th>
+                <th>Méthode de calcul (Pénalités & Seuils)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Vital</strong> (Finance & Géo)</td>
+                <td>60%</td>
+                <td>
+                  Écart quadratique sur le budget. Distance calculée par formule
+                  de Haversine (GPS). Un dépassement du budget > 5% annule le
+                  score.
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Technique</strong> (Volume)</td>
+                <td>30%</td>
+                <td>
+                  Ratio Surface / Pièces. Une pénalité est appliquée si le ratio
+                  est inférieur à 18m²/pièce (risque de sur-cloisonnement).
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Qualitatif</strong> (Énergie)</td>
+                <td>10%</td>
+                <td>
+                  Matrice DPE. Un DPE A ou B applique un multiplicateur de 1.15.
+                  Un DPE G applique un malus de -15 points, sauf tolérance
+                  "Travaux" déclarée.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="doc-callout">
+            <svg
+              class="callout-icon"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+            <div class="callout-text">
+              <h4>Le concept de "Soft Limit" Géographique</h4>
+              <p>
+                Contrairement aux portails qui bloquent une recherche à la
+                frontière communale, notre moteur applique une décroissance
+                douce. Un bien situé à 1km en dehors de la zone de recherche ne
+                sera pas exclu, mais subira une pénalité marginale sur son score
+                <i>Vital</i>.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECTION 4 -->
+        <section id="analytics" class="doc-section">
+          <h2>4. Intelligence de Marché & Diagnostics</h2>
+          <p>
+            L'un des apports majeurs de notre infrastructure est la restitution
+            de la donnée à l'utilisateur. Lors d'un matching infructueux (score
+            < 40%), l'utilisateur n'est pas abandonné face à un écran vide. Le
+            système exécute une fonction d'analyse prédictive sur les rejets.
+          </p>
+
+          <figure class="doc-figure">
+            <img
+              src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1600&q=80"
+              alt="Analyse financière des données immobilières"
+            />
+            <figcaption>
+              Figure 4.1 : Traitement des données et restitution des écarts
+              médians aux utilisateurs.
+            </figcaption>
+          </figure>
+
+          <h3>Le "Feedback Loop" Chiffré</h3>
+          <p>
+            Le moteur identifie la variable causant la friction maximale. Par
+            exemple, si le budget de l'acquéreur rejette 80% des biens de la
+            zone cible, le système calcule l'écart médian exact (ex:
+            <i>"Écart constaté : 15 400 €"</i>) et propose un ajustement en un
+            clic.
+          </p>
+          <p>
+            Pour le vendeur, ce diagnostic est le
+            <strong>juge de paix de l'estimation</strong>. Si un bien est
+            présenté à 400k€ et qu'il ne matche aucun acquéreur finançable, la
+            surévaluation est mathématiquement prouvée par la base de données,
+            incitant à une correction tarifaire immédiate et rationnelle.
+          </p>
+        </section>
+
+        <!-- SECTION 5 -->
+        <section id="desintermediation" class="doc-section">
+          <h2>5. La Désintermédiation Financière (P2P)</h2>
+          <p>
+            La finalité de cette infrastructure technologique est de rendre le
+            pouvoir transactionnel aux parties prenantes. Le marché immobilier
+            traditionnel impose une taxe d'intermédiation (frais d'agence)
+            s'élevant en moyenne à 5% de la valeur de l'actif, pour un service
+            de matching devenu technologiquement obsolète.
+          </p>
+
+          <h3>Messagerie et Sécurisation</h3>
+          <p>
+            Une fois le "Match Parfait" établi, Mon AiGENT ouvre un canal de
+            communication crypté entre l'Acheteur et le Vendeur. Cette interface
+            permet :
+          </p>
+          <ul>
+            <li>
+              L'échange sécurisé de documents sensibles (Titre de propriété,
+              Procès-verbaux d'AG, Diagnostics Techniques).
+            </li>
+            <li>La planification d'inspections physiques du bien.</li>
+            <li>
+              La transmission directe du dossier au notaire désigné par les
+              parties, actant la transaction finale.
+            </li>
+          </ul>
+
+          <blockquote>
+            "L'intégration de l'IA ne consiste pas à remplacer l'humain, mais à
+            détruire la friction technique qui justifiait historiquement des
+            commissions d'agence de plusieurs dizaines de milliers d'euros."
+          </blockquote>
+
+          <p>
+            En automatisant la qualification, l'estimation comparative et la
+            mise en relation, Mon AiGENT réinjecte l'intégralité de la valeur
+            dans le patrimoine du vendeur et le pouvoir d'achat de l'acquéreur.
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <!-- SCRIPT POUR LE SCROLL SPY (TOC) -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const sections = document.querySelectorAll(".doc-section");
+        const navLinks = document.querySelectorAll(".toc-link");
+
+        const observerOptions = {
+          root: null,
+          rootMargin: "-20% 0px -60% 0px",
+          threshold: 0,
+        };
+
+        const observerCallback = (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const id = entry.target.getAttribute("id");
+              navLinks.forEach((link) => {
+                link.classList.remove("active");
+                if (link.getAttribute("href") === `#${id}`) {
+                  link.classList.add("active");
+                }
+              });
+            }
+          });
+        };
+
+        const observer = new IntersectionObserver(
+          observerCallback,
+          observerOptions,
+        );
+        sections.forEach((sec) => observer.observe(sec));
+      });
+    </script>
+  </body>
+</html>
