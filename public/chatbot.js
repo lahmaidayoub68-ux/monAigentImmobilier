@@ -1,5 +1,7 @@
 import { openNiveauEnergetiquePopup } from "./niveauEnergetiquePopup.js";
 import { openProximitePopup } from "./proximitePopup.js";
+import { initSessionReplay } from "./sessionReplay.js";
+import { renderProjectionHTML } from "./compatibilityProjection.js";
 
 // ================== CONFIG & STATE ==================
 const API_BASE = window.location.origin;
@@ -738,7 +740,7 @@ async function renderMatches(matches, postReply) {
   const existingFavs = await loadFavorites();
   save("lastMatches", matches);
 
-  matches.forEach((m) => {
+  matches.forEach((m, matchIdx) => {
     const row = document.createElement("div");
     row.className = "msg bot structured";
     const bubble = document.createElement("div");
@@ -755,6 +757,33 @@ async function renderMatches(matches, postReply) {
 
     const isFav = existingFavs.has(m.contact);
 
+    // ── Sérialiser le profil pour le bouton nego ──────────────────────────
+    const matchJson = JSON.stringify({
+      ville: m.ville,
+      type: m.type,
+      price: m.price || m.budgetMax,
+      budgetMax: m.budgetMax,
+      surface: m.surface || m.surfaceMin,
+      surfaceMin: m.surfaceMin,
+      pieces: m.pieces || m.piecesMin,
+      piecesMin: m.piecesMin,
+      contact: m.contact,
+      compatibility: m.compatibility,
+      niveauEnergetique: m.niveauEnergetique,
+      etatBien: m.etatBien,
+      role: m.role,
+    }).replace(/"/g, "&quot;");
+
+    const criteriaJson = JSON.stringify({
+      ville: state.criteria.ville,
+      budgetMax: state.criteria.budgetMax,
+      budgetMin: state.criteria.budgetMin,
+      surfaceMin: state.criteria.surfaceMin,
+      piecesMin: state.criteria.piecesMin,
+      type: state.criteria.type,
+      toleranceKm: state.criteria.toleranceKm,
+    }).replace(/"/g, "&quot;");
+
     bubble.innerHTML = `
       <div class="match-header">
         <div class="match-title"><strong>${m.type || "Bien"}</strong> – ${m.ville}</div>
@@ -765,9 +794,9 @@ async function renderMatches(matches, postReply) {
 <button class="details-btn" aria-label="Voir détails">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" 
-      stroke="url(#grad-details)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      stroke="url(#grad-details-${matchIdx})" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     <defs>
-      <linearGradient id="grad-details" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+      <linearGradient id="grad-details-${matchIdx}" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
         <stop stop-color="#f472b6" />
         <stop offset="1" stop-color="#8b5cf6" />
       </linearGradient>
@@ -802,16 +831,33 @@ async function renderMatches(matches, postReply) {
             <div class="compat-bar-inner" style="width:${m.compatibility}%"></div>
           </div>
         </div>
-        <button class="voir-carte-btn"
-          data-lat="${m.lat ?? m.buyerLat ?? 48.8566}"
-          data-lng="${m.lng ?? m.buyerLng ?? 2.3522}"
-          data-buyer-lat="${m.buyerLat ?? m.lat ?? 48.8566}"
-          data-buyer-lng="${m.buyerLng ?? m.lng ?? 2.3522}"
-          data-ville="${m.ville}">Carte</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button class="nego-btn"
+            data-nego-match="${matchJson}"
+            data-nego-criteria="${criteriaJson}"
+            aria-label="Simuler une négociation">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+            Simuler
+          </button>
+          <button class="voir-carte-btn"
+            data-lat="${m.lat ?? m.buyerLat ?? 48.8566}"
+            data-lng="${m.lng ?? m.buyerLng ?? 2.3522}"
+            data-buyer-lat="${m.buyerLat ?? m.lat ?? 48.8566}"
+            data-buyer-lng="${m.buyerLng ?? m.lng ?? 2.3522}"
+            data-ville="${m.ville}">Carte</button>
+        </div>
       </div>
     `;
+    const projHTML = renderProjectionHTML(m, state.criteria);
+    if (projHTML) {
+      const projEl = document.createElement("div");
+      projEl.innerHTML = projHTML;
+      bubble.appendChild(projEl.firstElementChild);
+    }
 
-    // Modal détails vendeur
+    // ── Modal détails vendeur (code original conservé intégralement) ───────
     if (m.role === "seller") {
       bubble.querySelector(".details-btn").onclick = () => {
         const images = Array.isArray(m.imagesbien) ? m.imagesbien : [];
@@ -822,7 +868,6 @@ async function renderMatches(matches, postReply) {
         modal.className = "details-modal-overlay";
         modal.style.display = "flex";
 
-        // ── Regrouper les infras par type ─────────────────────────────────
         const INFRA_COLORS = {
           Transport: "#6366f1",
           École: "#8b5cf6",
@@ -843,40 +888,17 @@ async function renderMatches(matches, postReply) {
           if (!items.length) {
             return `<p style="font-size:12px;color:#64748b;margin:0;font-style:italic">Non renseigné</p>`;
           }
-
           return items
             .map((item) => {
               const parts = item.split(" : ");
               const type = parts.length > 1 ? parts[0].trim() : "Lieu";
               const name = parts.length > 1 ? parts[1].trim() : item;
-
               const color = getInfraColor(type);
-
-              return `
-        <span class="prox-detail-chip" style="
-          display:inline-flex; align-items:center; gap:5px;
-          padding:4px 10px; margin:2px;
-          border-radius:20px; font-size:11px; font-weight:500;
-          background:${color}1A;
-          border:1px solid ${color}55;
-        ">
-          <span style="
-            width:6px;height:6px;border-radius:50%;
-            background:${color};
-            flex-shrink:0;
-          "></span>
-
-          <span style="
-            color:${color};
-            font-weight:600;
-          ">${type}</span>
-
-          <span style="
-            color:${color};
-            opacity:0.85;
-          ">${name}</span>
-        </span>
-      `;
+              return `<span class="prox-detail-chip" style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;margin:2px;border-radius:20px;font-size:11px;font-weight:500;background:${color}1A;border:1px solid ${color}55;">
+                <span style="width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0;"></span>
+                <span style="color:${color};font-weight:600;">${type}</span>
+                <span style="color:${color};opacity:0.85;">${name}</span>
+              </span>`;
             })
             .join("");
         }
@@ -884,59 +906,50 @@ async function renderMatches(matches, postReply) {
         const renderModalContent = () => {
           const hasImages = images.length > 0;
           modal.innerHTML = `
-        <div class="details-popup-content">
-          <div class="details-header">Détails de l'annonce
-            <button class="close-details-btn">&times;</button>
-          </div>
- 
-          ${
-            hasImages
-              ? `
-            <div class="details-carousel-container">
-              <div class="details-img-wrapper">
-                <img src="${images[currentIndex]}" class="details-main-img" alt="Bien">
-                ${
-                  images.length > 1
-                    ? `
-                  <button class="c-nav c-prev">‹</button>
-                  <button class="c-nav c-next">›</button>
-                  <div class="c-counter">${currentIndex + 1} / ${images.length}</div>
-                `
-                    : ""
-                }
+            <div class="details-popup-content">
+              <div class="details-header">Détails de l'annonce
+                <button class="close-details-btn">&times;</button>
               </div>
-            </div>
-          `
-              : '<div class="no-img-placeholder">Aucune photo disponible</div>'
-          }
- 
-          <div class="details-grid">
-            <div class="feature-item"><span>DPE</span><strong>${m.niveauEnergetique || "N/A"}</strong></div>
-            <div class="feature-item"><span>État</span><strong>${m.etatBien || "N/A"}</strong></div>
-            <div class="feature-item"><span>Contact</span><strong>${m.contact || "N/A"}</strong></div>
-          </div>
- 
-          ${
-            proximite.length > 0
-              ? `
-          <div class="details-proximite-section">
-            <div class="details-proximite-header">
-              <svg viewBox="0 0 24 24" fill="none" width="14" height="14">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
-                  fill="#a78bfa"/>
-              </svg>
-              <span>Commodités à proximité</span>
-            </div>
-            <div class="details-proximite-chips">
-              ${buildProximiteHTML(proximite)}
-            </div>
-          </div>
-          `
-              : ""
-          }
-        </div>`;
+              ${
+                hasImages
+                  ? `
+                <div class="details-carousel-container">
+                  <div class="details-img-wrapper">
+                    <img src="${images[currentIndex]}" class="details-main-img" alt="Bien">
+                    ${
+                      images.length > 1
+                        ? `
+                      <button class="c-nav c-prev">‹</button>
+                      <button class="c-nav c-next">›</button>
+                      <div class="c-counter">${currentIndex + 1} / ${images.length}</div>
+                    `
+                        : ""
+                    }
+                  </div>
+                </div>
+              `
+                  : '<div class="no-img-placeholder">Aucune photo disponible</div>'
+              }
+              <div class="details-grid">
+                <div class="feature-item"><span>DPE</span><strong>${m.niveauEnergetique || "N/A"}</strong></div>
+                <div class="feature-item"><span>État</span><strong>${m.etatBien || "N/A"}</strong></div>
+                <div class="feature-item"><span>Contact</span><strong>${m.contact || "N/A"}</strong></div>
+              </div>
+              ${
+                proximite.length > 0
+                  ? `
+                <div class="details-proximite-section">
+                  <div class="details-proximite-header">
+                    <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#a78bfa"/></svg>
+                    <span>Commodités à proximité</span>
+                  </div>
+                  <div class="details-proximite-chips">${buildProximiteHTML(proximite)}</div>
+                </div>
+              `
+                  : ""
+              }
+            </div>`;
 
-          // Events
           modal.querySelector(".close-details-btn").onclick = () =>
             modal.remove();
           if (images.length > 1) {
@@ -961,27 +974,43 @@ async function renderMatches(matches, postReply) {
       };
     }
 
-    // Favoris — toggle API + état visuel persistant
+    // ── Bouton NEGO ────────────────────────────────────────────────────────
+    bubble.querySelector(".nego-btn").onclick = (e) => {
+      e.stopPropagation();
+      try {
+        const btn = e.currentTarget;
+        const matchProfile = JSON.parse(
+          btn.dataset.negoMatch.replace(/&quot;/g, '"'),
+        );
+        const userCriteria = JSON.parse(
+          btn.dataset.negoCriteria.replace(/&quot;/g, '"'),
+        );
+        if (typeof window.openNegoModal === "function") {
+          window.openNegoModal(matchProfile, userCriteria);
+        } else {
+          console.error(
+            "[Nego] openNegoModal non disponible — vérifiez que negoModal.js est chargé",
+          );
+        }
+      } catch (err) {
+        console.error("[Nego] Erreur parsing profil:", err);
+      }
+    };
+
+    // ── Favoris ────────────────────────────────────────────────────────────
     const favBtn = bubble.querySelector(".fav-btn");
     const favIcon = favBtn.querySelector(".fav-icon path");
     favBtn.onclick = async (e) => {
       e.stopPropagation();
       const wasActive = favBtn.classList.contains("fav-active");
-      // Optimistic
       favBtn.classList.toggle("fav-active", !wasActive);
       favIcon.setAttribute("fill", wasActive ? "none" : "var(--rose)");
       favBtn.disabled = true;
-
-      let ok;
-      if (wasActive) {
-        ok = await removeFavorite(m.contact);
-      } else {
-        ok = await addFavorite(m);
-      }
-
+      const ok = wasActive
+        ? await removeFavorite(m.contact)
+        : await addFavorite(m);
       favBtn.disabled = false;
       if (!ok) {
-        // Rollback
         favBtn.classList.toggle("fav-active", wasActive);
         favIcon.setAttribute("fill", wasActive ? "var(--rose)" : "none");
       }
@@ -991,29 +1020,17 @@ async function renderMatches(matches, postReply) {
     $("chat-box").appendChild(row);
   });
 
-  // Leaflet — deux marqueurs signature + ligne colorée
+  // ── Carte Leaflet (code original conservé intégralement) ─────────────────
   document.querySelectorAll(".voir-carte-btn").forEach((btn) => {
     btn.onclick = () => {
       const modal = $("mapModal");
       modal.style.display = "flex";
 
       const isSeller = state.role === "seller";
-
       const matchLat = parseFloat(btn.dataset.lat);
       const matchLng = parseFloat(btn.dataset.lng);
       const buyerLat = parseFloat(btn.dataset.buyerLat);
       const buyerLng = parseFloat(btn.dataset.buyerLng);
-
-      // Pour ACHETEUR :
-      //   - matchLat/matchLng = coords du BIEN trouvé (marker rose 🏠)
-      //   - buyerLat/buyerLng = coords de l'acheteur = SA ville (marker bleu 📍)
-      // Pour VENDEUR :
-      //   - matchLat/matchLng = coords du BIEN du vendeur (marker rose 🏠)
-      //   - buyerLat/buyerLng = coords de l'acheteur matché (marker bleu 📍)
-
-      // Le "user" dans la carte = toujours le marker bleu = buyerLat/buyerLng
-      // Le "bien" dans la carte = toujours le marker rose = matchLat/matchLng
-
       const userLat = !isNaN(buyerLat) ? buyerLat : 48.8566;
       const userLng = !isNaN(buyerLng) ? buyerLng : 2.3522;
       const userVille = isSeller
@@ -1032,7 +1049,6 @@ async function renderMatches(matches, postReply) {
         attribution: "© OpenStreetMap",
       }).addTo(map);
 
-      // Cercle de rayon (acheteur seulement)
       const toleranceKm = state.criteria?.toleranceKm;
       if (!isSeller && toleranceKm && toleranceKm > 0) {
         L.circle([userLat, userLng], {
@@ -1051,7 +1067,6 @@ async function renderMatches(matches, postReply) {
           });
       }
 
-      // Distance Haversine
       const R = 6371;
       const dLat = ((matchLat - userLat) * Math.PI) / 180;
       const dLng = ((matchLng - userLng) * Math.PI) / 180;
@@ -1087,7 +1102,6 @@ async function renderMatches(matches, postReply) {
         iconSize: [36, 36],
         iconAnchor: [18, 18],
       });
-
       const matchIcon = L.divIcon({
         html: `<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#c084fc,#f472b6);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);box-shadow:0 0 0 3px rgba(192,132,252,0.35),0 4px 12px rgba(244,114,182,0.5);"><svg width="16" height="16" fill="white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>`,
         className: "",
@@ -1095,15 +1109,12 @@ async function renderMatches(matches, postReply) {
         iconAnchor: [18, 36],
       });
 
-      // Marker bleu = l'utilisateur (buyer ou vendeur connecté)
       L.marker([userLat, userLng], { icon: userIcon })
         .addTo(map)
         .bindPopup(
           `<strong>📍 ${userVille}</strong><br><span style="font-size:11px;opacity:0.7">Votre position</span>`,
         )
         .openPopup();
-
-      // Marker rose = le bien (seller) ou l'acheteur matché
       L.marker([matchLat, matchLng], { icon: matchIcon })
         .addTo(map)
         .bindPopup(
@@ -1501,6 +1512,7 @@ export function initChatbot() {
   }
 
   render();
+  initSessionReplay(state);
 
   // Suggestions
   const suggestionsBox = $("chat-suggestions");

@@ -3226,6 +3226,740 @@ JSON attendu :
     });
   }
 });
+// ================== DEAL RADAR — Route à injecter dans server.js ==================
+// Placement : après les imports existants, avant app.listen()
+// Dépendances déjà présentes : authenticateToken, SELLERS, BUYERS, scoreSellerForBuyer (via matchingEngine)
+// IMPORTANT : importer getStatsMatches depuis matchingEngine si pas déjà fait
+
+// ─── Helper interne : compte les buyers à +seuil% pour un seller donné ──────────
+function computeRadarEntry(seller, buyers, threshold = 70) {
+  const matches = [];
+
+  for (const buyer of buyers) {
+    // Réutilise la logique de scoring déjà en place
+    // On ne peut pas appeler scoreSellerForBuyer directement depuis server.js
+    // → on fait un appel simplifié cohérent avec le moteur existant
+    const budgetOk =
+      buyer.budgetMax == null
+        ? 0.6 // buyer sans budget = neutre
+        : buyer.budgetMax >= seller.price
+          ? 1
+          : buyer.budgetMax + 50000 >= seller.price
+            ? 0.5
+            : 0;
+
+    if (budgetOk === 0) continue; // hors budget total = skip
+
+    // Distance approximative (même helper que le moteur)
+    const sellerNorm = (seller.ville || "").toLowerCase().trim();
+    const buyerNorm = (buyer.ville || "").toLowerCase().trim();
+    const villeScore =
+      sellerNorm === buyerNorm
+        ? 1
+        : buyer.toleranceKm && buyer.toleranceKm > 0
+          ? 0.5
+          : 0.3;
+
+    const surfOk =
+      buyer.surfaceMin == null
+        ? 0.8
+        : seller.surface >= buyer.surfaceMin
+          ? 1
+          : seller.surface >= buyer.surfaceMin * 0.9
+            ? 0.6
+            : 0;
+
+    const piecesOk =
+      buyer.piecesMin == null ? 0.8 : seller.pieces >= buyer.piecesMin ? 1 : 0;
+
+    const compatibility = Math.round(
+      (budgetOk * 0.4 + villeScore * 0.3 + surfOk * 0.2 + piecesOk * 0.1) * 100,
+    );
+
+    if (compatibility >= threshold) {
+      matches.push({
+        username: buyer.username,
+        ville: buyer.ville,
+        compatibility,
+        budgetMax: buyer.budgetMax,
+      });
+    }
+  }
+
+  // Trier par compatibilité décroissante
+  matches.sort((a, b) => b.compatibility - a.compatibility);
+
+  const score = matches.length;
+  // Urgence = nombre d'acheteurs qualifiés × compatibilité moyenne
+  const avgCompat =
+    score > 0
+      ? Math.round(matches.reduce((s, m) => s + m.compatibility, 0) / score)
+      : 0;
+
+  return {
+    sellerId: seller.id,
+    username: seller.username,
+    ville: seller.ville,
+    type: seller.type,
+    price: seller.price,
+    surface: seller.surface,
+    pieces: seller.pieces,
+    niveauEnergetique: seller.niveauEnergetique,
+    qualifiedBuyers: score,
+    avgCompatibility: avgCompat,
+    urgencyScore: Math.min(100, score * 12 + (avgCompat > 80 ? 20 : 0)), // plafonné à 100
+    topBuyers: matches.slice(0, 3),
+    // Fenêtre d'opportunité calculée : plus il y a d'acheteurs, plus ça va vite
+    estimatedWindowHours: Math.max(
+      12,
+      72 - score * 8 - (avgCompat > 75 ? 10 : 0),
+    ),
+  };
+}
+
+// ─── Route principale GET /api/deal-radar ────────────────────────────────────
+app.get("/api/deal-radar", authenticateToken, async (req, res) => {
+  try {
+    const username = req.user.username;
+    const role = req.user.role;
+
+    // Threshold configurable via query param (défaut 65%)
+    const threshold = Math.min(
+      95,
+      Math.max(40, parseInt(req.query.threshold || "65", 10)),
+    );
+    const limit = Math.min(
+      20,
+      Math.max(1, parseInt(req.query.limit || "8", 10)),
+    );
+
+    if (role === "buyer") {
+      // Vue acheteur : montre les biens qui te correspondent le mieux PARMI les récents
+      const buyerProfile = BUYERS.find((b) => b.username === username);
+
+      if (!buyerProfile) {
+        return res.json({
+          mode: "buyer",
+          alerts: [],
+          summary: { totalOpportunities: 0, avgUrgency: 0 },
+        });
+      }
+
+      // Analyser les sellers triés par "fraîcheur" (id décroissant = plus récents)
+      const recentSellers = [...SELLERS]
+        .sort((a, b) => (b.id || 0) - (a.id || 0))
+        .slice(0, 30);
+
+      const alerts = [];
+
+      for (const seller of recentSellers) {
+        const entry = computeRadarEntry(seller, [buyerProfile], threshold);
+        if (entry.qualifiedBuyers > 0) {
+          alerts.push({
+            ...entry,
+            // Pour l'acheteur : on lui dit combien d'autres acheteurs ciblent ce bien
+            competitorCount: Math.max(
+              0,
+              computeRadarEntry(seller, BUYERS, threshold).qualifiedBuyers - 1,
+            ),
+          });
+        }
+      }
+
+      alerts.sort((a, b) => b.urgencyScore - a.urgencyScore);
+
+      return res.json({
+        mode: "buyer",
+        threshold,
+        alerts: alerts.slice(0, limit),
+        summary: {
+          totalOpportunities: alerts.length,
+          avgUrgency:
+            alerts.length > 0
+              ? Math.round(
+                  alerts.reduce((s, a) => s + a.urgencyScore, 0) /
+                    alerts.length,
+                )
+              : 0,
+          hottestCity:
+            alerts.length > 0
+              ? alerts.reduce((acc, a) => {
+                  acc[a.ville] = (acc[a.ville] || 0) + 1;
+                  return acc;
+                }, {})
+              : {},
+        },
+      });
+    }
+
+    // Vue vendeur : montre combien d'acheteurs qualifiés pour TON bien
+    const sellerProfile = SELLERS.find((s) => s.username === username);
+
+    if (!sellerProfile) {
+      return res.json({
+        mode: "seller",
+        alerts: [],
+        summary: { totalOpportunities: 0, avgUrgency: 0 },
+      });
+    }
+
+    const myEntry = computeRadarEntry(sellerProfile, BUYERS, threshold);
+
+    // Comparaison avec les autres biens similaires (même ville, même type)
+    const similarSellers = SELLERS.filter(
+      (s) =>
+        s.username !== username &&
+        s.ville === sellerProfile.ville &&
+        s.type === sellerProfile.type,
+    );
+
+    const competition = similarSellers.map((s) => ({
+      ville: s.ville,
+      type: s.type,
+      price: s.price,
+      qualifiedBuyers: computeRadarEntry(s, BUYERS, threshold).qualifiedBuyers,
+    }));
+
+    const avgCompetitorBuyers =
+      competition.length > 0
+        ? Math.round(
+            competition.reduce((s, c) => s + c.qualifiedBuyers, 0) /
+              competition.length,
+          )
+        : 0;
+
+    return res.json({
+      mode: "seller",
+      threshold,
+      myBien: myEntry,
+      competition: {
+        count: competition.length,
+        avgQualifiedBuyers: avgCompetitorBuyers,
+        yourAdvantage: myEntry.qualifiedBuyers - avgCompetitorBuyers,
+        items: competition.slice(0, 5),
+      },
+      summary: {
+        totalOpportunities: myEntry.qualifiedBuyers,
+        avgUrgency: myEntry.urgencyScore,
+        estimatedWindowHours: myEntry.estimatedWindowHours,
+      },
+    });
+  } catch (err) {
+    console.error("[/api/deal-radar] ERREUR:", err);
+    res.status(500).json({ error: "Erreur calcul radar" });
+  }
+});
+
+// ─── Route POST /api/deal-radar/subscribe ────────────────────────────────────
+// Enregistre le mode "Silent Matching" (feature 5) en session serveur
+// Le serveur vérifie à chaque refresh si un nouveau profil dépasse le seuil
+app.post("/api/deal-radar/subscribe", authenticateToken, async (req, res) => {
+  try {
+    const { threshold = 85, active = true } = req.body;
+    const username = req.user.username;
+
+    // Stocker en DB (colonne JSON dans users ou table dédiée)
+    // Version légère : on utilise la session en mémoire
+    if (!global._silentMatchingRegistry) global._silentMatchingRegistry = {};
+
+    if (active) {
+      global._silentMatchingRegistry[username] = {
+        threshold: Math.min(99, Math.max(50, threshold)),
+        subscribedAt: new Date().toISOString(),
+        role: req.user.role,
+        lastNotified: null,
+      };
+    } else {
+      delete global._silentMatchingRegistry[username];
+    }
+
+    res.json({ success: true, active, threshold });
+  } catch (err) {
+    console.error("[/api/deal-radar/subscribe]", err);
+    res.status(500).json({ error: "Erreur abonnement" });
+  }
+});
+
+// ─── Route GET /api/deal-radar/notifications ─────────────────────────────────
+// Poll côté client pour recevoir les alertes Silent Matching
+app.get(
+  "/api/deal-radar/notifications",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const username = req.user.username;
+      const registry = global._silentMatchingRegistry || {};
+
+      if (!registry[username]) {
+        return res.json({ subscribed: false, notifications: [] });
+      }
+
+      const sub = registry[username];
+      const threshold = sub.threshold;
+
+      // Chercher les nouveaux profils depuis la dernière notification
+      const lastNotified = sub.lastNotified
+        ? new Date(sub.lastNotified)
+        : new Date(0);
+
+      const notifications = [];
+
+      if (sub.role === "buyer") {
+        const buyerProfile = BUYERS.find((b) => b.username === username);
+        if (buyerProfile) {
+          const newSellers = SELLERS.filter(
+            (s) => s.id > (sub.lastCheckId || 0),
+          ).slice(-10);
+
+          for (const seller of newSellers) {
+            const entry = computeRadarEntry(seller, [buyerProfile], threshold);
+            if (entry.qualifiedBuyers > 0) {
+              notifications.push({
+                type: "new_match",
+                seller: {
+                  ville: seller.ville,
+                  type: seller.type,
+                  price: seller.price,
+                  surface: seller.surface,
+                },
+                compatibility: entry.avgCompatibility,
+                urgencyScore: entry.urgencyScore,
+                estimatedWindowHours: entry.estimatedWindowHours,
+              });
+            }
+          }
+
+          // Mettre à jour le lastCheckId
+          if (SELLERS.length > 0) {
+            sub.lastCheckId = Math.max(...SELLERS.map((s) => s.id || 0));
+          }
+        }
+      }
+
+      if (notifications.length > 0) {
+        sub.lastNotified = new Date().toISOString();
+      }
+
+      res.json({
+        subscribed: true,
+        threshold,
+        notifications,
+      });
+    } catch (err) {
+      console.error("[/api/deal-radar/notifications]", err);
+      res.status(500).json({ error: "Erreur notifications" });
+    }
+  },
+);
+// ================== SIMULATION NÉGOCIATION IA ==================
+// À coller dans server.js JUSTE AVANT app.listen()
+// Dépendances déjà présentes : authenticateToken, SELLERS, BUYERS, sessions
+// Import à ajouter en haut de server.js si pas déjà présent : callLLM est dans aiParsee
+// On réutilise groqClient/mistralClient via un appel direct fetch OpenAI-compatible
+
+// ─── Helper : appel LLM interne (même cascade que aiParsee.js) ─────────────
+async function callNegoLLM(messages, maxTokens = 700) {
+  // 1. Groq
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages,
+        temperature: 0.55, // légèrement plus créatif pour la négociation
+        max_tokens: maxTokens,
+      }),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      const text = d?.choices?.[0]?.message?.content || "";
+      if (text.trim()) return text.trim();
+    }
+  } catch (e) {
+    console.warn("[NEGO] Groq failed:", e.message?.slice(0, 80));
+  }
+
+  // 2. Mistral fallback
+  try {
+    const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.MISTRAL}`,
+      },
+      body: JSON.stringify({
+        model: "mistral-small-latest",
+        messages,
+        temperature: 0.55,
+        max_tokens: maxTokens,
+      }),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      const text = d?.choices?.[0]?.message?.content || "";
+      if (text.trim()) return text.trim();
+    }
+  } catch (e) {
+    console.warn("[NEGO] Mistral failed:", e.message?.slice(0, 80));
+  }
+
+  return null;
+}
+
+// ─── Route POST /api/nego/start ─────────────────────────────────────────────
+// Initialise une session de négociation et retourne le premier message de l'adversaire
+app.post("/api/nego/start", authenticateToken, async (req, res) => {
+  try {
+    const { matchProfile, userCriteria } = req.body;
+
+    if (!matchProfile) {
+      return res.status(400).json({ error: "matchProfile requis" });
+    }
+
+    const userRole = req.user.role; // 'buyer' ou 'seller'
+    const username = req.user.username;
+
+    // Construire le profil de la partie adverse
+    const adverseRole = userRole === "buyer" ? "vendeur" : "acheteur";
+
+    const systemPrompt = buildNegoSystemPrompt(
+      userRole,
+      userCriteria,
+      matchProfile,
+    );
+
+    // Premier message : l'adversaire ouvre la négociation
+    const opener = await callNegoLLM(
+      [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `Commence la négociation. Joue le rôle du ${adverseRole} et ouvre avec ta position initiale. Sois réaliste, légèrement sur la défensive, comme dans une vraie négociation immobilière.`,
+        },
+      ],
+      400,
+    );
+
+    const sessionId = `nego_${username}_${Date.now()}`;
+
+    // Stocker la session de négociation en mémoire (comme sessions[])
+    if (!global._negoSessions) global._negoSessions = {};
+    global._negoSessions[sessionId] = {
+      systemPrompt,
+      history: [
+        {
+          role: "assistant",
+          content:
+            opener ||
+            buildNegoFallbackOpener(userRole, matchProfile, userCriteria),
+        },
+      ],
+      userRole,
+      matchProfile,
+      userCriteria,
+      createdAt: Date.now(),
+      turnCount: 0,
+      outcome: null, // null | 'deal' | 'deadlock' | 'walkaway'
+    };
+
+    // Purge des vieilles sessions (>2h)
+    const now = Date.now();
+    Object.keys(global._negoSessions).forEach((k) => {
+      if (now - global._negoSessions[k].createdAt > 7200000) {
+        delete global._negoSessions[k];
+      }
+    });
+
+    res.json({
+      sessionId,
+      message:
+        opener || buildNegoFallbackOpener(userRole, matchProfile, userCriteria),
+      adverseRole,
+      profile: {
+        ville: matchProfile.ville,
+        type: matchProfile.type,
+        price: matchProfile.price || matchProfile.budgetMax,
+        surface: matchProfile.surface || matchProfile.surfaceMin,
+        pieces: matchProfile.pieces || matchProfile.piecesMin,
+        compatibility: matchProfile.compatibility,
+      },
+    });
+  } catch (err) {
+    console.error("[/api/nego/start]", err);
+    res.status(500).json({ error: "Erreur démarrage négociation" });
+  }
+});
+
+// ─── Route POST /api/nego/turn ──────────────────────────────────────────────
+// Envoie un tour de négociation et retourne la réponse de l'adversaire
+app.post("/api/nego/turn", authenticateToken, async (req, res) => {
+  try {
+    const { sessionId, userMessage } = req.body;
+
+    if (!sessionId || !userMessage) {
+      return res.status(400).json({ error: "sessionId et userMessage requis" });
+    }
+
+    const session = global._negoSessions?.[sessionId];
+    if (!session) {
+      return res
+        .status(404)
+        .json({ error: "Session expirée — relancez la négociation" });
+    }
+
+    session.turnCount++;
+
+    // Construire le contexte complet
+    const messages = [
+      { role: "system", content: session.systemPrompt },
+      ...session.history,
+      { role: "user", content: userMessage },
+    ];
+
+    const adverseReply = await callNegoLLM(messages, 500);
+
+    if (!adverseReply) {
+      return res.json({
+        message: "Je dois réfléchir à votre proposition. Donnez-moi un moment.",
+        outcome: null,
+        analysis: null,
+      });
+    }
+
+    // Mise à jour historique
+    session.history.push(
+      { role: "user", content: userMessage },
+      { role: "assistant", content: adverseReply },
+    );
+
+    // Détecter si accord, blocage ou abandon
+    const outcome = detectNegoOutcome(adverseReply, userMessage, session);
+    if (outcome) session.outcome = outcome;
+
+    // Analyse post-tour (feedback coach)
+    let analysis = null;
+    if (session.turnCount % 3 === 0 || outcome) {
+      analysis = await buildNegoAnalysis(
+        session,
+        userMessage,
+        adverseReply,
+        outcome,
+      );
+    }
+
+    res.json({
+      message: adverseReply,
+      outcome,
+      analysis,
+      turnCount: session.turnCount,
+      historyLength: session.history.length,
+    });
+  } catch (err) {
+    console.error("[/api/nego/turn]", err);
+    res.status(500).json({ error: "Erreur tour de négociation" });
+  }
+});
+
+// ─── Route GET /api/nego/summary ────────────────────────────────────────────
+// Retourne un résumé de la session de négociation avec conseils
+app.get("/api/nego/summary/:sessionId", authenticateToken, async (req, res) => {
+  try {
+    const session = global._negoSessions?.[req.params.sessionId];
+    if (!session) {
+      return res.status(404).json({ error: "Session introuvable" });
+    }
+
+    const summaryPrompt = `Tu es un coach en négociation immobilière expert.
+    
+Voici la transcription d'une simulation de négociation :
+Rôle de l'utilisateur : ${session.userRole === "buyer" ? "acheteur" : "vendeur"}
+Profil du match : ${JSON.stringify(session.matchProfile)}
+Nombre de tours : ${session.turnCount}
+Résultat : ${session.outcome || "en cours"}
+
+Historique :
+${session.history.map((h) => `[${h.role === "user" ? "Utilisateur" : "Adversaire"}] ${h.content}`).join("\n\n")}
+
+Fournis une analyse structurée en JSON :
+{
+  "globalNote": (note /10),
+  "verdict": "court verdict en une phrase",
+  "pointsForts": ["point 1", "point 2", "point 3"],
+  "pointsFaibles": ["point 1", "point 2"],
+  "objectionsRatees": ["objection qu'il aurait dû gérer"],
+  "conseilPrioritaire": "un conseil actionnable précis",
+  "prochaineFois": "ce qu'il faut faire différemment"
+}
+
+Réponds UNIQUEMENT avec le JSON, aucun texte en dehors.`;
+
+    const summaryText = await callNegoLLM(
+      [{ role: "user", content: summaryPrompt }],
+      600,
+    );
+
+    let summary = null;
+    if (summaryText) {
+      try {
+        const cleaned = summaryText
+          .replace(/```json|```/g, "")
+          .trim()
+          .match(/\{[\s\S]*\}/)?.[0];
+        if (cleaned) summary = JSON.parse(cleaned);
+      } catch (e) {
+        summary = { verdict: summaryText, globalNote: null };
+      }
+    }
+
+    res.json({
+      summary,
+      turnCount: session.turnCount,
+      outcome: session.outcome,
+      historyLength: session.history.length,
+    });
+  } catch (err) {
+    console.error("[/api/nego/summary]", err);
+    res.status(500).json({ error: "Erreur résumé" });
+  }
+});
+
+// ─── Helpers internes ────────────────────────────────────────────────────────
+function buildNegoSystemPrompt(userRole, userCriteria, matchProfile) {
+  const isBuyer = userRole === "buyer";
+
+  // L'IA joue le rôle ADVERSE
+  if (isBuyer) {
+    // L'IA = vendeur, l'utilisateur = acheteur
+    const price = matchProfile.price || matchProfile.budgetMax || 0;
+    const surface = matchProfile.surface || matchProfile.surfaceMin || 0;
+    const ville = matchProfile.ville || "France";
+    const type = matchProfile.type || "bien";
+
+    return `Tu es un vendeur immobilier expérimenté et légèrement difficile. 
+Tu vends : ${type} à ${ville}, ${surface} m², prix demandé ${price.toLocaleString("fr-FR")} €.
+État : ${matchProfile.etatBien || "bon état"}. DPE : ${matchProfile.niveauEnergetique || "D"}.
+
+L'acheteur en face a un budget max de ${(userCriteria.budgetMax || userCriteria.budgetMin || "inconnu").toLocaleString?.("fr-FR") ?? "inconnu"} €.
+Compatibilité calculée : ${matchProfile.compatibility}%.
+
+TON RÔLE ET TA PSYCHOLOGIE :
+- Tu tiens à ton prix mais tu peux bouger de 3% maximum au total
+- Tu as une offre concurrente (fictive mais crédible) que tu peux mentionner
+- Tu résistes aux baisses de prix agressives (plus de 5% d'un coup = tu t'énerves)
+- Tu es sensible aux arguments sur l'état du bien, le DPE, ou la rapidité de la transaction
+- Tu peux faire des concessions sur les équipements laissés (cuisine équipée, store, etc.)
+- Tu utilises des techniques de vente réelles : urgence, ancrage haut, concession limitée
+- Accent : professionnel mais ferme, quelques formules de vendeur aguerri
+
+OBJECTIONS TYPES QUE TU VAS UTILISER (adapte-les naturellement) :
+1. "J'ai une autre visite jeudi, je dois vous donner une réponse d'ici là"
+2. "Le marché à ${ville} est en tension, les prix ne baissent pas"  
+3. "Ce prix inclut la cuisine équipée qui vaut 15 000 €"
+4. "Pour une transaction rapide, je peux faire un petit geste, mais pas plus de X €"
+5. Sur le DPE : "Le DPE sera refait après travaux par le nouveau propriétaire, c'est dans le prix"
+
+RÈGLES ABSOLUES :
+- Ne cède JAMAIS plus de 3% du prix total sur l'ensemble de la négociation
+- Si l'acheteur propose moins de ${Math.round(price * 0.9).toLocaleString("fr-FR")} €, tu romps les pourparlers
+- Reste dans le personnage en permanence, même quand l'utilisateur parle de la simulation
+- Réponds en 2-4 phrases maximum, ton de négociation réelle, pas de cours magistral
+- Français naturel de professionnel de l'immobilier`;
+  } else {
+    // L'IA = acheteur, l'utilisateur = vendeur
+    const budgetMax = matchProfile.budgetMax || matchProfile.budget || 0;
+    const surface = matchProfile.surfaceMin || matchProfile.surface || 0;
+    const ville = matchProfile.ville || "France";
+
+    return `Tu es un acheteur sérieux mais exigeant et bien informé.
+Tu cherches : ${matchProfile.type || "bien"} à ${ville}, min ${surface} m².
+Ton budget maximum absolu : ${budgetMax.toLocaleString("fr-FR")} €.
+Compatibilité avec ce bien : ${matchProfile.compatibility}%.
+
+Le vendeur en face propose son bien. Prix de vente actuel : ${(userCriteria.budgetMin || userCriteria.price || "inconnu").toLocaleString?.("fr-FR") ?? "inconnu"} €.
+
+TON RÔLE ET TA PSYCHOLOGIE :
+- Tu aimes le bien mais tu ne le montres pas trop
+- Tu as fait tes recherches sur les prix du marché à ${ville}
+- Tu cherches à négocier une baisse de 5-8% en brandissant des arguments techniques
+- Tu peux invoquer : le DPE, l'état général, les travaux à prévoir, la durée du bien sur le marché
+- Tu as un "autre bien en cours" que tu peux mentionner pour créer de la pression
+- Tu es prêt à conclure vite si le prix est juste
+
+TACTIQUES QUE TU VAS UTILISER :
+1. Pointer les défauts réels ou supposés (DPE, travaux, exposition, charges)
+2. "J'ai vu un bien similaire à ${ville} à X € de moins il y a 15 jours"
+3. "On a déjà un autre compromis en cours, mais votre bien nous plaît davantage"
+4. Faire une première offre basse (-8%) puis remonter par paliers de 1%
+5. Demander des contreparties : parking, cave, cuisine équipée, réduction des frais d'agence
+
+RÈGLES ABSOLUES :
+- Ne monte JAMAIS au-dessus de ton budget max ${budgetMax.toLocaleString("fr-FR")} €
+- Si le vendeur ne bouge pas de plus de 2%, tu menaces de partir
+- Reste dans le personnage
+- 2-4 phrases max, ton naturel d'acheteur bien préparé`;
+  }
+}
+
+function buildNegoFallbackOpener(userRole, matchProfile, userCriteria) {
+  const isBuyer = userRole === "buyer";
+  const price = matchProfile.price || matchProfile.budgetMax || 0;
+  const ville = matchProfile.ville || "votre ville";
+
+  if (isBuyer) {
+    return `Bonjour. Comme convenu, je vous recontacte pour le bien à ${ville}. Le prix affiché est de ${price.toLocaleString("fr-FR")} €, et je dois vous dire que j'ai une autre visite de programmée cette semaine. Quelle est votre position aujourd'hui ?`;
+  } else {
+    return `Bonjour, j'ai bien visité votre bien à ${ville}. Il correspond globalement à ce que je cherche, mais j'ai quelques points à aborder avant de vous faire une offre. Est-ce qu'on peut parler du prix ?`;
+  }
+}
+
+function detectNegoOutcome(adverseReply, userMessage, session) {
+  const combined = (adverseReply + " " + userMessage).toLowerCase();
+
+  // Accord
+  if (
+    /accord|deal|on signe|on est d'accord|topé|affaire conclue|compromis|notaire|félicitations/.test(
+      combined,
+    )
+  ) {
+    return "deal";
+  }
+
+  // Rupture
+  if (
+    /c'est non|je retire|offre refusée|cherchez ailleurs|on arrête|je ne vends pas à ce prix|vous plaisantez/.test(
+      combined,
+    )
+  ) {
+    return "walkaway";
+  }
+
+  // Blocage (après beaucoup de tours sans mouvement)
+  if (session.turnCount >= 12) return "deadlock";
+
+  return null;
+}
+
+async function buildNegoAnalysis(session, userMessage, adverseReply, outcome) {
+  const analysisPrompt = `Coach de négociation immobilière. Analyse ce dernier échange en 2 phrases max.
+
+Rôle utilisateur : ${session.userRole === "buyer" ? "acheteur" : "vendeur"}
+Message utilisateur : "${userMessage}"
+Réponse adversaire : "${adverseReply}"
+${outcome ? `Résultat : ${outcome}` : ""}
+
+Donne un feedback coach direct et actionnable. Commence par un emoji (✅ 💡 ⚠️ 🔴).
+Texte brut uniquement, pas de JSON.`;
+
+  try {
+    return await callNegoLLM([{ role: "user", content: analysisPrompt }], 150);
+  } catch {
+    return null;
+  }
+}
 // ================== START ==================
 const dbColumns = await db
   .prepare(

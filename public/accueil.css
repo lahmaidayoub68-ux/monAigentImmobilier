@@ -2381,6 +2381,537 @@ body::before {
 .ai-panel-hint.hint-active {
   color: #f472b6;
 }
+.nego-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(251, 113, 133, 0.15),
+    rgba(139, 92, 246, 0.15)
+  );
+  border: 1px solid rgba(251, 113, 133, 0.35);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fb7185;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.nego-btn:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 113, 133, 0.25),
+    rgba(139, 92, 246, 0.25)
+  );
+  border-color: rgba(251, 113, 133, 0.6);
+  transform: translateY(-1px);
+}
+.nego-btn svg {
+  flex-shrink: 0;
+}
+
+.nego-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(7, 7, 16, 0.88);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: negoFadeIn 0.25s ease;
+}
+@keyframes negoFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.nego-modal {
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  background: #0d0d1e;
+  border: 1px solid rgba(251, 113, 133, 0.2);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(139, 92, 246, 0.1);
+  animation: negoSlideIn 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+@keyframes negoSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.nego-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.12);
+  background: linear-gradient(
+    135deg,
+    rgba(251, 113, 133, 0.04),
+    rgba(139, 92, 246, 0.04)
+  );
+  flex-shrink: 0;
+}
+.nego-header-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(251, 113, 133, 0.2),
+    rgba(139, 92, 246, 0.2)
+  );
+  border: 1px solid rgba(251, 113, 133, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.nego-header-info {
+  flex: 1;
+  min-width: 0;
+}
+.nego-header-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #f1f0ff;
+  margin-bottom: 3px;
+  letter-spacing: -0.02em;
+}
+.nego-header-sub {
+  font-size: 11px;
+  color: #7c7aa0;
+  font-family: "DM Mono", "Space Mono", monospace;
+  line-height: 1.5;
+}
+
+.nego-profile-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 24px;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.08);
+  background: rgba(139, 92, 246, 0.03);
+  flex-shrink: 0;
+}
+.nego-profile-tag {
+  font-size: 10px;
+  font-family: "DM Mono", "Space Mono", monospace;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: rgba(139, 92, 246, 0.1);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+.nego-profile-tag.compat {
+  background: rgba(52, 211, 153, 0.1);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.2);
+}
+
+.nego-chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.2) transparent;
+}
+.nego-chat::-webkit-scrollbar {
+  width: 4px;
+}
+.nego-chat::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 2px;
+}
+
+.nego-msg {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  animation: msgPop 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+}
+@keyframes msgPop {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.nego-msg.user {
+  flex-direction: row-reverse;
+}
+
+.nego-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+.nego-avatar.adverse {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 113, 133, 0.2),
+    rgba(139, 92, 246, 0.2)
+  );
+  border: 1px solid rgba(251, 113, 133, 0.25);
+  color: #fb7185;
+}
+.nego-avatar.user-av {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.2),
+    rgba(34, 211, 238, 0.2)
+  );
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: #8b5cf6;
+}
+
+.nego-bubble {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e2e0f5;
+}
+.nego-msg.adverse .nego-bubble {
+  background: rgba(251, 113, 133, 0.07);
+  border: 1px solid rgba(251, 113, 133, 0.15);
+  border-top-left-radius: 4px;
+}
+.nego-msg.user .nego-bubble {
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-top-right-radius: 4px;
+  color: #c4c1f0;
+}
+
+.nego-analysis {
+  margin: 0 24px;
+  padding: 10px 14px;
+  background: rgba(251, 191, 36, 0.06);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 10px;
+  font-size: 12px;
+  color: #fcd34d;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+.nego-outcome-card {
+  margin: 0 24px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.nego-outcome-card.deal {
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+.nego-outcome-card.walkaway {
+  background: rgba(251, 113, 133, 0.08);
+  border: 1px solid rgba(251, 113, 133, 0.25);
+}
+.nego-outcome-card.deadlock {
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+.nego-outcome-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.nego-outcome-text strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 3px;
+}
+.nego-outcome-card.deal .nego-outcome-text strong {
+  color: #34d399;
+}
+.nego-outcome-card.walkaway .nego-outcome-text strong {
+  color: #fb7185;
+}
+.nego-outcome-card.deadlock .nego-outcome-text strong {
+  color: #fbbf24;
+}
+.nego-outcome-text span {
+  font-size: 12px;
+  color: #7c7aa0;
+}
+
+.nego-thinking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #7c7aa0;
+  font-family: "DM Mono", "Space Mono", monospace;
+}
+.nego-thinking .dots span {
+  animation: dotBlink 1.2s ease-in-out infinite;
+  opacity: 0;
+}
+.nego-thinking .dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+.nego-thinking .dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.nego-thinking .dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes dotBlink {
+  0%,
+  80%,
+  100% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.nego-footer {
+  padding: 14px 24px;
+  border-top: 1px solid rgba(139, 92, 246, 0.12);
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-shrink: 0;
+  background: rgba(13, 13, 30, 0.8);
+}
+.nego-input-wrap {
+  flex: 1;
+  position: relative;
+}
+.nego-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 12px;
+  color: #f1f0ff;
+  font-size: 13px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  min-height: 44px;
+  max-height: 100px;
+  line-height: 1.5;
+  transition: border-color 0.2s;
+}
+.nego-input:focus {
+  border-color: rgba(139, 92, 246, 0.5);
+}
+.nego-input::placeholder {
+  color: #4a4870;
+}
+.nego-send {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    opacity 0.2s,
+    transform 0.15s;
+  flex-shrink: 0;
+}
+.nego-send:hover {
+  opacity: 0.88;
+  transform: scale(1.04);
+}
+.nego-send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.nego-summary-panel {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.nego-summary-score {
+  text-align: center;
+  padding: 20px;
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  border-radius: 16px;
+}
+.nego-score-number {
+  font-size: 52px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  background: linear-gradient(135deg, #f472b6, #8b5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.nego-score-verdict {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f1f0ff;
+}
+.nego-summary-section {
+  background: rgba(13, 13, 30, 0.6);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.nego-summary-section-header {
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7c7aa0;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.08);
+  font-family: "DM Mono", "Space Mono", monospace;
+}
+.nego-summary-item {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #c4c1f0;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.06);
+  line-height: 1.5;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.nego-summary-item:last-child {
+  border-bottom: none;
+}
+.nego-summary-item-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.nego-close-btn {
+  background: none;
+  border: none;
+  color: #7c7aa0;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+.nego-close-btn:hover {
+  color: #f1f0ff;
+}
+
+.nego-action-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 24px 16px;
+  flex-shrink: 0;
+}
+.nego-action-btn {
+  flex: 1;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid;
+}
+.nego-action-btn.primary {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 113, 133, 0.15),
+    rgba(139, 92, 246, 0.15)
+  );
+  border-color: rgba(251, 113, 133, 0.35);
+  color: #fb7185;
+}
+.nego-action-btn.primary:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(251, 113, 133, 0.25),
+    rgba(139, 92, 246, 0.25)
+  );
+}
+.nego-action-btn.ghost {
+  background: transparent;
+  border-color: rgba(139, 92, 246, 0.2);
+  color: #7c7aa0;
+}
+.nego-action-btn.ghost:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #a78bfa;
+}
+
+@media (max-width: 600px) {
+  .nego-modal {
+    max-height: 95vh;
+    border-radius: 16px;
+  }
+  .nego-header {
+    padding: 16px;
+  }
+  .nego-chat {
+    padding: 14px 16px;
+  }
+  .nego-footer {
+    padding: 12px 16px;
+  }
+  .nego-bubble {
+    max-width: 88%;
+  }
+}
 
 /* ============================================================
    RESPONSIVE MOBILE

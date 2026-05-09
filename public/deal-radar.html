@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deal Radar — AiGENT</title>
+    <!-- On charge ton CSS global (SaaS) -->
+    <link rel="stylesheet" href="accueil.css" />
+    <!-- On inclura le CSS spécifique au radar juste en dessous ou dans un fichier radar.css -->
+    <link rel="stylesheet" href="./radar.css" />
+  </head>
+  <body class="radar-page">
+    <!-- ===== MINI SIDEBAR DESKTOP ===== -->
+    <aside class="mini-nav" id="miniNav">
+      <div class="mini-nav-logo">
+        <img src="./images/vrai.png" alt="Logo" class="mini-nav-lizard" />
+      </div>
+      <button
+        class="mini-nav-toggle"
+        id="openSidebar"
+        aria-label="Ouvrir le menu"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+        >
+          <rect x="1.5" y="1.5" width="17" height="17" rx="3.5" />
+          <line x1="7" y1="1.5" x2="7" y2="18.5" />
+        </svg>
+      </button>
+    </aside>
+
+    <!-- ===== BOUTON HAMBURGER MOBILE ===== -->
+    <button class="mobile-burger" id="openSidebarMobile" aria-label="Menu">
+      <svg
+        width="24"
+        height="18"
+        viewBox="0 0 24 18"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+      >
+        <line x1="0" y1="2" x2="24" y2="2" />
+        <line x1="0" y1="9" x2="17" y2="9" />
+        <line x1="0" y1="16" x2="10" y2="16" />
+      </svg>
+    </button>
+
+    <!-- ===== MENU LATÉRAL (Identique à ton accueil) ===== -->
+    <nav id="sidebar" class="sidebar" aria-label="Menu principal">
+      <span class="close-btn" id="closeSidebar">&times;</span>
+      <h2>Menu</h2>
+      <ul>
+        <li>
+          <a href="profil.html"
+            ><svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            Profil & Compte</a
+          >
+        </li>
+        <li>
+          <a href="messagerie.html"
+            ><svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              ></path>
+            </svg>
+            Messagerie</a
+          >
+        </li>
+        <li>
+          <a href="favoris.html"
+            ><svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+              ></polygon>
+            </svg>
+            Profils favoris</a
+          >
+        </li>
+        <li>
+          <a href="statistiques.html"
+            ><svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            Statistiques</a
+          >
+        </li>
+        <li>
+          <a href="./marche.html"
+            ><svg
+              width="20"
+              height="20"
+              viewBox="0 0 64 64"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+            >
+              <rect x="8" y="34" width="8" height="16" rx="2"></rect>
+              <rect x="24" y="26" width="8" height="24" rx="2"></rect>
+              <rect x="40" y="18" width="8" height="32" rx="2"></rect>
+              <path d="M6 38 L12 34 L20 36 L28 26 L36 28 L44 18 L52 20"></path>
+              <polyline points="50 16 54 20 48 21"></polyline>
+              <circle cx="54" cy="14" r="5"></circle>
+              <text
+                x="54"
+                y="16.5"
+                text-anchor="middle"
+                font-size="6"
+                fill="currentColor"
+                stroke="none"
+              >
+                €
+              </text>
+            </svg>
+            Marché</a
+          >
+        </li>
+        <li>
+          <a
+            href="/deal-radar.html"
+            class="sidebar-nav-item"
+            style="color: var(--violet); font-weight: 600"
+            ><svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 2v4" />
+              <path d="M12 18v4" />
+              <path d="M4.93 4.93l2.83 2.83" />
+              <path d="M16.24 16.24l2.83 2.83" />
+              <path d="M2 12h4" />
+              <path d="M18 12h4" />
+              <path d="M4.93 19.07l2.83-2.83" />
+              <path d="M16.24 7.76l2.83-2.83" />
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 12l5-5" />
+            </svg>
+            Deal Radar</a
+          >
+        </li>
+      </ul>
+    </nav>
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- ===== HEADER ===== -->
+    <header class="top-banner">
+      <div class="logo-container">
+        <img
+          src="images/logo.png"
+          alt="Logo AiGENT"
+          class="logo-img"
+          onerror="this.src = 'https://via.placeholder.com/44x44?text=AI'"
+        />
+        <h1 class="logo-text">Deal Radar</h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-theme" aria-label="Changer le thème">
+          <svg
+            class="icon-sun"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          <svg
+            class="icon-moon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+          </svg>
+        </button>
+        <button id="btn-logout" class="hidden">
+          <svg
+            class="logout-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Déconnexion</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== WRAPPER RADAR ===== -->
+    <div class="app-layout">
+      <div class="radar-content-scroll">
+        <div class="radar-container">
+          <!-- En-tête Radar -->
+          <div class="radar-top-actions">
+            <div class="radar-titles">
+              <div class="radar-badge">
+                <span class="pulse-dot"></span>
+                Analyse temps réel
+              </div>
+              <h2>Fenêtres d'opportunité</h2>
+              <p id="header-sub">Chargement des données marché en cours…</p>
+            </div>
+
+            <div class="radar-controls">
+              <div class="threshold-control">
+                <label>Compatibilité min.</label>
+                <div class="range-wrapper">
+                  <input
+                    type="range"
+                    id="threshold-slider"
+                    min="40"
+                    max="95"
+                    value="65"
+                    step="5"
+                  />
+                </div>
+                <span class="threshold-val" id="threshold-display">65%</span>
+              </div>
+              <button
+                class="btn-saas-primary btn-refresh"
+                id="btn-refresh"
+                title="Actualiser"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M23 4v6h-6" />
+                  <path d="M1 20v-6h6" />
+                  <path
+                    d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                  />
+                </svg>
+                Actualiser
+              </button>
+              <button
+                class="silent-toggle"
+                id="silent-toggle"
+                title="Silent Matching"
+              >
+                <svg
+                  class="icon-silent-off"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                <span class="toggle-label">Silent Matching</span>
+                <div class="toggle-switch"></div>
+              </button>
+            </div>
+          </div>
+
+          <!-- COUNTDOWN (Alerte critique) -->
+          <div class="countdown-wrap" id="countdown-wrap" style="display: none">
+            <div class="countdown-icon-wrap">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+            </div>
+            <div class="countdown-text">
+              <strong id="countdown-label">Fenêtre critique détectée</strong>
+              <span id="countdown-sub"
+                >Ce bien a déjà plusieurs acheteurs qualifiés en attente</span
+              >
+            </div>
+            <div class="countdown-clock" id="countdown-clock">--:--</div>
+          </div>
+
+          <!-- SUMMARY CARDS -->
+          <div class="summary-grid" id="summary-grid">
+            <div class="sum-card" style="--card-accent: #f472b6">
+              <div class="sum-card-label">Opportunités</div>
+              <div class="sum-card-val" id="sum-opps">—</div>
+              <div class="sum-card-sub">profils qualifiés</div>
+            </div>
+            <div class="sum-card" style="--card-accent: #fbbf24">
+              <div class="sum-card-label">Urgence moyenne</div>
+              <div class="sum-card-val" id="sum-urgency">—</div>
+              <div class="sum-card-sub">score /100</div>
+            </div>
+            <div class="sum-card" style="--card-accent: #8b5cf6">
+              <div class="sum-card-label">Fenêtre max</div>
+              <div class="sum-card-val" id="sum-window">—</div>
+              <div class="sum-card-sub">heures estimées</div>
+            </div>
+            <div class="sum-card" style="--card-accent: #22d3ee">
+              <div class="sum-card-label">Seuil de recherche</div>
+              <div class="sum-card-val" id="sum-threshold">65%</div>
+              <div class="sum-card-sub">compatibilité</div>
+            </div>
+          </div>
+
+          <!-- RADAR MAIN SECTION -->
+          <div class="radar-section" id="radar-section">
+            <!-- SVG RADAR ANIMÉ -->
+            <div class="radar-ring-wrap">
+              <div class="radar-svg-wrap">
+                <svg class="radar-svg" id="radar-svg" viewBox="0 0 160 160">
+                  <circle class="ring" cx="80" cy="80" r="70" />
+                  <circle class="ring" cx="80" cy="80" r="50" />
+                  <circle class="ring" cx="80" cy="80" r="30" />
+                  <line
+                    x1="80"
+                    y1="10"
+                    x2="80"
+                    y2="150"
+                    stroke="currentColor"
+                    stroke-width="1"
+                    class="radar-axis"
+                  />
+                  <line
+                    x1="10"
+                    y1="80"
+                    x2="150"
+                    y2="80"
+                    stroke="currentColor"
+                    stroke-width="1"
+                    class="radar-axis"
+                  />
+
+                  <circle
+                    id="radar-arc-bg"
+                    cx="80"
+                    cy="80"
+                    r="70"
+                    fill="none"
+                    stroke-width="6"
+                    stroke-dasharray="439.82"
+                    stroke-dashoffset="0"
+                  />
+                  <circle
+                    id="radar-arc"
+                    cx="80"
+                    cy="80"
+                    r="70"
+                    fill="none"
+                    stroke="url(#radarGrad)"
+                    stroke-width="6"
+                    stroke-linecap="round"
+                    stroke-dasharray="439.82"
+                    stroke-dashoffset="439.82"
+                  />
+
+                  <g id="radar-dots"></g>
+                  <defs>
+                    <linearGradient
+                      id="radarGrad"
+                      x1="0%"
+                      y1="0%"
+                      x2="100%"
+                      y2="0%"
+                    >
+                      <stop offset="0%" stop-color="#fb7185" />
+                      <stop offset="100%" stop-color="#8b5cf6" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <svg class="radar-sweep" viewBox="0 0 160 160">
+                  <defs>
+                    <linearGradient
+                      id="sweepGrad"
+                      x1="0%"
+                      y1="0%"
+                      x2="100%"
+                      y2="0%"
+                    >
+                      <stop offset="0%" stop-color="transparent" />
+                      <stop offset="100%" stop-color="rgba(139,92,246,0.4)" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M80 80 L150 80 A70 70 0 0 0 80 10 Z"
+                    fill="url(#sweepGrad)"
+                    class="sweep-path"
+                  />
+                  <line
+                    x1="80"
+                    y1="80"
+                    x2="150"
+                    y2="80"
+                    stroke="#8b5cf6"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                <div class="radar-center">
+                  <div class="rval" id="radar-center-val">—</div>
+                  <div class="rlabel">score</div>
+                </div>
+              </div>
+              <div class="radar-ring-info">
+                <div class="radar-ring-title" id="radar-title">
+                  Analyse en cours
+                </div>
+                <div class="radar-ring-sub" id="radar-sub">
+                  Calcul des profils qualifiés...
+                </div>
+              </div>
+            </div>
+
+            <!-- LISTE ALERTS -->
+            <div class="alerts-panel">
+              <div class="alerts-header">
+                <h3 id="alerts-title">Opportunités détectées</h3>
+                <span class="alerts-meta" id="alerts-meta">—</span>
+              </div>
+              <div id="alerts-list">
+                <!-- Squelettes de chargement (rendu pro) -->
+                <div class="alert-item skeleton-item">
+                  <div
+                    class="skeleton-box"
+                    style="width: 48px; height: 48px; border-radius: 12px"
+                  ></div>
+                  <div
+                    style="
+                      display: flex;
+                      flex-direction: column;
+                      gap: 8px;
+                      flex: 1;
+                    "
+                  >
+                    <div
+                      class="skeleton-box"
+                      style="width: 60%; height: 14px"
+                    ></div>
+                    <div
+                      class="skeleton-box"
+                      style="width: 40%; height: 10px"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL CONCURRENCE (Vendeur) -->
+          <div
+            class="competition-panel"
+            id="competition-panel"
+            style="display: none"
+          >
+            <div class="comp-header">
+              <h3>Concurrence sur votre marché</h3>
+              <span class="comp-advantage" id="comp-advantage-badge">—</span>
+            </div>
+            <div class="comp-list" id="comp-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRAY NOTIFICATIONS -->
+    <div class="notification-tray" id="notif-tray"></div>
+
+    <!-- Scripts -->
+    <script src="sidebar.js" defer></script>
+    <script src="radar.js" defer></script>
+  </body>
+</html>

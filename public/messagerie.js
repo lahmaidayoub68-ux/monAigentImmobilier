@@ -1,6 +1,7 @@
 // ============================================================
 // VARIABLES GLOBALES ET STORES
 // ============================================================
+import { injectTimeline } from "./transactionTimeline.js";
 let currentUser = "";
 try {
   const rawUser = localStorage.getItem("agent_user");
@@ -942,6 +943,7 @@ async function loadConversation(conversationKey) {
   });
 
   chatBox.scrollTop = chatBox.scrollHeight;
+  injectTimeline(conversationKey, currentUser);
 }
 
 // ============================================================
