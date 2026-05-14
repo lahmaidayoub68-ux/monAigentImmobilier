@@ -196,30 +196,6 @@ function logout() {
   if (chatBox) chatBox.innerHTML = "";
   window.location.href = "index.html";
 }
-
-// ============================================================
-// SIDEBAR
-// ============================================================
-function initSidebar() {
-  const sidebar = document.getElementById("sidebar");
-  const openBtn = document.getElementById("openSidebar");
-  const closeBtn = document.getElementById("closeSidebar");
-  const overlay = document.getElementById("sidebarOverlay");
-  const open = () => {
-    sidebar?.classList.add("open");
-    overlay?.classList.add("active");
-    if (openBtn) openBtn.style.display = "none";
-  };
-  const close = () => {
-    sidebar?.classList.remove("open");
-    overlay?.classList.remove("active");
-    if (openBtn) openBtn.style.display = "flex";
-  };
-  openBtn?.addEventListener("click", open);
-  closeBtn?.addEventListener("click", close);
-  overlay?.addEventListener("click", close);
-}
-
 // ============================================================
 // VUE MOBILE
 // ============================================================

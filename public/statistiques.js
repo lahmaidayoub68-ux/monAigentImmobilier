@@ -7,7 +7,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (!user) return (window.location.href = "index.html");
 
   initTheme();
-  initSidebar();
   await loadStats(user.token);
 
   // Logout
@@ -75,21 +74,4 @@ function animateValue(id, value, suffix = "") {
     }
   };
   updateCount();
-}
-
-function initSidebar() {
-  const side = document.getElementById("sidebar");
-  const open = document.getElementById("openSidebar");
-  const close = document.getElementById("closeSidebar");
-  const over = document.getElementById("sidebarOverlay");
-
-  const toggle = (isOpen) => {
-    side.classList.toggle("open", isOpen);
-    over.classList.toggle("active", isOpen);
-    if (open) open.style.opacity = isOpen ? "0" : "1";
-  };
-
-  open?.addEventListener("click", () => toggle(true));
-  close?.addEventListener("click", () => toggle(false));
-  over?.addEventListener("click", () => toggle(false));
 }

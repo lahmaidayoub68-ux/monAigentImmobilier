@@ -204,8 +204,11 @@ if (!window.AIGENT_AUTH_INIT) {
             role: fullUser?.role || role,
             contact: fullUser?.contact || email,
           };
-
           localStorage.setItem("agent_user", JSON.stringify(userObj));
+
+          localStorage.setItem("aigent_new_user", "1");
+          localStorage.removeItem("aigent_guide_seen");
+
           window.location.href = "/accueil.html";
         } catch (err) {
           console.error("[auth] Erreur réseau SIGNUP:", err);

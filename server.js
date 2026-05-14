@@ -344,7 +344,73 @@ CREATE TABLE IF NOT EXISTS favorites (
 `,
   )
   .run();
+// ================== MIGRATION : colonne langue + preferences ==================
+if (!isProd) {
+  try {
+    const cols = await db.prepare("PRAGMA table_info(users)").all();
+    if (!cols.find((c) => c.name === "langue")) {
+      await db
+        .prepare("ALTER TABLE users ADD COLUMN langue TEXT DEFAULT 'fr'")
+        .run();
+      console.log("✅ Colonne langue ajoutée (SQLite)");
+    }
+    if (!cols.find((c) => c.name === "preferences")) {
+      await db
+        .prepare("ALTER TABLE users ADD COLUMN preferences TEXT DEFAULT '{}'")
+        .run();
+      console.log("✅ Colonne preferences ajoutée (SQLite)");
+    }
+  } catch (err) {
+    console.error("[MIGRATION langue/preferences SQLite]", err);
+  }
+}
 
+if (isProd) {
+  try {
+    const colCheck = await db
+      .prepare(
+        `SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='langue'`,
+      )
+      .all();
+    if (!colCheck.length) {
+      await db
+        .prepare("ALTER TABLE users ADD COLUMN langue TEXT DEFAULT 'fr'")
+        .run();
+      console.log("✅ Colonne langue ajoutée (PostgreSQL)");
+    }
+    const prefCheck = await db
+      .prepare(
+        `SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='preferences'`,
+      )
+      .all();
+    if (!prefCheck.length) {
+      await db
+        .prepare("ALTER TABLE users ADD COLUMN preferences TEXT DEFAULT '{}'")
+        .run();
+      console.log("✅ Colonne preferences ajoutée (PostgreSQL)");
+    }
+  } catch (err) {
+    console.error("[MIGRATION langue/preferences PostgreSQL]", err);
+  }
+}
+
+// ================== TABLE NOTIFICATIONS ==================
+await db
+  .prepare(
+    `
+  CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    read BOOLEAN DEFAULT FALSE,
+    data TEXT DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`,
+  )
+  .run();
 // ================== INIT PROFILS MATCHING EN PROD ==================
 console.log(" Initialisation des profils depuis la DB...");
 
@@ -1263,6 +1329,40 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       }
 
       session.matches = matches;
+      // Notifier les vendeurs matchés (si préf notif-matches activée)
+      try {
+        for (const m of matches.slice(0, 3)) {
+          const matchedUser = await db
+            .prepare(
+              `SELECT id, preferences FROM users WHERE LOWER(TRIM(username)) = $1`,
+            )
+            .get((m.username || "").trim().toLowerCase());
+          if (!matchedUser) continue;
+          let prefs = {};
+          try {
+            prefs = JSON.parse(matchedUser.preferences || "{}");
+          } catch {}
+          if (prefs["notif-matches"] !== false) {
+            await db
+              .prepare(
+                `INSERT INTO notifications (user_id, type, title, body, data)
+         VALUES ($1, $2, $3, $4, $5)`,
+              )
+              .run(
+                matchedUser.id,
+                "match",
+                "Nouveau profil compatible",
+                `Un ${userRole === "buyer" ? "acheteur" : "vendeur"} compatible vient d'apparaître sur votre zone.`,
+                JSON.stringify({
+                  compatibility: m.compatibility,
+                  ville: m.ville,
+                }),
+              );
+          }
+        }
+      } catch (e) {
+        console.warn("[NOTIF match]", e.message);
+      }
       session.phase = "results";
 
       // Remplace ce bloc dans la phase collecting, après le matching :
@@ -1867,6 +1967,33 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
          VALUES ($1, $2, $3, $4, $5) RETURNING id`,
       )
       .get(sender.id, receiver.id, subject, body, attachmentsJson);
+
+    // Notifier le destinataire (si préférences messages activées)
+    try {
+      const receiverPrefs = await db
+        .prepare(`SELECT preferences FROM users WHERE id = $1`)
+        .get(receiver.id);
+      let prefs = {};
+      try {
+        prefs = JSON.parse(receiverPrefs?.preferences || "{}");
+      } catch {}
+      if (prefs["notif-messages"] !== false) {
+        await db
+          .prepare(
+            `INSERT INTO notifications (user_id, type, title, body, data)
+       VALUES ($1, $2, $3, $4, $5)`,
+          )
+          .run(
+            receiver.id,
+            "message",
+            "Nouveau message reçu",
+            `${sender.username} vous a envoyé un message : "${subject}"`,
+            JSON.stringify({ messageId: insert.id, senderId: sender.id }),
+          );
+      }
+    } catch (e) {
+      console.warn("[NOTIF message]", e.message);
+    }
 
     res.json({ success: true, messageId: insert.id });
   } catch (err) {
@@ -3427,6 +3554,47 @@ app.get("/api/deal-radar", authenticateToken, async (req, res) => {
               competition.length,
           )
         : 0;
+    // Notif Deal Radar si urgencyScore élevé
+    if (role === "seller" && myEntry.urgencyScore >= 70) {
+      try {
+        const sellerUser = await db
+          .prepare(
+            `SELECT id, preferences FROM users WHERE LOWER(TRIM(username)) = $1`,
+          )
+          .get(username.trim().toLowerCase());
+        if (sellerUser) {
+          let prefs = {};
+          try {
+            prefs = JSON.parse(sellerUser.preferences || "{}");
+          } catch {}
+          if (prefs["notif-radar"] !== false) {
+            // Éviter le spam : vérifier si une notif radar existe déjà dans les 6h
+            const recent = await db
+              .prepare(
+                `SELECT id FROM notifications WHERE user_id = $1 AND type = 'radar'
+           AND created_at > NOW() - INTERVAL '6 hours'`,
+              )
+              .get(sellerUser.id);
+            if (!recent) {
+              await db
+                .prepare(
+                  `INSERT INTO notifications (user_id, type, title, body, data)
+             VALUES ($1, $2, $3, $4, $5)`,
+                )
+                .run(
+                  sellerUser.id,
+                  "radar",
+                  "Deal Radar — Opportunité prioritaire",
+                  `${myEntry.qualifiedBuyers} acheteur(s) qualifié(s) pour votre bien. Fenêtre estimée : ${myEntry.estimatedWindowHours}h.`,
+                  JSON.stringify({ urgencyScore: myEntry.urgencyScore }),
+                );
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[NOTIF radar]", e.message);
+      }
+    }
 
     return res.json({
       mode: "seller",
@@ -3960,6 +4128,215 @@ Texte brut uniquement, pas de JSON.`;
     return null;
   }
 }
+// ================== PATCH /api/me (ville + contact) ==================
+app.patch("/api/me", authenticateToken, async (req, res) => {
+  try {
+    const allowed = ["contact", "ville", "langue"];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    if (!Object.keys(updates).length)
+      return res.status(400).json({ error: "Aucun champ valide" });
+
+    const setClauses = Object.keys(updates)
+      .map((k, i) => `${k} = $${i + 1}`)
+      .join(", ");
+    const values = [...Object.values(updates), req.user.username];
+
+    await db
+      .prepare(
+        `UPDATE users SET ${setClauses} WHERE username = $${values.length}`,
+      )
+      .run(...values);
+
+    res.json({ success: true, updated: updates });
+  } catch (err) {
+    console.error("[PATCH /api/me]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ================== DELETE /api/delete-data ==================
+app.delete("/api/delete-data", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.status(404).json({ error: "Introuvable" });
+
+    await db.prepare(`DELETE FROM favorites WHERE user_id = $1`).run(user.id);
+    await db
+      .prepare(`DELETE FROM messages WHERE sender_id = $1 OR receiver_id = $1`)
+      .run(user.id);
+
+    // Reset critères matching en mémoire
+    const buyerIdx = BUYERS.findIndex((b) => b.username === req.user.username);
+    if (buyerIdx >= 0) BUYERS.splice(buyerIdx, 1);
+    const sellerIdx = SELLERS.findIndex(
+      (s) => s.username === req.user.username,
+    );
+    if (sellerIdx >= 0) SELLERS.splice(sellerIdx, 1);
+
+    // Reset critères en DB
+    await db
+      .prepare(
+        `UPDATE users SET ville='', type='appartement', price=0, pieces=1, surface=10,
+         budget=0, budgetmin=0, budgetmax=0, piecesmin=0, piecesmax=100,
+         surfacemin=0, surfacemax=1000, tolerancekm=NULL, etatbien='',
+         imagesbien='[]', niveauenergetique='', proximite='[]'
+         WHERE id = $1`,
+      )
+      .run(user.id);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[DELETE /api/delete-data]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ================== DELETE /api/delete-account ==================
+app.delete("/api/delete-account", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.status(404).json({ error: "Introuvable" });
+
+    // Cascade : favoris, messages, puis user
+    await db.prepare(`DELETE FROM favorites WHERE user_id = $1`).run(user.id);
+    await db
+      .prepare(`DELETE FROM messages WHERE sender_id = $1 OR receiver_id = $1`)
+      .run(user.id);
+    await db.prepare(`DELETE FROM users WHERE id = $1`).run(user.id);
+
+    // Retirer des pools en mémoire
+    const bi = BUYERS.findIndex((b) => b.username === req.user.username);
+    if (bi >= 0) BUYERS.splice(bi, 1);
+    const si = SELLERS.findIndex((s) => s.username === req.user.username);
+    if (si >= 0) SELLERS.splice(si, 1);
+
+    // Détruire la session chat
+    delete sessions[req.user.username];
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[DELETE /api/delete-account]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ================== GET /api/notifications ==================
+app.get("/api/notifications", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.status(404).json({ error: "Introuvable" });
+
+    const notifs = await db
+      .prepare(
+        `SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`,
+      )
+      .all(user.id);
+
+    res.json(notifs);
+  } catch (err) {
+    console.error("[GET /api/notifications]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ================== POST /api/notifications/read ==================
+app.post("/api/notifications/read", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.status(404).json({ error: "Introuvable" });
+
+    const { id } = req.body; // si id = null → marquer tout comme lu
+    if (id) {
+      await db
+        .prepare(
+          `UPDATE notifications SET read = true WHERE id = $1 AND user_id = $2`,
+        )
+        .run(id, user.id);
+    } else {
+      await db
+        .prepare(`UPDATE notifications SET read = true WHERE user_id = $1`)
+        .run(user.id);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[POST /api/notifications/read]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ================== DELETE /api/notifications/:id ==================
+app.delete("/api/notifications/:id", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.status(404).json({ error: "Introuvable" });
+
+    await db
+      .prepare(`DELETE FROM notifications WHERE id = $1 AND user_id = $2`)
+      .run(Number(req.params.id), user.id);
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ================== GET /api/me/preferences ==================
+app.get("/api/me/preferences", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT preferences FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.status(404).json({ error: "Introuvable" });
+    let prefs = {};
+    try {
+      prefs = JSON.parse(user.preferences || "{}");
+    } catch {}
+    res.json(prefs);
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ================== PATCH /api/me/preferences ==================
+app.patch("/api/me/preferences", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(
+        `SELECT id, preferences FROM users WHERE LOWER(TRIM(username)) = $1`,
+      )
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.status(404).json({ error: "Introuvable" });
+
+    let current = {};
+    try {
+      current = JSON.parse(user.preferences || "{}");
+    } catch {}
+
+    const merged = { ...current, ...req.body };
+
+    await db
+      .prepare(`UPDATE users SET preferences = $1 WHERE id = $2`)
+      .run(JSON.stringify(merged), user.id);
+
+    res.json({ success: true, preferences: merged });
+  } catch (err) {
+    console.error("[PATCH /api/me/preferences]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
 // ================== START ==================
 const dbColumns = await db
   .prepare(

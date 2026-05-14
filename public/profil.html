@@ -4,143 +4,292 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/images/favicon.ico" />
-    <title>AiGENT - Mon Compte Premium</title>
-
+    <title>AiGENT — Paramètres du compte</title>
     <link rel="stylesheet" href="profil.css" />
+    <link rel="stylesheet" href="sidebar.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
   </head>
-
   <body>
-    <!-- BACKGROUND SIGNATURE -->
-    <div class="ambient-bg"></div>
+    <div class="ambient-bg">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
 
-    <!-- BOUTON MENU FLOTTANT -->
-    <!-- APRÈS -->
-    <!-- APRÈS -->
-    <button class="menu-toggle" id="openSidebar" aria-label="Ouvrir le menu">
+    <!-- SIDEBAR FRAGMENT -->
+    <button
+      class="mobile-burger"
+      id="openSidebarMobile"
+      aria-label="Ouvrir le menu"
+    >
       <svg
+        id="burger-svg"
         width="22"
-        height="18"
-        viewBox="0 0 22 18"
+        height="16"
+        viewBox="0 0 22 16"
         fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
       >
-        <line x1="0" y1="2" x2="22" y2="2" />
-        <line x1="0" y1="9" x2="16" y2="9" />
-        <line x1="0" y1="16" x2="10" y2="16" />
+        <defs>
+          <linearGradient
+            id="gradBurger"
+            x1="0"
+            y1="0"
+            x2="22"
+            y2="16"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0%" stop-color="#8b5cf6" />
+            <stop offset="100%" stop-color="#f472b6" />
+          </linearGradient>
+        </defs>
+        <line
+          class="b-line b1"
+          x1="0"
+          y1="2"
+          x2="22"
+          y2="2"
+          stroke="url(#gradBurger)"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        />
+        <line
+          class="b-line b2"
+          x1="0"
+          y1="8"
+          x2="16"
+          y2="8"
+          stroke="url(#gradBurger)"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        />
+        <line
+          class="b-line b3"
+          x1="0"
+          y1="14"
+          x2="10"
+          y2="14"
+          stroke="url(#gradBurger)"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        />
       </svg>
     </button>
 
-    <!-- SIDEBAR -->
-    <!-- APRÈS -->
-    <nav id="sidebar" class="sidebar-nav" aria-label="Navigation principale">
-      <span class="close-btn" id="closeSidebar" aria-label="Fermer"
-        >&times;</span
+    <aside class="mini-nav" id="miniNav" aria-label="Navigation rapide">
+      <div class="mini-nav-logo">
+        <img src="./images/vrai.png" alt="AiGENT" class="mini-nav-lizard" />
+      </div>
+      <button
+        class="mini-nav-toggle"
+        id="openSidebar"
+        aria-label="Ouvrir le menu"
       >
-      <h2>Menu</h2>
-      <ul class="menu-links">
-        <li>
-          <a href="profil.html">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <defs>
+            <linearGradient
+              id="gradNav"
+              x1="0"
+              y1="0"
+              x2="18"
+              y2="18"
+              gradientUnits="userSpaceOnUse"
             >
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-            </svg>
-            Profil &amp; Compte
-          </a>
-        </li>
-        <li>
-          <a href="messagerie.html">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
-              />
-            </svg>
-            Messagerie
-          </a>
-        </li>
-        <li>
-          <a href="favoris.html">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
-              />
-            </svg>
-            Profils favoris
-          </a>
-        </li>
-        <li>
-          <a href="statistiques.html">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <line x1="18" y1="20" x2="18" y2="10" />
-              <line x1="12" y1="20" x2="12" y2="4" />
-              <line x1="6" y1="20" x2="6" y2="14" />
-            </svg>
-            Statistiques
-          </a>
-        </li>
-      </ul>
-      <div class="menu-bottom">
-        <a href="accueil.html" class="home-link">
+              <stop offset="0%" stop-color="#8b5cf6" />
+              <stop offset="100%" stop-color="#f472b6" />
+            </linearGradient>
+          </defs>
+          <rect
+            x="1.2"
+            y="1.2"
+            width="15.6"
+            height="15.6"
+            rx="3.2"
+            stroke="url(#gradNav)"
+            stroke-width="1.5"
+          />
+          <line
+            x1="6.5"
+            y1="1.2"
+            x2="6.5"
+            y2="16.8"
+            stroke="url(#gradNav)"
+            stroke-width="1.5"
+          />
+        </svg>
+      </button>
+      <div class="mini-nav-sep"></div>
+      <a href="profil.html" class="mini-nav-icon-btn active" data-tip="Profil"
+        ><svg viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" /></svg
+      ></a>
+      <a href="accueil.html" class="mini-nav-icon-btn" data-tip="Chat IA"
+        ><svg viewBox="0 0 24 24">
+          <path
+            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+          /></svg
+      ></a>
+      <a href="messagerie.html" class="mini-nav-icon-btn" data-tip="Messagerie"
+        ><svg viewBox="0 0 24 24">
+          <path
+            d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+          />
+          <polyline points="22,6 12,13 2,6" /></svg
+      ></a>
+      <a href="favoris.html" class="mini-nav-icon-btn" data-tip="Favoris"
+        ><svg viewBox="0 0 24 24">
+          <polygon
+            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+          /></svg
+      ></a>
+      <a
+        href="statistiques.html"
+        class="mini-nav-icon-btn"
+        data-tip="Statistiques"
+        ><svg viewBox="0 0 24 24">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" /></svg
+      ></a>
+      <a href="marche.html" class="mini-nav-icon-btn" data-tip="Marché"
+        ><svg viewBox="0 0 24 24">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg
+      ></a>
+      <a href="deal-radar.html" class="mini-nav-icon-btn" data-tip="Deal Radar"
+        ><svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+          /></svg
+      ></a>
+      <div class="mini-nav-spacer"></div>
+    </aside>
+
+    <nav id="sidebar" class="sidebar" aria-label="Menu principal">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-logo">A</div>
+          <div>
+            <div class="sidebar-brand-name">Mon AiGENT</div>
+            <span class="sidebar-brand-sub">Immobilier IA</span>
+          </div>
+        </div>
+        <button
+          class="sidebar-close-btn"
+          id="closeSidebar"
+          aria-label="Fermer le menu"
+        >
+          <svg viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      <div class="sidebar-body">
+        <div class="sidebar-section-label">Navigation</div>
+        <a href="profil.html" class="sidebar-nav-item active"
+          ><svg viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" /></svg
+          ><span>Profil &amp; Compte</span></a
+        >
+        <a href="accueil.html" class="sidebar-nav-item"
+          ><svg viewBox="0 0 24 24">
+            <path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            />
+            <line x1="12" y1="9" x2="12" y2="15" />
+            <line x1="9" y1="12" x2="15" y2="12" /></svg
+          ><span>Chat IA</span></a
+        >
+        <a href="messagerie.html" class="sidebar-nav-item"
+          ><svg viewBox="0 0 24 24">
+            <path
+              d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+            />
+            <polyline points="22,6 12,13 2,6" /></svg
+          ><span>Messagerie</span></a
+        >
+        <a href="favoris.html" class="sidebar-nav-item"
+          ><svg viewBox="0 0 24 24">
+            <polygon
+              points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+            /></svg
+          ><span>Profils favoris</span></a
+        >
+        <a href="statistiques.html" class="sidebar-nav-item"
+          ><svg viewBox="0 0 24 24">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" /></svg
+          ><span>Statistiques</span></a
+        >
+        <div class="sidebar-sep"></div>
+        <div class="sidebar-section-label">Outils</div>
+        <a href="marche.html" class="sidebar-nav-item"
+          ><svg viewBox="0 0 24 24">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg
+          ><span>Marché</span></a
+        >
+        <a href="deal-radar.html" class="sidebar-nav-item"
+          ><svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+            /></svg
+          ><span>Deal Radar</span></a
+        >
+      </div>
+      <div class="sidebar-footer">
+        <a href="accueil.html" class="sidebar-home-link"
+          ><svg viewBox="0 0 24 24">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" /></svg
+          ><span>Retour à l'accueil</span></a
+        >
+        <div class="sidebar-version">
+          <span class="sidebar-version-dot"></span
+          ><span class="sidebar-version-text"
+            >AiGENT v2 · Tous systèmes actifs</span
+          >
+        </div>
+      </div>
+      <a class="sidenav-link" data-section="notifications" href="#">
+        <span style="position: relative; display: inline-flex">
           <svg
-            width="18"
-            height="18"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
           >
-            <path d="M3 21h18" />
-            <path d="M7 21V5a2 2 0 012-2h6a2 2 0 012 2v16" />
-            <path d="M12 11l-3 3 3 3" />
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
-          <span>Retour à l'accueil</span>
-        </a>
-      </div>
+          <span class="notif-badge" id="notif-badge-sidenav"></span>
+        </span>
+        Notifications
+      </a>
     </nav>
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
-    <!-- HEADER PRO -->
+
+    <!-- HEADER -->
     <header class="top-banner">
       <div class="logo-container">
         <img src="images/logo.png" class="logo-img" alt="Logo" />
-        <h1 class="logo-text">Centre de Profil</h1>
+        <h1 class="logo-text">Paramètres</h1>
       </div>
       <div class="header-actions">
         <button id="btn-theme" aria-label="Changer le thème">
           <svg
             class="icon-sun"
-            width="18"
-            height="18"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -158,8 +307,8 @@
           </svg>
           <svg
             class="icon-moon"
-            width="18"
-            height="18"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -168,11 +317,10 @@
             <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
           </svg>
         </button>
-        <button id="btn-logout" class="hidden">
+        <button id="btn-logout">
           <svg
-            class="logout-icon"
-            width="16"
-            height="16"
+            width="15"
+            height="15"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -180,281 +328,1216 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
           </svg>
           <span>Déconnexion</span>
+        </button>
       </div>
     </header>
 
-    <main class="profil-wrapper">
-      <!-- SECTION HERO (AVATAR) -->
-      <section class="profile-hero">
-        <div class="hero-main">
-          <div class="avatar-container">
-            <div class="main-avatar" id="mainAvatar"></div>
-            <button class="edit-avatar-trigger" id="openAvatarPopup">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-              >
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </button>
+    <!-- MAIN LAYOUT -->
+    <div class="page-shell">
+      <!-- LEFT NAV (desktop settings sidebar) -->
+      <aside class="settings-sidenav" id="settingsSidenav">
+        <div class="sidenav-profile-mini">
+          <div class="sidenav-avatar" id="sidenavAvatar"></div>
+          <div class="sidenav-identity">
+            <span class="sidenav-name" id="sidenavName">—</span>
+            <span class="sidenav-role" id="sidenavRole">—</span>
           </div>
-          <div class="hero-info">
-            <h2 class="profile-username" id="hero-user">Utilisateur</h2>
-            <div class="badge-group">
-              <span class="user-role profile-role">Chargement...</span>
-              <span class="login-time"
+        </div>
+        <nav class="sidenav-links">
+          <a
+            href="#section-identity"
+            class="sidenav-link active"
+            data-section="identity"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            Identité
+          </a>
+          <a
+            href="#section-security"
+            class="sidenav-link"
+            data-section="security"
+          >
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            Sécurité
+          </a>
+          <a
+            href="#section-notifications"
+            class="sidenav-link"
+            data-section="notifications"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            Notifications
+          </a>
+          <a
+            href="#section-preferences"
+            class="sidenav-link"
+            data-section="preferences"
+          >
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"
+              />
+            </svg>
+            Préférences
+          </a>
+          <a
+            href="#section-activity"
+            class="sidenav-link"
+            data-section="activity"
+          >
+            <svg viewBox="0 0 24 24">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+            Activité
+          </a>
+          <a
+            href="#section-support"
+            class="sidenav-link"
+            data-section="support"
+          >
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              />
+            </svg>
+            Support
+          </a>
+          <div class="sidenav-divider"></div>
+          <a
+            href="#section-danger"
+            class="sidenav-link danger"
+            data-section="danger"
+          >
+            <svg viewBox="0 0 24 24">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+            Zone critique
+          </a>
+        </nav>
+      </aside>
+
+      <!-- MOBILE SECTION TABS -->
+      <div class="mobile-section-tabs">
+        <button class="tab-btn active" data-section="identity">Identité</button>
+        <button class="tab-btn" data-section="security">Sécurité</button>
+        <button class="tab-btn" data-section="notifications">Notifs</button>
+        <button class="tab-btn" data-section="preferences">Préfs</button>
+        <button class="tab-btn" data-section="activity">Activité</button>
+        <button class="tab-btn" data-section="support">Support</button>
+        <button class="tab-btn danger" data-section="danger">Danger</button>
+      </div>
+
+      <!-- MAIN CONTENT -->
+      <main class="settings-main">
+        <!-- ══ SECTION : IDENTITÉ ══ -->
+        <section class="settings-section active" id="section-identity">
+          <!-- PROFILE HERO CARD -->
+          <div class="hero-card">
+            <div class="hero-card-bg"></div>
+            <div class="hero-card-content">
+              <div class="avatar-zone">
+                <div class="avatar-ring">
+                  <div class="avatar-img" id="mainAvatar"></div>
+                  <button
+                    class="avatar-edit-btn"
+                    id="openAvatarPopup"
+                    aria-label="Changer l'avatar"
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                    >
+                      <path
+                        d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div class="avatar-status-dot" title="En ligne"></div>
+              </div>
+              <div class="hero-identity">
+                <div class="hero-name-row">
+                  <h2 id="hero-username">—</h2>
+                  <span class="hero-badge" id="hero-role-badge">—</span>
+                </div>
+                <p class="hero-email" id="hero-email">—</p>
+                <div class="hero-stats">
+                  <div class="hstat">
+                    <span class="hstat-num" id="stat-matches">—</span>
+                    <span class="hstat-label">Matchs</span>
+                  </div>
+                  <div class="hstat-sep"></div>
+                  <div class="hstat">
+                    <span class="hstat-num" id="stat-favoris">—</span>
+                    <span class="hstat-label">Favoris</span>
+                  </div>
+                  <div class="hstat-sep"></div>
+                  <div class="hstat">
+                    <span class="hstat-num" id="stat-messages">—</span>
+                    <span class="hstat-label">Messages</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="hero-meta">
+              <span class="hero-since"
+                >Membre depuis <strong id="hero-since">—</strong></span
+              >
+              <span class="hero-lastlogin"
                 >Dernière connexion :
-                <strong id="profile-last-login">--:--</strong></span
+                <strong id="hero-lastlogin">—</strong></span
               >
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- GRILLE DES PARAMÈTRES -->
-      <div class="settings-grid">
-        <!-- Informations -->
-        <div class="glass-card">
-          <div class="card-header">
-            <span class="card-icon">👤</span>
-            <h3>Informations personnelles</h3>
+          <!-- INFOS PERSONNELLES -->
+          <div class="settings-block">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Informations personnelles</h3>
+                  <p>Vos informations de compte</p>
+                </div>
+              </div>
+            </div>
+            <div class="block-body">
+              <div class="field-row">
+                <div class="field-group">
+                  <label class="field-label">Pseudo</label>
+                  <div class="field-readonly" id="field-username">—</div>
+                </div>
+                <div class="field-group">
+                  <label class="field-label">Rôle</label>
+                  <div class="field-readonly capitalize" id="field-role">—</div>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field-group full">
+                  <label class="field-label">Adresse e-mail</label>
+                  <div class="field-editable-wrap">
+                    <input
+                      type="email"
+                      id="field-email"
+                      class="field-input"
+                      placeholder="votre@email.com"
+                    />
+                    <button class="field-save-btn" id="btnSaveEmail">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      Enregistrer
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field-group full">
+                  <label class="field-label">Ville principale</label>
+                  <div class="field-editable-wrap">
+                    <input
+                      type="text"
+                      id="field-ville"
+                      class="field-input"
+                      placeholder="Paris, Lyon, Bordeaux…"
+                    />
+                    <button class="field-save-btn" id="btnSaveVille">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      Enregistrer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <ul class="settings-list">
-            <li>
-              <span class="s-label">Pseudo</span
-              ><span class="profile-username">...</span>
-            </li>
-            <li>
-              <span class="s-label">Email</span
-              ><span class="profile-email">...</span>
-            </li>
-            <li>
-              <span class="s-label">Mot de passe</span><span>••••••••</span>
-            </li>
-            <li>
-              <span class="s-label">Rôle Profil</span
-              ><span class="profile-role">...</span>
-            </li>
-          </ul>
-        </div>
 
-        <!-- Sécurité -->
-        <div class="glass-card">
-          <div class="card-header">
-            <span class="card-icon">🔐</span>
-            <h3>Sécurité & Compte</h3>
+          <!-- AVATAR PICKER INLINE PREVIEW -->
+          <div class="settings-block">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon">
+                  <svg viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="18" height="18" rx="3" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Avatar</h3>
+                  <p>Choisissez votre identité visuelle</p>
+                </div>
+              </div>
+            </div>
+            <div class="block-body">
+              <div class="avatar-picker-grid" id="avatarPickerGrid"></div>
+              <p class="avatar-selected-hint" id="avatarHint">
+                Cliquez sur un avatar pour l'appliquer instantanément
+              </p>
+            </div>
           </div>
-          <p class="card-text">
-            Gérez vos accès et la confidentialité de vos données immobilières.
-          </p>
-          <div class="card-btn-group">
-            <button id="openPasswordModal" class="btn-secondary">
-              Changer le mot de passe
-            </button>
-            <button id="btnDeconnexion" class="btn-ghost-red">
-              Déconnexion complète
-            </button>
-          </div>
-        </div>
+        </section>
 
-        <!-- Support -->
-        <div class="glass-card">
-          <div class="card-header">
-            <span class="card-icon">💬</span>
-            <h3>Centre d'assistance</h3>
+        <!-- ══ SECTION : SÉCURITÉ ══ -->
+        <section class="settings-section" id="section-security">
+          <div class="section-title-row">
+            <h2>Sécurité &amp; Accès</h2>
+            <p>Protégez votre compte et gérez vos sessions</p>
           </div>
-          <p class="card-text">
-            Besoin d'aide ou d'une nouvelle fonctionnalité ? Notre équipe vous
-            répond.
-          </p>
-          <button id="openSupportModal" class="btn-primary">
-            Contacter le support
+
+          <!-- MOT DE PASSE -->
+          <div class="settings-block">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon">
+                  <svg viewBox="0 0 24 24">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Mot de passe</h3>
+                  <p>Changez votre mot de passe régulièrement</p>
+                </div>
+              </div>
+            </div>
+            <div class="block-body">
+              <div class="field-stack">
+                <div class="field-group full">
+                  <label class="field-label">Mot de passe actuel</label>
+                  <div class="password-wrap">
+                    <input
+                      type="password"
+                      id="currentPassword"
+                      class="field-input"
+                      placeholder="••••••••••••"
+                    />
+                    <button
+                      class="pw-toggle"
+                      data-target="currentPassword"
+                      type="button"
+                      aria-label="Afficher"
+                    >
+                      <svg
+                        class="eye-show"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                        />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      <svg
+                        class="eye-hide"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        style="display: none"
+                      >
+                        <path
+                          d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                        />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="field-row">
+                  <div class="field-group">
+                    <label class="field-label">Nouveau mot de passe</label>
+                    <div class="password-wrap">
+                      <input
+                        type="password"
+                        id="newPassword"
+                        class="field-input"
+                        placeholder="Min. 8 caractères"
+                      />
+                      <button
+                        class="pw-toggle"
+                        data-target="newPassword"
+                        type="button"
+                        aria-label="Afficher"
+                      >
+                        <svg
+                          class="eye-show"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                          />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        <svg
+                          class="eye-hide"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          style="display: none"
+                        >
+                          <path
+                            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                          />
+                          <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="field-group">
+                    <label class="field-label">Confirmer</label>
+                    <div class="password-wrap">
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        class="field-input"
+                        placeholder="••••••••••••"
+                      />
+                      <button
+                        class="pw-toggle"
+                        data-target="confirmPassword"
+                        type="button"
+                        aria-label="Afficher"
+                      >
+                        <svg
+                          class="eye-show"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                          />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        <svg
+                          class="eye-hide"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          style="display: none"
+                        >
+                          <path
+                            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                          />
+                          <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <!-- Strength indicator -->
+                <div class="pw-strength-bar" id="pwStrengthBar">
+                  <div class="pw-strength-fill" id="pwStrengthFill"></div>
+                </div>
+                <p class="pw-strength-label" id="pwStrengthLabel"></p>
+              </div>
+              <div class="block-footer-actions">
+                <button class="btn-primary" id="btnChangePassword">
+                  Mettre à jour le mot de passe
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SESSIONS ACTIVES -->
+          <div class="settings-block">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon">
+                  <svg viewBox="0 0 24 24">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Session active</h3>
+                  <p>Gérez vos connexions en cours</p>
+                </div>
+              </div>
+            </div>
+            <div class="block-body">
+              <div class="session-item current">
+                <div class="session-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20">
+                    <rect x="2" y="3" width="20" height="14" rx="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                  </svg>
+                </div>
+                <div class="session-info">
+                  <span class="session-device">Navigateur actuel</span>
+                  <span class="session-detail" id="sessionDetail"
+                    >Session en cours · JWT</span
+                  >
+                </div>
+                <span class="session-badge current-badge">Actif</span>
+              </div>
+              <div class="block-footer-actions">
+                <button class="btn-ghost-destructive" id="btnDeconnexion">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  Déconnecter toutes les sessions
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- EXPORT DONNÉES -->
+          <div class="settings-block">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Exporter mes données</h3>
+                  <p>Téléchargez une copie de vos données (RGPD)</p>
+                </div>
+              </div>
+            </div>
+            <div class="block-body">
+              <p class="block-description">
+                Recevez un fichier JSON contenant toutes vos données : profil,
+                favoris, messages et historique de recherche.
+              </p>
+              <div class="block-footer-actions">
+                <button class="btn-secondary" id="btnExportData">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Exporter mes données
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ SECTION : NOTIFICATIONS ══ -->
+        <!-- ══ SECTION : NOTIFICATIONS ══ -->
+        <section class="settings-section" id="section-notifications">
+          <div class="section-title-row">
+            <h2>Centre de notifications</h2>
+            <p>Toutes vos alertes en temps réel.</p>
+          </div>
+
+          <!-- PRÉFÉRENCES -->
+          <div class="settings-block">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Préférences d'alerte</h3>
+                  <p>Choisissez les notifications à recevoir</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="block-body">
+              <div class="toggle-list">
+                <!-- MATCHS -->
+                <div class="toggle-item">
+                  <div class="toggle-info">
+                    <span class="toggle-label">Nouveaux matchs</span>
+                    <span class="toggle-desc">
+                      Soyez alerté dès qu'un profil compatible apparaît
+                    </span>
+                  </div>
+
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="notif-matches" checked />
+                    <span class="toggle-knob"></span>
+                  </label>
+                </div>
+
+                <!-- MESSAGES -->
+                <div class="toggle-item">
+                  <div class="toggle-info">
+                    <span class="toggle-label">Messages reçus</span>
+                    <span class="toggle-desc">
+                      Notification pour chaque nouveau message entrant
+                    </span>
+                  </div>
+
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="notif-messages" checked />
+                    <span class="toggle-knob"></span>
+                  </label>
+                </div>
+
+                <!-- DEAL RADAR -->
+                <div class="toggle-item">
+                  <div class="toggle-info">
+                    <span class="toggle-label">Deal Radar</span>
+                    <span class="toggle-desc">
+                      Alertes opportunités immobilières prioritaires
+                    </span>
+                  </div>
+
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="notif-radar" />
+                    <span class="toggle-knob"></span>
+                  </label>
+                </div>
+
+                <!-- NEWSLETTER -->
+                <div class="toggle-item">
+                  <div class="toggle-info">
+                    <span class="toggle-label">Newsletter marché</span>
+                    <span class="toggle-desc">
+                      Résumé hebdomadaire des tendances
+                    </span>
+                  </div>
+
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="notif-newsletter" />
+                    <span class="toggle-knob"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="block-footer-actions">
+                <button class="btn-primary" id="btnSaveNotifications">
+                  Enregistrer les préférences
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- HISTORIQUE -->
+          <div class="settings-block">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M12 8v4l3 3" />
+                    <circle cx="12" cy="12" r="10" />
+                  </svg>
+                </span>
+
+                <div>
+                  <h3>Historique des notifications</h3>
+                  <p>Toutes vos alertes récentes</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="block-body">
+              <div id="notif-center-list" class="notif-history-list">
+                <!-- Notifications injectées en JS -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ SECTION : PRÉFÉRENCES ══ -->
+        <section class="settings-section" id="section-preferences">
+          <div class="section-title-row">
+            <h2>Préférences</h2>
+            <p>Personnalisez votre expérience AiGENT</p>
+          </div>
+
+          <div class="settings-block">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                      d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"
+                    />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Interface &amp; Affichage</h3>
+                  <p>Adaptez l'interface à vos préférences</p>
+                </div>
+              </div>
+            </div>
+            <div class="block-body">
+              <div class="toggle-list">
+                <div class="toggle-item">
+                  <div class="toggle-info">
+                    <span class="toggle-label">Thème sombre</span>
+                    <span class="toggle-desc"
+                      >Mode nuit pour réduire la fatigue oculaire</span
+                    >
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="pref-darkmode" checked />
+                    <span class="toggle-knob"></span>
+                  </label>
+                </div>
+                <div class="toggle-item">
+                  <div class="toggle-info">
+                    <span class="toggle-label">Animations réduites</span>
+                    <span class="toggle-desc"
+                      >Désactive les effets visuels animés</span
+                    >
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="pref-reducedmotion" />
+                    <span class="toggle-knob"></span>
+                  </label>
+                </div>
+                <div class="toggle-item">
+                  <div class="toggle-info">
+                    <span class="toggle-label">Résultats compacts</span>
+                    <span class="toggle-desc"
+                      >Affiche plus de profils par page</span
+                    >
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="pref-compact" />
+                    <span class="toggle-knob"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="pref-select-group">
+                <label class="field-label">Langue de l'interface</label>
+                <select class="field-select" id="pref-langue">
+                  <option value="fr" selected>Français</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+
+              <div class="pref-select-group">
+                <label class="field-label">Rayon de recherche par défaut</label>
+                <select class="field-select" id="pref-rayon">
+                  <option value="10">10 km</option>
+                  <option value="25">25 km</option>
+                  <option value="50" selected>50 km</option>
+                  <option value="100">100 km</option>
+                  <option value="200">200 km</option>
+                </select>
+              </div>
+
+              <div class="block-footer-actions">
+                <button class="btn-primary" id="btnSavePreferences">
+                  Enregistrer
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ SECTION : ACTIVITÉ ══ -->
+        <section class="settings-section" id="section-activity">
+          <div class="section-title-row">
+            <h2>Mon Activité</h2>
+            <p>Historique et statistiques de votre compte</p>
+          </div>
+
+          <div class="settings-block">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon">
+                  <svg viewBox="0 0 24 24">
+                    <line x1="18" y1="20" x2="18" y2="10" />
+                    <line x1="12" y1="20" x2="12" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="14" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Tableau de bord d'activité</h3>
+                  <p>Vue d'ensemble de votre utilisation</p>
+                </div>
+              </div>
+            </div>
+            <div class="block-body">
+              <div class="activity-grid">
+                <div class="activity-kpi">
+                  <div class="activity-kpi-icon matches">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <div>
+                    <span class="activity-kpi-num" id="act-matches">—</span>
+                    <span class="activity-kpi-label">Matchs générés</span>
+                  </div>
+                </div>
+                <div class="activity-kpi">
+                  <div class="activity-kpi-icon favoris">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                      <polygon
+                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <span class="activity-kpi-num" id="act-favoris">—</span>
+                    <span class="activity-kpi-label">Profils favoris</span>
+                  </div>
+                </div>
+                <div class="activity-kpi">
+                  <div class="activity-kpi-icon messages">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                      <path
+                        d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <span class="activity-kpi-num" id="act-messages">—</span>
+                    <span class="activity-kpi-label">Conversations</span>
+                  </div>
+                </div>
+                <div class="activity-kpi">
+                  <div class="activity-kpi-icon compat">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                  </div>
+                  <div>
+                    <span class="activity-kpi-num" id="act-compat">—</span>
+                    <span class="activity-kpi-label">Compat. moy.</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mini activity chart (SVG) -->
+              <div class="activity-chart-wrap">
+                <p class="activity-chart-label">Compatibilité de vos matchs</p>
+                <div class="activity-chart" id="activityChart">
+                  <div class="chart-loading">Chargement…</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ SECTION : SUPPORT ══ -->
+        <section class="settings-section" id="section-support">
+          <div class="section-title-row">
+            <h2>Centre d'assistance</h2>
+            <p>Une question ? Nous répondons sous 24h</p>
+          </div>
+
+          <div class="settings-block">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                    />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Contacter le support</h3>
+                  <p>Décrivez votre problème ou suggestion</p>
+                </div>
+              </div>
+            </div>
+            <div class="block-body">
+              <div class="field-stack">
+                <div class="field-group full">
+                  <label class="field-label">Sujet</label>
+                  <select id="supportSubject" class="field-select">
+                    <option value="">Sélectionner un sujet…</option>
+                    <option value="Bug">🐛 Bug technique</option>
+                    <option value="Compte">🔐 Problème de compte</option>
+                    <option value="Matching">🤝 Problème de matching</option>
+                    <option value="Suggestion">
+                      💡 Suggestion / Amélioration
+                    </option>
+                    <option value="Autre">📌 Autre</option>
+                  </select>
+                </div>
+                <div class="field-group full">
+                  <label class="field-label">Message</label>
+                  <textarea
+                    id="supportMessage"
+                    class="field-input textarea"
+                    placeholder="Décrivez votre problème avec le plus de détails possible…"
+                    rows="5"
+                  ></textarea>
+                </div>
+              </div>
+              <div class="block-footer-actions">
+                <button class="btn-primary" id="btnSendSupport">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                  Envoyer le message
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- FAQ RAPIDE -->
+          <div class="settings-block">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>FAQ</h3>
+                  <p>Réponses aux questions fréquentes</p>
+                </div>
+              </div>
+            </div>
+            <div class="block-body">
+              <div class="faq-list">
+                <details class="faq-item">
+                  <summary class="faq-question">
+                    Comment fonctionne le matching ?
+                  </summary>
+                  <p class="faq-answer">
+                    Notre algorithme analyse vos critères (budget, surface,
+                    localisation, type de bien) et les compare à tous les
+                    profils disponibles. Un score de compatibilité de 0 à 100%
+                    est calculé pour chaque paire.
+                  </p>
+                </details>
+                <details class="faq-item">
+                  <summary class="faq-question">
+                    Mes données sont-elles sécurisées ?
+                  </summary>
+                  <p class="faq-answer">
+                    Oui. Vos données sont chiffrées en transit (TLS) et au
+                    repos. Votre mot de passe est haché avec bcrypt. Vous pouvez
+                    exporter ou supprimer vos données à tout moment (RGPD).
+                  </p>
+                </details>
+                <details class="faq-item">
+                  <summary class="faq-question">
+                    Comment améliorer mon score de compatibilité ?
+                  </summary>
+                  <p class="faq-answer">
+                    Complétez votre profil avec des critères précis dans le Chat
+                    IA. Plus vos données sont détaillées (DPE, état du bien,
+                    proximités souhaitées), plus les matchs seront pertinents.
+                  </p>
+                </details>
+                <details class="faq-item">
+                  <summary class="faq-question">
+                    Puis-je changer de rôle (acheteur/vendeur) ?
+                  </summary>
+                  <p class="faq-answer">
+                    Le rôle est défini à l'inscription. Pour changer, contactez
+                    le support — nous procéderons à la modification manuellement
+                    après vérification.
+                  </p>
+                </details>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ SECTION : ZONE CRITIQUE ══ -->
+        <section class="settings-section" id="section-danger">
+          <div class="section-title-row danger-title">
+            <h2>Zone critique</h2>
+            <p>Ces actions sont irréversibles. Procédez avec précaution.</p>
+          </div>
+
+          <!-- RÉINITIALISER LE PROFIL -->
+          <div class="settings-block danger-block mild">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon danger-icon mild">
+                  <svg viewBox="0 0 24 24">
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 .49-3.51" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Réinitialiser mon profil de recherche</h3>
+                  <p>
+                    Efface vos critères et repart de zéro — votre compte reste
+                    actif
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="block-body">
+              <p class="block-description">
+                Cette action supprime vos critères de matching, votre historique
+                de chat IA et vos résultats. Votre compte, vos messages et vos
+                favoris sont conservés.
+              </p>
+              <div class="block-footer-actions">
+                <button class="btn-warning" id="btnResetProfile">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 .49-3.51" />
+                  </svg>
+                  Réinitialiser le profil
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUPPRIMER LES DONNÉES -->
+          <div class="settings-block danger-block moderate">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon danger-icon moderate">
+                  <svg viewBox="0 0 24 24">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Supprimer mes données personnelles</h3>
+                  <p>
+                    Efface vos favoris, messages et historique — compte conservé
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="block-body">
+              <p class="block-description">
+                Supprime l'intégralité de vos données de recherche, messages,
+                favoris et préférences. Votre accès au compte est maintenu mais
+                votre historique est effacé définitivement.
+              </p>
+              <div class="block-footer-actions">
+                <button class="btn-warning" id="btnDeleteData">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  </svg>
+                  Supprimer mes données
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUPPRIMER LE COMPTE -->
+          <div class="settings-block danger-block critical">
+            <div class="block-header">
+              <div class="block-header-left">
+                <span class="block-icon danger-icon critical">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                    />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                </span>
+                <div>
+                  <h3>Supprimer mon compte</h3>
+                  <p>Action permanente et irréversible</p>
+                </div>
+              </div>
+            </div>
+            <div class="block-body">
+              <p class="block-description">
+                La suppression de votre compte efface définitivement toutes vos
+                données : profil, matchs, messages, favoris et historique. Cette
+                action est <strong>irréversible</strong> et ne peut être
+                annulée.
+              </p>
+              <div class="delete-confirm-zone" id="deleteConfirmZone">
+                <label class="field-label"
+                  >Saisissez
+                  <strong id="deleteConfirmUsername">votre pseudo</strong> pour
+                  confirmer</label
+                >
+                <input
+                  type="text"
+                  id="deleteConfirmInput"
+                  class="field-input"
+                  placeholder="Votre pseudo exact…"
+                />
+              </div>
+              <div class="block-footer-actions">
+                <button class="btn-danger" id="btnDeleteAccount" disabled>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                    />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  Supprimer définitivement mon compte
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- TOAST SYSTEM -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- CONFIRM MODAL -->
+    <div id="confirmOverlay" class="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-icon" id="confirmIcon"></div>
+        <h3 class="modal-title" id="confirmTitle">Confirmer l'action</h3>
+        <p class="modal-desc" id="confirmDesc">
+          Êtes-vous sûr de vouloir continuer ?
+        </p>
+        <div class="modal-actions">
+          <button class="btn-secondary modal-cancel" id="confirmCancel">
+            Annuler
           </button>
-        </div>
-      </div>
-
-      <!-- DANGER ZONE -->
-      <section class="danger-section">
-        <div class="danger-text">
-          <h3>Suppression du compte</h3>
-          <p>
-            Cette action est irréversible et supprimera tous vos matchs et
-            favoris.
-          </p>
-        </div>
-        <button class="btn-danger" id="btnDeleteAccount">
-          Supprimer mon compte
-        </button>
-      </section>
-    </main>
-
-    <!-- POPUPS / MODALS -->
-    <!-- MODAL MOT DE PASSE -->
-    <div id="passwordOverlay" class="modal-overlay">
-      <div class="modal-content glass">
-        <div class="modal-header">Changer le mot de passe</div>
-        <div class="modal-body">
-          <input
-            id="currentPassword"
-            type="password"
-            placeholder="Mot de passe actuel"
-            class="pro-input"
-          />
-          <input
-            id="newPassword"
-            type="password"
-            placeholder="Nouveau mot de passe"
-            class="pro-input"
-          />
-          <input
-            id="confirmPassword"
-            type="password"
-            placeholder="Confirmer le nouveau mot de passe"
-            class="pro-input"
-          />
-        </div>
-        <div class="modal-footer">
-          <button id="btnChangePassword" class="btn-primary">
-            Mettre à jour
-          </button>
-          <button class="btn-close-modal">Annuler</button>
+          <button class="btn-danger" id="confirmOk">Confirmer</button>
         </div>
       </div>
     </div>
 
-    <!-- MODAL SUPPORT -->
-    <div id="supportOverlay" class="modal-overlay">
-      <div class="modal-content glass">
-        <div class="modal-header">Contacter le support</div>
-        <div class="modal-body">
-          <select id="supportSubject" class="pro-input">
-            <option value="">Choisir un sujet</option>
-            <option value="Bug">Bug technique</option>
-            <option value="Compte">Problème de compte</option>
-            <option value="Suggestion">Suggestion</option>
-          </select>
-          <textarea
-            id="supportMessage"
-            placeholder="Comment pouvons-nous vous aider ?"
-            class="pro-input textarea"
-          ></textarea>
-        </div>
-        <div class="modal-footer">
-          <button id="btnSendSupport" class="btn-primary">
-            Envoyer le message
+    <!-- AVATAR MODAL -->
+    <div id="avatarOverlay" class="modal-overlay">
+      <div class="modal-box avatar-modal-box">
+        <div class="modal-header-row">
+          <h3>Choisir un avatar</h3>
+          <button class="modal-close-x" id="closeAvatarModal">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
-          <button id="closeSupportModal" class="btn-close-modal">Fermer</button>
         </div>
+        <div class="avatar-modal-grid" id="avatarModalGrid"></div>
       </div>
     </div>
-
-    <!-- MODAL AVATAR -->
-    <div id="avatarPopup" class="modal-overlay">
-      <div class="modal-content glass avatar-modal">
-        <h3>Choisir un avatar</h3>
-
-        <div class="avatar-grid" id="avatarList">
-          <div class="avatar-item">
-            <img
-              src="https://api.dicebear.com/9.x/avataaars/svg?seed=Mackenzie"
-              alt="Avatar Mackenzie"
-            />
-          </div>
-
-          <div class="avatar-item">
-            <img
-              src="https://api.dicebear.com/9.x/avataaars/svg?seed=Luis"
-              alt="Avatar Luis"
-            />
-          </div>
-
-          <div class="avatar-item">
-            <img
-              src="https://api.dicebear.com/9.x/avataaars/svg?seed=Maria"
-              alt="Avatar Maria"
-            />
-          </div>
-
-          <div class="avatar-item">
-            <img
-              src="https://api.dicebear.com/9.x/avataaars/svg?seed=Amaya"
-              alt="Avatar Amaya"
-            />
-          </div>
-
-          <div class="avatar-item">
-            <img
-              src="https://api.dicebear.com/9.x/avataaars/svg?seed=Destiny"
-              alt="Avatar Destiny"
-            />
-          </div>
-
-          <div class="avatar-item">
-            <img
-              src="https://api.dicebear.com/9.x/avataaars/svg?seed=Eden"
-              alt="Avatar Eden"
-            />
-          </div>
-
-          <div class="avatar-item">
-            <img
-              src="https://api.dicebear.com/9.x/avataaars/svg?seed=Easton"
-              alt="Avatar Easton"
-            />
-          </div>
-
-          <div class="avatar-item">
-            <img
-              src="https://api.dicebear.com/9.x/avataaars/svg?seed=Christian"
-              alt="Avatar Christian"
-            />
-          </div>
-
-          <div class="avatar-item">
-            <img
-              src="https://api.dicebear.com/9.x/bottts/svg?seed=Alexander"
-              alt="Avatar Alexander"
-            />
-          </div>
-
-          <div class="avatar-item">
-            <img
-              src="https://api.dicebear.com/9.x/bottts/svg?seed=Katherine"
-              alt="Avatar Katherine"
-            />
-          </div>
-
-          <div class="avatar-item">
-            <img
-              src="https://api.dicebear.com/9.x/bottts/svg?seed=Brian"
-              alt="Avatar Brian"
-            />
-          </div>
-
-          <div class="avatar-item">
-            <img
-              src="https://api.dicebear.com/9.x/bottts/svg?seed=Caleb"
-              alt="Avatar Caleb"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <footer class="bottom-banner">
-      <p>© AiGENT Immobilier - Dashboard Utilisateur Premium</p>
-    </footer>
 
     <script src="profil.js" type="module"></script>
+    <script src="sidebar.js" type="module"></script>
+    <script src="/i18n.js"></script>
   </body>
 </html>

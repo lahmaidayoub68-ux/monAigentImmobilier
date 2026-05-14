@@ -3,31 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- Favicon -->
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="192x192"
-      href="/images/favicon.ico"
-    />
-
-    <!-- SEO -->
     <title>
-      Mon AiGENT Immobilier – Trouvez votre logement idéal avec l’IA
+      Mon AiGENT Immobilier – Trouvez votre logement idéal avec l'IA
     </title>
-
     <meta
       name="description"
       content="Mon AiGENT Immobilier vous aide à trouver votre logement idéal grâce à une expérience immersive avec intelligence artificielle."
     />
-
     <meta
       name="keywords"
       content="immobilier, AI immobilier, appartement, maison, logement, recherche logement, intelligence artificielle"
     />
-
-    <!-- Open Graph -->
     <meta
       property="og:title"
       content="Mon AiGENT Immobilier – Trouvez votre logement idéal"
@@ -41,146 +27,1345 @@
       property="og:url"
       content="https://monAiGENTimmobilier.onrender.com"
     />
-
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Mon AiGENT Immobilier" />
     <meta
       name="twitter:description"
-      content="Trouvez votre logement avec l’IA."
+      content="Trouvez votre logement avec l'IA."
     />
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --split-left-width: 42%;
+        --split-right-width: 58%;
+        --split-depth: 140px;
+        --border-w: 1.5px;
+        --btn-grad: linear-gradient(90deg, #536dfe 0%, #8a4bff 100%);
+        --btn-grad-hover: linear-gradient(90deg, #6b82ff 0%, #9d66ff 100%);
+        --text-grad: linear-gradient(90deg, #4facfe 0%, #8a4bff 100%);
+        --dark-bg: #050612;
+        --panel-bg: #080814;
+        --text-main: #ffffff;
+        --text-muted: rgba(220, 215, 255, 0.6);
+      }
+
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Outfit", sans-serif;
+        background: var(--dark-bg);
+        color: var(--text-main);
+        overflow-x: hidden;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .page-wrapper {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
+
+      .main-layout {
+        display: flex;
+        flex: 1;
+        width: 100%;
+        position: relative;
+      }
+
+      /* ── PANNEAU GAUCHE ── */
+      .left-panel {
+        flex: 0 0 var(--split-left-width);
+        position: relative;
+        z-index: 1;
+        display: flex;
+      }
+      .left-bg {
+        position: absolute;
+        inset: 0;
+
+        background:
+          linear-gradient(to right, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.05)),
+          url("./images/login2.png");
+
+        background-position: center;
+        background-size: cover;
+        background-repeat: no-repeat;
+
+        filter: brightness(1.15) contrast(1.08) saturate(1.1);
+
+        transform: scale(1.02);
+
+        z-index: 0;
+      }
+      .left-overlay {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            90deg,
+            rgba(5, 6, 18, 0.72) 0%,
+            rgba(5, 6, 18, 0.45) 35%,
+            rgba(5, 6, 18, 0.18) 60%,
+            rgba(5, 6, 18, 0.05) 100%
+          ),
+          linear-gradient(
+            180deg,
+            rgba(10, 10, 30, 0.35) 0%,
+            rgba(10, 10, 30, 0.15) 100%
+          );
+
+        z-index: 1;
+      }
+      .left-content {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        padding: 40px 60px;
+        padding-right: calc(var(--split-depth) + 30px);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      /* ── PANNEAU DROIT ── */
+      .right-panel {
+        flex: 0 0 calc(var(--split-right-width) + var(--split-depth));
+        max-width: calc(var(--split-right-width) + var(--split-depth));
+        margin-left: calc(-1 * var(--split-depth));
+        position: relative;
+        z-index: 2;
+        display: flex;
+      }
+      .right-shape-wrapper {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        filter: drop-shadow(-10px 0px 25px rgba(138, 75, 255, 0.35));
+        pointer-events: none;
+      }
+      .right-shape-glow {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(79, 172, 254, 0.1) 0%,
+          rgba(79, 172, 254, 0.9) 35%,
+          #ffffff 50%,
+          rgba(138, 75, 255, 0.9) 65%,
+          rgba(138, 75, 255, 0.1) 100%
+        );
+        clip-path: polygon(
+          var(--split-depth) 0%,
+          100% 0%,
+          100% 100%,
+          var(--split-depth) 100%,
+          0% 50%
+        );
+      }
+      .right-shape-dark {
+        position: absolute;
+        inset: 0;
+        background: var(--panel-bg);
+        background-image: radial-gradient(
+          ellipse 60% 80% at 85% 50%,
+          rgba(90, 50, 200, 0.08) 0%,
+          transparent 100%
+        );
+        clip-path: polygon(
+          calc(var(--split-depth) + var(--border-w)) 0%,
+          100% 0%,
+          100% 100%,
+          calc(var(--split-depth) + var(--border-w)) 100%,
+          var(--border-w) 50%
+        );
+      }
+      .blue-edge-glow {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 300px;
+        background: radial-gradient(
+          ellipse at 100% 50%,
+          rgba(79, 172, 254, 0.15) 0%,
+          transparent 65%
+        );
+        pointer-events: none;
+        z-index: 1;
+      }
+      .right-content {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        padding-left: calc(var(--split-depth) + 50px);
+        padding-right: 50px;
+        padding-top: 50px;
+        padding-bottom: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* ── LOGO & BRANDING ── */
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 35px;
+      }
+      .logo-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        box-shadow: 0 0 18px rgba(138, 75, 255, 0.4);
+        padding: 6px;
+      }
+
+      .logo-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .logo-text {
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .grad-text {
+        background: var(--text-grad);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+      }
+
+      /* ── CONTENU GAUCHE ── */
+      .left-body h1 {
+        font-size: 38px;
+        font-weight: 800;
+        line-height: 1.15;
+        letter-spacing: -0.025em;
+        margin-bottom: 16px;
+      }
+      .left-desc {
+        font-size: 13.5px;
+        color: var(--text-muted);
+        line-height: 1.6;
+        max-width: 340px;
+        margin-bottom: 30px;
+      }
+      .features {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin-bottom: 35px;
+      }
+      .feature {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+      }
+      .feature-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: rgba(138, 75, 255, 0.12);
+        border: 1px solid rgba(138, 75, 255, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .feature-text h3 {
+        font-size: 13.5px;
+        font-weight: 600;
+        margin-bottom: 3px;
+      }
+      .feature-text p {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .stats-card {
+        display: flex;
+        align-items: center;
+        background: rgba(12, 11, 26, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 14px;
+        padding: 18px 14px;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        max-width: 340px;
+      }
+      .stat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+      .stat-num {
+        font-size: 24px;
+        font-weight: 800;
+        background: var(--text-grad);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1;
+      }
+      .stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-align: center;
+        line-height: 1.35;
+      }
+      .stat-divider {
+        width: 1px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      /* ── CONTENU DROIT ── */
+      .right-inner {
+        width: 100%;
+        max-width: 800px;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+      }
+      .right-header {
+        text-align: center;
+        margin-bottom: 6px;
+      }
+      .right-header h2 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        letter-spacing: -0.02em;
+      }
+      .right-header p {
+        font-size: 13.5px;
+        color: var(--text-muted);
+      }
+      .cards-row {
+        display: flex;
+        gap: 18px;
+      }
+
+      /* ── CARTES AUTH ── */
+      .auth-card {
+        flex: 1;
+        background: rgba(15, 14, 28, 0.55);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-left: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 26px 22px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+      .card-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+      .card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(138, 75, 255, 0.12);
+        border: 1px solid rgba(138, 75, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .card-head h3 {
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      /* ── FORMULAIRES ── */
+      /* On garde le form invisible — juste un wrapper sémantique */
+      .auth-card form {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .input-group {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .input-icon {
+        position: absolute;
+        left: 14px;
+        display: flex;
+        align-items: center;
+        pointer-events: none;
+      }
+      .eye-icon {
+        position: absolute;
+        right: 14px;
+        display: flex;
+        align-items: center;
+        opacity: 0.5;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      .eye-icon:hover {
+        opacity: 1;
+      }
+      /* ── INPUTS ── */
+      .input-group input,
+      .input-group select {
+        width: 100%;
+        padding: 12px 38px 12px 38px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 9px;
+        font-family: "Outfit", sans-serif;
+        font-size: 13px;
+        color: var(--text-main);
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s,
+          background 0.2s;
+      }
+
+      /* ── AUTOFILL CHROME ── */
+      .input-group input:-webkit-autofill,
+      .input-group input:-webkit-autofill:hover,
+      .input-group input:-webkit-autofill:focus,
+      .input-group textarea:-webkit-autofill,
+      .input-group select:-webkit-autofill {
+        -webkit-text-fill-color: #ffffff !important;
+
+        /* TA COULEUR */
+        -webkit-box-shadow: 0 0 0px 1000px rgba(15, 14, 28, 0.95) inset !important;
+
+        border: 1px solid rgba(138, 75, 255, 0.35) !important;
+
+        transition: background-color 9999s ease-in-out 0s;
+      }
+      .input-group input::placeholder {
+        color: rgba(220, 215, 255, 0.35);
+      }
+      .input-group input:focus,
+      .input-group select:focus {
+        outline: none;
+        border-color: rgba(138, 75, 255, 0.6);
+        box-shadow: 0 0 0 3px rgba(138, 75, 255, 0.15);
+        background: rgba(0, 0, 0, 0.4);
+      }
+      .input-group select {
+        appearance: none;
+        cursor: pointer;
+      }
+      .input-group select option {
+        background: #0f0e1c;
+        color: #fff;
+      }
+      .select-arrow {
+        position: absolute;
+        right: 14px;
+        pointer-events: none;
+      }
+
+      .form-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+      }
+      .remember {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-muted);
+        cursor: pointer;
+      }
+      .remember input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+        accent-color: #8a4bff;
+        cursor: pointer;
+      }
+      .forgot {
+        background: var(--text-grad);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      /* ── BOUTON SUBMIT ── */
+      .btn-submit {
+        width: 100%;
+        padding: 13px;
+        border: none;
+        border-radius: 9px;
+        background: var(--btn-grad);
+        color: #fff;
+        font-family: "Outfit", sans-serif;
+        font-size: 14.5px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 6px 18px -5px rgba(138, 75, 255, 0.5);
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s,
+          background 0.2s;
+        margin-top: 4px;
+      }
+      .btn-submit:hover {
+        background: var(--btn-grad-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 22px -5px rgba(138, 75, 255, 0.7);
+      }
+
+      /* ── BARRE SÉCURITÉ ── */
+      .security-bar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 22px;
+        background: rgba(15, 14, 28, 0.55);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-left: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        margin-top: 6px;
+      }
+      .security-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(138, 75, 255, 0.12);
+        border: 1px solid rgba(138, 75, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .security-text h4 {
+        font-size: 13.5px;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .security-text p {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .security-chevron {
+        margin-left: auto;
+        font-size: 22px;
+        color: var(--text-muted);
+        line-height: 1;
+      }
+
+      /* ── SR ONLY (accessibilité) ── */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /* ── FOOTER ── */
+      .page-footer {
+        width: 100%;
+        padding: 20px 0;
+        text-align: center;
+        background: rgba(5, 6, 18, 1);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 12.5px;
+        color: var(--text-muted);
+        position: relative;
+        z-index: 10;
+      }
+
+      /* ── RESPONSIVE MOBILE ── */
+      /* ─────────────────────────────────────────
+   RESPONSIVE MOBILE PROPRE
+   (desktop inchangé)
+───────────────────────────────────────── */
+      @media (max-width: 900px) {
+        .main-layout {
+          display: flex;
+          flex-direction: column;
+          min-height: auto;
+          overflow: visible;
+        }
+
+        /* ───────── PANEL GAUCHE ───────── */
+        .left-panel {
+          position: relative;
+          width: 100%;
+          min-height: 560px;
+          flex: none;
+          overflow: hidden;
+        }
+
+        .left-bg {
+          transform: scale(1);
+        }
+
+        .left-overlay {
+          background:
+            linear-gradient(
+              180deg,
+              rgba(5, 6, 18, 0.45) 0%,
+              rgba(5, 6, 18, 0.72) 100%
+            ),
+            linear-gradient(
+              90deg,
+              rgba(5, 6, 18, 0.18) 0%,
+              rgba(5, 6, 18, 0.45) 100%
+            );
+        }
+
+        .left-content {
+          padding: 34px 24px 42px;
+          justify-content: flex-end;
+        }
+
+        .left-body h1 {
+          font-size: 34px;
+          line-height: 1.08;
+        }
+
+        .left-desc {
+          max-width: 100%;
+          font-size: 14px;
+        }
+
+        .features {
+          gap: 18px;
+        }
+
+        .stats-card {
+          max-width: 100%;
+        }
+
+        /* ───────── PANEL DROIT ───────── */
+        .right-panel {
+          position: relative;
+          width: 100%;
+          flex: none;
+          margin-left: 0;
+          max-width: 100%;
+          overflow: hidden;
+          background: var(--panel-bg);
+        }
+
+        /* SUPPRIME LA DÉCOUPE */
+        .right-shape-wrapper {
+          inset: 0;
+          filter: none;
+        }
+
+        .right-shape-glow,
+        .right-shape-dark {
+          clip-path: none;
+          border-radius: 0;
+        }
+
+        .right-shape-glow {
+          opacity: 0;
+        }
+
+        .right-shape-dark {
+          background:
+            radial-gradient(
+              ellipse at top right,
+              rgba(138, 75, 255, 0.08),
+              transparent 60%
+            ),
+            var(--panel-bg);
+        }
+
+        .blue-edge-glow {
+          display: none;
+        }
+
+        .right-content {
+          padding: 36px 20px 50px;
+        }
+
+        .right-inner {
+          max-width: 100%;
+          gap: 20px;
+        }
+
+        .right-header {
+          text-align: left;
+          margin-bottom: 2px;
+        }
+
+        .right-header h2 {
+          font-size: 30px;
+          line-height: 1.08;
+        }
+
+        .right-header p {
+          font-size: 14px;
+        }
+
+        /* ───────── CARTES ───────── */
+        .cards-row {
+          flex-direction: column;
+          gap: 18px;
+        }
+
+        .auth-card {
+          padding: 22px 18px;
+          border-radius: 18px;
+        }
+
+        .security-bar {
+          padding: 16px 18px;
+          border-radius: 18px;
+        }
+
+        /* ───────── SUPPRIME LES BOUTONS SLIDER ───────── */
+        .btn-slide-right,
+        .btn-slide-left {
+          display: none !important;
+        }
+      }
+
+      /* ─────────────────────────────────────────
+   PETITS TÉLÉPHONES
+───────────────────────────────────────── */
+      @media (max-width: 520px) {
+        .left-panel {
+          min-height: 500px;
+        }
+
+        .left-content {
+          padding: 28px 18px 36px;
+        }
+
+        .right-content {
+          padding: 30px 16px 42px;
+        }
+
+        .left-body h1 {
+          font-size: 29px;
+        }
+
+        .right-header h2 {
+          font-size: 26px;
+        }
+
+        .logo-text {
+          font-size: 18px;
+        }
+
+        .stat-num {
+          font-size: 21px;
+        }
+
+        .auth-card {
+          padding: 20px 16px;
+        }
+      }
+      @media (max-width: 900px) {
+        .left-bg {
+          background:
+            radial-gradient(
+              circle at top,
+              rgba(138, 75, 255, 0.1),
+              rgba(5, 6, 18, 0.35)
+            ),
+            linear-gradient(
+              to bottom,
+              rgba(5, 6, 18, 0.05),
+              rgba(5, 6, 18, 0.45)
+            ),
+            url("./images/login.png");
+
+          background-position: center;
+          background-size: cover;
+          background-repeat: no-repeat;
+
+          /* image plus vivante */
+          filter: brightness(1.38) contrast(1.12) saturate(1.25);
+
+          /* glow violet intérieur */
+          box-shadow:
+            inset 0 0 140px rgba(138, 75, 255, 0.12),
+            inset 0 0 220px rgba(79, 172, 254, 0.06);
+        }
+
+        /* petit “film premium” par-dessus (option ultra clean) */
+        .left-panel::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: radial-gradient(
+            circle at 30% 20%,
+            rgba(138, 75, 255, 0.12),
+            transparent 55%
+          );
+          mix-blend-mode: screen;
+          opacity: 0.8;
+        }
+      }
+      @media (max-width: 900px) {
+        .left-overlay {
+          background: linear-gradient(
+            180deg,
+            rgba(5, 6, 18, 0.05),
+            rgba(5, 6, 18, 0.2)
+          ) !important;
+        }
+      }
+    </style>
   </head>
 
   <body>
-    <!-- ================= CONTAINER ================= -->
-    <div class="container">
-      <!-- ===== LEFT : BRANDING ===== -->
-      <aside class="left-panel">
-        <!-- BOUTON POUR PASSER À LA RIGHT PANEL -->
-        <button class="btn-slide-right">→</button>
+    <div class="page-wrapper">
+      <div class="main-layout">
+        <!-- ═══════════════ PANNEAU GAUCHE ═══════════════ -->
+        <div class="left-panel">
+          <div class="left-bg"></div>
+          <div class="left-overlay"></div>
 
-        <!-- HEADER -->
-        <div class="left-header">
-          <div class="logo-container">
-            <img src="images/logo.png" alt="Logo AiGENT" class="logo-img" />
-            <h1 class="logo-text">Mon <strong>AiGENT</strong> Immobilier</h1>
+          <div class="left-content">
+            <div class="logo">
+              <div class="logo-icon">
+                <img src="./images/logo.png" alt="Logo Mon AiGENT" />
+              </div>
+              <div class="logo-text">
+                Mon <span class="grad-text">AiGENT</span> Immobilier
+              </div>
+            </div>
+
+            <div class="left-body">
+              <h1>
+                Une nouvelle vision<br />de
+                <span class="grad-text">l'immobilier</span>
+              </h1>
+              <p class="left-desc">
+                Rejoindre une plateforme nouvelle génération qui utilise
+                l'intelligence artificielle pour vous trouver le logement idéal.
+              </p>
+
+              <div class="features">
+                <div class="feature">
+                  <div class="feature-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                        stroke="#a78bfa"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </div>
+                  <div class="feature-text">
+                    <h3>Recherche intelligente</h3>
+                    <p>Des résultats pertinents en quelques secondes</p>
+                  </div>
+                </div>
+                <div class="feature">
+                  <div class="feature-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
+                        stroke="#4facfe"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </div>
+                  <div class="feature-text">
+                    <h3>Interface rapide et moderne</h3>
+                    <p>Pensée pour une expérience fluide</p>
+                  </div>
+                </div>
+                <div class="feature">
+                  <div class="feature-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                        stroke="#a78bfa"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </div>
+                  <div class="feature-text">
+                    <h3>Expérience simplifiée</h3>
+                    <p>Tout ce qu'il vous faut, au même endroit</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="stats-card">
+                <div class="stat">
+                  <span class="stat-num">10K+</span>
+                  <span class="stat-label">Utilisateurs<br />actifs</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat">
+                  <span class="stat-num">98%</span>
+                  <span class="stat-label">Satisfaction<br />globale</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat">
+                  <span class="stat-num">24/7</span>
+                  <span class="stat-label">IA à votre<br />service</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- CONTENT -->
-        <div class="left-content">
-          <h2>Une nouvelle vision de l'immobilier</h2>
+        <!-- ═══════════════ PANNEAU DROIT ═══════════════ -->
+        <div class="right-panel">
+          <div class="right-shape-wrapper">
+            <div class="right-shape-glow"></div>
+            <div class="right-shape-dark"></div>
+            <div class="blue-edge-glow"></div>
+          </div>
 
-          <p>
-            Rejoindre un site créé par un jeune qui ouvre une nouvelle vision de
-            l’intelligence artificielle appliquée à l’immobilier.
-          </p>
+          <div class="right-content">
+            <div class="right-inner">
+              <div class="right-header">
+                <h2>Accéder à votre espace</h2>
+                <p>Bienvenue sur votre plateforme immobilière intelligente</p>
+              </div>
 
-          <ul>
-            <li>Recherche intelligente</li>
-            <li>Interface rapide et moderne</li>
-            <li>Expérience simplifiée</li>
-          </ul>
+              <div class="cards-row">
+                <!-- ── CONNEXION ── -->
+                <div class="auth-card">
+                  <div class="card-head">
+                    <div class="card-icon">
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          cx="12"
+                          cy="8"
+                          r="4"
+                          stroke="#a78bfa"
+                          stroke-width="2"
+                        />
+                        <path
+                          d="M4 20c0-4 3.6-7 8-7s8 3 8 7"
+                          stroke="#a78bfa"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </div>
+                    <h3>Connexion</h3>
+                  </div>
+
+                  <!-- ✅ id="loginForm" requis par auth.js -->
+                  <form id="loginForm">
+                    <label for="login-username" class="sr-only"
+                      >Pseudo ou email</label
+                    >
+                    <div class="input-group">
+                      <span class="input-icon">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <circle
+                            cx="12"
+                            cy="8"
+                            r="4"
+                            stroke="rgba(220,215,255,0.5)"
+                            stroke-width="2"
+                          />
+                          <path
+                            d="M4 20c0-4 3.6-7 8-7s8 3 8 7"
+                            stroke="rgba(220,215,255,0.5)"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      </span>
+                      <input
+                        type="text"
+                        id="login-username"
+                        placeholder="Pseudo ou email"
+                        required
+                      />
+                    </div>
+
+                    <label for="login-password" class="sr-only"
+                      >Mot de passe</label
+                    >
+                    <div class="input-group">
+                      <span class="input-icon">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <rect
+                            x="3"
+                            y="11"
+                            width="18"
+                            height="11"
+                            rx="2"
+                            stroke="rgba(220,215,255,0.5)"
+                            stroke-width="2"
+                          />
+                          <path
+                            d="M7 11V7a5 5 0 0110 0v4"
+                            stroke="rgba(220,215,255,0.5)"
+                            stroke-width="2"
+                          />
+                        </svg>
+                      </span>
+                      <input
+                        type="password"
+                        id="login-password"
+                        placeholder="Mot de passe"
+                        required
+                      />
+                      <span
+                        class="eye-icon"
+                        onclick="togglePwd('login-password', this)"
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <path
+                            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                            stroke="rgba(220,215,255,0.6)"
+                            stroke-width="2"
+                          />
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="3"
+                            stroke="rgba(220,215,255,0.6)"
+                            stroke-width="2"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+
+                    <div class="form-meta">
+                      <label class="remember">
+                        <input type="checkbox" /> Se souvenir de moi
+                      </label>
+                      <a href="#" class="forgot">Mot de passe oublié ?</a>
+                    </div>
+
+                    <!-- ✅ type="submit" déclenche l'événement submit du form -->
+                    <button type="submit" class="btn-submit">
+                      Se connecter →
+                    </button>
+                  </form>
+                </div>
+
+                <!-- ── INSCRIPTION ── -->
+                <div class="auth-card">
+                  <div class="card-head">
+                    <div class="card-icon">
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          cx="12"
+                          cy="8"
+                          r="4"
+                          stroke="#a78bfa"
+                          stroke-width="2"
+                        />
+                        <path
+                          d="M4 20c0-4 3.6-7 8-7s8 3 8 7"
+                          stroke="#a78bfa"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                        />
+                        <line
+                          x1="19"
+                          y1="1"
+                          x2="19"
+                          y2="7"
+                          stroke="#a78bfa"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                        />
+                        <line
+                          x1="16"
+                          y1="4"
+                          x2="22"
+                          y2="4"
+                          stroke="#a78bfa"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </div>
+                    <h3>Inscription</h3>
+                  </div>
+
+                  <!-- ✅ id="registerForm" requis par auth.js -->
+                  <form id="registerForm">
+                    <label for="register-username" class="sr-only"
+                      >Pseudo</label
+                    >
+                    <div class="input-group">
+                      <span class="input-icon">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <circle
+                            cx="12"
+                            cy="8"
+                            r="4"
+                            stroke="rgba(220,215,255,0.5)"
+                            stroke-width="2"
+                          />
+                          <path
+                            d="M4 20c0-4 3.6-7 8-7s8 3 8 7"
+                            stroke="rgba(220,215,255,0.5)"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      </span>
+                      <input
+                        type="text"
+                        id="register-username"
+                        placeholder="Pseudo"
+                        required
+                      />
+                    </div>
+
+                    <label for="register-password" class="sr-only"
+                      >Mot de passe</label
+                    >
+                    <div class="input-group">
+                      <span class="input-icon">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <rect
+                            x="3"
+                            y="11"
+                            width="18"
+                            height="11"
+                            rx="2"
+                            stroke="rgba(220,215,255,0.5)"
+                            stroke-width="2"
+                          />
+                          <path
+                            d="M7 11V7a5 5 0 0110 0v4"
+                            stroke="rgba(220,215,255,0.5)"
+                            stroke-width="2"
+                          />
+                        </svg>
+                      </span>
+                      <input
+                        type="password"
+                        id="register-password"
+                        placeholder="Mot de passe"
+                        required
+                      />
+                      <span
+                        class="eye-icon"
+                        onclick="togglePwd('register-password', this)"
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <path
+                            d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                            stroke="rgba(220,215,255,0.6)"
+                            stroke-width="2"
+                          />
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="3"
+                            stroke="rgba(220,215,255,0.6)"
+                            stroke-width="2"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+
+                    <label for="register-email" class="sr-only"
+                      >Adresse email</label
+                    >
+                    <div class="input-group">
+                      <span class="input-icon">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <path
+                            d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                            stroke="rgba(220,215,255,0.5)"
+                            stroke-width="2"
+                          />
+                          <polyline
+                            points="22,6 12,13 2,6"
+                            stroke="rgba(220,215,255,0.5)"
+                            stroke-width="2"
+                          />
+                        </svg>
+                      </span>
+                      <input
+                        type="email"
+                        id="register-email"
+                        placeholder="Adresse email"
+                        required
+                      />
+                    </div>
+
+                    <label for="register-role" class="sr-only"
+                      >Choisir un profil</label
+                    >
+                    <div class="input-group">
+                      <select id="register-role" required>
+                        <option value="" disabled selected>
+                          Choisir un profil
+                        </option>
+                        <option value="buyer">Acheteur</option>
+                        <option value="seller">Vendeur</option>
+                      </select>
+                      <span class="select-arrow">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <polyline
+                            points="6,9 12,15 18,9"
+                            stroke="rgba(220,215,255,0.6)"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+
+                    <!-- ✅ type="submit" -->
+                    <button type="submit" class="btn-submit">
+                      S'inscrire →
+                    </button>
+                  </form>
+                </div>
+              </div>
+              <!-- /cards-row -->
+
+              <!-- Barre sécurité -->
+              <div class="security-bar">
+                <div class="security-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                      stroke="#a78bfa"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </div>
+                <div class="security-text">
+                  <h4>Vos données sont protégées</h4>
+                  <p>Sécurité et confidentialité garanties</p>
+                </div>
+                <span class="security-chevron">›</span>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+      <!-- /main-layout -->
 
-        <!-- IMAGE PARTIELLE -->
-        <div class="left-image"></div>
-      </aside>
-
-      <!-- ===== RIGHT : AUTH ===== -->
-      <main class="right-panel">
-        <!-- BOUTON POUR REVENIR À LA LEFT PANEL -->
-        <button class="btn-slide-left">←</button>
-        <!-- HEADER -->
-        <div class="right-header">
-          <h2>Accéder à votre espace</h2>
-        </div>
-
-        <!-- CARDS -->
-        <section class="cards" aria-label="Connexion et inscription">
-          <!-- CONNEXION -->
-          <article class="card">
-            <h3>Connexion</h3>
-
-            <form id="loginForm">
-              <label for="login-username" class="sr-only"
-                >Pseudo ou email</label
-              >
-              <input
-                type="text"
-                id="login-username"
-                placeholder="Pseudo ou email"
-                required
-              />
-
-              <label for="login-password" class="sr-only">Mot de passe</label>
-              <input
-                type="password"
-                id="login-password"
-                placeholder="Mot de passe"
-                required
-              />
-
-              <button type="submit" class="btn-primary">Se connecter</button>
-            </form>
-          </article>
-
-          <!-- INSCRIPTION -->
-          <article class="card">
-            <h3>Inscription</h3>
-
-            <form id="registerForm">
-              <label for="register-username" class="sr-only">Pseudo</label>
-              <input
-                type="text"
-                id="register-username"
-                placeholder="Pseudo"
-                required
-              />
-
-              <label for="register-password" class="sr-only"
-                >Mot de passe</label
-              >
-              <input
-                type="password"
-                id="register-password"
-                placeholder="Mot de passe"
-                required
-              />
-
-              <label for="register-email" class="sr-only">Adresse email</label>
-              <input
-                type="email"
-                id="register-email"
-                placeholder="Adresse email"
-                required
-              />
-
-              <label for="register-role" class="sr-only"
-                >Choisir un profil</label
-              >
-              <select id="register-role" required>
-                <option value="" disabled selected>Choisir un profil</option>
-                <option value="buyer">Acheteur</option>
-                <option value="seller">Vendeur</option>
-              </select>
-
-              <button type="submit" class="btn-primary">S'inscrire</button>
-            </form>
-          </article>
-        </section>
-      </main>
+      <footer class="page-footer">
+        <p>
+          © Mon <span class="grad-text">AiGENT</span> Immobilier – Tous droits
+          réservés
+        </p>
+      </footer>
     </div>
 
-    <!-- ===== FOOTER GLOBAL ===== -->
-    <footer class="bottom-banner">
-      <p>© Mon AiGENT Immobilier - Tous droits réservés</p>
-    </footer>
+    <script>
+      // ── Toggle affichage mot de passe ──
+      function togglePwd(inputId, btn) {
+        const input = document.getElementById(inputId);
+        input.type = input.type === "password" ? "text" : "password";
+      }
+    </script>
 
-    <!-- SCRIPT -->
+    <!-- Tes modules JS existants — inchangés -->
     <script type="module" src="main.js"></script>
   </body>
 </html>
