@@ -69,74 +69,72 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   initDeleteConfirm();
-  function initMobileSidebar() {
-    const toggleBtn = document.getElementById("mobile-menu-toggle");
-    const overlay = document.getElementById("mobile-sidenav-overlay");
+  // profil.js - GESTION SIDEBAR MOBILE PREMIUM
+  /**
+   * SYNC MENU MOBILE PREMIUM
+   */
+  function initPremiumMobileNav() {
+    const floatBtn = document.getElementById("floating-menu-btn");
     const drawer = document.getElementById("mobile-sidenav-drawer");
+    const overlay = document.getElementById("mobile-sidenav-overlay");
     const closeBtn = document.getElementById("mobile-drawer-close");
-    const drawerContent = document.getElementById("mobile-drawer-content");
+    const contentTarget = document.getElementById("mobile-drawer-content");
+    const sourceSidenav = document.getElementById("settingsSidenav");
 
-    if (!toggleBtn || !overlay || !drawer) return;
+    if (!floatBtn || !drawer || !sourceSidenav) return;
 
-    // Cloner le contenu de la sidenav dans le drawer
-    const sidenav = document.getElementById("settingsSidenav");
-    if (sidenav && drawerContent) {
-      drawerContent.innerHTML = sidenav.innerHTML;
+    // On clone les liens au premier clic pour être sûr que loadProfile() a fini
+    const syncContent = () => {
+      if (contentTarget.children.length > 0) return;
 
-      // Les liens dans le drawer doivent aussi naviguer
-      drawerContent.querySelectorAll(".sidenav-link").forEach((link) => {
+      // Clonage profond
+      const clone = sourceSidenav.cloneNode(true);
+      clone.removeAttribute("id");
+
+      // On rend les liens clonés réactifs
+      clone.querySelectorAll(".sidenav-link").forEach((link) => {
         link.addEventListener("click", (e) => {
           e.preventDefault();
-          closeDrawer();
-          // Déclencher la navigation via le même mécanisme que la sidenav desktop
           const section = link.dataset.section;
-          document
-            .querySelectorAll(".settings-section")
-            .forEach((s) =>
-              s.classList.toggle("active", s.id === `section-${section}`),
-            );
-          document
-            .querySelectorAll(".sidenav-link")
-            .forEach((l) =>
-              l.classList.toggle("active", l.dataset.section === section),
-            );
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          // On clique sur le VRAI lien desktop pour déclencher le changement de section
+          sourceSidenav.querySelector(`[data-section="${section}"]`)?.click();
+          closeMenu();
         });
       });
-    }
 
-    function openDrawer() {
+      contentTarget.appendChild(clone);
+    };
+
+    const openMenu = () => {
+      syncContent();
       drawer.classList.add("open");
       overlay.classList.add("open");
       document.body.style.overflow = "hidden";
-    }
-    function closeDrawer() {
+      floatBtn.style.transform = "scale(0) rotate(-90deg)";
+    };
+
+    const closeMenu = () => {
       drawer.classList.remove("open");
       overlay.classList.remove("open");
       document.body.style.overflow = "";
-    }
+      floatBtn.style.transform = "scale(1) rotate(0deg)";
+    };
 
-    toggleBtn.addEventListener("click", openDrawer);
-    closeBtn?.addEventListener("click", closeDrawer);
-    overlay.addEventListener("click", closeDrawer);
-
-    // Swipe left pour fermer
-    let touchStartX = 0;
-    drawer.addEventListener(
-      "touchstart",
-      (e) => {
-        touchStartX = e.touches[0].clientX;
-      },
-      { passive: true },
-    );
-    drawer.addEventListener(
-      "touchend",
-      (e) => {
-        if (touchStartX - e.changedTouches[0].clientX > 60) closeDrawer();
-      },
-      { passive: true },
-    );
+    // Listeners robustes
+    floatBtn.onclick = openMenu;
+    closeBtn.onclick = closeMenu;
+    overlay.onclick = closeMenu;
   }
+
+  // Lancement sécurisé
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initPremiumMobileNav);
+  } else {
+    initPremiumMobileNav();
+  }
+
+  // Lancement au chargement
+  document.addEventListener("DOMContentLoaded");
 });
 
 // ══════════════════════════════════════════════

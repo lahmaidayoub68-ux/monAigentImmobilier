@@ -2173,89 +2173,724 @@ body {
   align-items: center;
 }
 /* ============================================================
-   MOBILE
+   LAYOUT RESPONSIVE BOOSTÉ & SÉCURISÉ (STABLE SaaS)
    ============================================================ */
+
+/* 1. Sécurité Globale : Empêche le scroll horizontal accidentel sur tout le site */
+html,
+body {
+  position: relative;
+  overflow-x: hidden;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 2. Stabilisation des onglets de conversation (Empêche "Archivés" de sortir) */
+.conv-tabs {
+  display: flex;
+  overflow-x: auto; /* Permet le défilement horizontal si trop de boutons */
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Cache la scrollbar Firefox */
+  padding: 0 12px;
+  gap: 4px;
+}
+.conv-tabs::-webkit-scrollbar {
+  display: none; /* Cache la scrollbar Chrome/Safari */
+}
+.conv-tab {
+  flex-shrink: 0; /* Empêche les boutons de s'écraser */
+  white-space: nowrap;
+}
+
+/* 3. Adaptation Tablettes (900px) */
 @media (max-width: 900px) {
   .sidebar {
     display: none;
   }
   .conv-panel {
-    width: 280px;
-    min-width: 280px;
+    width: 320px;
+    min-width: 320px;
   }
 }
+
+/* 4. Adaptation Mobile (640px) - FULL CONTROL */
 @media (max-width: 640px) {
   .app-main {
     position: relative;
+    width: 100vw;
+    overflow: hidden;
   }
+
+  /* Panneau Liste : occupe tout l'écran */
   .conv-panel {
     position: absolute;
     inset: 0;
     z-index: 10;
     width: 100%;
-    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 100%;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
+  /* Zone Chat : cachée à droite par défaut */
   .chat-zone {
     position: absolute;
     inset: 0;
+    width: 100%;
+    z-index: 20;
     transform: translateX(100%);
-    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
+  /* Toggle entre liste et chat */
   .app-main.show-chat .conv-panel {
     transform: translateX(-100%);
   }
   .app-main.show-chat .chat-zone {
     transform: translateX(0);
   }
-  #btn-back-to-list {
-    display: flex !important;
+
+  /* Sécurité Messages : Empêche les bulles de sortir de l'écran */
+  .msg-row,
+  .msg-row.me {
+    max-width: 92%; /* Laisse une marge de sécurité */
+    word-break: break-word; /* Casse les mots longs */
+    overflow-wrap: anywhere;
   }
-  .chat-quick-replies {
-    display: none;
+
+  .bubble {
+    font-size: 13px; /* Un poil plus petit pour gagner de la place */
+    padding: 8px 12px;
   }
-  .msg-row {
-    max-width: 88%;
-  }
-}
-@media (max-width: 640px) {
-  /* On vide le header et on fixe les boutons à droite */
+
+  /* Boutons flottants à droite (Floating Actions) */
   .chat-header .chat-header-actions {
-    position: fixed !important; /* Force la position fixe */
-    right: 12px;
-    top: 85px; /* Positionné sous le header */
+    position: fixed !important;
+    right: 10px;
+    top: 75px; /* Aligné sous le header */
     flex-direction: column;
     background: var(--bg-composer);
     border: 1px solid var(--bd-mid);
-    padding: 10px 6px;
-    border-radius: 16px;
+    padding: 8px 6px;
+    border-radius: 14px;
     box-shadow: var(--sh-lg);
-    gap: 10px;
-    z-index: 9999; /* Passe au dessus de tout (messages, overlay léger) */
-    height: auto;
-    width: auto;
+    gap: 8px;
+    z-index: 9999;
+    width: 44px; /* Largeur fixe pour l'alignement */
+    align-items: center;
   }
 
-  /* Style "Floating Action Button" pour chaque icône */
   .chat-header .ch-action-btn {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     background: var(--bg-surface);
-    box-shadow: var(--sh-sm);
+    border-radius: 10px;
+    flex-shrink: 0;
   }
 
-  /* Cache le diviseur et ajuste l'espace du titre */
   .chat-header .ch-divider {
     display: none;
   }
 
+  /* Header Chat : Laisse la place pour le texte */
   .chat-header-left {
-    max-width: calc(100% - 20px);
+    max-width: calc(100% - 10px);
+    padding-right: 40px; /* Espace pour pas que le texte touche les boutons */
   }
 
-  /* On s'assure que le menu "Plus" s'ouvre à gauche du bouton pour être lisible */
+  /* Composer Mobile : optimiser l'espace */
+  .composer-zone {
+    padding: 10px;
+  }
+  .composer-inner {
+    gap: 2px;
+    padding: 6px;
+  }
+
+  /* Sécurité Modals (Popups) : ne jamais dépasser l'écran */
+  .modal-card {
+    width: 95vw !important;
+    max-height: 90vh;
+    margin: 10px;
+  }
+
+  /* Ajustement de la table participants sur mobile */
+  .saas-table th,
+  .saas-table td {
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  /* Menu "Plus" (dropdown) repositionné pour mobile */
   .ch-dropdown {
-    right: 45px;
-    top: 0;
-    bottom: auto;
+    position: fixed;
+    right: 60px;
+    top: auto;
+    bottom: 80px; /* S'ouvre au dessus du bouton pour pas gêner */
+    width: 160px;
+  }
+
+  /* Masquer les aides visuelles inutiles */
+  #btn-back-to-list {
+    position: fixed;
+    top: 85px;
+    left: 12px;
+
+    width: 42px;
+    height: 42px;
+
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+
+    background: var(--bg-composer);
+    border: 1px solid var(--bd-mid);
+    border-radius: 12px;
+    box-shadow: var(--sh-lg);
+
+    z-index: 9999;
+  }
+  .chat-quick-replies {
+    display: none;
+  }
+}
+
+/* Fix spécifique pour les longs pseudos dans le header */
+.chat-title {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+} /* ============================================================
+   LAYOUT MOBILE BOOSTÉ & SÉCURISÉ
+   ============================================================ */
+@media (max-width: 640px) {
+  /* 1. Sécurité Liste Conversations : Menu horizontal fluide */
+  .conv-tabs {
+    display: flex !important;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+    padding: 0 16px;
+    scrollbar-width: none;
+  }
+  .conv-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .conv-tab {
+    flex-shrink: 0 !important;
+    white-space: nowrap;
+    padding: 10px 4px;
+  }
+
+  /* 2. Header Chat : Réorganisation complète en colonne */
+  .chat-header {
+    height: 70px !important;
+    padding: 0 14px !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+  }
+  .chat-header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-right: 80px;
+  }
+
+  /* 🚨 MASQUE LES NOMS DES PARTICIPANTS */
+  .participant-pill {
+    display: none !important;
+  }
+
+  .chat-header-name-row {
+    width: 100%;
+  }
+
+  .chat-title {
+    font-size: 16px !important;
+    max-width: 200px;
+    font-weight: 800 !important;
+  }
+
+  /* Cache le statut "en ligne" UNIQUEMENT si c'est un groupe (via classe injectée en JS) */
+  .is-group-active #chat-status {
+    display: none !important;
+  }
+
+  .chat-header-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .chat-members-count {
+    font-size: 11px !important;
+    color: var(--brand) !important;
+    font-weight: 700;
+    margin-top: 2px;
+    opacity: 0.8;
+  }
+
+  /* 3. Sécurité Messages & Audio : Plus aucun débordement */
+  .msg-row {
+    max-width: 95% !important;
+  }
+
+  .bubble {
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .audio-bubble {
+    width: 100% !important;
+    max-width: 240px !important;
+    min-width: 0 !important;
+    padding: 8px !important;
+  }
+
+  .audio-waveform-static {
+    display: none !important;
+  } /* On simplifie la waveform en mobile pour gagner de la place */
+
+  /* 4. Boutons Actions Flottants */
+  .chat-header .chat-header-actions {
+    position: fixed !important;
+    top: 70px; /* juste sous header */
+    right: 12px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    background: var(--bg-composer);
+    border: 1px solid var(--bd-mid);
+    border-radius: 12px;
+    padding: 8px;
+
+    box-shadow: var(--sh-lg);
+    z-index: 9999;
+  }
+
+  .ch-action-btn {
+    background: var(--bg-composer) !important;
+    box-shadow: var(--sh-md);
+  }
+}
+/* messagerie.css - BOOST STABILITÉ MOBILE */
+@media (max-width: 640px) {
+  html,
+  body {
+    position: relative;
+    overflow-x: hidden;
+    overscroll-behavior-y: none; /* Évite le rebond browser */
+  }
+
+  /* Onglets Conversations : Style iOS/Telegram */
+  .conv-tabs {
+    display: flex !important;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    flex-wrap: nowrap !important;
+    padding: 8px 16px;
+    gap: 12px;
+    scrollbar-width: none; /* Firefox */
+    -webkit-overflow-scrolling: touch;
+    border-bottom: 1px solid var(--bd-soft);
+    background: var(--bg-panel);
+  }
+  .conv-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .conv-tab {
+    flex-shrink: 0 !important;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 6px 4px;
+    color: var(--tx-muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .conv-tab.active {
+    color: var(--brand);
+    border-bottom: 2px solid var(--brand);
+  }
+
+  /* Bulles de messages : Sécurité Max */
+  .msg-row {
+    max-width: 94% !important;
+  }
+  .bubble {
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 10px 14px;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    box-shadow: var(--sh-sm);
+  }
+}
+/* messagerie.css - HEADER MOBILE BOOST */
+@media (max-width: 640px) {
+  /* Header Fixe Pur */
+  .chat-header {
+    height: 60px !important;
+    padding: 0 16px !important;
+    background: var(--bg-panel);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--bd-soft);
+    justify-content: center !important; /* On centre le titre */
+  }
+
+  /* Titre & Groupe */
+  .chat-header-info {
+    text-align: center;
+    padding: 0 50px;
+  }
+  .chat-title {
+    font-weight: 800;
+    font-size: 16px;
+  }
+  .chat-members-count {
+    color: var(--brand);
+    font-weight: 700;
+    font-size: 11px;
+  }
+
+  /* RÈGLE 2 & 3 : BOUTONS FLOTTANTS */
+
+  /* Bouton Retour "<" Flottant */
+  #btn-back-to-list {
+    position: fixed !important;
+    top: 75px; /* Sous le header */
+    left: 12px;
+    width: 40px;
+    height: 40px;
+    background: var(--bg-composer);
+    border: 1px solid var(--bd-mid);
+    border-radius: 12px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--sh-lg);
+    z-index: 1000;
+    color: var(--brand);
+  }
+
+  /* Colonne d'Actions Flottante (Droite) */
+  .chat-header-actions {
+    position: fixed !important;
+    top: 75px;
+    right: 12px;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg-composer);
+    border: 1px solid var(--bd-mid);
+    padding: 8px;
+    border-radius: 14px;
+    box-shadow: var(--sh-lg);
+    z-index: 1000;
+    width: 44px;
+  }
+
+  .ch-action-btn {
+    width: 34px !important;
+    height: 34px !important;
+    background: var(--bg-surface) !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+  }
+  .ch-divider {
+    display: none;
+  }
+}
+/* messagerie.css - COMPOSER GPT-STYLE MOBILE ONLY */
+@media (max-width: 640px) {
+  /* On cache le composer par défaut du desktop */
+  .composer-inner {
+    display: none !important;
+  }
+
+  .mobile-premium-input {
+    padding: 12px 14px 20px !important;
+    background: var(--bg-chat) !important;
+  }
+
+  .composer-context-bar {
+    margin-bottom: 8px;
+    padding-left: 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .send-label {
+    font-size: 11px;
+    color: var(--tx-muted);
+  }
+  .target-name-dynamic {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--brand);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .composer-inner-pro {
+    background: var(--bg-composer);
+    border: 1px solid var(--bd-mid);
+    border-radius: 18px;
+    padding: 8px 10px;
+    box-shadow: var(--sh-md);
+    transition: border-color 0.2s;
+  }
+  .composer-inner-pro:focus-within {
+    border-color: var(--brand);
+  }
+
+  #user-input {
+    width: 100%;
+    border: none !important;
+    background: transparent !important;
+    padding: 10px 8px !important;
+    font-size: 15px !important;
+    line-height: 1.5;
+    max-height: 160px;
+    outline: none !important;
+    color: var(--tx-primary);
+  }
+
+  .composer-toolbar-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    margin-top: 4px;
+    border-top: 1px solid var(--bd-soft);
+  }
+
+  .tool-group-left,
+  .tool-group-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .tool-icon-btn,
+  .comp-voice-btn-mobile {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tx-muted);
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+
+  .tool-icon-btn:active {
+    background: var(--brand-soft);
+    color: var(--brand);
+  }
+
+  .send-btn-premium {
+    background: var(--brand);
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    box-shadow: var(--sh-brand);
+  }
+}
+
+/* On masque le nouveau bloc sur Desktop */
+@media (min-width: 641px) {
+  .mobile-premium-input {
+    display: none !important;
+  }
+}
+/* messagerie.css - RECONSTRUCTION MOBILE PREMIUM */
+@media (max-width: 640px) {
+  /* ── 1. MODALS (Popups) : Zéro débordement, Style SaaS ── */
+  .modal-card {
+    width: 94vw !important;
+    max-height: 85vh !important;
+    border-radius: 24px !important;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-body {
+    overflow-y: auto !important;
+    padding: 20px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .groupe-add-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .groupe-participants-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 120px;
+    overflow-y: auto;
+    background: var(--bg-surface);
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  /* ── 2. HEADER : Centrage & Titres Pro ── */
+  .chat-header {
+    height: 65px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center !important;
+    padding: 0 16px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--bd-soft);
+    z-index: 100;
+  }
+  .chat-header-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .chat-title {
+    font-size: 17px !important;
+    font-weight: 800 !important;
+    color: var(--tx-primary);
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chat-members-count {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand);
+    margin-top: -2px;
+  }
+
+  /* ── 3. INPUT GPT-STYLE (Le Fix Définitif) ── */
+  .composer-zone {
+    padding: 10px 14px 25px !important;
+    background: var(--bg-chat) !important;
+  }
+
+  /* On ré-affiche l'élément avec un nouveau style */
+  .composer-inner {
+    display: flex !important; /* Force l'affichage */
+    flex-direction: column !important;
+    background: var(--bg-composer) !important;
+    border: 1px solid var(--bd-mid) !important;
+    border-radius: 20px !important;
+    padding: 6px !important;
+    box-shadow: var(--sh-md) !important;
+  }
+
+  #user-input {
+    width: 100% !important;
+    min-height: 44px !important;
+    max-height: 150px !important;
+    padding: 10px 12px !important;
+    font-size: 15px !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
+  /* Barre d'outils Desktop-SVG en bas */
+  .comp-left-actions {
+    display: flex !important;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    border-top: 1px solid var(--bd-soft);
+    margin-top: 4px;
+  }
+
+  /* On réorganise les icônes */
+  .comp-left-actions .comp-icon-btn {
+    width: 32px;
+    height: 32px;
+    color: var(--tx-muted);
+  }
+}
+/* messagerie.css - FIX FINAL MOBILE PREMIUM */
+@media (max-width: 640px) {
+  /* ── 1. HEADER : STATUT À DROITE & TITRE NET ── */
+  .chat-header {
+    display: flex !important;
+    justify-content: flex-start !important; /* On aligne à gauche pour laisser de la place */
+    position: relative !important;
+    padding-right: 80px !important; /* Espace réservé pour le statut à droite */
+  }
+
+  .chat-header-info {
+    text-align: left !important;
+    align-items: flex-start !important;
+    margin-left: 8px;
+  }
+
+  /* Le statut "En ligne" décalé proprement tout à droite */
+  #chat-status {
+    position: absolute !important;
+    right: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--bg-surface);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--bd-soft);
+  }
+
+  /* ── 2. POPUP GROUPE : ZERO DÉBORDEMENT ── */
+  #groupeOverlay .modal-card {
+    width: 95vw !important;
+    height: auto !important;
+    max-height: 90vh !important; /* Ne dépasse jamais l'écran */
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  #groupeOverlay .modal-body {
+    flex: 1 !important; /* Prend tout l'espace restant */
+    overflow-y: auto !important; /* Scroll interne si trop de membres */
+    padding: 16px !important;
+    gap: 12px !important;
+  }
+
+  /* Champs uniformes type "Send Message" */
+  #groupeOverlay .modal-input-wrap,
+  #groupeOverlay .modal-body textarea {
+    min-height: 42px !important;
+    border-radius: 10px !important;
+    width: 100% !important;
+  }
+
+  /* Footer fixe en bas (Annuler/Lancer ne bougent plus) */
+  #groupeOverlay .modal-footer {
+    flex-shrink: 0 !important;
+    background: var(--bg-surface);
+    padding: 12px 16px !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .groupe-add-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important; /* Pile sur mobile */
+    gap: 8px !important;
   }
 }

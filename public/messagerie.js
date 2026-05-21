@@ -524,10 +524,14 @@ function attachConversationClick(convo) {
       .querySelectorAll(".conversation")
       .forEach((c) => c.classList.remove("active"));
     convo.classList.add("active");
-
     const conversationKey = convo.dataset.user;
     activeConversationId = conversationKey;
     const isGroupe = conversationKey.startsWith("groupe__");
+
+    // Ajout d'une classe sur le container pour le CSS mobile
+    const chatHeader = document.getElementById("chatHeader");
+    if (isGroupe) chatHeader.classList.add("is-group-active");
+    else chatHeader.classList.remove("is-group-active");
 
     unreadStore[conversationKey] = false;
     convo.querySelector(".conv-unread-dot")?.remove();
@@ -535,67 +539,72 @@ function attachConversationClick(convo) {
     updateGlobalUnread();
     applyTabFilter();
 
-    // Titre header
     const chatTitleEl = document.getElementById("chat-with");
     if (chatTitleEl)
       chatTitleEl.textContent = isGroupe
         ? groupLabel(conversationKey)
         : conversationKey;
 
-    // Members count + participants pills
     const membersCountEl = document.getElementById("chatMembersCount");
     const participantsBar = document.getElementById("participants-bar");
-    const chatStatusEl = document.getElementById("chat-status");
 
     if (isGroupe && groupeStore[conversationKey]) {
       const groupe = groupeStore[conversationKey];
       const others = groupe.participants.filter((p) => p !== currentUser);
 
       if (membersCountEl) {
-        membersCountEl.textContent = `${groupe.participants.length} membres`;
+        membersCountEl.textContent = `${groupe.participants.length} membres au total`;
         membersCountEl.style.display = "inline";
       }
       if (participantsBar) {
         participantsBar.style.display = "flex";
+        // Boost : Format "Lettre + Nom" pour mobile
         participantsBar.innerHTML =
           others
             .slice(0, 3)
             .map(
-              (p) =>
-                `<span class="participant-pill" style="background:${getUserSolidColor(p)}">${p.charAt(0).toUpperCase()}${p.slice(1, 4)}</span>`,
+              (p) => `
+          <span class="participant-pill">
+            ${p}
+          </span>
+        `,
             )
             .join("") +
           (others.length > 3
-            ? `<span class="participant-pill" style="background:#6b7280">+${others.length - 3}</span>`
+            ? `<span class="chat-members-count" style="margin-left:5px;">+${others.length - 3} autres</span>`
             : "");
       }
-      if (chatStatusEl) {
-        chatStatusEl.textContent = "";
-        chatStatusEl.className = "chat-status";
-      }
-
-      // Avatar groupe
       _setGroupeAvatar(conversationKey);
     } else {
-      if (membersCountEl) {
-        membersCountEl.textContent = "";
-        membersCountEl.style.display = "none";
-      }
-      if (participantsBar) {
-        participantsBar.style.display = "none";
-        participantsBar.innerHTML = "";
-      }
+      if (membersCountEl) membersCountEl.style.display = "none";
+      if (participantsBar) participantsBar.style.display = "none";
       _setSingleAvatar(conversationKey);
     }
 
-    // Empty state
     document.getElementById("chat-empty-state")?.remove?.();
-
     await loadConversation(conversationKey);
-    // À la fin du handler click dans attachConversationClick, avant showChatView() :
+
+    // Boost : Déplacer le suivi de dossier s'il existe
+    injectTimelineInChat();
+
     updateBlockBtnLabel();
     showChatView();
   });
+
+  // Nouvelle fonction pour intégrer la timeline proprement dans le flux
+  function injectTimelineInChat() {
+    const timeline = document.querySelector(".timeline-container"); // Ajustez le sélecteur selon transactionTimeline.js
+    if (timeline && chatBox) {
+      timeline.style.margin = "10px 0 20px 0";
+      timeline.style.width = "100%";
+      timeline.style.boxShadow = "none";
+      timeline.style.border = "1px solid var(--bd-soft)";
+      timeline.style.background = "var(--bg-surface)";
+
+      // On l'insère au tout début du chat
+      chatBox.prepend(timeline);
+    }
+  }
 }
 
 function _setGroupeAvatar(conversationKey) {

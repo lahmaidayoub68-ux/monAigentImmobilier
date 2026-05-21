@@ -21,21 +21,6 @@
         <h1 class="logo-text">Paramètres</h1>
       </div>
       <div class="header-actions">
-        <button id="mobile-menu-toggle" aria-label="Menu">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
-
         <button id="btn-theme" aria-label="Changer le thème">
           <svg
             class="icon-sun"
@@ -1612,15 +1597,57 @@
       <div class="agenda-notif-body" id="agendaNotifBody"></div>
       <div class="agenda-notif-time" id="agendaNotifTime"></div>
     </div>
-    <div id="mobile-sidenav-overlay"></div>
-    <div id="mobile-sidenav-drawer">
-      <div class="mobile-drawer-header">
-        <span class="mobile-drawer-title">Paramètres</span>
-        <button id="mobile-drawer-close">×</button>
+    <!-- FAB Menu Compact Premium -->
+    <button id="floating-menu-btn" class="menu-trigger-fab" aria-label="Menu">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke-width="2.5"
+        stroke-linecap="round"
+      >
+        <line x1="3" y1="6" x2="21" y2="6" stroke="var(--v)" />
+        <!-- Grand -->
+        <line x1="3" y1="12" x2="15" y2="12" stroke="var(--v)" />
+        <!-- Moyen -->
+        <line x1="3" y1="18" x2="9" y2="18" stroke="var(--v)" />
+        <!-- Petit -->
+      </svg>
+    </button>
+
+    <!-- Drawer Mobile - Format "Sheet" -->
+    <div id="mobile-sidenav-overlay" class="drawer-overlay"></div>
+    <aside id="mobile-sidenav-drawer" class="drawer-panel">
+      <div class="drawer-header">
+        <div class="logo-container">
+          <img src="images/logo.png" class="logo-img" alt="AiGENT" />
+          <span class="logo-text">AiGENT</span>
+        </div>
+        <button
+          id="mobile-drawer-close"
+          class="drawer-close-btn"
+          aria-label="Fermer"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
-      <!-- Le contenu de la sidenav sera cloné ici par JS -->
-      <div id="mobile-drawer-content"></div>
-    </div>
+      <div id="mobile-drawer-content" class="drawer-content">
+        <!-- Contenu cloné ici -->
+      </div>
+    </aside>
 
     <script src="profil.js" type="module"></script>
     <script src="/i18n.js"></script>
