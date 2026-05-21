@@ -525,6 +525,48 @@ function showNotif(title, body, iconType = "info", duration = 4000) {
 
 /* ── INITIALISATION ── */
 document.addEventListener("DOMContentLoaded", () => {
+  // Clic cloche → profil notifications
+  document.getElementById("btn-notif-bell")?.addEventListener("click", () => {
+    window.location.href = "profil.html#notifications";
+  });
+
+  // Badge notifs temps réel
+  (async function refreshNotifBadge() {
+    try {
+      const token = getToken();
+      if (!token) return;
+      const res = await fetch(`${API}/api/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const notifs = await res.json();
+      const count = notifs.filter((n) => !n.read).length;
+      const badge = document.getElementById("notif-badge-global");
+      if (badge) {
+        badge.textContent = count > 99 ? "99+" : count;
+        badge.style.display = count > 0 ? "flex" : "none";
+      }
+    } catch {}
+  })();
+
+  setInterval(async () => {
+    try {
+      const token = getToken();
+      if (!token) return;
+      const res = await fetch(`${API}/api/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const notifs = await res.json();
+      const count = notifs.filter((n) => !n.read).length;
+      const badge = document.getElementById("notif-badge-global");
+      if (badge) {
+        badge.textContent = count > 99 ? "99+" : count;
+        badge.style.display = count > 0 ? "flex" : "none";
+      }
+    } catch {}
+  }, 20000);
+
   // Slider Threshold
   const slider = document.getElementById("threshold-slider");
   const display = document.getElementById("threshold-display");

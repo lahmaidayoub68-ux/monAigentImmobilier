@@ -523,15 +523,152 @@ function renderFlux(data) {
 }
 
 /* ── TYPES ───────────────────────────────────────────────── */
-const TYPE_ICONS = {
-  appartement: "🏢",
-  maison: "🏡",
-  studio: "🛏",
-  villa: "🏠",
-  loft: "🏗",
-  duplex: "🏛",
-  pavillon: "🌳",
-  terrain: "🌿",
+export const TYPE_ICONS = {
+  appartement: `
+    <svg width="42" height="42" viewBox="0 0 42 42" fill="none">
+      <defs>
+        <linearGradient id="grad-appartement" x1="0" y1="0" x2="42" y2="42">
+          <stop stop-color="#4F8CFF"/>
+          <stop offset="1" stop-color="#7B61FF"/>
+        </linearGradient>
+      </defs>
+
+      <rect width="42" height="42" rx="14" fill="url(#grad-appartement)"/>
+      <path d="M14 30V13H28V30M18 18H20M22 18H24M18 22H20M22 22H24"
+        stroke="white"
+        stroke-width="2.2"
+        stroke-linecap="round"
+      />
+    </svg>
+  `,
+
+  maison: `
+    <svg width="42" height="42" viewBox="0 0 42 42" fill="none">
+      <defs>
+        <linearGradient id="grad-maison" x1="0" y1="0" x2="42" y2="42">
+          <stop stop-color="#5AA9FF"/>
+          <stop offset="1" stop-color="#8B5CFF"/>
+        </linearGradient>
+      </defs>
+
+      <rect width="42" height="42" rx="14" fill="url(#grad-maison)"/>
+      <path d="M12 20L21 13L30 20V29H24V23H18V29H12V20Z"
+        stroke="white"
+        stroke-width="2.2"
+        stroke-linejoin="round"
+      />
+    </svg>
+  `,
+
+  studio: `
+    <svg width="42" height="42" viewBox="0 0 42 42" fill="none">
+      <defs>
+        <linearGradient id="grad-studio" x1="0" y1="0" x2="42" y2="42">
+          <stop stop-color="#4FC3FF"/>
+          <stop offset="1" stop-color="#6F5BFF"/>
+        </linearGradient>
+      </defs>
+
+      <rect width="42" height="42" rx="14" fill="url(#grad-studio)"/>
+      <path d="M13 24H29M15 20H27V27H15V20ZM17 18V20M25 18V20"
+        stroke="white"
+        stroke-width="2.2"
+        stroke-linecap="round"
+      />
+    </svg>
+  `,
+
+  villa: `
+    <svg width="42" height="42" viewBox="0 0 42 42" fill="none">
+      <defs>
+        <linearGradient id="grad-villa" x1="0" y1="0" x2="42" y2="42">
+          <stop stop-color="#667CFF"/>
+          <stop offset="1" stop-color="#9B4DFF"/>
+        </linearGradient>
+      </defs>
+
+      <rect width="42" height="42" rx="14" fill="url(#grad-villa)"/>
+      <path d="M11 29V19L21 12L31 19V29M17 29V23H25V29"
+        stroke="white"
+        stroke-width="2.2"
+        stroke-linejoin="round"
+      />
+    </svg>
+  `,
+
+  loft: `
+    <svg width="42" height="42" viewBox="0 0 42 42" fill="none">
+      <defs>
+        <linearGradient id="grad-loft" x1="0" y1="0" x2="42" y2="42">
+          <stop stop-color="#4A6CFF"/>
+          <stop offset="1" stop-color="#7C3DFF"/>
+        </linearGradient>
+      </defs>
+
+      <rect width="42" height="42" rx="14" fill="url(#grad-loft)"/>
+      <path d="M13 28V15H29V28M17 19H25M17 23H25"
+        stroke="white"
+        stroke-width="2.2"
+        stroke-linecap="round"
+      />
+    </svg>
+  `,
+
+  duplex: `
+    <svg width="42" height="42" viewBox="0 0 42 42" fill="none">
+      <defs>
+        <linearGradient id="grad-duplex" x1="0" y1="0" x2="42" y2="42">
+          <stop stop-color="#7A5CFF"/>
+          <stop offset="1" stop-color="#4B7DFF"/>
+        </linearGradient>
+      </defs>
+
+      <rect width="42" height="42" rx="14" fill="url(#grad-duplex)"/>
+      <path d="M14 29V14H20V29M22 29V18H28V29"
+        stroke="white"
+        stroke-width="2.2"
+        stroke-linejoin="round"
+      />
+    </svg>
+  `,
+
+  pavillon: `
+    <svg width="42" height="42" viewBox="0 0 42 42" fill="none">
+      <defs>
+        <linearGradient id="grad-pavillon" x1="0" y1="0" x2="42" y2="42">
+          <stop stop-color="#4B9DFF"/>
+          <stop offset="1" stop-color="#735BFF"/>
+        </linearGradient>
+      </defs>
+
+      <rect width="42" height="42" rx="14" fill="url(#grad-pavillon)"/>
+      <path d="M21 13L29 20V29H13V20L21 13Z"
+        stroke="white"
+        stroke-width="2.2"
+        stroke-linejoin="round"
+      />
+      <circle cx="31" cy="13" r="3" fill="white" fill-opacity="0.9"/>
+    </svg>
+  `,
+
+  terrain: `
+    <svg width="42" height="42" viewBox="0 0 42 42" fill="none">
+      <defs>
+        <linearGradient id="grad-terrain" x1="0" y1="0" x2="42" y2="42">
+          <stop stop-color="#35C8A1"/>
+          <stop offset="1" stop-color="#4F7DFF"/>
+        </linearGradient>
+      </defs>
+
+      <rect width="42" height="42" rx="14" fill="url(#grad-terrain)"/>
+      <path d="M21 29V18M21 18C19 18 17 16.5 17 14.5C19 14.5 21 16 21 18ZM21 18C23 18 25 16.5 25 14.5C23 14.5 21 16 21 18Z"
+        stroke="white"
+        stroke-width="2.2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  `,
 };
 const TYPE_COLORS = [
   "#6366f1",

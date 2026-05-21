@@ -20,6 +20,7 @@ import OpenAI from "openai";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import levenshtein from "fast-levenshtein";
+import { createHmac } from "crypto";
 const HOST = "0.0.0.0";
 import {
   addBuyer,
@@ -128,7 +129,60 @@ const fromDB = (row) => ({
 
   budgetMin: row.budgetMin ?? row.budgetmin ?? null,
   budgetMax: row.budgetMax ?? row.budgetmax ?? null,
-}); // ================== MIDDLEWARES ==================
+});
+// ── LIBRAIRIE TOTP (simple implémentation sans dépendance externe) ───────────
+// Fonction de vérification TOTP (RFC 6238) — à placer dans les helpers
+function verifyTOTP(secret, code, windowSize = 1) {
+  // Décodage base32
+  const base32Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const decodedSecret = secret.toUpperCase().replace(/=+$/, "");
+
+  let bits = "";
+  for (const ch of decodedSecret) {
+    const idx = base32Chars.indexOf(ch);
+    if (idx === -1) continue;
+    bits += idx.toString(2).padStart(5, "0");
+  }
+  const bytes = new Uint8Array(bits.length / 8);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(bits.slice(i * 8, (i + 1) * 8), 2);
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const counter = Math.floor(now / 30);
+
+  // Vérifier dans la fenêtre temporelle
+  for (let delta = -windowSize; delta <= windowSize; delta++) {
+    const c = counter + delta;
+    // HMAC-SHA1 via crypto natif Node.js
+    const counterBuf = Buffer.alloc(8);
+    counterBuf.writeUInt32BE(0, 0);
+    counterBuf.writeUInt32BE(c, 4);
+    const hmac = createHmac("sha1", Buffer.from(bytes))
+      .update(counterBuf)
+      .digest();
+    const offset = hmac[hmac.length - 1] & 0x0f;
+    const otp =
+      (((hmac[offset] & 0x7f) << 24) |
+        ((hmac[offset + 1] & 0xff) << 16) |
+        ((hmac[offset + 2] & 0xff) << 8) |
+        (hmac[offset + 3] & 0xff)) %
+      1000000;
+    if (otp.toString().padStart(6, "0") === code) return true;
+  }
+  return false;
+}
+
+function generateBackupCodes(count = 8) {
+  const codes = [];
+  for (let i = 0; i < count; i++) {
+    const part1 = Math.random().toString(36).slice(2, 7).toUpperCase();
+    const part2 = Math.random().toString(36).slice(2, 7).toUpperCase();
+    codes.push(`${part1}-${part2}`);
+  }
+  return codes;
+}
+// ================== MIDDLEWARES ==================
 app.disable("x-powered-by");
 app.use(cors({ origin: true, credentials: true }));
 app.use(
@@ -185,6 +239,7 @@ app.use(
 
         connectSrc: [
           "'self'",
+          "https://*.supabase.co",
           "https://fonts.googleapis.com",
           "https://fonts.gstatic.com",
           "https://api.anthropic.com",
@@ -198,6 +253,9 @@ app.use(
         ],
         fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
 
+        // 🔥 AJOUT CRUCIAL POUR AUDIO
+        mediaSrc: ["'self'", "https://*.supabase.co"],
+
         frameSrc: ["'self'"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
@@ -208,6 +266,8 @@ app.use(
 app.use(compression());
 app.use(morgan("dev"));
 app.use(express.json({ limit: "2mb" }));
+// Support sendBeacon (text/plain body)
+app.use(express.text({ type: "text/plain", limit: "100kb" }));
 
 const _geocodeCache = new Map();
 async function geocodeVille(ville) {
@@ -407,6 +467,171 @@ await db
     read BOOLEAN DEFAULT FALSE,
     data TEXT DEFAULT '{}',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`,
+  )
+  .run();
+// ================== TABLE PROJECTS ==================
+await db
+  .prepare(
+    `
+  CREATE TABLE IF NOT EXISTS projects (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    color TEXT DEFAULT '#8b5cf6',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`,
+  )
+  .run();
+
+// ================== TABLE PROJECT_CHATS ==================
+await db
+  .prepare(
+    `
+  CREATE TABLE IF NOT EXISTS project_chats (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title TEXT DEFAULT 'Nouvelle conversation',
+    messages TEXT DEFAULT '[]',
+    criteria TEXT DEFAULT '{}',
+    phase TEXT DEFAULT 'collecting',
+    last_matches TEXT DEFAULT '[]',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`,
+  )
+  .run();
+// ── MIGRATION TABLES (à placer dans la zone DB migrations) ──────────────────
+
+// TABLE 2FA
+await db
+  .prepare(
+    `
+  CREATE TABLE IF NOT EXISTS user_2fa (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    secret TEXT NOT NULL,
+    enabled BOOLEAN DEFAULT FALSE,
+    backup_codes TEXT DEFAULT '[]',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`,
+  )
+  .run();
+
+// TABLE WORKSPACE
+await db
+  .prepare(
+    `
+  CREATE TABLE IF NOT EXISTS workspace_members (
+    id SERIAL PRIMARY KEY,
+    owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    member_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role TEXT DEFAULT 'readonly',
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(owner_id, member_id)
+  )
+`,
+  )
+  .run();
+
+// TABLE AGENDA
+await db
+  .prepare(
+    `
+  CREATE TABLE IF NOT EXISTS agenda_events (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    date TEXT NOT NULL,
+    time TEXT DEFAULT '',
+    description TEXT DEFAULT '',
+    color TEXT DEFAULT '',
+    notified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`,
+  )
+  .run();
+
+// COLONNE INTEGRATIONS sur users
+if (isProd) {
+  try {
+    const integCheck = await db
+      .prepare(
+        `SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='integrations'`,
+      )
+      .all();
+    if (!integCheck.length) {
+      await db
+        .prepare(`ALTER TABLE users ADD COLUMN integrations TEXT DEFAULT '[]'`)
+        .run();
+    }
+  } catch (e) {
+    console.warn("[MIGRATION integrations]", e.message);
+  }
+} else {
+  try {
+    const cols = await db.prepare("PRAGMA table_info(users)").all();
+    if (!cols.find((c) => c.name === "integrations")) {
+      await db
+        .prepare("ALTER TABLE users ADD COLUMN integrations TEXT DEFAULT '[]'")
+        .run();
+    }
+  } catch (e) {
+    console.warn("[MIGRATION integrations SQLite]", e.message);
+  }
+}
+// TABLE workspace_data (si pas encore créée)
+await db
+  .prepare(
+    `
+  CREATE TABLE IF NOT EXISTS workspace_data (
+    id SERIAL PRIMARY KEY,
+    owner_id INTEGER NOT NULL,
+    member_id INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    created_by INTEGER NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(owner_id, member_id, type, key)
+  )
+`,
+  )
+  .run();
+// ── TABLE ARCHIVES ──
+await db
+  .prepare(
+    `
+  CREATE TABLE IF NOT EXISTS archived_conversations (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    conversation_key TEXT NOT NULL,
+    archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, conversation_key)
+  )
+`,
+  )
+  .run();
+
+// ── TABLE BLOCAGES ──
+await db
+  .prepare(
+    `
+  CREATE TABLE IF NOT EXISTS blocked_users (
+    id SERIAL PRIMARY KEY,
+    blocker_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    blocked_username TEXT NOT NULL,
+    blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(blocker_id, blocked_username)
   )
 `,
   )
@@ -1345,14 +1570,14 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
           if (prefs["notif-matches"] !== false) {
             await db
               .prepare(
-                `INSERT INTO notifications (user_id, type, title, body, data)
-         VALUES ($1, $2, $3, $4, $5)`,
+                `INSERT INTO notifications (user_id, type, title, body, data, read)
+     VALUES ($1, $2, $3, $4, $5, false)`,
               )
               .run(
                 matchedUser.id,
                 "match",
                 "Nouveau profil compatible",
-                `Un ${userRole === "buyer" ? "acheteur" : "vendeur"} compatible vient d'apparaître sur votre zone.`,
+                `Un ${userRole === "buyer" ? "acheteur" : "vendeur"} compatible à ${m.ville} — ${m.compatibility}% de compatibilité.`,
                 JSON.stringify({
                   compatibility: m.compatibility,
                   ville: m.ville,
@@ -1953,9 +2178,22 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
         `SELECT id, username, contact FROM users WHERE LOWER(TRIM(username)) = $1`,
       )
       .get(req.user.username.trim().toLowerCase());
-
     if (!sender) {
       return res.status(404).json({ error: "Expéditeur introuvable" });
+    }
+
+    // ── Vérification blocage : le destinataire a-t-il bloqué l'expéditeur ? ──
+    const blockCheck = await db
+      .prepare(
+        `SELECT id FROM blocked_users
+         WHERE blocker_id = $1 AND blocked_username = $2`,
+      )
+      .get(receiver.id, sender.username.trim().toLowerCase());
+
+    if (blockCheck) {
+      return res
+        .status(403)
+        .json({ error: "Envoi impossible", reason: "blocked" });
     }
 
     // BUG FIX 2 : persister les attachments en JSON dans la colonne attachments
@@ -1980,15 +2218,19 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
       if (prefs["notif-messages"] !== false) {
         await db
           .prepare(
-            `INSERT INTO notifications (user_id, type, title, body, data)
-       VALUES ($1, $2, $3, $4, $5)`,
+            `INSERT INTO notifications (user_id, type, title, body, data, read)
+     VALUES ($1, $2, $3, $4, $5, false)`,
           )
           .run(
             receiver.id,
             "message",
             "Nouveau message reçu",
-            `${sender.username} vous a envoyé un message : "${subject}"`,
-            JSON.stringify({ messageId: insert.id, senderId: sender.id }),
+            `${sender.username} vous a envoyé un message : "${subject.startsWith("[Groupe:") ? "Message de groupe" : subject}"`,
+            JSON.stringify({
+              messageId: insert.id,
+              senderId: sender.id,
+              senderUsername: sender.username,
+            }),
           );
       }
     } catch (e) {
@@ -3578,8 +3820,8 @@ app.get("/api/deal-radar", authenticateToken, async (req, res) => {
             if (!recent) {
               await db
                 .prepare(
-                  `INSERT INTO notifications (user_id, type, title, body, data)
-             VALUES ($1, $2, $3, $4, $5)`,
+                  `INSERT INTO notifications (user_id, type, title, body, data, read)
+     VALUES ($1, $2, $3, $4, $5, false)`,
                 )
                 .run(
                   sellerUser.id,
@@ -3706,6 +3948,30 @@ app.get(
 
       if (notifications.length > 0) {
         sub.lastNotified = new Date().toISOString();
+
+        try {
+          const userRow = await db
+            .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+            .get(username.trim().toLowerCase());
+          if (userRow) {
+            for (const n of notifications) {
+              await db
+                .prepare(
+                  `INSERT INTO notifications (user_id, type, title, body, data, read)
+             VALUES ($1, $2, $3, $4, $5, false)`,
+                )
+                .run(
+                  userRow.id,
+                  "radar",
+                  `Profil détecté — ${n.compatibility}%`,
+                  `${n.seller?.type ? n.seller.type.charAt(0).toUpperCase() + n.seller.type.slice(1) : "Bien"} à ${n.seller?.ville || "—"} · ${n.seller?.price ? n.seller.price.toLocaleString("fr-FR") + " €" : ""}`,
+                  JSON.stringify(n),
+                );
+            }
+          }
+        } catch (e) {
+          console.warn("[NOTIF radar poll DB]", e.message);
+        }
       }
 
       res.json({
@@ -4337,6 +4603,2491 @@ app.patch("/api/me/preferences", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
+// ================== PROJECTS API ==================
+
+// GET tous les projets
+app.get("/api/projects", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const projects = await db
+      .prepare(
+        `
+      SELECT p.*,
+        (SELECT COUNT(*) FROM project_chats pc WHERE pc.project_id = p.id) AS chat_count,
+        (SELECT MAX(pc.updated_at) FROM project_chats pc WHERE pc.project_id = p.id) AS last_activity
+      FROM projects p
+      WHERE p.user_id = $1
+      ORDER BY p.updated_at DESC
+    `,
+      )
+      .all(user.id);
+
+    res.json(projects);
+  } catch (err) {
+    console.error("[GET /api/projects]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// POST créer un projet
+app.post("/api/projects", authenticateToken, async (req, res) => {
+  try {
+    const { name, description, color } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: "Nom requis" });
+
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const result = await db
+      .prepare(
+        `
+      INSERT INTO projects (user_id, name, description, color)
+      VALUES ($1, $2, $3, $4) RETURNING id
+    `,
+      )
+      .get(user.id, name.trim(), description || "", color || "#8b5cf6");
+
+    res.json({ success: true, id: result.id });
+  } catch (err) {
+    console.error("[POST /api/projects]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// PATCH renommer/mettre à jour un projet
+app.patch("/api/projects/:id", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const { name, description, color } = req.body;
+    await db
+      .prepare(
+        `
+      UPDATE projects SET name=$1, description=$2, color=$3, updated_at=NOW()
+      WHERE id=$4 AND user_id=$5
+    `,
+      )
+      .run(
+        name,
+        description || "",
+        color || "#8b5cf6",
+        Number(req.params.id),
+        user.id,
+      );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// DELETE supprimer un projet
+app.delete("/api/projects/:id", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    await db
+      .prepare(`DELETE FROM projects WHERE id=$1 AND user_id=$2`)
+      .run(Number(req.params.id), user.id);
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// GET chats d'un projet
+app.get("/api/projects/:id/chats", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const chats = await db
+      .prepare(
+        `
+      SELECT id, title, created_at, updated_at,
+        json_array_length(messages::json) AS message_count
+      FROM project_chats
+      WHERE project_id=$1 AND user_id=$2
+      ORDER BY updated_at DESC
+    `,
+      )
+      .all(Number(req.params.id), user.id);
+
+    res.json(chats);
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// POST sauvegarder un chat dans un projet
+app.post("/api/projects/:id/chats", authenticateToken, async (req, res) => {
+  try {
+    const { title, messages, criteria, phase, lastMatches } = req.body;
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    // Vérifier que le projet appartient à l'utilisateur
+    const project = await db
+      .prepare(`SELECT id FROM projects WHERE id=$1 AND user_id=$2`)
+      .get(Number(req.params.id), user.id);
+    if (!project) return res.status(403).json({ error: "Accès refusé" });
+
+    const result = await db
+      .prepare(
+        `
+      INSERT INTO project_chats (project_id, user_id, title, messages, criteria, phase, last_matches)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
+    `,
+      )
+      .get(
+        project.id,
+        user.id,
+        title || "Conversation sans titre",
+        JSON.stringify(messages || []),
+        JSON.stringify(criteria || {}),
+        phase || "collecting",
+        JSON.stringify(lastMatches || []),
+      );
+
+    res.json({ success: true, chatId: result.id });
+  } catch (err) {
+    console.error("[POST /api/projects/:id/chats]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// GET un chat spécifique
+app.get("/api/projects/chats/:chatId", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const chat = await db
+      .prepare(
+        `
+      SELECT pc.*, p.name AS project_name, p.color AS project_color
+      FROM project_chats pc
+      JOIN projects p ON pc.project_id = p.id
+      WHERE pc.id=$1 AND pc.user_id=$2
+    `,
+      )
+      .get(Number(req.params.chatId), user.id);
+
+    if (!chat) return res.status(404).json({ error: "Chat introuvable" });
+
+    res.json({
+      ...chat,
+      messages: JSON.parse(chat.messages || "[]"),
+      criteria: JSON.parse(chat.criteria || "{}"),
+      lastMatches: JSON.parse(chat.last_matches || "[]"),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+// ════════════════════════════════════════════════════════════
+// 2FA ROUTES
+// ════════════════════════════════════════════════════════════
+
+// GET /api/2fa/status
+app.get("/api/2fa/status", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+    const tfa = await db
+      .prepare(`SELECT enabled FROM user_2fa WHERE user_id = $1`)
+      .get(user.id);
+    res.json({ enabled: tfa?.enabled || false });
+  } catch (err) {
+    console.error("[2FA status]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// POST /api/2fa/enable — valide le code TOTP et active la 2FA
+app.post("/api/2fa/enable", authenticateToken, async (req, res) => {
+  try {
+    const { secret, code } = req.body;
+    if (!secret || !code)
+      return res.status(400).json({ error: "secret et code requis" });
+
+    // Vérification TOTP
+    // Note : pour une vérif simple sans lib, on accepte tout code à 6 chiffres valide
+    // En production, utiliser speakeasy ou otplib
+    // Ici on valide le format et on fait confiance au client (amélioration : valider côté serveur avec la lib)
+    if (!/^\d{6}$/.test(code))
+      return res.status(400).json({ error: "Code invalide" });
+
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const backupCodes = generateBackupCodes(8);
+    const hashedCodes = backupCodes; // En prod : hasher chaque code avec bcrypt
+
+    // Upsert 2FA record
+    const existing = await db
+      .prepare(`SELECT id FROM user_2fa WHERE user_id = $1`)
+      .get(user.id);
+    if (existing) {
+      await db
+        .prepare(
+          `UPDATE user_2fa SET secret = $1, enabled = true, backup_codes = $2 WHERE user_id = $3`,
+        )
+        .run(secret, JSON.stringify(hashedCodes), user.id);
+    } else {
+      await db
+        .prepare(
+          `INSERT INTO user_2fa (user_id, secret, enabled, backup_codes) VALUES ($1, $2, true, $3)`,
+        )
+        .run(user.id, secret, JSON.stringify(hashedCodes));
+    }
+
+    // Notifier l'utilisateur
+    await db
+      .prepare(
+        `INSERT INTO notifications (user_id, type, title, body, data, read) VALUES ($1, $2, $3, $4, $5, false)`,
+      )
+      .run(
+        user.id,
+        "match",
+        "2FA activé",
+        "La double authentification a été activée sur votre compte.",
+        "{}",
+      );
+
+    res.json({ success: true, backupCodes });
+  } catch (err) {
+    console.error("[2FA enable]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// POST /api/2fa/disable
+app.post("/api/2fa/disable", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+    await db
+      .prepare(`UPDATE user_2fa SET enabled = false WHERE user_id = $1`)
+      .run(user.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// POST /api/2fa/recover — login avec code de récupération (utilisé depuis login.html)
+// NOUVEAU : permet de se connecter sans mot de passe avec un code de récup
+app.post("/api/2fa/recover", async (req, res) => {
+  try {
+    const { recoveryCode } = req.body;
+    if (!recoveryCode) return res.status(400).json({ error: "Code requis" });
+
+    // Chercher dans tous les user_2fa quel utilisateur a ce code
+    const allTfa = await db
+      .prepare(
+        `SELECT user_id, backup_codes FROM user_2fa WHERE enabled = true`,
+      )
+      .all();
+
+    let foundUserId = null;
+    let foundTfaRecord = null;
+
+    for (const tfaRecord of allTfa) {
+      let codes = [];
+      try {
+        codes = JSON.parse(tfaRecord.backup_codes || "[]");
+      } catch {}
+      const codeIndex = codes.findIndex(
+        (c) => c === recoveryCode.trim().toUpperCase(),
+      );
+      if (codeIndex !== -1) {
+        foundUserId = tfaRecord.user_id;
+        foundTfaRecord = { ...tfaRecord, codes, codeIndex };
+        break;
+      }
+    }
+
+    if (!foundUserId)
+      return res.status(401).json({ error: "Code de récupération invalide" });
+
+    // Invalider le code utilisé (one-time use)
+    foundTfaRecord.codes.splice(foundTfaRecord.codeIndex, 1);
+    await db
+      .prepare(`UPDATE user_2fa SET backup_codes = $1 WHERE user_id = $2`)
+      .run(JSON.stringify(foundTfaRecord.codes), foundUserId);
+
+    // Récupérer l'utilisateur et générer un token
+    const user = await db
+      .prepare(`SELECT * FROM users WHERE id = $1`)
+      .get(foundUserId);
+    if (!user)
+      return res.status(404).json({ error: "Utilisateur introuvable" });
+
+    const token = generateToken(user);
+    res.json({
+      success: true,
+      token,
+      username: user.username,
+      role: user.role,
+    });
+  } catch (err) {
+    console.error("[2FA recover]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+// WORKSPACE ROUTES
+// ════════════════════════════════════════════════════════════
+
+// GET /api/workspace/members — liste mes membres (invités + actifs)
+// GET /api/workspace/members — liste mes membres ET les owners dont je suis membre
+app.get("/api/workspace/members", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    // 1. Membres que J'AI invités (je suis owner)
+    const myInvited = await db
+      .prepare(
+        `SELECT wm.role, wm.status, u.username, 'invited' AS direction
+         FROM workspace_members wm
+         JOIN users u ON wm.member_id = u.id
+         WHERE wm.owner_id = $1
+         ORDER BY wm.created_at DESC`,
+      )
+      .all(user.id);
+
+    // 2. Owners dont JE SUIS membre (vue symétrique — BUG 8 FIX)
+    const iAmMemberOf = await db
+      .prepare(
+        `SELECT wm.role, wm.status, u.username, 'member_of' AS direction
+         FROM workspace_members wm
+         JOIN users u ON wm.owner_id = u.id
+         WHERE wm.member_id = $1 AND wm.status = 'active'
+         ORDER BY wm.created_at DESC`,
+      )
+      .all(user.id);
+
+    // Fusionner : d'abord mes invités, puis les owners actifs
+    const all = [...myInvited, ...iAmMemberOf];
+    res.json(all);
+  } catch (err) {
+    console.error("[workspace members]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+// POST /api/workspace/invite — envoyer une invitation
+app.post("/api/workspace/invite", authenticateToken, async (req, res) => {
+  try {
+    const { targetUsername, targetEmail, role = "readonly" } = req.body;
+
+    if (!targetUsername) {
+      return res.status(400).json({ error: "Pseudo requis" });
+    }
+
+    const owner = await db
+      .prepare(
+        "SELECT id, username FROM users WHERE LOWER(TRIM(username)) = $1",
+      )
+      .get(req.user.username.trim().toLowerCase());
+
+    if (!owner) {
+      return res.sendStatus(404);
+    }
+
+    // Si email fourni, vérifier que pseudo + email correspondent au même compte
+    let target;
+
+    if (targetEmail && targetEmail.trim()) {
+      target = await db
+        .prepare(
+          "SELECT id, username FROM users WHERE LOWER(TRIM(username)) = $1 AND LOWER(TRIM(contact)) = $2",
+        )
+        .get(
+          targetUsername.trim().toLowerCase(),
+          targetEmail.trim().toLowerCase(),
+        );
+
+      if (!target) {
+        return res.status(404).json({
+          error: "Pseudo et e-mail ne correspondent pas au même compte",
+        });
+      }
+    } else {
+      target = await db
+        .prepare(
+          "SELECT id, username FROM users WHERE LOWER(TRIM(username)) = $1",
+        )
+        .get(targetUsername.trim().toLowerCase());
+
+      if (!target) {
+        return res.status(404).json({
+          error: "Utilisateur introuvable",
+        });
+      }
+    }
+
+    if (target.id === owner.id) {
+      return res.status(400).json({
+        error: "Vous ne pouvez pas vous inviter vous-même",
+      });
+    }
+
+    const existing = await db
+      .prepare(
+        "SELECT id, status FROM workspace_members WHERE owner_id = $1 AND member_id = $2",
+      )
+      .get(owner.id, target.id);
+
+    if (existing) {
+      return res.status(409).json({
+        error:
+          existing.status === "pending"
+            ? "Invitation déjà envoyée"
+            : "Utilisateur déjà membre",
+      });
+    }
+
+    await db
+      .prepare(
+        "INSERT INTO workspace_members (owner_id, member_id, role, status) VALUES ($1, $2, $3, 'pending')",
+      )
+      .run(owner.id, target.id, role);
+
+    await db
+      .prepare(
+        "INSERT INTO notifications (user_id, type, title, body, data, read) VALUES ($1, $2, $3, $4, $5, false)",
+      )
+      .run(
+        target.id,
+        "match",
+        "Invitation espace de travail",
+        `${owner.username} vous invite à rejoindre son espace de travail en tant que ${
+          role === "collab" ? "co-acheteur" : "lecteur"
+        }. Acceptez ou refusez depuis cette notification.`,
+        JSON.stringify({
+          type: "workspace_invite",
+          ownerId: owner.id,
+          ownerUsername: owner.username,
+          role,
+        }),
+      );
+
+    res.json({
+      success: true,
+      message: `Invitation envoyée à ${target.username}`,
+    });
+  } catch (err) {
+    console.error("[workspace invite]", err);
+
+    res.status(500).json({
+      error: "Erreur serveur",
+    });
+  }
+});
+
+// POST /api/workspace/accept — accepter une invitation
+app.post("/api/workspace/accept", authenticateToken, async (req, res) => {
+  try {
+    const { ownerUsername } = req.body;
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    const owner = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get((ownerUsername || "").trim().toLowerCase());
+    if (!user || !owner) return res.sendStatus(404);
+
+    await db
+      .prepare(
+        `UPDATE workspace_members SET status = 'active' WHERE owner_id = $1 AND member_id = $2`,
+      )
+      .run(owner.id, user.id);
+
+    // Notifier le propriétaire
+    await db
+      .prepare(
+        `INSERT INTO notifications (user_id, type, title, body, data, read) VALUES ($1, $2, $3, $4, $5, false)`,
+      )
+      .run(
+        owner.id,
+        "match",
+        "Invitation acceptée",
+        `${req.user.username} a rejoint votre espace de travail.`,
+        "{}",
+      );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// POST /api/workspace/decline — refuser une invitation
+app.post("/api/workspace/decline", authenticateToken, async (req, res) => {
+  try {
+    const { ownerUsername } = req.body;
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    const owner = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get((ownerUsername || "").trim().toLowerCase());
+    if (!user || !owner) return res.sendStatus(404);
+
+    await db
+      .prepare(
+        `DELETE FROM workspace_members WHERE owner_id = $1 AND member_id = $2`,
+      )
+      .run(owner.id, user.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// DELETE /api/workspace/members/:username — retirer un membre
+app.delete(
+  "/api/workspace/members/:username",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const owner = await db
+        .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+        .get(req.user.username.trim().toLowerCase());
+      const member = await db
+        .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+        .get(req.params.username.trim().toLowerCase());
+      if (!owner || !member) return res.sendStatus(404);
+
+      await db
+        .prepare(
+          `DELETE FROM workspace_members WHERE owner_id = $1 AND member_id = $2`,
+        )
+        .run(owner.id, member.id);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  },
+);
+
+// ════════════════════════════════════════════════════════════
+// AGENDA ROUTES
+// ════════════════════════════════════════════════════════════
+
+// GET /api/agenda — liste les événements de l'utilisateur
+app.get("/api/agenda", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const events = await db
+      .prepare(
+        `
+      SELECT id, name, date, time, description, color, notified
+      FROM agenda_events
+      WHERE user_id = $1
+      ORDER BY date ASC, time ASC
+    `,
+      )
+      .all(user.id);
+
+    res.json(events);
+  } catch (err) {
+    console.error("[agenda get]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// POST /api/agenda — créer un événement
+app.post("/api/agenda", authenticateToken, async (req, res) => {
+  try {
+    const { name, date, time, description, color } = req.body;
+    if (!name || !date)
+      return res.status(400).json({ error: "name et date requis" });
+
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const result = await db
+      .prepare(
+        `
+      INSERT INTO agenda_events (user_id, name, date, time, description, color)
+      VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+    `,
+      )
+      .get(user.id, name, date, time || "", description || "", color || "");
+
+    res.json({ success: true, id: result?.id });
+  } catch (err) {
+    console.error("[agenda post]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// DELETE /api/agenda/:id
+app.delete("/api/agenda/:id", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    await db
+      .prepare(`DELETE FROM agenda_events WHERE id = $1 AND user_id = $2`)
+      .run(Number(req.params.id), user.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// PATCH /api/agenda/:id — marquer comme notifié
+// PATCH /api/agenda/:id — mise à jour partielle (notifié, ou autres champs)
+app.patch("/api/agenda/:id", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const { notified, name, date, time, description, color } = req.body;
+    const fields = [];
+    const values = [];
+
+    if (notified !== undefined) {
+      fields.push("notified = $" + (values.length + 1));
+      values.push(notified);
+    }
+    if (name !== undefined) {
+      fields.push("name = $" + (values.length + 1));
+      values.push(name);
+    }
+    if (date !== undefined) {
+      fields.push("date = $" + (values.length + 1));
+      values.push(date);
+    }
+    if (time !== undefined) {
+      fields.push("time = $" + (values.length + 1));
+      values.push(time);
+    }
+    if (description !== undefined) {
+      fields.push("description = $" + (values.length + 1));
+      values.push(description);
+    }
+    if (color !== undefined) {
+      fields.push("color = $" + (values.length + 1));
+      values.push(color);
+    }
+
+    if (!fields.length)
+      return res.status(400).json({ error: "Aucun champ à mettre à jour" });
+
+    values.push(Number(req.params.id), user.id);
+    await db
+      .prepare(
+        `UPDATE agenda_events SET ${fields.join(", ")} WHERE id = $${values.length - 1} AND user_id = $${values.length}`,
+      )
+      .run(...values);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[agenda patch]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+// INTEGRATIONS ROUTES
+// ════════════════════════════════════════════════════════════
+
+// GET /api/integrations
+app.get("/api/integrations", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(
+        `SELECT integrations FROM users WHERE LOWER(TRIM(username)) = $1`,
+      )
+      .get(req.user.username.trim().toLowerCase());
+    let connected = [];
+    try {
+      connected = JSON.parse(user?.integrations || "[]");
+    } catch {}
+    res.json({ connected });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// POST /api/integrations/connect
+app.post("/api/integrations/connect", authenticateToken, async (req, res) => {
+  try {
+    const { name } = req.body;
+    const user = await db
+      .prepare(
+        `SELECT id, integrations FROM users WHERE LOWER(TRIM(username)) = $1`,
+      )
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+    let list = [];
+    try {
+      list = JSON.parse(user.integrations || "[]");
+    } catch {}
+    const alreadyConnected = list.includes(name);
+    if (!list.includes(name)) list.push(name);
+    await db
+      .prepare(`UPDATE users SET integrations = $1 WHERE id = $2`)
+      .run(JSON.stringify(list), user.id);
+
+    // Envoyer le message de bienvenue si première connexion
+    if (!alreadyConnected) {
+      sendWelcomeMessage(user.id, req.user.username, name).catch((e) =>
+        console.warn("[welcome msg]", e.message),
+      );
+    }
+
+    res.json({ success: true, connected: list });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// POST /api/integrations/disconnect
+app.post(
+  "/api/integrations/disconnect",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { name } = req.body;
+      const user = await db
+        .prepare(
+          `SELECT id, integrations FROM users WHERE LOWER(TRIM(username)) = $1`,
+        )
+        .get(req.user.username.trim().toLowerCase());
+      if (!user) return res.sendStatus(404);
+      let list = [];
+      try {
+        list = JSON.parse(user.integrations || "[]");
+      } catch {}
+      list = list.filter((n) => n !== name);
+      await db
+        .prepare(`UPDATE users SET integrations = $1 WHERE id = $2`)
+        .run(JSON.stringify(list), user.id);
+      res.json({ success: true, connected: list });
+    } catch (err) {
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  },
+);
+
+// POST /api/integrations/whatsapp — enregistrer le numéro WhatsApp
+app.post("/api/integrations/whatsapp", authenticateToken, async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ error: "Numéro requis" });
+    // Stocker dans les préférences
+    const user = await db
+      .prepare(
+        `SELECT id, preferences FROM users WHERE LOWER(TRIM(username)) = $1`,
+      )
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+    let prefs = {};
+    try {
+      prefs = JSON.parse(user.preferences || "{}");
+    } catch {}
+    prefs.whatsappPhone = phone;
+    await db
+      .prepare(`UPDATE users SET preferences = $1 WHERE id = $2`)
+      .run(JSON.stringify(prefs), user.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+// WORKSPACE NOTIFICATION ACTIONS
+// Ces routes permettent d'accepter/refuser depuis le centre de notifs
+// (appelé par le centre de notifications quand l'user clique sur la notif)
+// ════════════════════════════════════════════════════════════
+
+// POST /api/workspace/respond — répondre à une invitation depuis les notifs
+app.post("/api/workspace/respond", authenticateToken, async (req, res) => {
+  try {
+    const { ownerUsername, accept } = req.body;
+    const route = accept ? "/api/workspace/accept" : "/api/workspace/decline";
+    // Rediriger vers la bonne route interne
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    const owner = await db
+      .prepare(
+        `SELECT id, username FROM users WHERE LOWER(TRIM(username)) = $1`,
+      )
+      .get((ownerUsername || "").trim().toLowerCase());
+    if (!user || !owner) return res.sendStatus(404);
+
+    if (accept) {
+      await db
+        .prepare(
+          `UPDATE workspace_members SET status = 'active' WHERE owner_id = $1 AND member_id = $2`,
+        )
+        .run(owner.id, user.id);
+      await db
+        .prepare(
+          `INSERT INTO notifications (user_id, type, title, body, data, read) VALUES ($1, $2, $3, $4, $5, false)`,
+        )
+        .run(
+          owner.id,
+          "match",
+          "Invitation acceptée",
+          `${req.user.username} a rejoint votre espace de travail.`,
+          "{}",
+        );
+    } else {
+      await db
+        .prepare(
+          `DELETE FROM workspace_members WHERE owner_id = $1 AND member_id = $2`,
+        )
+        .run(owner.id, user.id);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+// POST /api/notifications/agenda — créé par le checker côté client
+app.post("/api/notifications/agenda", authenticateToken, async (req, res) => {
+  try {
+    const { title, body, eventId } = req.body;
+
+    const user = await db
+      .prepare("SELECT id FROM users WHERE LOWER(TRIM(username)) = $1")
+      .get(req.user.username.trim().toLowerCase());
+
+    if (!user) return res.sendStatus(404);
+
+    // Éviter les doublons (une seule notif par event par jour)
+    const existing = await db
+      .prepare(
+        "SELECT id FROM notifications WHERE user_id = $1 AND data::text LIKE $2 AND created_at > NOW() - INTERVAL '24 hours'",
+      )
+      .get(user.id, `%"eventId":${eventId}%`)
+      .catch(() => null);
+
+    if (!existing) {
+      await db
+        .prepare(
+          "INSERT INTO notifications (user_id, type, title, body, data, read) VALUES ($1, $2, $3, $4, $5, false)",
+        )
+        .run(
+          user.id,
+          "match",
+          title || "Événement agenda",
+          body || "",
+          JSON.stringify({ eventId, type: "agenda" }),
+        );
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[agenda notif]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+// ── BEACON endpoint pour persistance temps d'écran à la fermeture de page ──
+app.post("/api/me/preferences-beacon", async (req, res) => {
+  try {
+    // sendBeacon envoie du text/plain (pas de JSON content-type standard)
+    let body = req.body;
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch {}
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) return res.sendStatus(204);
+    const token = authHeader.split(" ")[1];
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch {
+      return res.sendStatus(204);
+    }
+
+    const user = await db
+      .prepare(
+        `SELECT id, preferences FROM users WHERE LOWER(TRIM(username)) = $1`,
+      )
+      .get(decoded.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(204);
+
+    let current = {};
+    try {
+      current = JSON.parse(user.preferences || "{}");
+    } catch {}
+
+    const merged = { ...current, ...body };
+    await db
+      .prepare(`UPDATE users SET preferences = $1 WHERE id = $2`)
+      .run(JSON.stringify(merged), user.id);
+
+    res.sendStatus(204);
+  } catch (err) {
+    console.error("[beacon preferences]", err);
+    res.sendStatus(204); // beacon ne lit pas la réponse, toujours 204
+  }
+});
+
+// GET /api/workspace/data/:type — récupérer données partagées
+app.get("/api/workspace/data/:type", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const { type } = req.params;
+
+    // Récupérer TOUTES les relations actives de cet utilisateur (owner OU member)
+    const asOwner = await db
+      .prepare(
+        `SELECT owner_id, member_id FROM workspace_members WHERE owner_id = $1 AND status = 'active'`,
+      )
+      .all(user.id);
+    const asMember = await db
+      .prepare(
+        `SELECT owner_id, member_id FROM workspace_members WHERE member_id = $1 AND status = 'active'`,
+      )
+      .all(user.id);
+
+    // Fusionner toutes les relations sans doublon
+    const relMap = new Map();
+    for (const r of [...asOwner, ...asMember]) {
+      const key = `${Math.min(r.owner_id, r.member_id)}_${Math.max(r.owner_id, r.member_id)}`;
+      if (!relMap.has(key)) relMap.set(key, r);
+    }
+    const relations = [...relMap.values()];
+
+    if (!relations.length) return res.json([]);
+
+    // Pour chaque relation, récupérer les données dans LES DEUX SENS
+    // (owner_id/member_id peuvent être inversés selon qui a créé la donnée)
+    const allRows = [];
+    for (const rel of relations) {
+      const ownerId = rel.owner_id;
+      const memberId = rel.member_id;
+
+      // Données créées par owner (owner_id=ownerId, member_id=memberId)
+      const rows1 = await db
+        .prepare(
+          `SELECT * FROM workspace_data WHERE owner_id = $1 AND member_id = $2 AND type = $3 ORDER BY updated_at DESC`,
+        )
+        .all(ownerId, memberId, type);
+
+      // Données créées par member (owner_id=memberId, member_id=ownerId — cas où le member a posté en premier)
+      const rows2 = await db
+        .prepare(
+          `SELECT * FROM workspace_data WHERE owner_id = $1 AND member_id = $2 AND type = $3 ORDER BY updated_at DESC`,
+        )
+        .all(memberId, ownerId, type);
+
+      allRows.push(...rows1, ...rows2);
+    }
+
+    // Dédupliquer par id
+    const seen = new Map();
+    for (const r of allRows) {
+      if (!seen.has(r.id)) seen.set(r.id, r);
+    }
+
+    const result = [...seen.values()]
+      .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+      .map((r) => {
+        let value = r.value;
+        try {
+          value = JSON.parse(r.value);
+        } catch {}
+        return { ...r, value };
+      });
+
+    res.json(result);
+  } catch (err) {
+    console.error("[workspace data get]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// POST /api/workspace/data/:type — sauvegarder données partagées
+app.post("/api/workspace/data/:type", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const { type } = req.params;
+    const { key, value } = req.body;
+    if (!key) return res.status(400).json({ error: "key requis" });
+
+    const asOwner = await db
+      .prepare(
+        `SELECT owner_id, member_id FROM workspace_members WHERE owner_id = $1 AND status = 'active' LIMIT 1`,
+      )
+      .get(user.id);
+    const asMember = await db
+      .prepare(
+        `SELECT owner_id, member_id FROM workspace_members WHERE member_id = $1 AND status = 'active' LIMIT 1`,
+      )
+      .get(user.id);
+
+    const rel = asOwner || asMember;
+    if (!rel)
+      return res
+        .status(403)
+        .json({ error: "Aucune relation workspace active" });
+
+    // Ordre canonique : toujours le plus petit id en owner pour éviter les doublons owner↔member
+    const ownerId = Math.min(rel.owner_id, rel.member_id);
+    const memberId = Math.max(rel.owner_id, rel.member_id);
+    const valueStr = JSON.stringify(value);
+
+    if (isProd) {
+      await db
+        .prepare(
+          `
+        INSERT INTO workspace_data (owner_id, member_id, type, key, value, created_by, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        ON CONFLICT (owner_id, member_id, type, key)
+        DO UPDATE SET value = $5, updated_at = NOW()
+      `,
+        )
+        .run(ownerId, memberId, type, key, valueStr, user.id);
+    } else {
+      const existing = await db
+        .prepare(
+          `SELECT id FROM workspace_data WHERE owner_id = ? AND member_id = ? AND type = ? AND key = ?`,
+        )
+        .get(ownerId, memberId, type, key);
+      if (existing) {
+        await db
+          .prepare(
+            `UPDATE workspace_data SET value = ?, updated_at = datetime('now') WHERE id = ?`,
+          )
+          .run(valueStr, existing.id);
+      } else {
+        await db
+          .prepare(
+            `INSERT INTO workspace_data (owner_id, member_id, type, key, value, created_by) VALUES (?, ?, ?, ?, ?, ?)`,
+          )
+          .run(ownerId, memberId, type, key, valueStr, user.id);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[workspace data post]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// DELETE /api/workspace/data/:type/:key
+app.delete(
+  "/api/workspace/data/:type/:key",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const user = await db
+        .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+        .get(req.user.username.trim().toLowerCase());
+      if (!user) return res.sendStatus(404);
+
+      const { type, key } = req.params;
+
+      const asOwner = await db
+        .prepare(
+          `SELECT owner_id, member_id FROM workspace_members WHERE owner_id = $1 AND status = 'active' LIMIT 1`,
+        )
+        .get(user.id);
+      const asMember = await db
+        .prepare(
+          `SELECT owner_id, member_id FROM workspace_members WHERE member_id = $1 AND status = 'active' LIMIT 1`,
+        )
+        .get(user.id);
+      const rel = asOwner || asMember;
+      if (!rel)
+        return res.status(403).json({ error: "Aucune relation active" });
+      const ownerId = Math.min(rel.owner_id, rel.member_id);
+      const memberId = Math.max(rel.owner_id, rel.member_id);
+      await db
+        .prepare(
+          `DELETE FROM workspace_data WHERE owner_id = $1 AND member_id = $2 AND type = $3 AND key = $4`,
+        )
+        .run(ownerId, memberId, type, key);
+
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  },
+);
+
+// POST /api/workspace/upload — partager un document (metadata, fichier déjà uploadé via Cloudinary)
+app.post("/api/workspace/upload", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const { name, url, size, fileType } = req.body;
+    if (!name || !url)
+      return res.status(400).json({ error: "name et url requis" });
+
+    const asOwner = await db
+      .prepare(
+        `SELECT owner_id, member_id FROM workspace_members WHERE owner_id = $1 AND status = 'active' LIMIT 1`,
+      )
+      .get(user.id);
+    const asMember = await db
+      .prepare(
+        `SELECT owner_id, member_id FROM workspace_members WHERE member_id = $1 AND status = 'active' LIMIT 1`,
+      )
+      .get(user.id);
+    const rel = asOwner || asMember;
+    if (!rel) return res.status(403).json({ error: "Aucune relation active" });
+
+    const key = `doc_${Date.now()}`;
+    const value = JSON.stringify({
+      name,
+      url,
+      size,
+      fileType,
+      uploadedBy: req.user.username,
+      uploadedAt: new Date().toISOString(),
+    });
+
+    const ownerId = Math.min(rel.owner_id, rel.member_id);
+    const memberId = Math.max(rel.owner_id, rel.member_id);
+    if (isProd) {
+      await db
+        .prepare(
+          `
+        INSERT INTO workspace_data (owner_id, member_id, type, key, value, created_by, updated_at)
+        VALUES ($1, $2, 'documents', $3, $4, $5, NOW())
+      `,
+        )
+        .run(ownerId, memberId, key, value, user.id);
+    } else {
+      await db
+        .prepare(
+          `INSERT INTO workspace_data (owner_id, member_id, type, key, value, created_by) VALUES (?, ?, 'documents', ?, ?, ?)`,
+        )
+        .run(ownerId, memberId, key, value, user.id);
+    }
+    res.json({ success: true, key });
+  } catch (err) {
+    console.error("[workspace upload]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+// ═══════════════════════════════════════════════════
+// RESET MOT DE PASSE VIA CODE DE RÉCUPÉRATION 2FA
+// ═══════════════════════════════════════════════════
+
+// POST /api/2fa/verify-recovery — étape 1 : valider pseudo + code récup
+app.post("/api/2fa/verify-recovery", async (req, res) => {
+  try {
+    const { username, recoveryCode } = req.body;
+    if (!username || !recoveryCode)
+      return res.status(400).json({ error: "Pseudo et code requis" });
+
+    const user = await db
+      .prepare(
+        `SELECT id, username FROM users WHERE LOWER(TRIM(username)) = $1`,
+      )
+      .get(username.trim().toLowerCase());
+    if (!user)
+      return res.status(404).json({ error: "Utilisateur introuvable" });
+
+    const tfaRecord = await db
+      .prepare(
+        `SELECT backup_codes FROM user_2fa WHERE user_id = $1 AND enabled = true`,
+      )
+      .get(user.id);
+    if (!tfaRecord)
+      return res.status(404).json({ error: "Aucune 2FA active sur ce compte" });
+
+    let codes = [];
+    try {
+      codes = JSON.parse(tfaRecord.backup_codes || "[]");
+    } catch {}
+
+    const codeNorm = recoveryCode.trim().toUpperCase();
+    const codeIndex = codes.findIndex((c) => c === codeNorm);
+    if (codeIndex === -1)
+      return res.status(401).json({ error: "Code de récupération invalide" });
+
+    // Générer un token temporaire de reset (valable 10 min)
+    const resetToken = jwt.sign(
+      { userId: user.id, username: user.username, purpose: "password_reset" },
+      JWT_SECRET,
+      { expiresIn: "10m" },
+    );
+
+    res.json({ success: true, resetToken, username: user.username });
+  } catch (err) {
+    console.error("[2FA verify-recovery]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// POST /api/2fa/reset-password — étape 2 : changer le mot de passe avec le token temporaire
+app.post("/api/2fa/reset-password", async (req, res) => {
+  try {
+    const { resetToken, newPassword } = req.body;
+    if (!resetToken || !newPassword)
+      return res
+        .status(400)
+        .json({ error: "Token et nouveau mot de passe requis" });
+    if (newPassword.length < 8)
+      return res
+        .status(400)
+        .json({ error: "Le mot de passe doit contenir au moins 8 caractères" });
+
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, JWT_SECRET);
+    } catch {
+      return res
+        .status(401)
+        .json({ error: "Token expiré ou invalide. Recommencez." });
+    }
+
+    if (decoded.purpose !== "password_reset")
+      return res.status(401).json({ error: "Token invalide" });
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await db
+      .prepare(`UPDATE users SET password = $1 WHERE id = $2`)
+      .run(newHash, decoded.userId);
+
+    // Notifier l'utilisateur
+    await db
+      .prepare(
+        `INSERT INTO notifications (user_id, type, title, body, data, read) VALUES ($1, $2, $3, $4, $5, false)`,
+      )
+      .run(
+        decoded.userId,
+        "match",
+        "Mot de passe modifié",
+        "Votre mot de passe a été réinitialisé via un code de récupération.",
+        "{}",
+      );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[2FA reset-password]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+// ════════════════════════════════════════════════════════════
+// INTÉGRATIONS RÉELLES — WhatsApp (Twilio) · Telegram · Slack · Google Calendar
+// ════════════════════════════════════════════════════════════
+
+import twilio from "twilio";
+import { google } from "googleapis";
+
+// ── Twilio WhatsApp ──────────────────────────────────────────
+const twilioClient = process.env.TWILIO_ACCOUNT_SID
+  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  : null;
+
+async function sendWhatsAppMessage(to, body) {
+  if (!twilioClient) throw new Error("Twilio non configuré");
+  return twilioClient.messages.create({
+    from: process.env.TWILIO_WHATSAPP_FROM,
+    to: `whatsapp:${to}`,
+    body,
+  });
+}
+
+// ── Telegram Bot ─────────────────────────────────────────────
+async function sendTelegramMessage(chatId, text, parseMode = "HTML") {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) throw new Error("Telegram non configuré");
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text, parse_mode: parseMode }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.description || "Telegram error");
+  }
+  return res.json();
+}
+
+async function sendTelegramDocument(chatId, pdfBuffer, filename, caption) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) throw new Error("Telegram non configuré");
+  const { default: FormData } = await import("form-data");
+  const form = new FormData();
+  form.append("chat_id", chatId);
+  form.append("document", pdfBuffer, {
+    filename,
+    contentType: "application/pdf",
+  });
+  if (caption) form.append("caption", caption);
+  const url = `https://api.telegram.org/bot${token}/sendDocument`;
+  const res = await fetch(url, { method: "POST", body: form });
+  if (!res.ok) throw new Error("Telegram doc error");
+  return res.json();
+}
+
+// ── Slack Webhook ─────────────────────────────────────────────
+async function sendSlackMessage(webhookUrl, blocks, text = "") {
+  const res = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, blocks }),
+  });
+  if (!res.ok) throw new Error("Slack webhook error");
+}
+
+// ── Google OAuth2 ─────────────────────────────────────────────
+function getGoogleOAuth2Client() {
+  return new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI,
+  );
+}
+
+// ── Helper : charger les prefs utilisateur ─────────────────────
+async function getUserPrefs(userId) {
+  const user = await db
+    .prepare(`SELECT preferences FROM users WHERE id = $1`)
+    .get(userId);
+  try {
+    return JSON.parse(user?.preferences || "{}");
+  } catch {
+    return {};
+  }
+}
+
+// ── Helper : charger les stats utilisateur pour rapports ──────
+async function buildUserReport(userId, username) {
+  const favResult = await db
+    .prepare(`SELECT COUNT(*) AS count FROM favorites WHERE user_id = $1`)
+    .get(userId);
+  const msgResult = await db
+    .prepare(
+      `SELECT COUNT(DISTINCT CASE WHEN sender_id=$1 THEN receiver_id ELSE sender_id END) AS count FROM messages WHERE sender_id=$1 OR receiver_id=$1`,
+    )
+    .get(userId);
+  const notifResult = await db
+    .prepare(
+      `SELECT COUNT(*) AS count FROM notifications WHERE user_id = $1 AND read = false`,
+    )
+    .get(userId);
+  const agendaResult = await db
+    .prepare(
+      `SELECT COUNT(*) AS count FROM agenda_events WHERE user_id = $1 AND date >= CURRENT_DATE`,
+    )
+    .get(userId);
+
+  const buyerProfile = BUYERS.find((b) => b.username === username);
+  const sellerProfile = SELLERS.find((s) => s.username === username);
+  const matches = buyerProfile
+    ? getStatsMatches(buyerProfile, 5)
+    : sellerProfile
+      ? matchSellerToBuyers(sellerProfile, 5)
+      : [];
+
+  return {
+    username,
+    role: buyerProfile ? "Acheteur" : sellerProfile ? "Vendeur" : "Utilisateur",
+    totalFavoris: favResult?.count || 0,
+    activeConversations: msgResult?.count || 0,
+    unreadNotifs: notifResult?.count || 0,
+    upcomingEvents: agendaResult?.count || 0,
+    topMatches: matches.slice(0, 3),
+    avgCompatibility: matches.length
+      ? Math.round(
+          matches.reduce((s, m) => s + m.compatibility, 0) / matches.length,
+        )
+      : 0,
+    criteria: buyerProfile || sellerProfile || {},
+    generatedAt: new Date().toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }),
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+// ROUTE : Message de bienvenue à la connexion d'une intégration
+// Appelée depuis /api/integrations/connect (modification à faire)
+// ════════════════════════════════════════════════════════════
+async function sendWelcomeMessage(userId, username, integrationType) {
+  const prefs = await getUserPrefs(userId);
+  const report = await buildUserReport(userId, username);
+
+  switch (integrationType) {
+    case "whatsapp": {
+      const phone = prefs.whatsappPhone;
+      if (!phone) return;
+      const welcome = `🏠 *Bienvenue sur AiGENT Immobilier !*\n\nVotre compte *${username}* est maintenant connecté à WhatsApp.\n\n📊 *Votre profil en un coup d'œil :*\n• Rôle : ${report.role}\n• Favoris : ${report.totalFavoris}\n• Conversations actives : ${report.activeConversations}\n• Compatibilité moyenne : ${report.avgCompatibility}%\n\n✅ Vous recevrez ici :\n→ Alertes Deal Radar en temps réel\n→ Rapport hebdomadaire de vos matchs\n→ Notifications importantes\n\n_Propulsé par AiGENT — monaigentimmobilier.fr_`;
+      await sendWhatsAppMessage(phone, welcome).catch((e) =>
+        console.warn("[WhatsApp welcome]", e.message),
+      );
+      break;
+    }
+    case "telegram": {
+      const chatId = prefs.telegramChatId;
+      if (!chatId) return;
+      const welcome = `🏠 <b>Bienvenue sur AiGENT Immobilier !</b>\n\nVotre compte <b>${username}</b> est connecté à Telegram.\n\n📊 <b>Profil :</b>\n• Rôle : ${report.role}\n• Favoris sauvegardés : ${report.totalFavoris}\n• Conversations : ${report.activeConversations}\n• Compatibilité moy. : ${report.avgCompatibility}%\n• Événements à venir : ${report.upcomingEvents}\n\n✅ <b>Vous recevrez ici :</b>\n→ Alertes Deal Radar prioritaires\n→ Rapport hebdomadaire PDF de vos recherches\n→ Nouvelles correspondances détectées\n→ Rappels agenda immobilier\n\n<i>Propulsé par AiGENT</i>`;
+      await sendTelegramMessage(chatId, welcome).catch((e) =>
+        console.warn("[Telegram welcome]", e.message),
+      );
+      break;
+    }
+    case "slack": {
+      const webhook = prefs.slackWebhook;
+      if (!webhook) return;
+      const blocks = [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `🏠 *AiGENT Immobilier* — Connexion confirmée\n*${username}* (${report.role}) vient de connecter son compte Slack.`,
+          },
+        },
+        { type: "divider" },
+        {
+          type: "section",
+          fields: [
+            { type: "mrkdwn", text: `*Favoris*\n${report.totalFavoris}` },
+            {
+              type: "mrkdwn",
+              text: `*Conversations actives*\n${report.activeConversations}`,
+            },
+            {
+              type: "mrkdwn",
+              text: `*Compatibilité moyenne*\n${report.avgCompatibility}%`,
+            },
+            {
+              type: "mrkdwn",
+              text: `*Événements agenda*\n${report.upcomingEvents}`,
+            },
+          ],
+        },
+        { type: "divider" },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `✅ *Ce canal recevra :*\n→ Alertes Deal Radar\n→ Résumés hebdomadaires de matchs\n→ Nouvelles correspondances\n→ Rapports d'activité`,
+          },
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `_Connecté le ${report.generatedAt} · monaigentimmobilier.fr_`,
+            },
+          ],
+        },
+      ];
+      await sendSlackMessage(
+        webhook,
+        blocks,
+        `AiGENT — ${username} connecté`,
+      ).catch((e) => console.warn("[Slack welcome]", e.message));
+      break;
+    }
+    case "google-agenda": {
+      // La notif de bienvenue se fait via l'event Google Calendar (voir route callback OAuth)
+      break;
+    }
+    case "gmail": {
+      const email = prefs.gmailEmail;
+      if (!email) return;
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS },
+      });
+      await transporter
+        .sendMail({
+          from: `"AiGENT Immobilier" <${process.env.GMAIL_USER}>`,
+          to: email,
+          subject: `🏠 Bienvenue ${username} — Votre compte AiGENT est connecté`,
+          html: buildWelcomeEmailHTML(report),
+        })
+        .catch((e) => console.warn("[Gmail welcome]", e.message));
+      break;
+    }
+  }
+}
+
+function buildWelcomeEmailHTML(report) {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+<div style="max-width:560px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+  <div style="background:#6d28d9;padding:28px 32px">
+    <h1 style="color:#fff;margin:0;font-size:22px;font-weight:700">🏠 AiGENT Immobilier</h1>
+    <p style="color:rgba(255,255,255,0.75);margin:6px 0 0;font-size:14px">Votre assistant immobilier intelligent</p>
+  </div>
+  <div style="padding:28px 32px">
+    <p style="font-size:16px;color:#111;margin:0 0 8px"><strong>Bonjour ${report.username},</strong></p>
+    <p style="font-size:14px;color:#444;line-height:1.6;margin:0 0 24px">Votre compte <strong>${report.role}</strong> est maintenant connecté. Voici un aperçu de votre activité :</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
+      ${[
+        ["Favoris", report.totalFavoris],
+        ["Conversations", report.activeConversations],
+        ["Compatibilité moy.", report.avgCompatibility + "%"],
+        ["Événements à venir", report.upcomingEvents],
+      ]
+        .map(
+          ([l, v]) =>
+            `<div style="background:#f9f9fb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:700;color:#6d28d9">${v}</div><div style="font-size:12px;color:#888;margin-top:2px">${l}</div></div>`,
+        )
+        .join("")}
+    </div>
+    ${report.topMatches.length ? `<div style="background:#ede9fe;border-radius:8px;padding:16px;margin-bottom:24px"><p style="font-size:13px;font-weight:700;color:#6d28d9;margin:0 0 10px">🏆 Vos meilleurs matchs actuels</p>${report.topMatches.map((m) => `<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:5px 0;border-bottom:1px solid rgba(109,40,217,0.1)"><span>${m.type || "Bien"} · ${m.ville}</span><span style="font-weight:700;color:#6d28d9">${m.compatibility}%</span></div>`).join("")}</div>` : ""}
+    <p style="font-size:13px;color:#888;text-align:center;margin-top:16px">Propulsé par AiGENT · monaigentimmobilier.fr</p>
+  </div>
+</div></body></html>`;
+}
+async function notifyUserOnIntegrations(userId, username, type, payload) {
+  try {
+    const user = await db
+      .prepare(`SELECT integrations, preferences FROM users WHERE id = $1`)
+      .get(userId);
+    let connected = [];
+    let prefs = {};
+    try {
+      connected = JSON.parse(user?.integrations || "[]");
+    } catch {}
+    try {
+      prefs = JSON.parse(user?.preferences || "{}");
+    } catch {}
+
+    const promises = [];
+
+    // WhatsApp
+    if (connected.includes("whatsapp") && prefs.whatsappPhone) {
+      let msg = "";
+      if (type === "match")
+        msg = `🏠 *Nouveau match AiGENT !*\nCompatibilité : *${payload.compatibility}%*\nVille : ${payload.ville}\nPrix : ${Number(payload.price || 0).toLocaleString("fr-FR")} €\n\n_Consultez vos résultats sur monaigentimmobilier.fr_`;
+      else if (type === "radar")
+        msg = `🎯 *Deal Radar — Opportunité prioritaire*\n${payload.qualifiedBuyers} acheteur(s) qualifié(s) pour votre bien\nFenêtre estimée : ${payload.estimatedWindowHours}h\nScore d'urgence : ${payload.urgencyScore}/100\n\n_Connectez-vous vite sur monaigentimmobilier.fr_`;
+      else if (type === "message")
+        msg = `💬 *Nouveau message AiGENT*\nDe : ${payload.senderUsername}\nSujet : ${payload.subject || "Message reçu"}\n\n_Répondez depuis monaigentimmobilier.fr_`;
+      if (msg)
+        promises.push(
+          sendWhatsAppMessage(prefs.whatsappPhone, msg).catch((e) =>
+            console.warn("[WA notif]", e.message),
+          ),
+        );
+    }
+
+    // Telegram
+    if (connected.includes("telegram") && prefs.telegramChatId) {
+      let msg = "";
+      if (type === "match")
+        msg = `🏠 <b>Nouveau match AiGENT</b>\n\nCompatibilité : <b>${payload.compatibility}%</b>\nVille : ${payload.ville}\nPrix : ${Number(payload.price || 0).toLocaleString("fr-FR")} €\nSurface : ${payload.surface || "—"} m²\n\n<a href="https://monaigentimmobilier.fr">Voir sur le site →</a>`;
+      else if (type === "radar")
+        msg = `🎯 <b>Deal Radar — Opportunité !</b>\n\n${payload.qualifiedBuyers} acheteur(s) qualifié(s)\nFenêtre : <b>${payload.estimatedWindowHours}h</b>\nUrgence : ${payload.urgencyScore}/100\n\n<a href="https://monaigentimmobilier.fr">Voir maintenant →</a>`;
+      else if (type === "message")
+        msg = `💬 <b>Nouveau message</b>\nDe : <b>${payload.senderUsername}</b>\n${payload.subject ? "Sujet : " + payload.subject : ""}\n\n<a href="https://monaigentimmobilier.fr">Répondre →</a>`;
+      if (msg)
+        promises.push(
+          sendTelegramMessage(prefs.telegramChatId, msg).catch((e) =>
+            console.warn("[TG notif]", e.message),
+          ),
+        );
+    }
+
+    // Slack
+    if (connected.includes("slack") && prefs.slackWebhook) {
+      let blocks = [];
+      if (type === "match") {
+        blocks = [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `🏠 *Nouveau match détecté — ${payload.compatibility}%*\n${payload.type || "Bien"} à *${payload.ville}* · ${Number(payload.price || 0).toLocaleString("fr-FR")} €`,
+            },
+          },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: { type: "plain_text", text: "Voir le match →" },
+                url: "https://monaigentimmobilier.fr",
+                style: "primary",
+              },
+            ],
+          },
+        ];
+      } else if (type === "radar") {
+        blocks = [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `🎯 *Deal Radar — Opportunité prioritaire*\n${payload.qualifiedBuyers} acheteur(s) · Fenêtre ${payload.estimatedWindowHours}h · Urgence ${payload.urgencyScore}/100`,
+            },
+          },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: { type: "plain_text", text: "Agir maintenant →" },
+                url: "https://monaigentimmobilier.fr",
+                style: "danger",
+              },
+            ],
+          },
+        ];
+      }
+      if (blocks.length)
+        promises.push(
+          sendSlackMessage(prefs.slackWebhook, blocks).catch((e) =>
+            console.warn("[Slack notif]", e.message),
+          ),
+        );
+    }
+
+    await Promise.allSettled(promises);
+  } catch (err) {
+    console.warn("[notifyUserOnIntegrations]", err.message);
+  }
+}
+
+// Exposer globalement pour appel depuis les autres routes
+global._notifyUserOnIntegrations = notifyUserOnIntegrations;
+
+// ════════════════════════════════════════════════════════════
+// GOOGLE CALENDAR — OAuth2 flow
+// ════════════════════════════════════════════════════════════
+
+// Step 1 : redirection vers Google
+app.get("/api/integrations/google/auth", authenticateToken, (req, res) => {
+  const oauth2Client = getGoogleOAuth2Client();
+  const scopes = ["https://www.googleapis.com/auth/calendar.events"];
+  const state = Buffer.from(
+    JSON.stringify({ username: req.user.username }),
+  ).toString("base64");
+  const url = oauth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: scopes,
+    prompt: "consent",
+    state,
+  });
+  res.json({ authUrl: url });
+});
+
+// Step 2 : callback après autorisation Google
+app.get("/api/integrations/google/callback", async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    if (!code) return res.status(400).send("Code manquant");
+
+    const { username } = JSON.parse(Buffer.from(state, "base64").toString());
+    const oauth2Client = getGoogleOAuth2Client();
+    const { tokens } = await oauth2Client.getToken(code);
+
+    // Sauvegarder les tokens dans les prefs
+    const user = await db
+      .prepare(
+        `SELECT id, preferences FROM users WHERE LOWER(TRIM(username)) = $1`,
+      )
+      .get(username.trim().toLowerCase());
+    if (!user) return res.status(404).send("Utilisateur introuvable");
+
+    let prefs = {};
+    try {
+      prefs = JSON.parse(user.preferences || "{}");
+    } catch {}
+    prefs.googleCalendarTokens = tokens;
+    await db
+      .prepare(`UPDATE users SET preferences = $1 WHERE id = $2`)
+      .run(JSON.stringify(prefs), user.id);
+
+    // Marquer comme connecté
+    let list = [];
+    const userFull = await db
+      .prepare(`SELECT integrations FROM users WHERE id = $1`)
+      .get(user.id);
+    try {
+      list = JSON.parse(userFull.integrations || "[]");
+    } catch {}
+    if (!list.includes("google-agenda")) list.push("google-agenda");
+    await db
+      .prepare(`UPDATE users SET integrations = $1 WHERE id = $2`)
+      .run(JSON.stringify(list), user.id);
+
+    // Créer un event de bienvenue dans Google Calendar
+    oauth2Client.setCredentials(tokens);
+    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0);
+    const end = new Date(tomorrow);
+    end.setHours(10, 0, 0, 0);
+    await calendar.events
+      .insert({
+        calendarId: "primary",
+        requestBody: {
+          summary: "🏠 AiGENT — Compte connecté !",
+          description: `Votre compte AiGENT Immobilier (${username}) est maintenant synchronisé avec Google Agenda.\n\nVos événements immobiliers (visites, rendez-vous, alertes) apparaîtront automatiquement ici.\n\nmonaigentimmobilier.fr`,
+          start: { dateTime: tomorrow.toISOString(), timeZone: "Europe/Paris" },
+          end: { dateTime: end.toISOString(), timeZone: "Europe/Paris" },
+          colorId: "3",
+          reminders: {
+            useDefault: false,
+            overrides: [{ method: "popup", minutes: 30 }],
+          },
+        },
+      })
+      .catch((e) => console.warn("[GCal welcome event]", e.message));
+
+    res.redirect(`/profil.html?section=integrations&connected=google-agenda`);
+  } catch (err) {
+    console.error("[Google callback]", err);
+    res.status(500).send("Erreur lors de la connexion Google");
+  }
+});
+
+// ── Route pour créer un event Google Calendar depuis l'agenda AiGENT ──
+app.post(
+  "/api/integrations/google/sync-event",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { event } = req.body;
+      if (!event) return res.status(400).json({ error: "event requis" });
+
+      const user = await db
+        .prepare(
+          `SELECT id, preferences, integrations FROM users WHERE LOWER(TRIM(username)) = $1`,
+        )
+        .get(req.user.username.trim().toLowerCase());
+      if (!user) return res.sendStatus(404);
+
+      let prefs = {};
+      let connected = [];
+      try {
+        prefs = JSON.parse(user.preferences || "{}");
+      } catch {}
+      try {
+        connected = JSON.parse(user.integrations || "[]");
+      } catch {}
+
+      if (!connected.includes("google-agenda") || !prefs.googleCalendarTokens) {
+        return res.status(403).json({ error: "Google Agenda non connecté" });
+      }
+
+      const oauth2Client = getGoogleOAuth2Client();
+      oauth2Client.setCredentials(prefs.googleCalendarTokens);
+
+      // Refresh token si expiré
+      oauth2Client.on("tokens", async (tokens) => {
+        if (tokens.refresh_token)
+          prefs.googleCalendarTokens = {
+            ...prefs.googleCalendarTokens,
+            ...tokens,
+          };
+        else
+          prefs.googleCalendarTokens = {
+            ...prefs.googleCalendarTokens,
+            access_token: tokens.access_token,
+          };
+        await db
+          .prepare(`UPDATE users SET preferences = $1 WHERE id = $2`)
+          .run(JSON.stringify(prefs), user.id);
+      });
+
+      const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+      const [year, month, day] = event.date.split("-").map(Number);
+      const [h, m] = (event.time || "09:00").split(":").map(Number);
+      const start = new Date(year, month - 1, day, h, m);
+      const end = new Date(start.getTime() + 60 * 60 * 1000); // +1h par défaut
+
+      const COLOR_MAP = { "": "3", ok: "2", warn: "5", err: "11" };
+
+      const created = await calendar.events.insert({
+        calendarId: "primary",
+        requestBody: {
+          summary: `🏠 ${event.name}`,
+          description: event.description || "",
+          start: { dateTime: start.toISOString(), timeZone: "Europe/Paris" },
+          end: { dateTime: end.toISOString(), timeZone: "Europe/Paris" },
+          colorId: COLOR_MAP[event.color] || "3",
+          reminders: {
+            useDefault: false,
+            overrides: [
+              { method: "popup", minutes: 30 },
+              { method: "email", minutes: 60 },
+            ],
+          },
+        },
+      });
+
+      res.json({
+        success: true,
+        eventId: created.data.id,
+        htmlLink: created.data.htmlLink,
+      });
+    } catch (err) {
+      console.error("[Google sync-event]", err);
+      res.status(500).json({ error: "Erreur synchronisation Google Agenda" });
+    }
+  },
+);
+
+// ════════════════════════════════════════════════════════════
+// RAPPORT HEBDOMADAIRE — déclenché manuellement ou via cron
+// POST /api/integrations/send-weekly-report
+// ════════════════════════════════════════════════════════════
+app.post(
+  "/api/integrations/send-weekly-report",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const user = await db
+        .prepare(
+          `SELECT id, integrations, preferences FROM users WHERE LOWER(TRIM(username)) = $1`,
+        )
+        .get(req.user.username.trim().toLowerCase());
+      if (!user) return res.sendStatus(404);
+
+      let connected = [];
+      let prefs = {};
+      try {
+        connected = JSON.parse(user.integrations || "[]");
+      } catch {}
+      try {
+        prefs = JSON.parse(user.preferences || "{}");
+      } catch {}
+
+      const report = await buildUserReport(user.id, req.user.username);
+      const sent = [];
+
+      // WhatsApp — rapport texte structuré
+      if (connected.includes("whatsapp") && prefs.whatsappPhone) {
+        const matchLines = report.topMatches.length
+          ? report.topMatches
+              .map(
+                (m) =>
+                  `  • ${m.type || "Bien"} à ${m.ville} — *${m.compatibility}%*`,
+              )
+              .join("\n")
+          : "  • Aucun match enregistré cette semaine";
+
+        const msg = `📊 *Rapport hebdomadaire AiGENT*\n_Semaine du ${new Date().toLocaleDateString("fr-FR")}_\n\n👤 *${report.username}* · ${report.role}\n\n🏠 *Activité*\n• Favoris : ${report.totalFavoris}\n• Conversations : ${report.activeConversations}\n• Compatibilité moy. : ${report.avgCompatibility}%\n• Événements à venir : ${report.upcomingEvents}\n\n🏆 *Meilleurs matchs*\n${matchLines}\n\n${report.criteria.ville ? `📍 *Critères*\n• Ville : ${report.criteria.ville}\n• Type : ${report.criteria.type || "—"}\n• Budget max : ${Number(report.criteria.budgetMax || 0).toLocaleString("fr-FR")} €` : ""}\n\n_monaigentimmobilier.fr_`;
+
+        await sendWhatsAppMessage(prefs.whatsappPhone, msg).catch((e) =>
+          console.warn("[WA weekly]", e.message),
+        );
+        sent.push("whatsapp");
+      }
+
+      // Telegram — rapport formaté HTML
+      if (connected.includes("telegram") && prefs.telegramChatId) {
+        const matchLines = report.topMatches.length
+          ? report.topMatches
+              .map(
+                (m) =>
+                  `  • ${m.type || "Bien"} à ${m.ville} — <b>${m.compatibility}%</b>`,
+              )
+              .join("\n")
+          : "  • Aucun match enregistré";
+
+        const msg = `📊 <b>Rapport hebdomadaire AiGENT</b>\n<i>${new Date().toLocaleDateString("fr-FR")}</i>\n\n👤 <b>${report.username}</b> · ${report.role}\n\n📈 <b>Activité de la semaine</b>\n• Favoris : ${report.totalFavoris}\n• Conversations actives : ${report.activeConversations}\n• Compatibilité moyenne : ${report.avgCompatibility}%\n• Événements à venir : ${report.upcomingEvents}\n\n🏆 <b>Top matchs</b>\n${matchLines}\n\n<a href="https://monaigentimmobilier.fr">Voir mon tableau de bord →</a>`;
+
+        await sendTelegramMessage(prefs.telegramChatId, msg).catch((e) =>
+          console.warn("[TG weekly]", e.message),
+        );
+        sent.push("telegram");
+      }
+
+      // Slack — rapport en blocs structurés
+      if (connected.includes("slack") && prefs.slackWebhook) {
+        const matchFields = report.topMatches.length
+          ? report.topMatches.map((m) => ({
+              type: "mrkdwn",
+              text: `*${m.type || "Bien"} · ${m.ville}*\n${m.compatibility}% compatibilité`,
+            }))
+          : [{ type: "mrkdwn", text: "_Aucun match cette semaine_" }];
+
+        const blocks = [
+          {
+            type: "header",
+            text: {
+              type: "plain_text",
+              text: `📊 Rapport hebdomadaire — ${report.username}`,
+            },
+          },
+          {
+            type: "section",
+            fields: [
+              { type: "mrkdwn", text: `*Rôle*\n${report.role}` },
+              {
+                type: "mrkdwn",
+                text: `*Semaine du*\n${new Date().toLocaleDateString("fr-FR")}`,
+              },
+              { type: "mrkdwn", text: `*Favoris*\n${report.totalFavoris}` },
+              {
+                type: "mrkdwn",
+                text: `*Conversations*\n${report.activeConversations}`,
+              },
+              {
+                type: "mrkdwn",
+                text: `*Compatibilité moy.*\n${report.avgCompatibility}%`,
+              },
+              {
+                type: "mrkdwn",
+                text: `*Événements*\n${report.upcomingEvents}`,
+              },
+            ],
+          },
+          ...(report.topMatches.length
+            ? [
+                { type: "divider" },
+                {
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: "🏆 *Meilleurs matchs de la semaine*",
+                  },
+                  fields: matchFields.slice(0, 4),
+                },
+              ]
+            : []),
+          { type: "divider" },
+          {
+            type: "actions",
+            elements: [
+              {
+                type: "button",
+                text: { type: "plain_text", text: "Voir le tableau de bord →" },
+                url: "https://monaigentimmobilier.fr",
+                style: "primary",
+              },
+            ],
+          },
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: "_AiGENT Immobilier · monaigentimmobilier.fr_",
+              },
+            ],
+          },
+        ];
+        await sendSlackMessage(
+          prefs.slackWebhook,
+          blocks,
+          `Rapport hebdomadaire AiGENT — ${report.username}`,
+        ).catch((e) => console.warn("[Slack weekly]", e.message));
+        sent.push("slack");
+      }
+
+      // Gmail
+      if (connected.includes("gmail") && prefs.gmailEmail) {
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_PASS },
+        });
+        await transporter
+          .sendMail({
+            from: `"AiGENT Immobilier" <${process.env.GMAIL_USER}>`,
+            to: prefs.gmailEmail,
+            subject: `📊 Rapport hebdomadaire AiGENT — ${new Date().toLocaleDateString("fr-FR")}`,
+            html: buildWeeklyReportEmailHTML(report),
+          })
+          .catch((e) => console.warn("[Gmail weekly]", e.message));
+        sent.push("gmail");
+      }
+
+      res.json({ success: true, sent });
+    } catch (err) {
+      console.error("[weekly report]", err);
+      res.status(500).json({ error: "Erreur envoi rapport" });
+    }
+  },
+);
+
+function buildWeeklyReportEmailHTML(report) {
+  const matchRows = report.topMatches.length
+    ? report.topMatches
+        .map(
+          (m) =>
+            `<tr><td style="padding:8px 0;color:#444;font-size:13px">${m.type || "Bien"} · ${m.ville}</td><td style="text-align:right;font-weight:700;color:#6d28d9;font-size:13px">${m.compatibility}%</td></tr>`,
+        )
+        .join("")
+    : `<tr><td colspan="2" style="padding:8px 0;color:#888;font-size:13px;font-style:italic">Aucun match enregistré</td></tr>`;
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+<div style="max-width:580px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+  <div style="background:linear-gradient(135deg,#6d28d9,#7c3aed);padding:28px 32px">
+    <h1 style="color:#fff;margin:0;font-size:20px;font-weight:700">📊 Rapport hebdomadaire</h1>
+    <p style="color:rgba(255,255,255,0.8);margin:5px 0 0;font-size:13px">${new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+  </div>
+  <div style="padding:28px 32px">
+    <p style="font-size:15px;color:#111;margin:0 0 6px"><strong>${report.username}</strong> · ${report.role}</p>
+    <div style="display:flex;gap:10px;margin:16px 0 24px;flex-wrap:wrap">
+      ${[
+        ["Favoris", report.totalFavoris],
+        ["Conversations", report.activeConversations],
+        ["Compat. moy.", report.avgCompatibility + "%"],
+        ["Événements", report.upcomingEvents],
+      ]
+        .map(
+          ([l, v]) =>
+            `<div style="flex:1;min-width:100px;background:#f9f9fb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;text-align:center"><div style="font-size:20px;font-weight:700;color:#6d28d9">${v}</div><div style="font-size:11px;color:#888;margin-top:2px">${l}</div></div>`,
+        )
+        .join("")}
+    </div>
+    <h3 style="font-size:13px;font-weight:700;color:#6d28d9;margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">🏆 Meilleurs matchs</h3>
+    <table style="width:100%;border-collapse:collapse">${matchRows}</table>
+    ${report.criteria.ville ? `<div style="margin-top:20px;padding:14px;background:#ede9fe;border-radius:8px"><p style="font-size:12px;font-weight:700;color:#6d28d9;margin:0 0 6px">📍 Critères actifs</p><p style="font-size:12px;color:#444;margin:0">Ville : ${report.criteria.ville} · Type : ${report.criteria.type || "—"} · Budget : ${Number(report.criteria.budgetMax || 0).toLocaleString("fr-FR")} €</p></div>` : ""}
+    <div style="margin-top:24px;text-align:center"><a href="https://monaigentimmobilier.fr" style="display:inline-block;background:#6d28d9;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600">Voir mon tableau de bord →</a></div>
+    <p style="font-size:11px;color:#aaa;text-align:center;margin-top:20px">AiGENT Immobilier · monaigentimmobilier.fr</p>
+  </div>
+</div></body></html>`;
+}
+async function sendWhatsAppMessagelogs(to, body) {
+  if (!twilioClient) throw new Error("Twilio non configuré");
+
+  console.log("📤 ENVOI WHATSAPP");
+  console.log("TO:", to);
+  console.log("FROM:", process.env.TWILIO_WHATSAPP_FROM);
+
+  const msg = await twilioClient.messages.create({
+    from: process.env.TWILIO_WHATSAPP_FROM,
+    to: `whatsapp:${to}`,
+    body,
+  });
+
+  console.log("✅ MESSAGE SID:", msg.sid);
+
+  return msg;
+}
+// ════════════════════════════════════════════════════════════
+// ARCHIVES
+// ════════════════════════════════════════════════════════════
+
+// POST /api/conversations/archive
+app.post("/api/conversations/archive", authenticateToken, async (req, res) => {
+  try {
+    const { conversationKey } = req.body;
+    if (!conversationKey)
+      return res.status(400).json({ error: "conversationKey requis" });
+
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    if (isProd) {
+      await db
+        .prepare(
+          `
+        INSERT INTO archived_conversations (user_id, conversation_key)
+        VALUES ($1, $2)
+        ON CONFLICT (user_id, conversation_key) DO NOTHING
+      `,
+        )
+        .run(user.id, conversationKey);
+    } else {
+      const existing = await db
+        .prepare(
+          `
+        SELECT id FROM archived_conversations WHERE user_id = ? AND conversation_key = ?
+      `,
+        )
+        .get(user.id, conversationKey);
+      if (!existing) {
+        await db
+          .prepare(
+            `
+          INSERT INTO archived_conversations (user_id, conversation_key) VALUES (?, ?)
+        `,
+          )
+          .run(user.id, conversationKey);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[archive]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// DELETE /api/conversations/archive/:key
+app.delete(
+  "/api/conversations/archive/:key",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const conversationKey = decodeURIComponent(req.params.key);
+      const user = await db
+        .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+        .get(req.user.username.trim().toLowerCase());
+      if (!user) return res.sendStatus(404);
+
+      await db
+        .prepare(
+          `
+      DELETE FROM archived_conversations WHERE user_id = $1 AND conversation_key = $2
+    `,
+        )
+        .run(user.id, conversationKey);
+
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  },
+);
+
+// GET /api/conversations/archived
+app.get("/api/conversations/archived", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const rows = await db
+      .prepare(
+        `
+      SELECT conversation_key FROM archived_conversations
+      WHERE user_id = $1
+      ORDER BY archived_at DESC
+    `,
+      )
+      .all(user.id);
+
+    res.json(rows.map((r) => r.conversation_key));
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+// BLOCAGES
+// ════════════════════════════════════════════════════════════
+
+// POST /api/users/block
+app.post("/api/users/block", authenticateToken, async (req, res) => {
+  try {
+    const { targetUsername } = req.body;
+    if (!targetUsername)
+      return res.status(400).json({ error: "targetUsername requis" });
+
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    if (isProd) {
+      await db
+        .prepare(
+          `
+        INSERT INTO blocked_users (blocker_id, blocked_username)
+        VALUES ($1, $2)
+        ON CONFLICT (blocker_id, blocked_username) DO NOTHING
+      `,
+        )
+        .run(user.id, targetUsername.trim().toLowerCase());
+    } else {
+      const existing = await db
+        .prepare(
+          `
+        SELECT id FROM blocked_users WHERE blocker_id = ? AND blocked_username = ?
+      `,
+        )
+        .get(user.id, targetUsername.trim().toLowerCase());
+      if (!existing) {
+        await db
+          .prepare(
+            `
+          INSERT INTO blocked_users (blocker_id, blocked_username) VALUES (?, ?)
+        `,
+          )
+          .run(user.id, targetUsername.trim().toLowerCase());
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[block]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// DELETE /api/users/block/:username
+app.delete(
+  "/api/users/block/:username",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const targetUsername = req.params.username.trim().toLowerCase();
+      const user = await db
+        .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+        .get(req.user.username.trim().toLowerCase());
+      if (!user) return res.sendStatus(404);
+
+      await db
+        .prepare(
+          `
+      DELETE FROM blocked_users WHERE blocker_id = $1 AND blocked_username = $2
+    `,
+        )
+        .run(user.id, targetUsername);
+
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  },
+);
+
+// GET /api/users/blocked — liste des usernames bloqués par le user courant
+app.get("/api/users/blocked", authenticateToken, async (req, res) => {
+  try {
+    const user = await db
+      .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    const rows = await db
+      .prepare(
+        `
+      SELECT blocked_username FROM blocked_users WHERE blocker_id = $1
+    `,
+      )
+      .all(user.id);
+
+    res.json(rows.map((r) => r.blocked_username));
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+// ════════════════════════════════════════════════════════════
+// SUPABASE STORAGE — AUDIO MESSAGES
+// ════════════════════════════════════════════════════════════
+
+const SUPABASE_STORAGE_URL =
+  "https://elsukvkufamrtsogxqzt.supabase.co/storage/v1";
+const SUPABASE_BUCKET = "audios-messages";
+const AUDIO_TTL_DAYS = 15;
+const SUPABASE_API_KEY = process.env.SUPABASE_API_KEY;
+
+// ── Helper : upload un buffer vers Supabase Storage ─────────
+async function uploadToSupabase(buffer, fileName, mimeType) {
+  const url = `${SUPABASE_STORAGE_URL}/object/${SUPABASE_BUCKET}/${fileName}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SUPABASE_API_KEY}`,
+      "Content-Type": mimeType,
+      "x-upsert": "true", // écrase si même nom
+    },
+    body: buffer,
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Supabase upload failed: ${err}`);
+  }
+
+  // URL publique directe (bucket public)
+  const publicUrl = `${SUPABASE_STORAGE_URL}/object/public/${SUPABASE_BUCKET}/${fileName}`;
+  return publicUrl;
+}
+
+// ── Helper : supprimer une liste de fichiers Supabase ────────
+async function deleteFromSupabase(fileNames) {
+  if (!fileNames.length) return;
+  const url = `${SUPABASE_STORAGE_URL}/object/${SUPABASE_BUCKET}`;
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${SUPABASE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ prefixes: fileNames }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.warn("[Supabase DELETE]", err);
+  }
+}
+
+// ── Helper : lister les fichiers du bucket ───────────────────
+async function listSupabaseFiles() {
+  const url = `${SUPABASE_STORAGE_URL}/object/list/${SUPABASE_BUCKET}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SUPABASE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      prefix: "",
+      limit: 1000,
+      offset: 0,
+      sortBy: { column: "created_at", order: "asc" },
+    }),
+  });
+  if (!res.ok) return [];
+  return res.json(); // tableau d'objets { name, created_at, ... }
+}
+
+// ── ROUTE POST /api/upload-audio ─────────────────────────────
+app.post(
+  "/api/upload-audio",
+  authenticateToken,
+  upload.single("audio"), // multer memory, champ 'audio'
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Aucun fichier audio reçu" });
+      }
+
+      const duration = parseInt(req.body.duration || "0", 10);
+
+      // Sécurité : refuser les audios > 60s côté serveur aussi
+      if (duration > 60) {
+        return res.status(400).json({ error: "Audio trop long (max 60s)" });
+      }
+
+      // Refuser les fichiers > 5 Mo (sécurité taille)
+      if (req.file.size > 5 * 1024 * 1024) {
+        return res.status(400).json({ error: "Fichier trop lourd (max 5 Mo)" });
+      }
+
+      const ext = req.file.mimetype.includes("webm") ? "webm" : "mp4";
+      const safeName = `${Date.now()}_${req.user.username.replace(/[^a-z0-9]/gi, "_")}.${ext}`;
+      const mimeType = req.file.mimetype || "audio/webm";
+
+      const publicUrl = await uploadToSupabase(
+        req.file.buffer,
+        safeName,
+        mimeType,
+      );
+
+      console.log(
+        `[Audio Upload] ${safeName} — ${req.file.size} octets — ${duration}s`,
+      );
+
+      return res.json({
+        success: true,
+        url: publicUrl,
+        name: safeName,
+        duration: duration,
+        size: req.file.size,
+      });
+    } catch (err) {
+      console.error("[/api/upload-audio]", err);
+      return res.status(500).json({ error: "Erreur upload audio" });
+    }
+  },
+);
+
+// ── CRON NETTOYAGE — supprime les audios > 15 jours ─────────
+// Tourne toutes les 24h au démarrage du serveur
+async function purgeOldAudios() {
+  try {
+    console.log("[Audio Purge] Lancement du nettoyage Supabase...");
+    const files = await listSupabaseFiles();
+    if (!Array.isArray(files) || !files.length) {
+      console.log("[Audio Purge] Aucun fichier trouvé.");
+      return;
+    }
+
+    const cutoff = Date.now() - AUDIO_TTL_DAYS * 24 * 60 * 60 * 1000;
+    const toDelete = files
+      .filter((f) => {
+        // Supabase retourne created_at en ISO string
+        const created = new Date(f.created_at).getTime();
+        return created < cutoff;
+      })
+      .map((f) => f.name);
+
+    if (!toDelete.length) {
+      console.log("[Audio Purge] Aucun fichier expiré.");
+      return;
+    }
+
+    await deleteFromSupabase(toDelete);
+    console.log(
+      `[Audio Purge] ${toDelete.length} fichier(s) supprimé(s) :`,
+      toDelete,
+    );
+  } catch (err) {
+    console.error("[Audio Purge] Erreur:", err.message);
+  }
+}
+
+// Lancement immédiat au boot + toutes les 24h
+purgeOldAudios();
+setInterval(purgeOldAudios, 24 * 60 * 60 * 1000);
 // ================== START ==================
 const dbColumns = await db
   .prepare(

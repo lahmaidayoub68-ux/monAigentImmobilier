@@ -1,7 +1,11 @@
 // ============================================================
-// VARIABLES GLOBALES ET STORES
+// MESSAGERIE.JS — AiGENT Premium v3
+// Toutes fonctionnalités originales + design boosté
 // ============================================================
+
 import { injectTimeline } from "./transactionTimeline.js";
+
+// ── USER COURANT ──
 let currentUser = "";
 try {
   const rawUser = localStorage.getItem("agent_user");
@@ -9,148 +13,109 @@ try {
     currentUser = JSON.parse(rawUser)?.username?.toLowerCase() || "";
   }
 } catch (err) {
-  console.warn("Erreur lecture user local", err);
+  console.warn("[AUTH] Erreur lecture user local", err);
 }
 
+// ── STORES ──
 const messagesStore = {};
 const conversationStore = new Set();
 const userEmailStore = {};
 const receiverIdStore = {};
 const unreadStore = {};
-// Store pour les groupes : clé = groupeId (string), valeur = { participants: [...], name: string }
-const groupeStore = {};
+const groupeStore = {}; // groupeId → { participants, name }
 
-// BUG FIX 3 : on stocke séparément le groupeId actif (la vraie clé groupe__...)
-// et le titre affiché (nom lisible). chatWithTitle.textContent = nom lisible,
-// mais on lit activeConversationId pour les opérations internes.
-let activeConversationId = null; // ex: "groupe__jean__olivier__moi" ou "jean"
-
-// Fichiers en attente d'envoi (images + pièces jointes)
-let pendingFiles = []; // [{ file, type: 'image'|'file', previewUrl }]
-
-let conversations = [];
+let activeConversationId = null;
+let pendingFiles = []; // [{ file, type:'image'|'file', previewUrl }]
 let selectedMessageId = null;
 
-// Palette de couleurs pour différencier les correspondants dans les groupes
-const CORRESPONDENT_COLORS = [
-  "linear-gradient(135deg,#7c3aed,#a855f7)",
-  "linear-gradient(135deg,#0ea5e9,#38bdf8)",
-  "linear-gradient(135deg,#10b981,#34d399)",
-  "linear-gradient(135deg,#f59e0b,#fbbf24)",
-  "linear-gradient(135deg,#ef4444,#f87171)",
-  "linear-gradient(135deg,#ec4899,#f472b6)",
-  "linear-gradient(135deg,#6366f1,#818cf8)",
-  "linear-gradient(135deg,#14b8a6,#2dd4bf)",
-];
-const userColorMap = {};
-
-function getUserColor(username) {
-  if (!userColorMap[username]) {
-    const idx = Object.keys(userColorMap).length % CORRESPONDENT_COLORS.length;
-    userColorMap[username] = CORRESPONDENT_COLORS[idx];
-  }
-  return userColorMap[username];
-}
-
-const CORRESPONDENT_SOLID_COLORS = [
+// ── COULEURS CORRESPONDANTS ──
+const SOLID_COLORS = [
   "#7c3aed",
+  "#4f46e5",
   "#0ea5e9",
   "#10b981",
   "#f59e0b",
   "#ef4444",
   "#ec4899",
-  "#6366f1",
   "#14b8a6",
 ];
-
-// Map stable username -> index de couleur (persistant par session, assigné à la première utilisation)
 const userColorIndexMap = {};
 let colorIndexCounter = 0;
 
 function getUserSolidColor(username) {
   if (userColorIndexMap[username] === undefined) {
-    userColorIndexMap[username] =
-      colorIndexCounter % CORRESPONDENT_SOLID_COLORS.length;
+    userColorIndexMap[username] = colorIndexCounter % SOLID_COLORS.length;
     colorIndexCounter++;
   }
-  return CORRESPONDENT_SOLID_COLORS[userColorIndexMap[username]];
+  return SOLID_COLORS[userColorIndexMap[username]];
 }
 
-// Cache DOM réutilisé
-const chatWithTitle = document.getElementById("chat-with");
-const chatAvatar = document.getElementById("chat-avatar");
+// ── CACHE DOM ──
 const chatBox = document.getElementById("chat-box");
 const userInput = document.getElementById("user-input");
 const sendBtn = document.getElementById("send-btn");
-const mobileWrapper = document.getElementById("mobileWrapper");
+const appMain = document.getElementById("appMain");
 
 // ============================================================
 // UTILITAIRES
 // ============================================================
 function formatTime(dateString) {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString("fr-FR", {
+  return new Date(dateString).toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
   });
 }
-
+function formatRelativeDate(dateString) {
+  const d = new Date(dateString);
+  const now = new Date();
+  const diff = (now - d) / (1000 * 60 * 60);
+  if (diff < 24)
+    return d.toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  if (diff < 48) return "Hier";
+  return d.toLocaleDateString("fr-FR", { weekday: "short" });
+}
 function getAuthToken() {
-  const raw = localStorage.getItem("agent_user");
-  if (!raw) return null;
   try {
-    return JSON.parse(raw).token || null;
+    return JSON.parse(localStorage.getItem("agent_user"))?.token || null;
   } catch {
     return null;
   }
 }
-
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
-
 function formatBytes(bytes) {
   if (bytes < 1024) return bytes + " o";
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " Ko";
   return (bytes / (1024 * 1024)).toFixed(1) + " Mo";
 }
-
-// Génère une clé unique de groupe à partir d'un tableau de pseudos (triés)
 function makeGroupeId(participants) {
   return "groupe__" + [...participants].sort().join("__");
 }
-
-// Génère un label lisible pour la conversation en groupe
 function groupLabel(groupeId) {
   const g = groupeStore[groupeId];
   return g ? g.name : groupeId.replace("groupe__", "").replace(/__/g, ", ");
 }
-
-// BUG FIX 1 : extrait le groupeId encodé dans le sujet d'un message
-// Format: [Groupe:NOM_GROUPE|ID:groupe__a__b__c]
-// Remplacer ces deux fonctions :
-
 function buildGroupeSubject(
   groupeId,
   nomGroupe,
   objet,
   participantsWithEmails,
 ) {
-  // participantsWithEmails = [{ pseudo, email }, ...]
   const participantsEncoded = participantsWithEmails
     ? "|MEMBERS:" +
       participantsWithEmails.map((p) => `${p.pseudo}:${p.email}`).join(",")
     : "";
   return `[Groupe:${nomGroupe}|ID:${groupeId}${participantsEncoded}]${objet ? " " + objet : ""}`;
 }
-
 function extractGroupeIdFromSubject(subject) {
   if (!subject) return null;
   const match = subject.match(/\[Groupe:[^|]+\|ID:([^|\]]+)/);
   return match ? match[1] : null;
 }
-
-// Nouvelle fonction : extraire les membres encodés dans le sujet
 function extractMembersFromSubject(subject) {
   if (!subject) return null;
   const match = subject.match(/\|MEMBERS:([^\]]+)\]/);
@@ -164,71 +129,181 @@ function extractMembersFromSubject(subject) {
     return null;
   }
 }
+function formatAudioDuration(seconds) {
+  const s = Math.round(seconds);
+  return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+}
 
+function buildAudioBubble(url, duration, isMe) {
+  const id = "ap_" + Math.random().toString(36).slice(2, 8);
+  // On injecte un mini player avec waveform statique + bouton play
+  return `
+    <div class="audio-bubble" id="${id}" data-url="${url}" data-dur="${duration || ""}">
+      <button class="audio-play-btn" onclick="toggleAudioPlay('${id}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="${isMe ? "#fff" : "var(--brand)"}">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+      </button>
+      <div class="audio-waveform-static">
+        ${Array.from({ length: 24 }, (_, i) => {
+          const h = 20 + Math.sin(i * 0.7) * 10 + Math.random() * 12;
+          return `<div class="awb" style="height:${Math.round(h)}px"></div>`;
+        }).join("")}
+      </div>
+      <span class="audio-dur">${duration || ""}</span>
+      <audio id="aud_${id}" src="${url}" preload="none" style="display:none"></audio>
+    </div>`;
+}
+window.toggleAudioPlay = function (bubbleId) {
+  const wrap = document.getElementById(bubbleId);
+  if (!wrap) return;
+  const audio = document.getElementById("aud_" + bubbleId);
+  const btn = wrap.querySelector(".audio-play-btn svg");
+  if (!audio) return;
+
+  if (audio.paused) {
+    // Pauser tous les autres audios
+    document.querySelectorAll(".audio-bubble audio").forEach((a) => {
+      if (a !== audio) a.pause();
+    });
+    audio.play();
+    // Icône pause
+    btn.innerHTML = `<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>`;
+
+    // Avancement sur la waveform (colorier les barres)
+    audio.ontimeupdate = () => {
+      const pct = audio.duration ? audio.currentTime / audio.duration : 0;
+      const bars = wrap.querySelectorAll(".awb");
+      bars.forEach((b, i) => {
+        b.classList.toggle("awb--played", i / bars.length < pct);
+      });
+      // Mettre à jour le timer
+      const durEl = wrap.querySelector(".audio-dur");
+      if (durEl) durEl.textContent = formatAudioDuration(audio.currentTime);
+    };
+    audio.onended = () => {
+      btn.innerHTML = `<polygon points="5 3 19 12 5 21 5 3"/>`;
+      const durEl = wrap.querySelector(".audio-dur");
+      if (durEl) durEl.textContent = wrap.dataset.dur;
+      wrap
+        .querySelectorAll(".awb")
+        .forEach((b) => b.classList.remove("awb--played"));
+    };
+  } else {
+    audio.pause();
+    btn.innerHTML = `<polygon points="5 3 19 12 5 21 5 3"/>`;
+  }
+};
 // ============================================================
-// GESTION DU THÈME
+// THÈME
 // ============================================================
 function initTheme() {
-  const btnTheme = document.getElementById("btn-theme");
+  const themeButtons = document.querySelectorAll(
+    "#btn-theme, .btn-theme-toggle",
+  );
   const html = document.documentElement;
-  const savedTheme = localStorage.getItem("aigent_theme") || "dark";
-  html.setAttribute("data-theme", savedTheme);
-  if (btnTheme) {
-    btnTheme.addEventListener("click", () => {
-      const next =
-        html.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      html.setAttribute("data-theme", next);
-      localStorage.setItem("aigent_theme", next);
+
+  const applyTheme = (theme) => {
+    html.setAttribute("data-theme", theme);
+    localStorage.setItem("aigent_theme", theme);
+  };
+
+  const saved = localStorage.getItem("aigent_theme") || "light";
+  applyTheme(saved);
+
+  themeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const current = html.getAttribute("data-theme");
+      const next = current === "dark" ? "light" : "dark";
+      applyTheme(next);
     });
-  }
+  });
 }
 
 // ============================================================
-// DECONNEXION
+// DÉCONNEXION
 // ============================================================
 function logout() {
   localStorage.removeItem("agent_user");
-  Object.keys(messagesStore).forEach((k) => delete messagesStore[k]);
-  conversationStore.clear();
-  Object.keys(unreadStore).forEach((k) => delete unreadStore[k]);
-  const list = document.querySelector("#conversations-container");
-  if (list) list.innerHTML = "";
-  if (chatBox) chatBox.innerHTML = "";
   window.location.href = "index.html";
 }
+
 // ============================================================
-// VUE MOBILE
+// UTILISATEUR CONNECTÉ — affichage sidebar
+// ============================================================
+function initUserDisplay() {
+  try {
+    const raw = localStorage.getItem("agent_user");
+    if (!raw) return;
+    const user = JSON.parse(raw);
+    const name = user.username || "Utilisateur";
+    const email = user.email || "";
+    const sbName = document.getElementById("sb-user-name");
+    const sbEmail = document.getElementById("sb-user-email");
+    const sbAv = document.getElementById("sb-user-avatar");
+    if (sbName) sbName.textContent = name;
+    if (sbEmail) sbEmail.textContent = email;
+    if (sbAv) sbAv.textContent = name.charAt(0).toUpperCase();
+  } catch {}
+}
+
+// ============================================================
+// SIDEBAR — COLLAPSE
+// ============================================================
+function initSidebarCollapse() {
+  const sidebar = document.getElementById("sidebar");
+  const btn = document.getElementById("btnCollapseSidebar");
+  if (!sidebar || !btn) return;
+  const savedState = localStorage.getItem("aigent_sidebar_collapsed");
+  if (savedState === "1") sidebar.classList.add("collapsed");
+
+  btn.addEventListener("click", () => {
+    sidebar.classList.toggle("collapsed");
+    localStorage.setItem(
+      "aigent_sidebar_collapsed",
+      sidebar.classList.contains("collapsed") ? "1" : "0",
+    );
+  });
+}
+
+// ============================================================
+// MOBILE — show/hide chat panel
 // ============================================================
 function showChatView() {
-  if (window.innerWidth <= 768 && mobileWrapper)
-    mobileWrapper.classList.add("show-chat");
+  if (window.innerWidth <= 640 && appMain) appMain.classList.add("show-chat");
 }
 function showListView() {
-  if (mobileWrapper) mobileWrapper.classList.remove("show-chat");
+  if (appMain) appMain.classList.remove("show-chat");
 }
 function initMobileViews() {
   document
     .getElementById("btn-back-to-list")
     ?.addEventListener("click", showListView);
   window.addEventListener("resize", () => {
-    if (window.innerWidth > 768 && mobileWrapper)
-      mobileWrapper.classList.remove("show-chat");
+    if (window.innerWidth > 640) appMain?.classList.remove("show-chat");
   });
 }
 
 // ============================================================
-// BADGES NON LUS ET TABS
+// BADGES
 // ============================================================
 function updateGlobalUnread() {
-  const count = Object.values(unreadStore).filter((v) => v).length;
+  const count = Object.values(unreadStore).filter(Boolean).length;
   const badge = document.getElementById("unread-count-tab");
-  if (!badge) return;
-  if (count > 0) {
+  const sbBadge = document.getElementById("sb-unread-badge");
+  if (badge) {
     badge.textContent = count;
-    badge.style.display = "inline-block";
-  } else badge.style.display = "none";
+    badge.style.display = count > 0 ? "inline-block" : "none";
+  }
+  if (sbBadge) {
+    sbBadge.textContent = count;
+    sbBadge.style.display = count > 0 ? "inline-block" : "none";
+  }
 }
 
+// ============================================================
+// TABS
+// ============================================================
 function initTabs() {
   document.querySelectorAll(".conv-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -240,16 +315,26 @@ function initTabs() {
     });
   });
 }
-
 function applyTabFilter() {
   const activeTab = document.querySelector(".conv-tab.active");
   if (!activeTab) return;
   const filter = activeTab.dataset.filter;
+
   document.querySelectorAll(".conversation").forEach((c) => {
-    if (filter === "all") c.style.display = "flex";
-    else if (filter === "unread")
+    const key = c.dataset.user || "";
+    const isGroupe = key.startsWith("groupe__");
+    const isArchived = archivedStore.has(key);
+
+    if (filter === "all") {
+      // "Tous" = tout afficher, archivés inclus (comme Groupes apparaît dans Tous)
+      c.style.display = "flex";
+    } else if (filter === "unread") {
       c.style.display = c.classList.contains("has-unread") ? "flex" : "none";
-    else if (filter === "archived") c.style.display = "none";
+    } else if (filter === "groupes") {
+      c.style.display = isGroupe ? "flex" : "none";
+    } else if (filter === "archived") {
+      c.style.display = isArchived ? "flex" : "none";
+    }
   });
 }
 
@@ -269,7 +354,7 @@ function initSearch() {
 }
 
 // ============================================================
-// UPLOAD IMAGES ET FICHIERS — VRAIS BOUTONS
+// UPLOAD — BOUTONS
 // ============================================================
 function initUploadButtons() {
   const btnImg = document.getElementById("btn-upload-image");
@@ -287,25 +372,19 @@ function initUploadButtons() {
   });
 
   inpImg?.addEventListener("change", (e) => {
-    const files = Array.from(e.target.files || []);
-    files.forEach((f) => addPendingFile(f, "image"));
+    Array.from(e.target.files || []).forEach((f) => addPendingFile(f, "image"));
     inpImg.value = "";
   });
-
   inpFile?.addEventListener("change", (e) => {
-    const files = Array.from(e.target.files || []);
-    files.forEach((f) => addPendingFile(f, "file"));
+    Array.from(e.target.files || []).forEach((f) => addPendingFile(f, "file"));
     inpFile.value = "";
   });
 }
-
 function addPendingFile(file, type) {
   const previewUrl = type === "image" ? URL.createObjectURL(file) : null;
-  const entry = { file, type, previewUrl };
-  pendingFiles.push(entry);
+  pendingFiles.push({ file, type, previewUrl });
   renderAttachmentsPreview();
 }
-
 function renderAttachmentsPreview() {
   const container = document.getElementById("attachments-preview");
   if (!container) return;
@@ -340,18 +419,13 @@ function renderAttachmentsPreview() {
     container.appendChild(item);
   });
 }
-
-// BUG FIX 2 : upload vers /api/upload-imagesbien (images) ou /api/upload-files (fichiers)
-// Les fichiers génériques sont aussi uploadés sur le serveur pour persistance
 async function uploadPendingFiles() {
   if (!pendingFiles.length) return [];
   const token = getAuthToken();
   const results = [];
-
   const images = pendingFiles.filter((f) => f.type === "image");
   const files = pendingFiles.filter((f) => f.type === "file");
 
-  // Upload images via l'API existante
   if (images.length) {
     try {
       const formData = new FormData();
@@ -362,18 +436,14 @@ async function uploadPendingFiles() {
         body: formData,
       });
       const data = await res.json();
-      if (res.ok && data.images) {
+      if (res.ok && data.images)
         data.images.forEach((url) =>
           results.push({ type: "image", url, name: "" }),
         );
-      }
     } catch (err) {
       console.error("[UPLOAD IMAGES]", err);
     }
   }
-
-  // BUG FIX 2 : upload les fichiers génériques via /api/upload-files
-  // (route à ajouter côté serveur — voir patch serveur)
   if (files.length) {
     try {
       const formData = new FormData();
@@ -385,7 +455,7 @@ async function uploadPendingFiles() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.files) {
+        if (data.files)
           data.files.forEach((f) =>
             results.push({
               type: "file",
@@ -394,42 +464,59 @@ async function uploadPendingFiles() {
               size: f.size,
             }),
           );
-        }
       } else {
-        // Fallback : blob URL temporaire si le serveur ne supporte pas encore /api/upload-files
-        console.warn(
-          "[UPLOAD FILES] /api/upload-files non disponible, fallback blob URL",
-        );
-        files.forEach((f) => {
-          const blobUrl = URL.createObjectURL(f.file);
+        files.forEach((f) =>
           results.push({
             type: "file",
-            url: blobUrl,
+            url: URL.createObjectURL(f.file),
             name: f.file.name,
             size: f.file.size,
-          });
-        });
+          }),
+        );
       }
     } catch (err) {
       console.error("[UPLOAD FILES]", err);
-      // Fallback blob URL
-      files.forEach((f) => {
-        const blobUrl = URL.createObjectURL(f.file);
+      files.forEach((f) =>
         results.push({
           type: "file",
-          url: blobUrl,
+          url: URL.createObjectURL(f.file),
           name: f.file.name,
           size: f.file.size,
-        });
-      });
+        }),
+      );
     }
   }
-
   return results;
 }
 
 // ============================================================
-// CONVERSATIONS — ATTACHE CLICK
+// DROPDOWN NOUVEAU MESSAGE (sidebar)
+// ============================================================
+function initNewMsgDropdown() {
+  const chevron = document.getElementById("btnNewMsgDropdown");
+  const dropdown = document.getElementById("newMsgDropdown");
+  chevron?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdown?.classList.toggle("hidden");
+  });
+  document.addEventListener("click", () => dropdown?.classList.add("hidden"));
+}
+
+// ============================================================
+// HEADER CHAT — dropdown "plus"
+// ============================================================
+function initChatHeaderDropdown() {
+  const btn = document.getElementById("chatMoreBtn");
+  const dropdown = document.getElementById("chatMoreDropdown");
+  btn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdown?.classList.toggle("hidden");
+  });
+  document.addEventListener("click", () => dropdown?.classList.add("hidden"));
+}
+
+// ============================================================
+// CONVERSATION — CLICK
 // ============================================================
 function attachConversationClick(convo) {
   convo.addEventListener("click", async () => {
@@ -438,87 +525,106 @@ function attachConversationClick(convo) {
       .forEach((c) => c.classList.remove("active"));
     convo.classList.add("active");
 
-    // BUG FIX 3 : data-user contient toujours la vraie clé (pseudo ou groupeId)
-    const conversationKey = convo.dataset.user; // ex: "groupe__jean__olivier__moi" ou "jean"
+    const conversationKey = convo.dataset.user;
     activeConversationId = conversationKey;
-
     const isGroupe = conversationKey.startsWith("groupe__");
 
     unreadStore[conversationKey] = false;
-    convo.querySelector(".unread")?.remove();
+    convo.querySelector(".conv-unread-dot")?.remove();
     convo.classList.remove("has-unread");
     updateGlobalUnread();
     applyTabFilter();
 
-    // BUG FIX 3 : le titre affiche le nom lisible, mais activeConversationId garde la vraie clé
-    if (chatWithTitle) {
-      chatWithTitle.textContent = isGroupe
+    // Titre header
+    const chatTitleEl = document.getElementById("chat-with");
+    if (chatTitleEl)
+      chatTitleEl.textContent = isGroupe
         ? groupLabel(conversationKey)
         : conversationKey;
-    }
 
+    // Members count + participants pills
+    const membersCountEl = document.getElementById("chatMembersCount");
     const participantsBar = document.getElementById("participants-bar");
+    const chatStatusEl = document.getElementById("chat-status");
+
     if (isGroupe && groupeStore[conversationKey]) {
-      // Avatar groupe
-      const currentChatAvatar = document.getElementById("chat-avatar");
-      if (currentChatAvatar) {
-        const newAv = document.createElement("div");
-        newAv.className = "chat-avatar-group";
-        newAv.id = "chat-avatar";
-        const others = groupeStore[conversationKey].participants
-          .filter((p) => p !== currentUser)
-          .slice(0, 2);
-        others.forEach((p, i) => {
-          const sub = document.createElement("div");
-          sub.className = "av-sub";
-          sub.style.background = getUserSolidColor(p);
-          sub.style.zIndex = String(2 - i);
-          sub.textContent = p.charAt(0).toUpperCase();
-          newAv.appendChild(sub);
-        });
-        currentChatAvatar.replaceWith(newAv);
+      const groupe = groupeStore[conversationKey];
+      const others = groupe.participants.filter((p) => p !== currentUser);
+
+      if (membersCountEl) {
+        membersCountEl.textContent = `${groupe.participants.length} membres`;
+        membersCountEl.style.display = "inline";
       }
-      // Participants bar
       if (participantsBar) {
         participantsBar.style.display = "flex";
-        participantsBar.innerHTML = groupeStore[conversationKey].participants
-          .filter((p) => p !== currentUser)
-          .map(
-            (p) =>
-              `<span class="participant-pill" style="background:${getUserSolidColor(p)}">${p.charAt(0).toUpperCase()}${p.slice(0, 4)}</span>`,
-          )
-          .join("");
+        participantsBar.innerHTML =
+          others
+            .slice(0, 3)
+            .map(
+              (p) =>
+                `<span class="participant-pill" style="background:${getUserSolidColor(p)}">${p.charAt(0).toUpperCase()}${p.slice(1, 4)}</span>`,
+            )
+            .join("") +
+          (others.length > 3
+            ? `<span class="participant-pill" style="background:#6b7280">+${others.length - 3}</span>`
+            : "");
       }
+      if (chatStatusEl) {
+        chatStatusEl.textContent = "";
+        chatStatusEl.className = "chat-status";
+      }
+
+      // Avatar groupe
+      _setGroupeAvatar(conversationKey);
     } else {
+      if (membersCountEl) {
+        membersCountEl.textContent = "";
+        membersCountEl.style.display = "none";
+      }
       if (participantsBar) {
         participantsBar.style.display = "none";
         participantsBar.innerHTML = "";
       }
-      const currentChatAvatar = document.getElementById("chat-avatar");
-      if (currentChatAvatar) {
-        currentChatAvatar.className = "chat-avatar";
-        currentChatAvatar.id = "chat-avatar";
-        currentChatAvatar.textContent = conversationKey.charAt(0).toUpperCase();
-        currentChatAvatar.classList.add("online");
-      }
+      _setSingleAvatar(conversationKey);
     }
 
-    const emptyState = document.getElementById("chat-empty-state");
-    if (emptyState) emptyState.style.display = "none";
+    // Empty state
+    document.getElementById("chat-empty-state")?.remove?.();
 
     await loadConversation(conversationKey);
+    // À la fin du handler click dans attachConversationClick, avant showChatView() :
+    updateBlockBtnLabel();
     showChatView();
   });
 }
 
+function _setGroupeAvatar(conversationKey) {
+  const wrap = document.getElementById("chatAvatarWrap");
+  if (!wrap) return;
+  const others = (groupeStore[conversationKey]?.participants || [])
+    .filter((p) => p !== currentUser)
+    .slice(0, 2);
+  wrap.innerHTML = `<div class="chat-av-group">${others
+    .map(
+      (p) =>
+        `<div class="av-sub" style="background:${getUserSolidColor(p)}">${p.charAt(0).toUpperCase()}</div>`,
+    )
+    .join("")}</div>`;
+}
+function _setSingleAvatar(conversationKey) {
+  const wrap = document.getElementById("chatAvatarWrap");
+  if (!wrap) return;
+  wrap.innerHTML = `<div class="chat-av" id="chat-avatar">${conversationKey.charAt(0).toUpperCase()}</div>`;
+}
+
 // ============================================================
-// CHARGEMENT TOUTES LES CONVERSATIONS
+// CHARGEMENT DE TOUTES LES CONVERSATIONS
 // ============================================================
 async function loadAllConversations() {
   try {
     const token = getAuthToken();
     if (!token) {
-      alert("Vous devez être connecté pour voir vos messages.");
+      alert("Vous devez être connecté.");
       return;
     }
 
@@ -527,7 +633,7 @@ async function loadAllConversations() {
     });
     const data = await res.json();
     if (!res.ok) {
-      alert("Erreur lors de la récupération des messages.");
+      alert("Erreur récupération messages.");
       return;
     }
 
@@ -536,59 +642,39 @@ async function loadAllConversations() {
     Object.keys(messagesStore).forEach((k) => delete messagesStore[k]);
     conversationStore.clear();
 
-    // BUG FIX 1 : reconstituer les groupes depuis les messages reçus
-    // en lisant le groupeId encodé dans le sujet
     msgs.forEach((m) => {
       const groupeId = extractGroupeIdFromSubject(m.subject);
 
       if (groupeId) {
-        // Ce message appartient à un groupe
-        // Reconstruire le groupeStore si absent
         if (!groupeStore[groupeId]) {
-          // Extraire le nom depuis le sujet : [Groupe:NOM|ID:...]
           const nameMatch = m.subject.match(/\[Groupe:([^|]+)\|ID:/);
           const nomGroupe = nameMatch
             ? nameMatch[1]
             : groupeId.replace("groupe__", "").replace(/__/g, ", ");
-          const membersFromSubject = extractMembersFromSubject(m.subject);
-          if (membersFromSubject) {
-            membersFromSubject.forEach(({ pseudo, email }) => {
-              if (pseudo && email && pseudo !== currentUser) {
-                if (!userEmailStore[pseudo]) userEmailStore[pseudo] = email;
-              }
+          const members = extractMembersFromSubject(m.subject);
+          if (members)
+            members.forEach(({ pseudo, email }) => {
+              if (pseudo && email && pseudo !== currentUser)
+                userEmailStore[pseudo] = userEmailStore[pseudo] || email;
             });
-          }
-          // Participants = tous les usernames dans le groupeId
-          const participantsFromId = groupeId
-            .replace("groupe__", "")
-            .split("__");
-          groupeStore[groupeId] = {
-            name: nomGroupe,
-            participants: participantsFromId,
-          };
+          const pFromId = groupeId.replace("groupe__", "").split("__");
+          groupeStore[groupeId] = { name: nomGroupe, participants: pFromId };
           saveGroupesToStorage();
         }
         if (!messagesStore[groupeId]) messagesStore[groupeId] = [];
-        // Éviter les doublons
-        if (!messagesStore[groupeId].find((x) => x.id === m.id)) {
+        if (!messagesStore[groupeId].find((x) => x.id === m.id))
           messagesStore[groupeId].push(m);
-        }
         conversationStore.add(groupeId);
-
-        if (m.receiver?.toLowerCase() === currentUser && !m.read) {
+        if (m.receiver?.toLowerCase() === currentUser && !m.read)
           unreadStore[groupeId] = true;
-        }
       } else {
-        // Conversation normale 1-à-1
         const pseudoNorm =
           m.sender.trim().toLowerCase() === currentUser
             ? m.receiver.trim().toLowerCase()
             : m.sender.trim().toLowerCase();
-
         if (!messagesStore[pseudoNorm]) messagesStore[pseudoNorm] = [];
         messagesStore[pseudoNorm].push(m);
         conversationStore.add(pseudoNorm);
-
         if (m.receiver?.toLowerCase() === currentUser && !m.read)
           unreadStore[pseudoNorm] = true;
         if (m.senderEmail)
@@ -599,7 +685,7 @@ async function loadAllConversations() {
             : m.sender_id;
       }
 
-      // Toujours stocker emails et receiverIds pour les participants individuels
+      // Store emails & receiverIds pour tous les participants
       const senderNorm = m.sender.trim().toLowerCase();
       const receiverNorm = m.receiver.trim().toLowerCase();
       if (senderNorm !== currentUser) {
@@ -614,113 +700,110 @@ async function loadAllConversations() {
       }
     });
 
-    // Charger aussi les groupes depuis localStorage (persistance légère)
     loadGroupesFromStorage();
-
     updateGlobalUnread();
 
+    const now = new Date();
     const recentes = [];
     const anciennes = [];
-    const now = new Date();
 
-    // Conversations normales (1-à-1)
     conversationStore.forEach((pseudo) => {
       if (pseudo.startsWith("groupe__")) return;
       const mList = messagesStore[pseudo] || [];
       const lastMsg = mList[mList.length - 1];
       if (!lastMsg) return;
-      const diffHours = (now - new Date(lastMsg.timestamp)) / (1000 * 60 * 60);
-      (diffHours < 24 ? recentes : anciennes).push({
+      const diffH = (now - new Date(lastMsg.timestamp)) / (1000 * 60 * 60);
+      (diffH < 24 ? recentes : anciennes).push({
         pseudo,
         lastMsg,
         isGroupe: false,
       });
     });
-
-    // Conversations groupes
     Object.keys(groupeStore).forEach((groupeId) => {
       const mList = messagesStore[groupeId] || [];
       const lastMsg = mList[mList.length - 1];
       if (!lastMsg) return;
-      const diffHours = (now - new Date(lastMsg.timestamp)) / (1000 * 60 * 60);
-      (diffHours < 24 ? recentes : anciennes).push({
+      const diffH = (now - new Date(lastMsg.timestamp)) / (1000 * 60 * 60);
+      (diffH < 24 ? recentes : anciennes).push({
         pseudo: groupeId,
         lastMsg,
         isGroupe: true,
       });
     });
 
+    // Tri par date décroissante
+    const sortDesc = (a, b) =>
+      new Date(b.lastMsg.timestamp) - new Date(a.lastMsg.timestamp);
+    recentes.sort(sortDesc);
+    anciennes.sort(sortDesc);
+
     const container = document.getElementById("conversations-container");
     if (!container) return;
 
-    function renderGroup(title, list) {
-      if (!list.length) return "";
-      return `
-        <div class="conversation-group">
-          <div class="group-title">${title}</div>
-          ${list.map(({ pseudo, lastMsg, isGroupe }) => renderConvItem(pseudo, lastMsg, isGroupe)).join("")}
-        </div>`;
+    function renderSectionLabel(title) {
+      return `<div class="conv-section-label">${title}</div>`;
     }
-
-    function renderConvItem(pseudo, lastMsg, isGroupe) {
+    function renderConvItem({ pseudo, lastMsg, isGroupe }) {
       const displayName = isGroupe ? groupLabel(pseudo) : pseudo;
-      const time = new Date(lastMsg.timestamp).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      const hasUnread = unreadStore[pseudo] || false;
+      const time = formatRelativeDate(lastMsg.timestamp);
+      const hasUnread = !!unreadStore[pseudo];
+      const bodyPreview = (lastMsg.body || "").substring(0, 42);
 
       let avatarHtml;
       if (isGroupe && groupeStore[pseudo]) {
         const others = groupeStore[pseudo].participants
           .filter((p) => p !== currentUser)
           .slice(0, 2);
-        avatarHtml = `<div class="avatar-group">
-          ${others.map((p, i) => `<div class="av-sub" style="background:${getUserSolidColor(p)}">${p.charAt(0).toUpperCase()}</div>`).join("")}
-        </div>`;
+        avatarHtml = `<div class="conv-avatar-group">${others
+          .map(
+            (p) =>
+              `<div class="av-sub" style="background:${getUserSolidColor(p)}">${p.charAt(0).toUpperCase()}</div>`,
+          )
+          .join("")}</div>`;
       } else {
         const avatarUrl =
           lastMsg.sender.trim().toLowerCase() === currentUser
             ? lastMsg.receiverAvatar
             : lastMsg.senderAvatar;
-        avatarHtml = `<div class="avatar" style="background-image:url('${avatarUrl || ""}');background-color:${getUserSolidColor(pseudo)}">
-          ${!avatarUrl ? pseudo.charAt(0).toUpperCase() : ""}
-        </div>`;
+        avatarHtml = `<div class="conv-avatar" style="${avatarUrl ? `background-image:url('${avatarUrl}');` : ""}background-color:${getUserSolidColor(pseudo)}">${!avatarUrl ? pseudo.charAt(0).toUpperCase() : ""}</div>`;
       }
 
-      // Prévisualisation du body (nettoyer le sujet groupe)
-      const bodyPreview = (lastMsg.body || "").substring(0, 40);
       const pilleGroupe = isGroupe
-        ? `<span class="conv-group-pill"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="7" r="3"/><path d="M3 20c0-3 2.7-5 6-5h6c3.3 0 6 2 6 5"/></svg>Groupe</span>`
+        ? `<span class="conv-groupe-pill"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><circle cx="16" cy="7" r="3"/><path d="M3 20c0-3 2.7-5 6-5h6c3.3 0 6 2 6 5"/></svg> Groupe</span>`
         : "";
 
       return `
-        <div class="conversation ${hasUnread ? "has-unread" : ""}" data-user="${pseudo}">
+      <div class="conversation ${hasUnread ? "has-unread" : ""} ${archivedStore.has(pseudo) ? "is-archived" : ""}" data-user="${pseudo}">
           ${avatarHtml}
           <div class="conv-info">
-            <div class="top-line">
-              <span class="conv-name">${displayName}${pilleGroupe}</span>
-              <span class="time">${time}</span>
+            <div class="conv-top">
+              <span class="conv-name">${displayName} ${pilleGroupe}</span>
+              <span class="conv-time">${time}</span>
             </div>
-            <div class="preview">${bodyPreview}${bodyPreview.length >= 40 ? "…" : ""}</div>
+            <div class="conv-preview">${bodyPreview}${bodyPreview.length >= 42 ? "…" : ""}</div>
           </div>
-          <div class="conv-meta">${hasUnread ? `<div class="unread new"></div>` : ""}</div>
-          <div class="conv-actions" data-user="${pseudo}" title="Supprimer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>
-            </svg>
+          <div class="conv-meta">
+            ${hasUnread ? `<div class="conv-unread-dot"></div>` : ""}
+            <button class="conv-delete-btn" data-user="${pseudo}" title="Supprimer" aria-label="Supprimer la conversation">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+            </button>
           </div>
         </div>`;
     }
 
-    container.innerHTML =
-      renderGroup("Récentes", recentes) + renderGroup("Anciennes", anciennes);
+    let html = "";
+    if (recentes.length)
+      html +=
+        renderSectionLabel("Épinglées") + recentes.map(renderConvItem).join("");
+    if (anciennes.length)
+      html +=
+        renderSectionLabel("Récentes") + anciennes.map(renderConvItem).join("");
+    container.innerHTML = html;
 
     document.querySelectorAll(".conversation").forEach(attachConversationClick);
-    conversations = document.querySelectorAll(".conversation");
 
-    // Suppression via la miniature
-    document.querySelectorAll(".conv-actions").forEach((btn) => {
+    // Boutons de suppression
+    document.querySelectorAll(".conv-delete-btn").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
         e.stopPropagation();
         const pseudo = btn.dataset.user;
@@ -730,49 +813,52 @@ async function loadAllConversations() {
           )
         )
           return;
-
-        try {
-          const tkn = getAuthToken();
-          if (!tkn) throw new Error("Token manquant");
-
-          if (pseudo.startsWith("groupe__")) {
-            delete groupeStore[pseudo];
-            delete messagesStore[pseudo];
-            conversationStore.delete(pseudo);
-            saveGroupesToStorage();
-          } else {
-            const receiverId = Number(receiverIdStore[pseudo]);
-            if (!receiverId) {
-              alert("Erreur : utilisateur introuvable");
-              return;
-            }
-            await fetch(`/api/conversations/${receiverId}`, {
-              method: "DELETE",
-              headers: { Authorization: `Bearer ${tkn}` },
-            });
-            delete messagesStore[pseudo];
-            conversationStore.delete(pseudo);
-          }
-
-          const el = document.querySelector(
-            `.conversation[data-user='${pseudo}']`,
-          );
-          if (el) el.remove();
-
-          if (activeConversationId === pseudo) {
-            activeConversationId = null;
-            resetChatZone();
-          }
-        } catch (err) {
-          console.error(err);
-          alert("Erreur suppression");
-        }
+        await deleteConversation(pseudo);
       });
     });
 
+    // Ré-activer la convo courante visuellement
+    if (activeConversationId) {
+      document
+        .querySelector(`.conversation[data-user="${activeConversationId}"]`)
+        ?.classList.add("active");
+    }
+
     applyTabFilter();
   } catch (err) {
-    console.error("[ERROR] Erreur chargement conversations :", err);
+    console.error("[ERROR] loadAllConversations:", err);
+  }
+}
+
+async function deleteConversation(pseudo) {
+  try {
+    const tkn = getAuthToken();
+    if (!tkn) throw new Error("Token manquant");
+
+    if (pseudo.startsWith("groupe__")) {
+      delete groupeStore[pseudo];
+      delete messagesStore[pseudo];
+      conversationStore.delete(pseudo);
+      saveGroupesToStorage();
+    } else {
+      const receiverId = Number(receiverIdStore[pseudo]);
+      if (!receiverId) {
+        alert("Erreur : utilisateur introuvable");
+        return;
+      }
+      await fetch(`/api/conversations/${receiverId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${tkn}` },
+      });
+      delete messagesStore[pseudo];
+      conversationStore.delete(pseudo);
+    }
+
+    document.querySelector(`.conversation[data-user='${pseudo}']`)?.remove();
+    if (activeConversationId === pseudo) resetChatZone();
+  } catch (err) {
+    console.error("[DELETE CONV]", err);
+    alert("Erreur suppression");
   }
 }
 
@@ -780,28 +866,34 @@ function resetChatZone() {
   activeConversationId = null;
   if (chatBox) {
     chatBox.innerHTML = `
-      <div class="chat-empty" id="chat-empty-state">
-        <div class="chat-empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+      <div class="chat-empty-state" id="chat-empty-state">
+        <div class="ces-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+          </svg>
+        </div>
         <h3>Aucune conversation sélectionnée</h3>
-        <p>Choisis une conversation à gauche<br/>ou démarre-en une nouvelle.</p>
+        <p>Choisis une conversation à gauche ou démarre-en une nouvelle.</p>
       </div>`;
   }
-  if (chatWithTitle) chatWithTitle.textContent = "Sélectionne une conversation";
-  const av = document.getElementById("chat-avatar");
-  if (av) {
-    av.className = "chat-avatar";
-    av.id = "chat-avatar";
-    av.textContent = "A";
-  }
+  const titleEl = document.getElementById("chat-with");
+  if (titleEl) titleEl.textContent = "Sélectionne une conversation";
+  const wrap = document.getElementById("chatAvatarWrap");
+  if (wrap) wrap.innerHTML = `<div class="chat-av" id="chat-avatar">A</div>`;
   const pb = document.getElementById("participants-bar");
   if (pb) {
     pb.style.display = "none";
     pb.innerHTML = "";
   }
+  const mc = document.getElementById("chatMembersCount");
+  if (mc) {
+    mc.textContent = "";
+    mc.style.display = "none";
+  }
 }
 
 // ============================================================
-// CHARGEMENT D'UNE CONVERSATION (normale ou groupe)
+// CHARGEMENT D'UNE CONVERSATION
 // ============================================================
 async function loadConversation(conversationKey) {
   if (!chatBox) return;
@@ -814,47 +906,48 @@ async function loadConversation(conversationKey) {
   let msgs = messagesStore[pseudoNorm] || [];
   msgs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
+  let lastDayLabel = "";
+
   msgs.forEach((msg) => {
     const isMe = clean(msg.sender) === clean(currentUser);
     const senderName = isMe ? "Moi" : msg.sender;
+    const avColor = isMe ? "" : getUserSolidColor(clean(msg.sender));
+    const avatarUrl = isMe ? msg.senderAvatar : msg.senderAvatar;
+    const time = msg.timestamp ? formatTime(msg.timestamp) : "";
+
+    // Day separator
+    const dayLabel = msg.timestamp
+      ? new Date(msg.timestamp).toLocaleDateString("fr-FR", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        })
+      : "";
+    if (dayLabel && dayLabel !== lastDayLabel) {
+      const sep = document.createElement("div");
+      sep.className = "day-sep";
+      sep.innerHTML = `<span>${dayLabel}</span>`;
+      chatBox.appendChild(sep);
+      lastDayLabel = dayLabel;
+    }
+
     const wrapper = document.createElement("div");
     wrapper.className = "bubble-wrapper";
 
-    const avatarUrl = isMe ? msg.receiverAvatar : msg.senderAvatar;
-    const time = msg.timestamp
-      ? new Date(msg.timestamp).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "";
-
-    const rowClass = isMe ? "msg-row me" : "msg-row";
-    const bubbleClass = isMe ? "me" : "them";
     const letter = senderName ? senderName.charAt(0).toUpperCase() : "?";
-
-    // BUG FIX : couleur stable par correspondant dans les groupes
-    const avColor = isMe ? "" : getUserSolidColor(clean(msg.sender));
     const avStyle = avatarUrl
       ? `background-image:url('${avatarUrl}');background-color:${avColor}`
       : `background:${avColor || getUserSolidColor(clean(msg.sender))}`;
+    const rowClass = isMe ? "msg-row me" : "msg-row";
 
-    // Construction du contenu bulle (texte + attachments)
-    let bubbleContent = "";
-
-    // Afficher le sujet uniquement si ce n'est pas un sujet de groupe encodé
-    if (msg.subject && !msg.subject.startsWith("[Groupe:")) {
-      bubbleContent += `<strong>[${msg.subject}]</strong><br/>`;
-    }
-    bubbleContent += msg.body || "";
-
-    // BUG FIX 2 : afficher les pièces jointes persistées dans le message
+    // Attachments
     const attachments = (() => {
       if (!msg.attachments) return [];
       if (Array.isArray(msg.attachments)) return msg.attachments;
       if (typeof msg.attachments === "string") {
         try {
-          const parsed = JSON.parse(msg.attachments);
-          return Array.isArray(parsed) ? parsed : [];
+          const p = JSON.parse(msg.attachments);
+          return Array.isArray(p) ? p : [];
         } catch {
           return [];
         }
@@ -862,56 +955,60 @@ async function loadConversation(conversationKey) {
       return [];
     })();
 
+    let bubbleContent = "";
+    if (msg.subject && !msg.subject.startsWith("[Groupe:")) {
+      bubbleContent += `<strong style="display:block;margin-bottom:4px;font-size:12px;opacity:0.7">${msg.subject}</strong>`;
+    }
+    bubbleContent += msg.body || "";
     attachments.forEach((att) => {
       if (att.type === "image") {
-        bubbleContent += `<br/><img src="${att.url}" class="bubble-img" alt="image" data-src="${att.url}"/>`;
+        bubbleContent += `<img src="${att.url}" class="bubble-img" data-src="${att.url}" alt="image"/>`;
+      } else if (att.type === "audio") {
+        const dur = att.duration ? formatAudioDuration(att.duration) : "";
+        bubbleContent += buildAudioBubble(att.url, dur, isMe);
       } else {
-        bubbleContent += `<br/><a class="bubble-attachment" href="${att.url}" download="${att.name || "fichier"}" target="_blank">
-          <div class="att-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-          <div class="att-info"><div class="att-name">${att.name || "Fichier"}</div><div class="att-size">${att.size ? formatBytes(att.size) : ""}</div></div>
-        </a>`;
+        bubbleContent += `
+          <a class="bubble-attachment" href="${att.url}" download="${att.name || "fichier"}" target="_blank">
+            <div class="att-icon-wrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="att-info"><div class="att-name">${att.name || "Fichier"}</div><div class="att-size">${att.size ? formatBytes(att.size) : ""}</div></div>
+            <svg class="att-download" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </a>`;
       }
     });
 
-    // Couleur du nom d'expéditeur dans les groupes (BUG FIX : couleur dédiée par user)
-    const senderLabelColor = isGroupe && !isMe ? avColor : "var(--text-muted)";
+    const senderColor = isGroupe && !isMe ? avColor : "var(--tx-muted)";
 
     wrapper.innerHTML = `
       <div class="${rowClass}">
-        ${!isMe ? `<div class="msg-av" style="${avStyle}">${!avatarUrl ? letter : ""}</div>` : ""}
+        ${!isMe ? `<div class="msg-av-wrap" style="${avStyle}">${!avatarUrl ? letter : ""}</div>` : ""}
         <div class="msg-body">
-          ${!isMe ? `<div class="msg-sender" style="color:${senderLabelColor};font-weight:600;">${senderName}</div>` : ""}
-          <div class="bubble-content">
-            <div class="bubble ${bubbleClass}">${bubbleContent}</div>
-            <div class="msg-menu-btn" data-id="${msg.id}">
-              <svg viewBox="0 0 24 24" width="18" height="18">
-                <circle cx="5" cy="12" r="2" fill="url(#gradientDots)"/>
-                <circle cx="12" cy="12" r="2" fill="url(#gradientDots)"/>
-                <circle cx="19" cy="12" r="2" fill="url(#gradientDots)"/>
-              </svg>
-            </div>
+          ${!isMe && isGroupe ? `<div class="msg-sender-name" style="color:${senderColor}">${senderName}</div>` : ""}
+          <div class="bubble-content-wrap">
+            ${isMe ? `<button class="msg-menu-btn" data-id="${msg.id}" aria-label="Options message"><svg viewBox="0 0 24 24" width="13" height="13"><circle cx="5" cy="12" r="1.5" fill="url(#gradientDots)"/><circle cx="12" cy="12" r="1.5" fill="url(#gradientDots)"/><circle cx="19" cy="12" r="1.5" fill="url(#gradientDots)"/></svg></button>` : ""}
+            <div class="bubble ${isMe ? "me" : "them"}">${bubbleContent}</div>
+            ${!isMe ? `<button class="msg-menu-btn" data-id="${msg.id}" aria-label="Options message"><svg viewBox="0 0 24 24" width="13" height="13"><circle cx="5" cy="12" r="1.5" fill="url(#gradientDots)"/><circle cx="12" cy="12" r="1.5" fill="url(#gradientDots)"/><circle cx="19" cy="12" r="1.5" fill="url(#gradientDots)"/></svg></button>` : ""}
           </div>
-          <div class="msg-time">${time}</div>
+          <div class="msg-time">${time}${isMe ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="opacity:0.5"><polyline points="20 6 9 17 4 12"/></svg>` : ""}</div>
         </div>
       </div>`;
     chatBox.appendChild(wrapper);
   });
 
-  // Re-bind menu contextuel
+  // Bind menu contextuel
   const msgMenu = document.getElementById("msgMenu");
   chatBox.querySelectorAll(".msg-menu-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       selectedMessageId = btn.dataset.id;
       if (msgMenu) {
-        msgMenu.style.top = e.pageY + "px";
-        msgMenu.style.left = Math.max(0, e.pageX - 150) + "px";
+        msgMenu.style.top = `${e.pageY}px`;
+        msgMenu.style.left = `${Math.max(0, e.pageX - 160)}px`;
         msgMenu.classList.remove("hidden");
       }
     });
   });
 
-  // Lightbox sur les images
+  // Lightbox
   chatBox.querySelectorAll(".bubble-img").forEach((img) => {
     img.addEventListener("click", () =>
       openLightbox(img.dataset.src || img.src),
@@ -934,11 +1031,16 @@ function openLightbox(src) {
 }
 function initLightbox() {
   const lb = document.getElementById("imgLightbox");
+  const close = document.getElementById("lbClose");
   lb?.addEventListener("click", () => lb.classList.remove("active"));
+  close?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    lb?.classList.remove("active");
+  });
 }
 
 // ============================================================
-// COMPOSER & ENVOI
+// ENVOI MESSAGE
 // ============================================================
 async function handleSendMessage(e) {
   if (e) e.preventDefault();
@@ -948,13 +1050,18 @@ async function handleSendMessage(e) {
   const hasPending = pendingFiles.length > 0;
   if (!text && !hasPending) return;
 
-  // BUG FIX 3 : utiliser activeConversationId (la vraie clé) au lieu de chatWithTitle.textContent
   const conversationKey = activeConversationId;
   if (!conversationKey) return;
+  // Guard blocage
+  if (
+    !activeConversationId.startsWith("groupe__") &&
+    blockedStore.has(activeConversationId)
+  ) {
+    showToast("Impossible : cet utilisateur est bloqué.");
+    return;
+  }
 
   const isGroupe = conversationKey.startsWith("groupe__");
-
-  // Upload les fichiers en attente
   let uploadedAttachments = [];
   if (hasPending) {
     uploadedAttachments = await uploadPendingFiles();
@@ -965,18 +1072,14 @@ async function handleSendMessage(e) {
   const token = getAuthToken();
 
   if (isGroupe) {
-    // Envoi groupe : on envoie un message à chaque participant
     const groupe = groupeStore[conversationKey];
     if (!groupe) return;
     const receivers = groupe.participants.filter((p) => p !== currentUser);
 
-    // Créer un pseudo-message local immédiatement pour affichage réactif
     const localMsg = {
       id: "local_" + Date.now(),
       sender: currentUser,
       receiver: receivers[0] || "",
-      sender_id: null,
-      receiver_id: null,
       subject: buildGroupeSubject(conversationKey, groupe.name, ""),
       body: text,
       timestamp: new Date().toISOString(),
@@ -991,12 +1094,10 @@ async function handleSendMessage(e) {
     userInput.style.height = "auto";
     await loadConversation(conversationKey);
 
-    // BUG FIX 1 : encoder le groupeId dans le sujet pour que les destinataires
-    // puissent reconstruire la conversation groupée à la réception
     const membersForEncoding = groupe.participants
       .filter((p) => p !== currentUser)
       .map((p) => ({ pseudo: p, email: userEmailStore[p] || "" }))
-      .filter((p) => p.email); // ne pas encoder les membres sans email connu
+      .filter((p) => p.email);
     const groupeSubject = buildGroupeSubject(
       conversationKey,
       groupe.name,
@@ -1007,8 +1108,6 @@ async function handleSendMessage(e) {
     for (const p of receivers) {
       const receiverId = Number(receiverIdStore[p]);
       const email = userEmailStore[p];
-
-      // BUG FIX 2 : inclure les attachments dans le payload
       const payload =
         receiverId && !isNaN(receiverId)
           ? {
@@ -1024,10 +1123,9 @@ async function handleSendMessage(e) {
               subject: groupeSubject,
               attachments: uploadedAttachments,
             };
-
       if (!receiverId && !email) continue;
       try {
-        const res = await fetch("/api/messages", {
+        await fetch("/api/messages", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1035,9 +1133,6 @@ async function handleSendMessage(e) {
           },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) {
-          console.error("[GROUPE SEND] Erreur envoi à", p);
-        }
       } catch (err) {
         console.error("[GROUPE SEND]", err);
       }
@@ -1045,11 +1140,9 @@ async function handleSendMessage(e) {
     return;
   }
 
-  // Conversation normale 1-à-1
+  // 1-à-1
   const receiverId = Number(receiverIdStore[conversationKey]);
   const email = userEmailStore[conversationKey];
-
-  // BUG FIX 2 : inclure les attachments dans le payload
   const payload =
     receiverId && !isNaN(receiverId)
       ? {
@@ -1088,7 +1181,6 @@ async function handleSendMessage(e) {
       return;
     }
 
-    // BUG FIX 2 : enrichir le message local avec les attachments pour affichage immédiat
     if (data.messageId) {
       const localMsg = {
         id: data.messageId,
@@ -1105,28 +1197,28 @@ async function handleSendMessage(e) {
       const existIdx = messagesStore[conversationKey].findIndex(
         (m) => m.id === data.messageId,
       );
-      if (existIdx >= 0) {
+      if (existIdx >= 0)
         messagesStore[conversationKey][existIdx].attachments =
           uploadedAttachments;
-      } else {
-        messagesStore[conversationKey].push(localMsg);
-      }
+      else messagesStore[conversationKey].push(localMsg);
     }
 
     userInput.value = "";
     userInput.style.height = "auto";
-
     await loadAllConversations();
     await loadConversation(conversationKey);
   } catch (err) {
-    console.error("[ERROR] Erreur envoi message :", err);
+    console.error("[SEND]", err);
   }
 }
 
+// ============================================================
+// COMPOSER INIT
+// ============================================================
 function initComposer() {
   userInput?.addEventListener("input", () => {
     userInput.style.height = "auto";
-    userInput.style.height = Math.min(userInput.scrollHeight, 80) + "px";
+    userInput.style.height = Math.min(userInput.scrollHeight, 100) + "px";
   });
   userInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -1135,7 +1227,9 @@ function initComposer() {
     }
   });
   sendBtn?.addEventListener("click", handleSendMessage);
-  document.querySelectorAll(".comp-tag").forEach((tag) => {
+
+  // Quick replies
+  document.querySelectorAll(".qr-tag").forEach((tag) => {
     tag.addEventListener("click", () => {
       if (userInput) {
         userInput.value = tag.dataset.quick;
@@ -1152,7 +1246,7 @@ function initComposer() {
 function initNewMsgPopup() {
   const overlay = document.getElementById("newMsgOverlay");
   const closeEl = document.getElementById("newMsgClose");
-  const cancelEl = document.getElementById("newMsgCancel");
+  const cancel = document.getElementById("newMsgCancel");
   const sendEl = document.getElementById("newMsgSend");
   const pseudo = document.getElementById("newMsgPseudo");
   const email = document.getElementById("newMsgEmail");
@@ -1167,9 +1261,16 @@ function initNewMsgPopup() {
     ?.addEventListener("click", open);
   document
     .getElementById("btn-nouveau-message-sidebar")
+    ?.addEventListener("click", () => {
+      close();
+      open();
+      document.getElementById("newMsgDropdown")?.classList.add("hidden");
+    });
+  document
+    .getElementById("btn-nouveau-message-sidebar-2")
     ?.addEventListener("click", open);
   closeEl?.addEventListener("click", close);
-  cancelEl?.addEventListener("click", close);
+  cancel?.addEventListener("click", close);
   overlay?.addEventListener("click", (e) => {
     if (e.target === overlay) close();
   });
@@ -1204,14 +1305,13 @@ function initNewMsgPopup() {
         return;
       }
       await loadAllConversations();
-      if (pseudo) pseudo.value = "";
-      if (email) email.value = "";
-      if (objet) objet.value = "";
-      if (body) body.value = "";
+      [pseudo, email, objet, body].forEach((el) => {
+        if (el) el.value = "";
+      });
       close();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors de l'envoi du message au serveur.");
+      alert("Erreur envoi.");
     }
   });
 }
@@ -1219,24 +1319,19 @@ function initNewMsgPopup() {
 // ============================================================
 // POPUP GROUPE
 // ============================================================
-let groupeParticipants = []; // { pseudo, email }
-
-function getUserGradient(username) {
-  getUserColor(username);
-  return getUserSolidColor(username);
-}
+let groupeParticipants = [];
 
 function renderGroupeParticipants() {
   const container = document.getElementById("groupe-participants-list");
   if (!container) return;
   container.innerHTML = groupeParticipants
-    .map((p, idx) => {
-      const color = getUserGradient(p.pseudo);
-      return `<span class="groupe-participant-tag" style="background:${color}">
+    .map(
+      (p, idx) => `
+    <span class="groupe-participant-tag" style="background:${getUserSolidColor(p.pseudo)}">
       ${p.pseudo}
       <span class="remove-p" data-idx="${idx}">×</span>
-    </span>`;
-    })
+    </span>`,
+    )
     .join("");
   container.querySelectorAll(".remove-p").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1249,7 +1344,7 @@ function renderGroupeParticipants() {
 function initGroupePopup() {
   const overlay = document.getElementById("groupeOverlay");
   const closeEl = document.getElementById("groupeClose");
-  const cancelEl = document.getElementById("groupeCancel");
+  const cancel = document.getElementById("groupeCancel");
   const addBtn = document.getElementById("groupeAddBtn");
   const sendEl = document.getElementById("groupeSend");
 
@@ -1262,9 +1357,16 @@ function initGroupePopup() {
 
   document
     .getElementById("btn-nouveau-groupe-sidebar")
+    ?.addEventListener("click", () => {
+      close();
+      open();
+      document.getElementById("newMsgDropdown")?.classList.add("hidden");
+    });
+  document
+    .getElementById("btn-nouveau-groupe-sidebar-2")
     ?.addEventListener("click", open);
   closeEl?.addEventListener("click", close);
-  cancelEl?.addEventListener("click", close);
+  cancel?.addEventListener("click", close);
   overlay?.addEventListener("click", (e) => {
     if (e.target === overlay) close();
   });
@@ -1307,7 +1409,6 @@ function initGroupePopup() {
     const nom = document.getElementById("groupeNom")?.value.trim();
     const objet = document.getElementById("groupeObjet")?.value.trim();
     const body = document.getElementById("groupeBody")?.value.trim();
-
     if (!nom) {
       alert("Donne un nom au groupe.");
       return;
@@ -1326,19 +1427,15 @@ function initGroupePopup() {
       ...groupeParticipants.map((p) => p.pseudo),
     ];
     const groupeId = makeGroupeId(allParticipants);
-
-    // Créer le groupe en mémoire
     groupeStore[groupeId] = { name: nom, participants: allParticipants };
     saveGroupesToStorage();
 
-    // BUG FIX 1 : encoder le groupeId dans le sujet pour reconstruction côté destinataire
     const groupeSubject = buildGroupeSubject(
       groupeId,
       nom,
       objet,
-      groupeParticipants, // [{ pseudo, email }] déjà disponible dans ce scope
+      groupeParticipants,
     );
-    // Message initial local
     const localMsg = {
       id: "local_" + Date.now(),
       sender: currentUser,
@@ -1354,20 +1451,13 @@ function initGroupePopup() {
     messagesStore[groupeId].push(localMsg);
 
     const token = getAuthToken();
-
-    // Envoyer le message initial à chaque participant avec le sujet encodé
     for (const p of groupeParticipants) {
       const receiverId = Number(receiverIdStore[p.pseudo]);
       const email = p.email || userEmailStore[p.pseudo];
       const payload =
         receiverId && !isNaN(receiverId)
           ? { receiverId, body, subject: groupeSubject }
-          : {
-              pseudo: p.pseudo,
-              email,
-              body,
-              subject: groupeSubject,
-            };
+          : { pseudo: p.pseudo, email, body, subject: groupeSubject };
       if (!receiverId && !email) continue;
       try {
         await fetch("/api/messages", {
@@ -1383,113 +1473,160 @@ function initGroupePopup() {
       }
     }
 
-    // Réinitialiser popup
-    const gNom = document.getElementById("groupeNom");
-    const gObjet = document.getElementById("groupeObjet");
-    const gBody = document.getElementById("groupeBody");
-    if (gNom) gNom.value = "";
-    if (gObjet) gObjet.value = "";
-    if (gBody) gBody.value = "";
+    ["groupeNom", "groupeObjet", "groupeBody"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
     groupeParticipants = [];
     renderGroupeParticipants();
     close();
 
-    // Rafraîchir et ouvrir le groupe
     await loadAllConversations();
-
-    // BUG FIX 3 : ouvrir le groupe via data-user (la vraie clé groupeId)
-    const convEl = document.querySelector(
-      `.conversation[data-user="${groupeId}"]`,
-    );
-    if (convEl) convEl.click();
+    document.querySelector(`.conversation[data-user="${groupeId}"]`)?.click();
   });
 }
 
-// Persistance groupes dans localStorage
-function saveGroupesToStorage() {
+// ============================================================
+// CHAT ACTIONS (archive, delete, block)
+// ============================================================
+// ============================================================
+// STORES RUNTIME
+// ============================================================
+const archivedStore = new Set(); // conversation_key archivées
+const blockedStore = new Set(); // usernames bloqués (par currentUser)
+
+// ============================================================
+// INIT — charger archives + bloqués depuis l'API
+// ============================================================
+async function loadBlockedAndArchived() {
+  const token = getAuthToken();
   try {
-    localStorage.setItem("aigent_groupes", JSON.stringify(groupeStore));
-  } catch (e) {
-    console.warn("groupes save error", e);
-  }
-}
-function loadGroupesFromStorage() {
-  try {
-    const raw = localStorage.getItem("aigent_groupes");
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    // Merge sans écraser ce qui a déjà été reconstruit depuis les messages
-    Object.keys(data).forEach((k) => {
-      if (!groupeStore[k]) groupeStore[k] = data[k];
-    });
-  } catch (e) {
-    console.warn("groupes load error", e);
+    const [archRes, blockRes] = await Promise.all([
+      fetch("/api/conversations/archived", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch("/api/users/blocked", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ]);
+    const archived = await archRes.json();
+    const blocked = await blockRes.json();
+    archived.forEach((k) => archivedStore.add(k));
+    blocked.forEach((u) => blockedStore.add(u));
+  } catch (err) {
+    console.warn("[loadBlockedAndArchived]", err);
   }
 }
 
 // ============================================================
-// CHAT ACTIONS (bas)
+// CHAT ACTIONS — Archive / Block / Delete (VERSION RÉELLE)
 // ============================================================
 function initChatActions() {
+  // ── ARCHIVER ──────────────────────────────────────────────
   document
-    .getElementById("btn-reply")
-    ?.addEventListener("click", () => userInput?.focus());
+    .getElementById("btn-archive")
+    ?.addEventListener("click", async () => {
+      const cKey = activeConversationId;
+      if (!cKey) return;
+      document.getElementById("chatMoreDropdown")?.classList.add("hidden");
 
-  document.querySelectorAll(".chat-actions .action-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      // BUG FIX 3 : utiliser activeConversationId
-      const conversationKey = activeConversationId;
-      if (!conversationKey) {
-        alert("Aucune conversation sélectionnée.");
-        return;
+      const token = getAuthToken();
+      const isAlreadyArchived = archivedStore.has(cKey);
+
+      if (isAlreadyArchived) {
+        // Désarchiver
+        await fetch(`/api/conversations/archive/${encodeURIComponent(cKey)}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        archivedStore.delete(cKey);
+        showToast("Conversation désarchivée.");
+      } else {
+        // Archiver
+        await fetch("/api/conversations/archive", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ conversationKey: cKey }),
+        });
+        archivedStore.add(cKey);
+        showToast("Conversation archivée.");
       }
 
-      if (btn.id === "btn-archive") {
-        alert(`Conversation archivée.`);
-      } else if (btn.id === "btn-delete") {
-        const msgs = messagesStore[conversationKey] || [];
-        const isGroupe = conversationKey.startsWith("groupe__");
-        if (!msgs.length && !isGroupe) {
-          alert("Aucune conversation à supprimer.");
-          return;
-        }
-        if (
-          !confirm(
-            `Supprimer toute la conversation avec ${isGroupe ? groupLabel(conversationKey) : conversationKey} ?`,
-          )
-        )
-          return;
-        try {
-          if (isGroupe) {
-            delete groupeStore[conversationKey];
-            delete messagesStore[conversationKey];
-            conversationStore.delete(conversationKey);
-            saveGroupesToStorage();
-          } else {
-            const token = getAuthToken();
-            if (!token) throw new Error("Token manquant");
-            const receiverId = receiverIdStore[conversationKey];
-            await fetch(`/api/conversations/${receiverId}`, {
-              method: "DELETE",
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            delete messagesStore[conversationKey];
-            conversationStore.delete(conversationKey);
-          }
-          document
-            .querySelector(`.conversation[data-user='${conversationKey}']`)
-            ?.remove();
-          resetChatZone();
-          alert("Conversation supprimée !");
-        } catch (err) {
-          console.error(err);
-          alert("Erreur suppression");
-        }
-      } else if (btn.id === "btn-block") {
-        alert(`Utilisateur bloqué.`);
-      }
+      await loadAllConversations();
+      applyTabFilter();
     });
+
+  // ── BLOQUER / DÉBLOQUER ──────────────────────────────────
+  document.getElementById("btn-block")?.addEventListener("click", async () => {
+    const cKey = activeConversationId;
+    if (!cKey || cKey.startsWith("groupe__")) return;
+    document.getElementById("chatMoreDropdown")?.classList.add("hidden");
+
+    const token = getAuthToken();
+    const isBlocked = blockedStore.has(cKey);
+
+    if (isBlocked) {
+      // Débloquer
+      if (!confirm(`Débloquer ${cKey} ?`)) return;
+      await fetch(`/api/users/block/${encodeURIComponent(cKey)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      blockedStore.delete(cKey);
+      showToast(`${cKey} débloqué.`);
+    } else {
+      // Bloquer
+      if (
+        !confirm(`Bloquer ${cKey} ? Vous ne pourrez plus échanger de messages.`)
+      )
+        return;
+      await fetch("/api/users/block", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ targetUsername: cKey }),
+      });
+      blockedStore.add(cKey);
+      showToast(`${cKey} bloqué.`);
+    }
+
+    // Mettre à jour le label du bouton
+    updateBlockBtnLabel();
   });
+
+  // ── SUPPRIMER ─────────────────────────────────────────────
+  document.getElementById("btn-delete")?.addEventListener("click", async () => {
+    const cKey = activeConversationId;
+    if (!cKey) {
+      alert("Aucune conversation sélectionnée.");
+      return;
+    }
+    const isGroupe = cKey.startsWith("groupe__");
+    if (
+      !confirm(
+        `Supprimer la conversation avec ${isGroupe ? groupLabel(cKey) : cKey} ?`,
+      )
+    )
+      return;
+    document.getElementById("chatMoreDropdown")?.classList.add("hidden");
+    await deleteConversation(cKey);
+  });
+}
+
+// Met à jour le label "Bloquer" ↔ "Débloquer" selon l'état courant
+function updateBlockBtnLabel() {
+  const btn = document.getElementById("btn-block");
+  if (!btn || !activeConversationId) return;
+  const isBlocked = blockedStore.has(activeConversationId);
+  // Remplacer le texte du bouton en gardant l'icône SVG
+  const svgEl = btn.querySelector("svg");
+  btn.textContent = isBlocked ? "Débloquer" : "Bloquer";
+  if (svgEl) btn.prepend(svgEl);
 }
 
 // ============================================================
@@ -1498,16 +1635,16 @@ function initChatActions() {
 function initContextMenu() {
   const msgMenu = document.getElementById("msgMenu");
   msgMenu?.addEventListener("click", async (e) => {
-    const action = e.target.closest(".menu-item")?.dataset.action;
-    if (!action) return;
-
-    // BUG FIX 3 : utiliser activeConversationId
-    const conversationKey = activeConversationId;
-    if (!conversationKey) {
+    const item = e.target.closest(".ctx-item");
+    if (!item) return;
+    const action = item.dataset.action;
+    const cKey = activeConversationId;
+    if (!cKey) {
       msgMenu.classList.add("hidden");
       return;
     }
-    const msgs = messagesStore[conversationKey] || [];
+
+    const msgs = messagesStore[cKey] || [];
     const msg = msgs.find((m) => String(m.id) === String(selectedMessageId));
     if (!msg) {
       msgMenu.classList.add("hidden");
@@ -1515,8 +1652,18 @@ function initContextMenu() {
     }
 
     if (action === "copy") {
-      navigator.clipboard.writeText(msg.body);
-      alert("Message copié !");
+      try {
+        await navigator.clipboard.writeText(msg.body);
+      } catch {
+        const el = document.createElement("textarea");
+        el.value = msg.body;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      }
+      // Toast feedback
+      showToast("Message copié !");
     }
     if (action === "delete") {
       try {
@@ -1528,20 +1675,56 @@ function initContextMenu() {
             headers: { Authorization: `Bearer ${token}` },
           });
         }
-        messagesStore[conversationKey] = msgs.filter((m) => m.id !== msg.id);
-        await loadConversation(conversationKey);
+        messagesStore[cKey] = msgs.filter((m) => m.id !== msg.id);
+        await loadConversation(cKey);
       } catch (err) {
-        console.error(err);
+        console.error("[DELETE MSG]", err);
       }
     }
     if (action === "save") {
       console.log("Message enregistré :", msg);
-      alert("Message enregistré.");
+      showToast("Message enregistré.");
     }
     msgMenu.classList.add("hidden");
   });
-
   document.addEventListener("click", () => msgMenu?.classList.add("hidden"));
+}
+
+// ============================================================
+// TOAST NOTIFICATION
+// ============================================================
+function showToast(message, duration = 2500) {
+  let toast = document.getElementById("__toast__");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "__toast__";
+    Object.assign(toast.style, {
+      position: "fixed",
+      bottom: "24px",
+      left: "50%",
+      transform: "translateX(-50%) translateY(10px)",
+      background: "var(--tx-primary)",
+      color: "var(--bg-sidebar)",
+      padding: "10px 20px",
+      borderRadius: "10px",
+      fontSize: "13px",
+      fontWeight: "600",
+      boxShadow: "var(--sh-lg)",
+      zIndex: "99999",
+      opacity: "0",
+      transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
+      pointerEvents: "none",
+    });
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.style.opacity = "1";
+  toast.style.transform = "translateX(-50%) translateY(0)";
+  clearTimeout(toast.__timer__);
+  toast.__timer__ = setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(-50%) translateY(10px)";
+  }, duration);
 }
 
 // ============================================================
@@ -1549,22 +1732,135 @@ function initContextMenu() {
 // ============================================================
 function updateOnlineStatus() {
   const status = document.getElementById("chat-status");
-  if (!status) return;
-  const isOnline = Math.random() > 0.5;
+  if (!status || !activeConversationId) return;
+  const isOnline = Math.random() > 0.4;
   status.textContent = isOnline ? "En ligne" : "Hors ligne";
-  status.className = "status" + (isOnline ? " online" : " offline");
+  status.className = `chat-status ${isOnline ? "online" : "offline"}`;
 }
 
 // ============================================================
-// SWIPE MOBILE
+// PERSISTANCE GROUPES
+// ============================================================
+function saveGroupesToStorage() {
+  try {
+    localStorage.setItem("aigent_groupes", JSON.stringify(groupeStore));
+  } catch (e) {
+    console.warn("[STORAGE] groups save error", e);
+  }
+}
+function loadGroupesFromStorage() {
+  try {
+    const raw = localStorage.getItem("aigent_groupes");
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    Object.keys(data).forEach((k) => {
+      if (!groupeStore[k]) groupeStore[k] = data[k];
+    });
+  } catch (e) {
+    console.warn("[STORAGE] groups load error", e);
+  }
+}
+
+// ============================================================
+// EMOJI PICKER (simple)
+// ============================================================
+function initEmojiPicker() {
+  const btn = document.getElementById("btn-emoji");
+  if (!btn) return;
+  const emojis = [
+    "😊",
+    "😂",
+    "❤️",
+    "👍",
+    "🔥",
+    "🎉",
+    "👋",
+    "😎",
+    "🏠",
+    "📎",
+    "📅",
+    "✅",
+    "🙏",
+    "💯",
+    "🤝",
+    "📞",
+  ];
+  let picker = null;
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (picker) {
+      picker.remove();
+      picker = null;
+      return;
+    }
+    picker = document.createElement("div");
+    Object.assign(picker.style, {
+      position: "absolute",
+      bottom: "60px",
+      left: "20px",
+      background: "var(--bg-composer)",
+      border: "1px solid var(--bd-mid)",
+      borderRadius: "14px",
+      padding: "12px",
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "8px",
+      width: "220px",
+      boxShadow: "var(--sh-lg)",
+      zIndex: "1000",
+      animation: "dropIn 0.15s ease",
+    });
+    emojis.forEach((em) => {
+      const sp = document.createElement("button");
+      sp.textContent = em;
+      Object.assign(sp.style, {
+        fontSize: "22px",
+        cursor: "pointer",
+        borderRadius: "6px",
+        padding: "2px",
+        transition: "transform 0.1s",
+        background: "none",
+        border: "none",
+      });
+      sp.addEventListener("click", () => {
+        if (userInput) {
+          userInput.value += em;
+          userInput.focus();
+          userInput.dispatchEvent(new Event("input"));
+        }
+        picker?.remove();
+        picker = null;
+      });
+      sp.addEventListener(
+        "mouseenter",
+        () => (sp.style.transform = "scale(1.25)"),
+      );
+      sp.addEventListener(
+        "mouseleave",
+        () => (sp.style.transform = "scale(1)"),
+      );
+      picker.appendChild(sp);
+    });
+    document.querySelector(".composer-zone")?.appendChild(picker);
+    document.addEventListener(
+      "click",
+      () => {
+        picker?.remove();
+        picker = null;
+      },
+      { once: true },
+    );
+  });
+}
+
+// ============================================================
+// MOBILE SWIPE
 // ============================================================
 function initMobileSwipe() {
-  if (window.innerWidth > 768 || !mobileWrapper) return;
+  if (window.innerWidth > 640 || !appMain) return;
   let startX = 0,
-    currentX = 0,
     isSwiping = false;
-
-  mobileWrapper.addEventListener(
+  appMain.addEventListener(
     "touchstart",
     (e) => {
       startX = e.touches[0].clientX;
@@ -1572,61 +1868,539 @@ function initMobileSwipe() {
     },
     { passive: true },
   );
-
-  mobileWrapper.addEventListener(
+  appMain.addEventListener(
     "touchmove",
     (e) => {
-      currentX = e.touches[0].clientX;
-      const diffX = currentX - startX;
       isSwiping = true;
-      let translate = mobileWrapper.classList.contains("show-chat")
-        ? -window.innerWidth
-        : 0;
-      mobileWrapper.style.transition = "none";
-      mobileWrapper.style.transform = `translateX(${translate + diffX}px)`;
     },
     { passive: true },
   );
-
-  mobileWrapper.addEventListener("touchend", () => {
-    mobileWrapper.style.transition =
-      "transform 0.35s cubic-bezier(0.4,0,0.2,1)";
+  appMain.addEventListener("touchend", (e) => {
     if (!isSwiping) return;
-    const diff = currentX - startX;
-    if (diff > 80) {
-      mobileWrapper.classList.remove("show-chat");
-      mobileWrapper.style.transform = "";
-    } else if (diff < -80) {
-      mobileWrapper.classList.add("show-chat");
-      mobileWrapper.style.transform = "";
-    } else mobileWrapper.style.transform = "";
+    const diffX = e.changedTouches[0].clientX - startX;
+    if (diffX > 80) showListView();
+    if (diffX < -80) showChatView();
+  });
+}
+// ============================================================
+// AUDIO RECORDER — Style WhatsApp/Snap
+// ============================================================
+let mediaRecorder = null;
+let audioChunks = [];
+let audioTimer = null;
+let audioSeconds = 0;
+let analyserNode = null;
+let animFrameId = null;
+let isRecording = false;
+
+const MAX_AUDIO_SECONDS = 60;
+
+function initVoiceRecorder() {
+  const voiceBtn = document.querySelector(".comp-voice-btn");
+  if (!voiceBtn) return;
+
+  voiceBtn.addEventListener("click", async () => {
+    if (!activeConversationId) {
+      showToast("Sélectionne une conversation.");
+      return;
+    }
+    if (blockedStore.has(activeConversationId)) {
+      showToast("Impossible : utilisateur bloqué.");
+      return;
+    }
+
+    if (isRecording) {
+      stopRecording(true); // true = envoyer
+    } else {
+      await startRecording(voiceBtn);
+    }
+  });
+
+  // Clic droit / long press annule
+  voiceBtn.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    if (isRecording) stopRecording(false); // annuler
   });
 }
 
+async function startRecording(voiceBtn) {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    isRecording = true;
+
+    // Setup analyser pour visualisation
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaStreamSource(stream);
+    analyserNode = audioCtx.createAnalyser();
+    analyserNode.fftSize = 64;
+    source.connect(analyserNode);
+
+    // MediaRecorder
+    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      ? "audio/webm;codecs=opus"
+      : "audio/webm";
+    mediaRecorder = new MediaRecorder(stream, { mimeType });
+    audioChunks = [];
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+    mediaRecorder.start(100);
+
+    // UI : transformer le composer
+    showRecordingUI(stream);
+
+    // Timer
+    audioSeconds = 0;
+    audioTimer = setInterval(() => {
+      audioSeconds++;
+      updateRecordingTimer(audioSeconds);
+      if (audioSeconds >= MAX_AUDIO_SECONDS) stopRecording(true);
+    }, 1000);
+
+    // Waveform animation
+    animateWaveform();
+  } catch (err) {
+    console.error("[Audio]", err);
+    showToast("Microphone inaccessible.");
+  }
+}
+
+function stopRecording(send) {
+  if (!mediaRecorder) return;
+  clearInterval(audioTimer);
+  cancelAnimationFrame(animFrameId);
+  isRecording = false;
+
+  mediaRecorder.onstop = async () => {
+    const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+    hideRecordingUI();
+    if (send && blob.size > 0) {
+      await sendAudioMessage(blob, audioSeconds);
+    }
+    audioChunks = [];
+    // Stop tracks
+    mediaRecorder.stream.getTracks().forEach((t) => t.stop());
+    mediaRecorder = null;
+  };
+  mediaRecorder.stop();
+}
+
+// ── UI Recording ─────────────────────────────────────────────
+function showRecordingUI(stream) {
+  const composerInner = document.querySelector(".composer-inner");
+  const textarea = document.getElementById("user-input");
+  const sendBtnEl = document.getElementById("send-btn");
+  const voiceBtn = document.querySelector(".comp-voice-btn");
+
+  // Cacher textarea + left actions
+  if (textarea) textarea.style.display = "none";
+  const leftActions = document.querySelector(".comp-left-actions");
+  if (leftActions) leftActions.style.display = "none";
+
+  // Supprimer un éventuel rec-ui résiduel
+  document.getElementById("rec-ui")?.remove();
+
+  // Créer le bloc d'enregistrement
+  const recUI = document.createElement("div");
+  recUI.id = "rec-ui";
+  recUI.style.cssText =
+    "flex:1; display:flex; align-items:center; gap:12px; padding:0 8px;";
+  recUI.innerHTML = `
+    <div id="rec-dot" style="
+      width:10px;height:10px;border-radius:50%;
+      background:#ef4444;animation:recPulse 1s ease infinite;flex-shrink:0;
+    "></div>
+    <canvas id="waveform-canvas" width="160" height="36" style="flex:1;max-width:220px;border-radius:6px;"></canvas>
+    <span id="rec-timer" style="
+      font-size:13px;font-weight:700;color:var(--tx-primary);
+      font-variant-numeric:tabular-nums;flex-shrink:0;min-width:42px;
+    ">0:00</span>
+    <button id="rec-cancel-btn" style="
+      padding:4px 10px;border-radius:8px;background:var(--bg-hover);
+      color:var(--tx-muted);font-size:12px;font-weight:600;border:1px solid var(--bd-mid);
+      flex-shrink:0;
+    ">✕ Annuler</button>
+  `;
+
+  // Inject style animation (une seule fois)
+  if (!document.getElementById("rec-anim-style")) {
+    const st = document.createElement("style");
+    st.id = "rec-anim-style";
+    st.textContent = `
+      @keyframes recPulse {
+        0%,100%{opacity:1;transform:scale(1);}
+        50%{opacity:0.4;transform:scale(0.7);}
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // ✅ FIX : insérer avant le bloc comp-right-actions (parent garanti)
+  const rightActions = composerInner.querySelector(".comp-right-actions");
+  if (rightActions) {
+    composerInner.insertBefore(recUI, rightActions);
+  } else {
+    composerInner.appendChild(recUI);
+  }
+
+  document
+    .getElementById("rec-cancel-btn")
+    ?.addEventListener("click", () => stopRecording(false));
+
+  // Changer le send btn en icône envoi audio
+  if (sendBtnEl) {
+    sendBtnEl.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>`;
+    sendBtnEl.onclick = () => stopRecording(true);
+  }
+
+  // Voix btn rouge
+  if (voiceBtn) {
+    voiceBtn.style.color = "#ef4444";
+    voiceBtn.title = "Arrêter";
+  }
+}
+
+function hideRecordingUI() {
+  document.getElementById("rec-ui")?.remove();
+  const textarea = document.getElementById("user-input");
+  const sendBtn = document.getElementById("send-btn");
+  const voiceBtn = document.querySelector(".comp-voice-btn");
+  if (textarea) textarea.style.display = "";
+  const leftActions = document.querySelector(".comp-left-actions");
+  if (leftActions) leftActions.style.display = "";
+  if (voiceBtn) {
+    voiceBtn.style.color = "";
+    voiceBtn.title = "Vocal";
+  }
+  // Restaurer send btn
+  if (sendBtn) {
+    sendBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>`;
+    sendBtn.onclick = handleSendMessage;
+  }
+}
+
+function updateRecordingTimer(seconds) {
+  const el = document.getElementById("rec-timer");
+  if (!el) return;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  el.textContent = `${m}:${s.toString().padStart(2, "0")}`;
+  // Couleur rouge quand reste peu de temps
+  if (seconds >= MAX_AUDIO_SECONDS - 10) el.style.color = "#ef4444";
+}
+
+function animateWaveform() {
+  const canvas = document.getElementById("waveform-canvas");
+  if (!canvas || !analyserNode) return;
+  const ctx = canvas.getContext("2d");
+  const bufferLength = analyserNode.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+
+  function draw() {
+    if (!isRecording) return;
+    animFrameId = requestAnimationFrame(draw);
+    analyserNode.getByteFrequencyData(dataArray);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const barCount = 28;
+    const barWidth = 4;
+    const gap = (canvas.width - barCount * barWidth) / (barCount - 1);
+    const step = Math.floor(bufferLength / barCount);
+
+    for (let i = 0; i < barCount; i++) {
+      const val = dataArray[i * step] / 255;
+      const barH = Math.max(4, val * canvas.height * 0.85);
+      const x = i * (barWidth + gap);
+      const y = (canvas.height - barH) / 2;
+
+      // Dégradé violet → rose selon amplitude
+      const gradient = ctx.createLinearGradient(x, y, x, y + barH);
+      gradient.addColorStop(0, `rgba(124,58,237,${0.6 + val * 0.4})`);
+      gradient.addColorStop(1, `rgba(167,139,250,${0.4 + val * 0.3})`);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.roundRect(x, y, barWidth, barH, 2);
+      ctx.fill();
+    }
+  }
+  draw();
+}
+
+// ── Upload Supabase + envoi message ──────────────────────────
+async function sendAudioMessage(blob, durationSeconds) {
+  const conversationKey = activeConversationId;
+  if (!conversationKey) return;
+
+  showToast("Envoi de l'audio…");
+
+  try {
+    // 1. Upload vers /api/upload-audio (route serveur qui pousse vers Supabase)
+    const formData = new FormData();
+    const ext = blob.type.includes("webm") ? "webm" : "mp4";
+    const fileName = `audio_${Date.now()}_${currentUser}.${ext}`;
+    formData.append("audio", blob, fileName);
+    formData.append("duration", String(durationSeconds));
+
+    const token = getAuthToken();
+    const uploadRes = await fetch("/api/upload-audio", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+
+    if (!uploadRes.ok) throw new Error("Upload audio échoué");
+    const { url, name, duration } = await uploadRes.json();
+
+    // 2. Envoyer comme message avec attachment type 'audio'
+    const attachment = { type: "audio", url, name: fileName, duration };
+
+    // Injection locale immédiate
+    const localMsg = {
+      id: "local_audio_" + Date.now(),
+      sender: currentUser,
+      receiver: conversationKey,
+      subject: "",
+      body: "",
+      timestamp: new Date().toISOString(),
+      attachments: [attachment],
+      senderAvatar: null,
+      receiverAvatar: null,
+    };
+    if (!messagesStore[conversationKey]) messagesStore[conversationKey] = [];
+    messagesStore[conversationKey].push(localMsg);
+    await loadConversation(conversationKey);
+
+    // 3. Envoi API message
+    const isGroupe = conversationKey.startsWith("groupe__");
+    if (isGroupe) {
+      const groupe = groupeStore[conversationKey];
+      if (!groupe) return;
+      for (const p of groupe.participants.filter((x) => x !== currentUser)) {
+        const receiverId = Number(receiverIdStore[p]);
+        const email = userEmailStore[p];
+        const payload =
+          receiverId && !isNaN(receiverId)
+            ? {
+                receiverId,
+                body: " ",
+                subject: buildGroupeSubject(conversationKey, groupe.name, ""),
+                attachments: [attachment],
+              }
+            : {
+                pseudo: p,
+                email,
+                body: " ",
+                subject: buildGroupeSubject(conversationKey, groupe.name, ""),
+                attachments: [attachment],
+              };
+        if (!receiverId && !email) continue;
+        await fetch("/api/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }).catch(console.error);
+      }
+    } else {
+      const receiverId = Number(receiverIdStore[conversationKey]);
+      const email = userEmailStore[conversationKey];
+      const payload =
+        receiverId && !isNaN(receiverId)
+          ? { receiverId, body: " ", subject: "", attachments: [attachment] }
+          : {
+              pseudo: conversationKey,
+              email,
+              body: " ",
+              subject: "",
+              attachments: [attachment],
+            };
+      await fetch("/api/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    await loadAllConversations();
+    await loadConversation(conversationKey);
+  } catch (err) {
+    console.error("[sendAudioMessage]", err);
+    showToast("Erreur envoi audio.");
+  }
+}
+function openParticipantsPopup() {
+  if (!activeConversationId) return;
+  const overlay = document.getElementById("participantsOverlay");
+  const list = document.getElementById("participantsList");
+  const isGroupe = activeConversationId.startsWith("groupe__");
+
+  let members = [];
+  if (isGroupe) {
+    const g = groupeStore[activeConversationId];
+    members = g.participants.map((p) => ({
+      pseudo: p,
+      email: userEmailStore[p] || "Email non renseigné",
+    }));
+  } else {
+    members = [
+      { pseudo: currentUser, email: "Moi" },
+      {
+        pseudo: activeConversationId,
+        email: userEmailStore[activeConversationId] || "Email masqué",
+      },
+    ];
+  }
+
+  list.innerHTML = `
+    <table class="saas-table">
+      <thead>
+        <tr>
+          <th>Utilisateur</th>
+          <th>Contact / Rôle</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${members
+          .map(
+            (m) => `
+          <tr>
+            <td>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div class="av-sub" style="background:${getUserSolidColor(m.pseudo)}; width:24px; height:24px; font-size:10px;">${m.pseudo.charAt(0).toUpperCase()}</div>
+                <span style="font-weight:600; color:var(--tx-primary)">${m.pseudo}</span>
+              </div>
+            </td>
+            <td style="color:var(--tx-muted); font-size:12px;">${m.email}</td>
+          </tr>
+        `,
+          )
+          .join("")}
+      </tbody>
+    </table>
+  `;
+  overlay.classList.add("active");
+}
+let selectedMentions = new Set();
+
+function initMentionAction() {
+  const mentionBtn = document.querySelector(
+    '.comp-icon-btn[title="Mentionner"]',
+  );
+  if (!mentionBtn) return;
+
+  mentionBtn.addEventListener("click", () => {
+    if (!activeConversationId) return;
+    const isGroupe = activeConversationId.startsWith("groupe__");
+
+    if (!isGroupe) {
+      // 1-à-1 : Insertion directe
+      insertMention(`@${activeConversationId} `);
+    } else {
+      // Groupe : Ouvrir popup
+      openMentionPopup();
+    }
+  });
+}
+
+function openMentionPopup() {
+  const overlay = document.getElementById("mentionOverlay");
+  const list = document.getElementById("mentionList");
+  const groupe = groupeStore[activeConversationId];
+  selectedMentions.clear();
+
+  list.innerHTML = groupe.participants
+    .filter((p) => p !== currentUser)
+    .map(
+      (p) => `
+      <div class="mention-item" onclick="toggleMentionSelection('${p}', this)">
+        <div class="av-sub" style="background:${getUserSolidColor(p)}; width:20px; height:20px;">${p.charAt(0).toUpperCase()}</div>
+        <span>@${p}</span>
+        <div class="mention-checkbox"></div>
+      </div>
+    `,
+    )
+    .join("");
+
+  overlay.classList.add("active");
+}
+
+window.toggleMentionSelection = function (pseudo, el) {
+  if (selectedMentions.has(pseudo)) {
+    selectedMentions.delete(pseudo);
+    el.classList.remove("selected");
+  } else {
+    selectedMentions.add(pseudo);
+    el.classList.add("selected");
+  }
+};
+
+document
+  .getElementById("btnValidateMentions")
+  ?.addEventListener("click", () => {
+    if (selectedMentions.size > 0) {
+      const text =
+        Array.from(selectedMentions)
+          .map((p) => `@${p}`)
+          .join(", ") + " ";
+      insertMention(text);
+    }
+    document.getElementById("mentionOverlay").classList.remove("active");
+  });
+
+function insertMention(text) {
+  const input = document.getElementById("user-input");
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  input.value =
+    input.value.substring(0, start) + text + input.value.substring(end);
+  input.focus();
+  input.dispatchEvent(new Event("input"));
+} // ============================================================
+// BOOTSTRAP (VERSION CORRIGÉE)
 // ============================================================
-// BOOTSTRAP
-// ============================================================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const user = localStorage.getItem("agent_user");
   if (!user) {
-    console.warn("[AUTH] Aucun utilisateur connecté");
     window.location.href = "index.html";
     return;
   }
 
   initTheme();
-  initSidebar();
+  initUserDisplay();
+  initSidebarCollapse();
   initMobileViews();
   initTabs();
   initSearch();
   initComposer();
   initUploadButtons();
+  initNewMsgDropdown();
+  initChatHeaderDropdown();
   initNewMsgPopup();
   initGroupePopup();
   initChatActions();
   initContextMenu();
   initLightbox();
+  initEmojiPicker();
+  initVoiceRecorder();
   initMobileSwipe();
+
+  // ✅ AJOUTS ICI
+  initMentionAction();
+  document
+    .getElementById("btn-toggle-participants")
+    ?.addEventListener("click", openParticipantsPopup);
 
   const logoutBtn = document.getElementById("btn-logout");
   if (logoutBtn) {
@@ -1635,6 +2409,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   setInterval(updateOnlineStatus, 5000);
-
+  await loadBlockedAndArchived();
   loadAllConversations();
 });

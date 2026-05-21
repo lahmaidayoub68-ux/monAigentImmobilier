@@ -1104,7 +1104,9 @@
                       <label class="remember">
                         <input type="checkbox" /> Se souvenir de moi
                       </label>
-                      <a href="#" class="forgot">Mot de passe oublié ?</a>
+                      <a href="#" class="forgot" id="forgot-pwd-link"
+                        >Mot de passe oublié ?</a
+                      >
                     </div>
 
                     <!-- ✅ type="submit" déclenche l'événement submit du form -->
@@ -1356,16 +1358,474 @@
         </p>
       </footer>
     </div>
+    <!-- ══ MODAL MOT DE PASSE OUBLIÉ ══ -->
+    <div
+      id="forgot-overlay"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: rgba(5, 6, 18, 0.82);
+        backdrop-filter: blur(6px);
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <div
+        id="forgot-modal"
+        style="
+          background: #0f0e1c;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-top: 1px solid rgba(255, 255, 255, 0.13);
+          border-radius: 18px;
+          padding: 32px 28px;
+          width: 100%;
+          max-width: 400px;
+          margin: 16px;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+          position: relative;
+        "
+      >
+        <button
+          id="forgot-close"
+          style="
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: rgba(220, 215, 255, 0.5);
+            font-size: 22px;
+            line-height: 1;
+          "
+        >
+          ×
+        </button>
 
-    <script>
-      // ── Toggle affichage mot de passe ──
-      function togglePwd(inputId, btn) {
-        const input = document.getElementById(inputId);
-        input.type = input.type === "password" ? "text" : "password";
-      }
-    </script>
+        <!-- ÉTAPE 1 : vérification -->
+        <div id="forgot-step1">
+          <div
+            style="
+              width: 44px;
+              height: 44px;
+              border-radius: 12px;
+              background: rgba(138, 75, 255, 0.12);
+              border: 1px solid rgba(138, 75, 255, 0.3);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin-bottom: 18px;
+            "
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#a78bfa"
+              stroke-width="2"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0110 0v4" />
+            </svg>
+          </div>
+          <h3
+            style="
+              font-size: 18px;
+              font-weight: 700;
+              margin-bottom: 6px;
+              letter-spacing: -0.01em;
+            "
+          >
+            Récupérer l'accès
+          </h3>
+          <p
+            style="
+              font-size: 13px;
+              color: rgba(220, 215, 255, 0.6);
+              line-height: 1.55;
+              margin-bottom: 22px;
+            "
+          >
+            Saisissez votre pseudo et l'un de vos codes de récupération 2FA pour
+            réinitialiser votre mot de passe.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <div style="position: relative">
+              <span
+                style="
+                  position: absolute;
+                  left: 13px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                "
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="rgba(220,215,255,.5)"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                id="forgot-username"
+                placeholder="Votre pseudo"
+                style="
+                  width: 100%;
+                  padding: 12px 14px 12px 38px;
+                  background: rgba(0, 0, 0, 0.2);
+                  border: 1px solid rgba(255, 255, 255, 0.08);
+                  border-radius: 9px;
+                  font-family: &quot;Outfit&quot;, sans-serif;
+                  font-size: 13px;
+                  color: #fff;
+                  outline: none;
+                  transition: border-color 0.2s;
+                "
+                onfocus="this.style.borderColor = 'rgba(138,75,255,.6)'"
+                onblur="this.style.borderColor = 'rgba(255,255,255,.08)'"
+              />
+            </div>
+            <div style="position: relative">
+              <span
+                style="
+                  position: absolute;
+                  left: 13px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                "
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="rgba(220,215,255,.5)"
+                  stroke-width="2"
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                id="forgot-recovery-code"
+                placeholder="Code de récupération (ex: ABCDE-FGHIJ)"
+                style="
+                  width: 100%;
+                  padding: 12px 14px 12px 38px;
+                  background: rgba(0, 0, 0, 0.2);
+                  border: 1px solid rgba(255, 255, 255, 0.08);
+                  border-radius: 9px;
+                  font-family: &quot;Outfit&quot;, sans-serif;
+                  font-size: 13px;
+                  color: #fff;
+                  outline: none;
+                  letter-spacing: 0.05em;
+                  text-transform: uppercase;
+                  transition: border-color 0.2s;
+                "
+                onfocus="this.style.borderColor = 'rgba(138,75,255,.6)'"
+                onblur="this.style.borderColor = 'rgba(255,255,255,.08)'"
+              />
+            </div>
+            <div
+              id="forgot-step1-error"
+              style="
+                display: none;
+                font-size: 12px;
+                color: #f87171;
+                padding: 8px 10px;
+                background: rgba(239, 68, 68, 0.08);
+                border: 1px solid rgba(239, 68, 68, 0.2);
+                border-radius: 7px;
+              "
+            ></div>
+            <button
+              id="forgot-step1-btn"
+              style="
+                width: 100%;
+                padding: 13px;
+                border: none;
+                border-radius: 9px;
+                background: linear-gradient(90deg, #536dfe, #8a4bff);
+                color: #fff;
+                font-family: &quot;Outfit&quot;, sans-serif;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                margin-top: 4px;
+              "
+            >
+              Vérifier le code →
+            </button>
+          </div>
+        </div>
+
+        <!-- ÉTAPE 2 : nouveau mot de passe -->
+        <div id="forgot-step2" style="display: none">
+          <div
+            style="
+              width: 44px;
+              height: 44px;
+              border-radius: 12px;
+              background: rgba(5, 150, 105, 0.1);
+              border: 1px solid rgba(5, 150, 105, 0.3);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin-bottom: 18px;
+            "
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#34d399"
+              stroke-width="2"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <h3
+            style="
+              font-size: 18px;
+              font-weight: 700;
+              margin-bottom: 6px;
+              letter-spacing: -0.01em;
+            "
+          >
+            Choisir un nouveau mot de passe
+          </h3>
+          <p
+            style="
+              font-size: 13px;
+              color: rgba(220, 215, 255, 0.6);
+              line-height: 1.55;
+              margin-bottom: 22px;
+            "
+          >
+            Code vérifié. Définissez maintenant votre nouveau mot de passe.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <div style="position: relative">
+              <span
+                style="
+                  position: absolute;
+                  left: 13px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                "
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="rgba(220,215,255,.5)"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0110 0v4" />
+                </svg>
+              </span>
+              <input
+                type="password"
+                id="forgot-new-pwd"
+                placeholder="Nouveau mot de passe"
+                style="
+                  width: 100%;
+                  padding: 12px 14px 12px 38px;
+                  background: rgba(0, 0, 0, 0.2);
+                  border: 1px solid rgba(255, 255, 255, 0.08);
+                  border-radius: 9px;
+                  font-family: &quot;Outfit&quot;, sans-serif;
+                  font-size: 13px;
+                  color: #fff;
+                  outline: none;
+                  transition: border-color 0.2s;
+                "
+                onfocus="this.style.borderColor = 'rgba(138,75,255,.6)'"
+                onblur="this.style.borderColor = 'rgba(255,255,255,.08)'"
+              />
+            </div>
+            <!-- Barre de force -->
+            <div>
+              <div
+                style="
+                  height: 3px;
+                  border-radius: 2px;
+                  background: rgba(255, 255, 255, 0.06);
+                  overflow: hidden;
+                "
+              >
+                <div
+                  id="forgot-pwd-strength-bar"
+                  style="
+                    height: 100%;
+                    width: 0%;
+                    transition: all 0.3s;
+                    border-radius: 2px;
+                  "
+                ></div>
+              </div>
+              <div
+                id="forgot-pwd-strength-label"
+                style="
+                  font-size: 10.5px;
+                  color: rgba(220, 215, 255, 0.5);
+                  margin-top: 4px;
+                  height: 14px;
+                "
+              ></div>
+            </div>
+            <div style="position: relative">
+              <span
+                style="
+                  position: absolute;
+                  left: 13px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                "
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="rgba(220,215,255,.5)"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0110 0v4" />
+                </svg>
+              </span>
+              <input
+                type="password"
+                id="forgot-confirm-pwd"
+                placeholder="Confirmer le mot de passe"
+                style="
+                  width: 100%;
+                  padding: 12px 14px 12px 38px;
+                  background: rgba(0, 0, 0, 0.2);
+                  border: 1px solid rgba(255, 255, 255, 0.08);
+                  border-radius: 9px;
+                  font-family: &quot;Outfit&quot;, sans-serif;
+                  font-size: 13px;
+                  color: #fff;
+                  outline: none;
+                  transition: border-color 0.2s;
+                "
+                onfocus="this.style.borderColor = 'rgba(138,75,255,.6)'"
+                onblur="this.style.borderColor = 'rgba(255,255,255,.08)'"
+              />
+            </div>
+            <div
+              id="forgot-step2-error"
+              style="
+                display: none;
+                font-size: 12px;
+                color: #f87171;
+                padding: 8px 10px;
+                background: rgba(239, 68, 68, 0.08);
+                border: 1px solid rgba(239, 68, 68, 0.2);
+                border-radius: 7px;
+              "
+            ></div>
+            <button
+              id="forgot-step2-btn"
+              style="
+                width: 100%;
+                padding: 13px;
+                border: none;
+                border-radius: 9px;
+                background: linear-gradient(90deg, #536dfe, #8a4bff);
+                color: #fff;
+                font-family: &quot;Outfit&quot;, sans-serif;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                margin-top: 4px;
+              "
+            >
+              Enregistrer le nouveau mot de passe
+            </button>
+          </div>
+        </div>
+
+        <!-- ÉTAPE 3 : succès -->
+        <div id="forgot-step3" style="display: none; text-align: center">
+          <div
+            style="
+              width: 56px;
+              height: 56px;
+              border-radius: 50%;
+              background: rgba(5, 150, 105, 0.12);
+              border: 1px solid rgba(5, 150, 105, 0.3);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin: 0 auto 18px;
+            "
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#34d399"
+              stroke-width="2.5"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 8px">
+            Mot de passe mis à jour
+          </h3>
+          <p
+            style="
+              font-size: 13px;
+              color: rgba(220, 215, 255, 0.6);
+              line-height: 1.55;
+              margin-bottom: 24px;
+            "
+          >
+            Votre nouveau mot de passe est actif. Vous pouvez maintenant vous
+            connecter.
+          </p>
+          <button
+            id="forgot-step3-btn"
+            style="
+              padding: 11px 28px;
+              border: none;
+              border-radius: 9px;
+              background: linear-gradient(90deg, #536dfe, #8a4bff);
+              color: #fff;
+              font-family: &quot;Outfit&quot;, sans-serif;
+              font-size: 13px;
+              font-weight: 600;
+              cursor: pointer;
+            "
+          >
+            Retour à la connexion
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Tes modules JS existants — inchangés -->
+
+    <script type="module" src="mdp-oubliee.js"></script>
     <script type="module" src="main.js"></script>
   </body>
 </html>
