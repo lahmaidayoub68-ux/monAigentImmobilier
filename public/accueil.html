@@ -15,19 +15,28 @@
     <!-- Script autonome pour garantir le fonctionnement du Mode Sombre/Clair -->
     <script>
       (function () {
+        /* ── Appliquer le thème sauvegardé immédiatement ── */
         const savedTheme = localStorage.getItem("aigent_theme") || "dark";
         document.documentElement.setAttribute("data-theme", savedTheme);
+
+        /* ── Fonction centrale (exposée globalement) ── */
+        window.__toggleTheme = function () {
+          const current = document.documentElement.getAttribute("data-theme");
+          const next = current === "dark" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", next);
+          localStorage.setItem("aigent_theme", next);
+        };
+
         document.addEventListener("DOMContentLoaded", () => {
-          const btnTheme = document.getElementById("btn-theme");
-          if (btnTheme) {
-            btnTheme.addEventListener("click", () => {
-              const current =
-                document.documentElement.getAttribute("data-theme");
-              const next = current === "dark" ? "light" : "dark";
-              document.documentElement.setAttribute("data-theme", next);
-              localStorage.setItem("aigent_theme", next);
-            });
-          }
+          /* Desktop sidebar */
+          document
+            .getElementById("btn-theme")
+            ?.addEventListener("click", window.__toggleTheme);
+
+          /* Mobile floating button */
+          document
+            .getElementById("mobile-theme-btn")
+            ?.addEventListener("click", window.__toggleTheme);
         });
       })();
     </script>
@@ -2590,25 +2599,26 @@
         .ces-badge {
           margin-bottom: 8px;
         }
-        /* Grille 2×2 au lieu de 4×1 */
+
         .ces-cards {
-          grid-template-columns: 1fr 1fr;
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
           gap: 10px;
-          max-width: 100%;
+          width: 100%;
         }
-        .ces-card {
-          padding: 16px 12px;
-          min-height: 110px;
-          gap: 10px;
-          border-radius: 14px;
+
+        /* On annule le display:contents du desktop */
+        .ces-cards-bottom-row {
+          display: contents !important;
         }
-        .ces-card-icon {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+
+        .ces-cards .ces-card {
+          min-height: 110px !important;
+          padding: 16px 10px !important;
         }
-        .ces-card-title {
-          font-size: 12px;
+
+        .ces-cards .ces-card-title {
+          font-size: 11px !important;
         }
 
         /* ── MATCH CARDS MOBILE ── */
@@ -2638,49 +2648,97 @@
       }
 
       @media (max-width: 900px) {
-        .mobile-menu-btn {
-          display: flex;
-          position: fixed;
-          bottom: calc(var(--footer-h, 32px) + 12px);
-          left: 14px;
-          z-index: 500;
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          background: var(--bg-panel);
-          border: 1px solid var(--border-mid);
-          color: var(--text-secondary);
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-          transition: all 0.2s;
-        }
-        .mobile-menu-btn:active {
-          transform: scale(0.94);
-        }
+        /* APRÈS - remplacer par */
+        @media (max-width: 900px) {
+          /* Bouton menu burger */
+          .mobile-menu-btn {
+            display: flex !important;
+            position: fixed !important;
+            top: 58px !important;
+            left: 14px !important;
+            width: 40px !important;
+            height: 40px !important;
+            z-index: 4500;
+            justify-content: center !important;
+            align-items: center !important;
+            background: var(--bg-panel) !important;
+            border: 1px solid var(--border-mid) !important;
+            border-radius: 11px !important;
+            box-shadow: var(--shadow-soft) !important;
+            cursor: pointer;
+          }
 
-        /* ── BOUTON THÈME MOBILE (coin bas droit) ── */
-        .mobile-theme-btn {
-          display: flex;
-          position: fixed;
-          bottom: calc(var(--footer-h, 32px) + 12px);
-          right: 14px;
-          z-index: 500;
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          background: var(--bg-panel);
-          border: 1px solid var(--border-mid);
-          color: var(--text-secondary);
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-          transition: all 0.2s;
-        }
-        .mobile-theme-btn:active {
-          transform: scale(0.94);
+          /* Bouton thème mobile */
+
+          /* ── Visibilité des icônes jour/nuit (desktop + mobile) ── */
+          [data-theme="dark"] .icon-sun {
+            display: none !important;
+          }
+          [data-theme="dark"] .icon-moon {
+            display: block !important;
+          }
+          [data-theme="light"] .icon-sun {
+            display: block !important;
+          }
+          [data-theme="light"] .icon-moon {
+            display: none !important;
+          }
+
+          /* ── Bouton mobile : toujours visible, couleur adaptée ── */
+          .mobile-theme-btn {
+            display: none; /* caché en desktop */
+            position: fixed;
+            top: 58px;
+            right: 14px;
+            width: 40px;
+            height: 40px;
+            z-index: 4500;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-panel, #0f0f1a) !important;
+            border: 1px solid var(--border-mid, rgba(255, 255, 255, 0.09)) !important;
+            border-radius: 11px !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+            cursor: pointer;
+            padding: 0 !important;
+            transition:
+              background 0.2s,
+              border-color 0.2s;
+          }
+
+          .mobile-theme-btn svg {
+            display: block;
+            flex-shrink: 0;
+            stroke: var(--text-primary, #f0eeff);
+            transition: stroke 0.2s;
+          }
+
+          [data-theme="light"] .mobile-theme-btn {
+            background: #ffffff !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+          }
+
+          [data-theme="light"] .mobile-theme-btn svg {
+            stroke: #0f0f1a;
+          }
+
+          .mobile-theme-btn:hover {
+            border-color: rgba(139, 92, 246, 0.5) !important;
+          }
+          .mobile-theme-btn:hover svg {
+            stroke: #a78bfa;
+          }
+
+          @media (max-width: 900px) {
+            .mobile-theme-btn {
+              display: flex !important;
+            }
+          }
+          @media (min-width: 901px) {
+            .mobile-theme-btn {
+              display: none !important;
+            }
+          }
         }
 
         /* ── DRAWER SIDEBAR MOBILE ── */
@@ -4309,6 +4367,18 @@
         color: inherit;
         display: flex;
       }
+
+      /* AJOUTER dans la section CSS principale (hors media query) */
+      @media (min-width: 901px) {
+        .ces-cards {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+        }
+        .ces-cards-bottom-row {
+          display: contents;
+        }
+      }
     </style>
   </head>
   <body>
@@ -5070,18 +5140,24 @@
         stroke-width="2"
         stroke-linecap="round"
       >
-        <line x1="3" y1="6" x2="21" y2="6" />
-        <line x1="3" y1="12" x2="21" y2="12" />
-        <line x1="3" y1="18" x2="21" y2="18" />
+        <line x1="3" y1="6" x2="21" y2="6" stroke="var(--violet)" />
+        <!-- Grand -->
+        <line x1="3" y1="12" x2="15" y2="12" stroke="var(--violet)" />
+        <!-- Moyen -->
+        <line x1="3" y1="18" x2="9" y2="18" stroke="var(--violet)" />
+        <!-- Petit -->
       </svg>
     </button>
-
-    <!-- BOUTON THÈME MOBILE (coin bas droit) -->
-    <button class="mobile-theme-btn" id="mobile-theme-btn" aria-label="Thème">
+    <!-- NOUVEAU BOUTON MOBILE THEME (Style Desktop) -->
+    <button
+      class="mobile-theme-btn hbtn"
+      id="mobile-theme-btn"
+      aria-label="Thème"
+    >
       <svg
         class="icon-sun"
-        width="18"
-        height="18"
+        width="17"
+        height="17"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -5100,8 +5176,8 @@
       </svg>
       <svg
         class="icon-moon"
-        width="18"
-        height="18"
+        width="17"
+        height="17"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"

@@ -2376,6 +2376,39 @@ function insertMention(text) {
     input.value.substring(0, start) + text + input.value.substring(end);
   input.focus();
   input.dispatchEvent(new Event("input"));
+}
+// APRÈS
+function handleIncomingContactParams() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("openNew") !== "1") return;
+
+  const contact = params.get("contact") || "";
+  const pseudo = params.get("pseudo") || "";
+
+  // Nettoyer l'URL immédiatement
+  window.history.replaceState({}, "", "messagerie.html");
+
+  // Attendre que tout le DOM et les init soient terminés
+  setTimeout(() => {
+    const overlay = document.getElementById("newMsgOverlay");
+    const pseudoInput = document.getElementById("newMsgPseudo");
+    const emailInput = document.getElementById("newMsgEmail");
+    const subjectInput = document.getElementById("newMsgObjet");
+
+    if (!overlay) return;
+
+    // Remplir avant d'ouvrir pour éviter flash vide
+    if (pseudoInput) pseudoInput.value = pseudo;
+    if (emailInput) emailInput.value = contact;
+
+    // Ouvrir le modal
+    overlay.classList.add("active");
+
+    // Focus sur objet après ouverture
+    setTimeout(() => {
+      if (subjectInput) subjectInput.focus();
+    }, 80);
+  }, 350);
 } // ============================================================
 // BOOTSTRAP (VERSION CORRIGÉE)
 // ============================================================
@@ -2385,7 +2418,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.location.href = "index.html";
     return;
   }
-
   initTheme();
   initUserDisplay();
   initSidebarCollapse();
@@ -2396,6 +2428,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initUploadButtons();
   initNewMsgDropdown();
   initChatHeaderDropdown();
+  handleIncomingContactParams();
   initNewMsgPopup();
   initGroupePopup();
   initChatActions();

@@ -2508,22 +2508,35 @@ app.get("/api/favorites", authenticateToken, async (req, res) => {
 
       return {
         dbId: f.id,
+        role: data.role ?? "",
         type: data.type ?? "",
         ville: data.ville ?? "",
+        villeOriginal: data.ville ?? "",
+        departement: data.departement ?? "",
         pieces: data.pieces ?? data.piecesMin ?? 0,
+        piecesMin: data.piecesMin ?? data.pieces ?? 0,
         surface: data.surface ?? data.surfaceMin ?? 0,
+        surfaceMin: data.surfaceMin ?? data.surface ?? 0,
         price: data.price ?? data.budget ?? 0,
+        budgetMin: data.budgetMin ?? 0,
+        budgetMax: data.budgetMax ?? data.budget ?? 0,
         contact: data.contact ?? "",
         common: data.common ?? [],
         different: data.different ?? [],
         compatibility: data.compatibility ?? 0,
+        etatBien: data.etatBien ?? "",
+        niveauEnergetique: data.niveauEnergetique ?? "",
+        imagesbien: data.imagesbien ?? [],
+        charges: data.charges ?? null,
+        taxeFonciere: data.taxeFonciere ?? null,
         lat: data.lat ?? data.buyerLat ?? 48.8566,
         lng: data.lng ?? data.buyerLng ?? 2.3522,
         buyerLat: data.buyerLat ?? 48.8566,
         buyerLng: data.buyerLng ?? 2.3522,
+        // Dans le bloc parsed de GET /api/favorites, ajouter :
+        username: data.username ?? data.contact ?? "",
       };
     });
-
     res.json(parsed);
   } catch (err) {
     console.error("[API /favorites GET] ERREUR :", err);

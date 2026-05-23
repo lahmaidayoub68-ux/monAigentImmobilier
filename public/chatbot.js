@@ -1316,33 +1316,34 @@ function renderEmptyState() {
 
   // Les 4 cartes avec les SVG pro
   const cardsHTML = `
-    <div class="ces-cards">
-      <div class="ces-card" data-prompt="Je veux acheter une maison">
-        <div class="ces-card-icon c1">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-        </div>
-        <span class="ces-card-title">Je veux acheter<br>une maison</span>
+  <div class="ces-cards">
+    <div class="ces-card" data-prompt="Je veux acheter une maison">
+      <div class="ces-card-icon c1">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
       </div>
+      <span class="ces-card-title">Je veux acheter<br>une maison</span>
+    </div>
+    <div class="ces-cards-bottom-row">
       <div class="ces-card" data-prompt="Estimer mon bien pour vendre">
         <div class="ces-card-icon c2">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line><polyline points="4 10 12 2 20 10"></polyline></svg>
         </div>
-        <span class="ces-card-title">Estimer mon bien<br>pour vendre</span>
+        <span class="ces-card-title">Estimer mon<br>bien pour vendre</span>
       </div>
       <div class="ces-card" data-prompt="Recherche sur Paris avec 3 pièces">
         <div class="ces-card-icon c3">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
         </div>
-        <span class="ces-card-title">Recherche sur Paris<br>avec 3 pièces</span>
+        <span class="ces-card-title">Paris<br>3 pièces</span>
       </div>
       <div class="ces-card" data-prompt="Analyse du marché actuel">
         <div class="ces-card-icon c4">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
         </div>
-        <span class="ces-card-title">Analyse du marché<br>actuel</span>
+        <span class="ces-card-title">Marché<br>actuel</span>
       </div>
     </div>
-  `;
+  </div>`;
 
   emptyEl.innerHTML = `
     <div class="ces-inner">
@@ -2397,16 +2398,22 @@ export function initChatbot() {
   });
 
   // ── THEME ──────────────────────────────────────────────────────
-  const btnTheme = $("btn-theme");
-  if (btnTheme) {
-    btnTheme.addEventListener("click", () => {
-      const html = document.documentElement;
-      const current = html.getAttribute("data-theme");
-      const next = current === "dark" ? "light" : "dark";
-      html.setAttribute("data-theme", next);
-      localStorage.setItem("aigent_theme", next);
-    });
+  // APRÈS - un seul bloc propre, à mettre une seule fois dans initChatbot()
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("aigent_theme", theme);
   }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute("data-theme");
+    applyTheme(current === "dark" ? "light" : "dark");
+  }
+
+  // Un seul listener par bouton
+  document.getElementById("btn-theme")?.addEventListener("click", toggleTheme);
+  document
+    .getElementById("mobile-theme-btn")
+    ?.addEventListener("click", toggleTheme);
 
   // ── LOGOUT ────────────────────────────────────────────────────
   $("btn-logout")?.addEventListener("click", () => {
@@ -2458,14 +2465,7 @@ export function initChatbot() {
   }
 
   // ── MOBILE THÈME BTN ────────────────────────────────────
-  const mobileThemeBtn = document.getElementById("mobile-theme-btn");
-  mobileThemeBtn?.addEventListener("click", () => {
-    const html = document.documentElement;
-    const next = html.getAttribute("data-theme") === "dark" ? "light" : "dark";
-    html.setAttribute("data-theme", next);
-    localStorage.setItem("aigent_theme", next);
-  });
-  // ── NOTIFICATIONS ────────────────────────────────────────────
+
   // ── NOTIFICATIONS ────────────────────────────────────────────
   $("btn-notif-bell")?.addEventListener("click", () => {
     window.location.href = "profil.html#notifications";
@@ -2504,7 +2504,6 @@ export function initChatbot() {
     document.body.classList.remove("sidebar-collapsed");
     localStorage.setItem("aigent_sidebar", "open");
   }
-
   // Bouton fermer (dans la sidebar)
   document
     .querySelectorAll("#btn-toggle-sidebar")

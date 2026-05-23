@@ -2323,12 +2323,15 @@ body {
   }
 
   /* Menu "Plus" (dropdown) repositionné pour mobile */
-  .ch-dropdown {
-    position: fixed;
-    right: 60px;
-    top: auto;
-    bottom: 80px; /* S'ouvre au dessus du bouton pour pas gêner */
-    width: 160px;
+  @media (max-width: 640px) {
+    .ch-dropdown {
+      position: fixed !important;
+      right: 12px !important;
+      top: 125px !important;
+      bottom: auto !important;
+      width: 190px !important;
+      z-index: 99999 !important;
+    }
   }
 
   /* Masquer les aides visuelles inutiles */
