@@ -3653,23 +3653,19 @@
           renderGrid([]);
         }
       }
-
-      async function deleteFavori(contact, cardEl) {
+      async function deleteFavori(dbId, cardEl) {
         if (!confirm("Retirer ce profil de vos favoris ?")) return;
         try {
-          const res = await fetch(
-            `${API_BASE}/api/favorites/${encodeURIComponent(contact)}`,
-            {
-              method: "DELETE",
-              headers: { Authorization: `Bearer ${currentUser.token}` },
-            },
-          );
+          const res = await fetch(`${API_BASE}/api/favorites/${dbId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${currentUser.token}` },
+          });
           if (res.ok) {
             cardEl.style.cssText +=
               ";transform:scale(.93) translateY(14px);opacity:0;transition:all .26s ease";
             setTimeout(() => {
               cardEl.remove();
-              favoris = favoris.filter((f) => f.contact !== contact);
+              favoris = favoris.filter((f) => f.dbId !== dbId);
               applyFilterSort();
               showToast("Favori retiré");
             }, 260);
@@ -3895,7 +3891,7 @@
         // Events
         card
           .querySelector(".btn-remove")
-          ?.addEventListener("click", () => deleteFavori(m.contact, card));
+          ?.addEventListener("click", () => deleteFavori(m.dbId, card));
         card.querySelector(".btn-map")?.addEventListener("click", (e) => {
           const b = e.currentTarget;
           ensureLeaflet(() =>

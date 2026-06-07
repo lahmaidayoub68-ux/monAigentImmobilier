@@ -3,710 +3,2939 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Architecture & Algorithmes | Livre Blanc Mon AiGENT</title>
+    <title>Guides &amp; Documentation Technique | Mon AiGENT</title>
+    <meta
+      name="description"
+      content="La documentation technique complète de Mon AiGENT : chat IA conversationnel, parsing des critères par rôle, tolérances, moteur de matching, carte, post-matching, intelligence de marché, messagerie et deal-radar."
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <style>
-      /* =========================
-   DESIGN SYSTEM — PRO PROPTECH
-========================= */
       :root {
-        --black-header: #050505;
-        --black-ink: #0f0f14;
-
-        --grey-dark: #3f3f46;
-        --grey-mid: #71717a;
-        --grey-light: #e4e4e7;
-        --grey-bg: #fafafa;
-
-        /* VIOLET DOMINANT (plus riche) */
-        --violet-ultra-dark: #14051f;
-        --violet-dark: #2e1065;
-        --violet-main: #6d28d9;
-        --violet-soft: #ede9fe;
-
-        /* ROSE ACCENT (contrôle fort) */
-        --rose-accent: #db2777;
-        --rose-soft: #fce7f3;
-
-        --font-ui: "DM Sans", system-ui, sans-serif;
-        --font-code: "JetBrains Mono", monospace;
-
-        --max-width: 1440px;
-        --content-width: 840px;
-
-        --r: 8px;
-
-        --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.04);
-        --shadow-deep: 0 20px 50px rgba(20, 5, 31, 0.08);
+        --black: #000000;
+        --bg: #08080a;
+        --bg2: #0b0b0e;
+        --panel: #0d0d11;
+        --panel2: #101015;
+        --card: #121218;
+        --line: rgba(255, 255, 255, 0.08);
+        --line2: rgba(255, 255, 255, 0.14);
+        --line3: rgba(255, 255, 255, 0.22);
+        --ink: #f6f6f8;
+        --ink2: #b6b6c0;
+        --mut: #74747f;
+        --mut2: #46464f;
+        --stroke: rgba(255, 255, 255, 0.16);
+        --stroke2: rgba(255, 255, 255, 0.32);
+        --mono: "JetBrains Mono", monospace;
+        --sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+        --maxw: 1340px;
       }
-
-      /* RESET */
       *,
       *::before,
       *::after {
         box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+        color-scheme: dark;
       }
       body {
-        font-family: var(--font-ui);
-        margin: 0;
-        background: #fff;
-        color: var(--black-ink);
-        line-height: 1.7;
+        font-family: var(--sans);
+        background: var(--black);
+        color: var(--ink);
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
       }
       a {
-        text-decoration: none;
         color: inherit;
+        text-decoration: none;
       }
-
-      /* =========================
-   HEADER — ULTRA PRO
-========================= */
-      .nav {
-        position: sticky;
+      code,
+      .mono {
+        font-family: var(--mono);
+      }
+      ::selection {
+        background: #fff;
+        color: #000;
+      }
+      /* ── Ambient grid background ── */
+      .bg-grid {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+          linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.025) 1px,
+            transparent 1px
+          );
+        background-size: 64px 64px;
+        mask-image: radial-gradient(
+          ellipse 80% 60% at 50% 0%,
+          #000 30%,
+          transparent 80%
+        );
+      }
+      .bg-glow {
+        position: fixed;
+        top: -200px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 900px;
+        height: 600px;
+        z-index: 0;
+        pointer-events: none;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(255, 255, 255, 0.06),
+          transparent 70%
+        );
+      }
+      /* ── Reading progress ── */
+      .read-bar {
+        position: fixed;
         top: 0;
-        z-index: 500;
-        background: rgba(5, 5, 5, 0.9);
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        left: 0;
+        height: 2px;
+        width: 0%;
+        background: linear-gradient(90deg, #555, #fff);
+        z-index: 200;
       }
-
+      /* ── Nav ── */
+      .nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: rgba(0, 0, 0, 0.72);
+        backdrop-filter: blur(20px) saturate(140%);
+        -webkit-backdrop-filter: blur(20px) saturate(140%);
+        border-bottom: 1px solid var(--line);
+      }
       .nav-inner {
-        max-width: var(--max-width);
-        margin: auto;
-        padding: 0 40px;
-        height: 72px;
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 0 28px;
+        height: 60px;
         display: flex;
         align-items: center;
         justify-content: space-between;
       }
-
       .logo {
         display: flex;
         align-items: center;
-        gap: 12px;
-        font-weight: 600;
-        color: #fff;
+        gap: 11px;
+        font-weight: 700;
+        font-size: 16px;
+        letter-spacing: -0.02em;
       }
-      .logo img {
-        height: 34px;
+      .logo-mark {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        background: #fff;
+        color: #000;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        font-size: 14px;
       }
-
-      /* NAV */
       .nav-links {
         display: flex;
-        gap: 26px;
+        gap: 4px;
       }
-      .nav-links a {
+      .nav-link {
+        font-size: 13.5px;
+        color: var(--mut);
+        padding: 7px 13px;
+        border-radius: 8px;
+        transition: 0.18s;
+        font-weight: 500;
+      }
+      .nav-link:hover {
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .nav-link.active {
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .nav-cta {
+        font-size: 13.5px;
+        font-weight: 600;
+        padding: 8px 16px;
+        border-radius: 9px;
+        background: #fff;
+        color: #000;
+        transition: 0.18s;
+      }
+      .nav-cta:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 24px rgba(255, 255, 255, 0.18);
+      }
+      /* ── Layout ── */
+      .wrap {
+        position: relative;
+        z-index: 1;
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 0 28px;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 252px 1fr;
+        gap: 56px;
+        padding-top: 60px;
+      }
+      /* ── Sidebar TOC ── */
+      .sidebar {
+        position: sticky;
+        top: 60px;
+        align-self: start;
+        height: calc(100vh - 60px);
+        overflow-y: auto;
+        padding: 38px 0 60px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line2) transparent;
+      }
+      .toc-label {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--mut2);
+        padding: 0 0 14px 14px;
+      }
+      .toc {
+        list-style: none;
+        border-left: 1px solid var(--line);
+      }
+      .toc li a {
+        display: block;
         font-size: 13px;
-        color: rgba(255, 255, 255, 0.65);
-        transition: 0.2s;
+        color: var(--mut);
+        padding: 7px 0 7px 14px;
+        margin-left: -1px;
+        border-left: 1px solid transparent;
+        transition: 0.16s;
+        line-height: 1.4;
       }
-      .nav-links a:hover,
-      .nav-links a.active {
-        color: #fff;
+      .toc li a:hover {
+        color: var(--ink2);
       }
+      .toc li a.active {
+        color: var(--ink);
+        border-left-color: #fff;
+        font-weight: 600;
+      }
+      .toc .toc-num {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        color: var(--mut2);
+        margin-right: 8px;
+      }
+      /* ── Content ── */
+      .content {
+        min-width: 0;
+        padding-bottom: 140px;
+      }
+      /* ── Hero ── */
 
-      /* BUTTONS */
-      .nav-right {
+      /* ── Hero ── */
+      .hero {
+        padding: 80px 0 60px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 64px;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.4);
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 100px;
+        padding: 4px 12px;
+        margin-bottom: 24px;
+      }
+      .eyebrow .dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.8);
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+      }
+      .hero h1 {
+        font-size: clamp(
+          28px,
+          4vw,
+          48px
+        ); /* Taille réduite et plus équilibrée */
+        line-height: 1.15; /* Meilleure respiration verticale */
+        letter-spacing: -0.025em; /* Approche de paire serrée mais lisible */
+        font-weight: 600; /* Graisse légèrement adoucie pour un aspect plus élégant */
+        margin-bottom: 20px;
+        color: #ffffff;
+      }
+      .hero h1 .dim {
+        color: rgba(255, 255, 255, 0.45); /* Gris mat et profond */
+        display: block; /* Passage à la ligne structuré */
+        margin-top: 4px;
+      }
+      .hero p.lead {
+        font-size: clamp(
+          14px,
+          1.15vw,
+          16px
+        ); /* Densité typographique moderne */
+        color: rgba(255, 255, 255, 0.6);
+        max-width: 680px;
+        line-height: 1.6;
+        font-weight: 400;
+      }
+      .hero p.lead em {
+        color: #ffffff;
+        font-style: normal;
+        font-weight: 500; /* Mise en valeur sans distorsion de l'italique */
+      }
+      .hero-meta {
         display: flex;
+        flex-wrap: wrap;
+        gap: 8px; /* Espacement resserré typique des interfaces d'application */
+        margin-top: 32px;
+      }
+      .hero-meta .chip {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 6px;
+        padding: 5px 10px;
+        transition: all 0.2s ease;
+      }
+      .hero-meta .chip:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+      .hero-meta .chip b {
+        color: #ffffff;
+        font-weight: 500;
+      }
+      /* ── Section ── */
+      section.doc {
+        margin-bottom: 96px;
+        scroll-margin-top: 84px;
+      }
+      .sec-head {
+        margin-bottom: 36px;
+      }
+      .sec-kicker {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--mut);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
         gap: 12px;
       }
-      .btn-outline {
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        padding: 8px 16px;
-        border-radius: var(--r);
-        font-size: 13px;
-        color: #fff;
+      .sec-kicker::before {
+        content: "";
+        width: 22px;
+        height: 1px;
+        background: var(--line3);
       }
-      .btn-outline:hover {
-        background: rgba(255, 255, 255, 0.06);
+      .sec-head h2 {
+        font-size: clamp(28px, 3.6vw, 42px);
+        letter-spacing: -0.03em;
+        line-height: 1.08;
+        font-weight: 700;
+        margin-bottom: 18px;
       }
-      .btn-accent {
-        background: linear-gradient(
-          135deg,
-          var(--rose-accent),
-          var(--violet-main)
-        );
-        padding: 8px 16px;
-        border-radius: var(--r);
-        font-size: 13px;
-        color: #fff;
+      .sec-head p {
+        font-size: 17px;
+        color: var(--ink2);
+        max-width: 760px;
+        line-height: 1.6;
+      }
+      h3.sub {
+        font-size: 21px;
+        letter-spacing: -0.02em;
+        font-weight: 650;
+        margin: 54px 0 16px;
+      }
+      .content p.body {
+        font-size: 15.5px;
+        color: var(--ink2);
+        max-width: 760px;
+        margin-bottom: 16px;
+        line-height: 1.7;
+      }
+      .content p.body b {
+        color: var(--ink);
         font-weight: 600;
       }
-
-      /* =========================
-   HERO — VERSION PREMIUM
-========================= */
-      .hero {
-        position: relative;
-        padding: 120px 40px 100px;
+      em {
+        color: var(--ink);
+        font-style: italic;
+      }
+      /* ── Figure / diagram card ── */
+      .fig {
+        border: 1px solid var(--line);
+        border-radius: 16px;
         background:
           radial-gradient(
-            circle at 20% 20%,
-            rgba(109, 40, 217, 0.15),
-            transparent 40%
+            120% 90% at 50% 0%,
+            rgba(255, 255, 255, 0.03),
+            transparent 60%
           ),
-          radial-gradient(
-            circle at 80% 0%,
-            rgba(219, 39, 119, 0.1),
-            transparent 40%
-          ),
-          #fafafa;
-        border-bottom: 1px solid var(--grey-light);
-      }
-
-      .hero-inner {
-        max-width: var(--max-width);
-        margin: auto;
-      }
-
-      .hero-tag {
-        font-family: var(--font-code);
-        font-size: 11px;
-        color: var(--violet-main);
-        letter-spacing: 0.15em;
-        text-transform: uppercase;
-        margin-bottom: 20px;
-      }
-
-      .hero-title {
-        font-size: clamp(44px, 5vw, 64px);
-        font-weight: 800;
-        line-height: 1.05;
-        letter-spacing: -0.02em;
-        max-width: 900px;
-        background: linear-gradient(90deg, #000, #5b21b6);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-
-      .hero-desc {
-        margin-top: 24px;
-        font-size: 20px;
-        color: var(--grey-dark);
-        max-width: 720px;
-      }
-
-      /* =========================
-   LAYOUT
-========================= */
-      .layout {
-        max-width: var(--max-width);
-        margin: auto;
-        padding: 80px 40px;
-        display: grid;
-        grid-template-columns: 260px 1fr;
-        gap: 80px;
-      }
-
-      /* =========================
-   SIDEBAR (STYLE STRIPE)
-========================= */
-      .toc-wrapper {
-        position: sticky;
-        top: 120px;
-        padding-left: 20px;
-        border-left: 1px solid var(--grey-light);
-      }
-
-      .toc-title {
-        font-size: 11px;
-        text-transform: uppercase;
-        color: var(--grey-mid);
-        margin-bottom: 16px;
-      }
-
-      .toc-link {
-        display: block;
-        font-size: 14px;
-        color: var(--grey-mid);
-        padding: 6px 0;
-        transition: 0.2s;
-      }
-
-      .toc-link:hover {
-        color: var(--violet-main);
-      }
-
-      .toc-link.active {
-        color: var(--violet-main);
-        font-weight: 600;
-      }
-
-      /* =========================
-   CONTENT
-========================= */
-      .doc-section {
-        margin-bottom: 100px;
-      }
-
-      .doc-section h2 {
-        font-size: 34px;
-        margin-bottom: 24px;
-        color: var(--violet-dark);
-      }
-
-      .doc-section h3 {
-        font-size: 20px;
-        margin: 40px 0 10px;
-      }
-
-      .doc-section p {
-        font-size: 17px;
-        color: var(--grey-dark);
-      }
-
-      /* HIGHLIGHT */
-      .highlight {
-        background: var(--violet-soft);
-        color: var(--violet-main);
-        padding: 2px 6px;
-        border-radius: 4px;
-      }
-
-      /* IMAGE */
-      .doc-figure {
-        margin: 40px 0;
-        border-radius: var(--r);
+          var(--bg2);
         overflow: hidden;
-        box-shadow: var(--shadow-soft);
-      }
-
-      /* CODE */
-      .code-block {
-        background: #050505;
-        color: #e4e4e7;
-        padding: 24px;
-        border-radius: var(--r);
-        font-family: var(--font-code);
-        font-size: 13px;
         margin: 30px 0;
       }
-
-      /* TABLE */
-      .doc-table {
-        width: 100%;
-        margin: 30px 0;
-        border-collapse: collapse;
-        box-shadow: var(--shadow-soft);
-      }
-
-      .doc-table th {
-        background: var(--violet-soft);
-        text-align: left;
-        padding: 14px;
-      }
-      .doc-table td {
-        padding: 14px;
-        border-top: 1px solid var(--grey-light);
-      }
-
-      /* CALLOUT */
-      .doc-callout {
+      .fig-top {
         display: flex;
-        gap: 20px;
-        padding: 24px;
-        border-left: 4px solid var(--violet-main);
-        background: linear-gradient(
-          90deg,
-          var(--violet-soft),
-          rgba(255, 255, 255, 0)
-        );
-        border-radius: var(--r);
+        align-items: center;
+        justify-content: space-between;
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.015);
       }
-      .doc-figure {
-        margin: 48px 0;
-        border-radius: var(--r);
-        overflow: hidden;
-        box-shadow: var(--shadow-soft);
-        background: #fff;
-        border: 1px solid var(--grey-light);
+      .fig-id {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        color: var(--mut);
+        text-transform: uppercase;
       }
-
-      /* FIX CRITIQUE */
-      .doc-figure img {
-        width: 100%;
-        height: auto;
+      .fig-title {
+        font-size: 13px;
+        color: var(--ink2);
+        font-weight: 500;
+      }
+      .fig-body {
+        padding: 34px 28px;
+        overflow-x: auto;
+      }
+      .fig svg {
         display: block;
-      }
-
-      /* Caption améliorée */
-      .doc-figcaption {
-        font-size: 12px;
-        color: var(--grey-mid);
-        padding: 12px 16px;
-        background: #fff;
-        border-top: 1px solid var(--grey-light);
-        font-family: var(--font-code);
-      }
-      img {
+        margin: 0 auto;
         max-width: 100%;
         height: auto;
+        overflow: visible;
       }
-
-      /* =========================
-   RESPONSIVE
-========================= */
-      @media (max-width: 1024px) {
-        .layout {
+      /* svg shared */
+      .s-node {
+        fill: #0e0e13;
+        stroke: var(--stroke);
+        stroke-width: 1.2;
+      }
+      .s-node-hi {
+        fill: #fff;
+      }
+      .s-line {
+        stroke: var(--stroke);
+        stroke-width: 1.2;
+        fill: none;
+      }
+      .s-dash {
+        stroke: var(--stroke);
+        stroke-width: 1.1;
+        stroke-dasharray: 4 4;
+        fill: none;
+      }
+      .s-t {
+        fill: var(--ink);
+        font-family: var(--sans);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .s-t2 {
+        fill: var(--mut);
+        font-family: var(--mono);
+        font-size: 10.5px;
+        letter-spacing: 0.04em;
+      }
+      .s-t-dark {
+        fill: #000;
+        font-family: var(--sans);
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .s-icn {
+        stroke: var(--ink);
+        stroke-width: 1.4;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .s-icn-dark {
+        stroke: #000;
+        stroke-width: 1.5;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      /* ── Grid of feature cards ── */
+      .grid {
+        display: grid;
+        gap: 16px;
+        margin: 28px 0;
+      }
+      .grid.c2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .grid.c3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .gcard {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel);
+        padding: 22px;
+        transition: 0.2s;
+      }
+      .gcard:hover {
+        border-color: var(--line2);
+        background: var(--panel2);
+        transform: translateY(-2px);
+      }
+      .gcard .ic {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        border: 1px solid var(--line2);
+        display: grid;
+        place-items: center;
+        margin-bottom: 16px;
+      }
+      .gcard h4 {
+        font-size: 15.5px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+        margin-bottom: 7px;
+      }
+      .gcard p {
+        font-size: 13.5px;
+        color: var(--mut);
+        line-height: 1.55;
+      }
+      .gcard .tag {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--mut2);
+        margin-top: 14px;
+        display: block;
+      }
+      /* ── Stat row ── */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: var(--line);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        margin: 28px 0;
+      }
+      .stat {
+        background: var(--bg2);
+        padding: 26px 22px;
+      }
+      .stat .n {
+        font-size: 34px;
+        font-weight: 750;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        margin-bottom: 9px;
+      }
+      .stat .l {
+        font-size: 12.5px;
+        color: var(--mut);
+      }
+      /* ── Criteria table ── */
+      .ctable {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        margin: 26px 0;
+      }
+      .ctable table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+      }
+      .ctable th {
+        text-align: left;
+        font-family: var(--mono);
+        font-size: 10.5px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--mut);
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--line);
+        font-weight: 500;
+      }
+      .ctable td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+        color: var(--ink2);
+        vertical-align: top;
+      }
+      .ctable tr:last-child td {
+        border-bottom: none;
+      }
+      .ctable td:first-child {
+        color: #fff;
+        font-weight: 600;
+      }
+      .ctable .pill {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--ink);
+        border: 1px solid var(--line2);
+        border-radius: 6px;
+        padding: 2px 8px;
+        white-space: nowrap;
+      }
+      /* ── Code block ── */
+      .code {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        margin: 26px 0;
+        background: var(--bg2);
+      }
+      .code-top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      .code-top .d {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        border: 1px solid var(--line2);
+      }
+      .code-top .fn {
+        margin-left: 8px;
+        font-family: var(--mono);
+        font-size: 11.5px;
+        color: var(--mut);
+      }
+      .code pre {
+        padding: 20px;
+        overflow-x: auto;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        line-height: 1.75;
+        color: var(--ink2);
+      }
+      .code .k {
+        color: #fff;
+        font-weight: 600;
+      }
+      .code .c {
+        color: var(--mut2);
+      }
+      .code .s {
+        color: #cfcfd6;
+      }
+      .code .n {
+        color: #fff;
+      }
+      /* ── Callout ── */
+      .note {
+        border: 1px solid var(--line);
+        border-left: 2px solid #fff;
+        border-radius: 0 12px 12px 0;
+        background: var(--panel);
+        padding: 18px 22px;
+        margin: 24px 0;
+        font-size: 14.5px;
+        color: var(--ink2);
+      }
+      .note b {
+        color: #fff;
+      }
+      .note .lab {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--mut);
+        display: block;
+        margin-bottom: 6px;
+      }
+      /* ── Steps / flow list ── */
+      .steps {
+        margin: 26px 0;
+        counter-reset: st;
+      }
+      .step {
+        display: flex;
+        gap: 20px;
+        padding: 20px 0;
+        border-top: 1px solid var(--line);
+      }
+      .step:last-child {
+        border-bottom: 1px solid var(--line);
+      }
+      .step .num {
+        counter-increment: st;
+        flex: none;
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        border: 1px solid var(--line2);
+        display: grid;
+        place-items: center;
+        font-family: var(--mono);
+        font-size: 13px;
+        color: #fff;
+      }
+      .step .num::before {
+        content: counter(st, decimal-leading-zero);
+      }
+      .step h4 {
+        font-size: 16px;
+        font-weight: 650;
+        margin-bottom: 5px;
+        letter-spacing: -0.01em;
+      }
+      .step p {
+        font-size: 14px;
+        color: var(--mut);
+        line-height: 1.6;
+        max-width: 680px;
+      }
+      /* ── Tips ── */
+      .tips {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin: 26px 0;
+      }
+      .tip {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 18px 20px;
+        background: var(--panel);
+      }
+      .tip .do {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+      .tip.good .do {
+        color: #d7d7dd;
+      }
+      .tip.bad .do {
+        color: var(--mut2);
+      }
+      .tip p {
+        font-size: 14px;
+        color: var(--ink2);
+        line-height: 1.55;
+      }
+      .tip .ex {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--mut);
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+      }
+      /* ── Footer ── */
+      .foot {
+        position: relative;
+        z-index: 1;
+        border-top: 1px solid var(--line);
+        margin-top: 60px;
+      }
+      .foot-inner {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 48px 28px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .foot-links {
+        display: flex;
+        gap: 22px;
+        flex-wrap: wrap;
+      }
+      .foot-links a {
+        font-size: 13.5px;
+        color: var(--mut);
+        transition: 0.16s;
+      }
+      .foot-links a:hover {
+        color: #fff;
+      }
+      .foot small {
+        color: var(--mut2);
+        font-size: 12.5px;
+      }
+      .reveal {
+        opacity: 0;
+        transform: translateY(18px);
+        transition:
+          opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+          transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .reveal.in {
+        opacity: 1;
+        transform: none;
+      }
+      @media (max-width: 980px) {
+        .shell {
+          grid-template-columns: 1fr;
+          gap: 0;
+        }
+        .sidebar {
+          display: none;
+        }
+        .grid.c3,
+        .grid.c2,
+        .stats {
+          grid-template-columns: 1fr 1fr;
+        }
+        .tips {
           grid-template-columns: 1fr;
         }
-        .toc-wrapper {
+        .nav-links {
           display: none;
+        }
+      }
+      @media (max-width: 560px) {
+        .grid.c3,
+        .grid.c2,
+        .stats {
+          grid-template-columns: 1fr;
         }
       }
     </style>
   </head>
   <body>
-    <!-- HEADER NOIR TRANCHANT -->
-    <header class="nav">
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+    <div class="read-bar" id="readBar"></div>
+    <!-- NAV -->
+    <nav class="nav">
       <div class="nav-inner">
-        <!-- Logo + Brand -->
-        <a href="./index.html" class="logo">
-          <img src="./images/logo.png" alt="Mon AiGENT Immobilier" />
-          <span>Mon AiGENT Immobilier</span>
-        </a>
-
-        <!-- Navigation -->
-        <nav class="nav-links">
+        <a href="./index.html" class="logo"> Mon AiGENT </a>
+        <div class="nav-links">
+          <a href="./index.html" class="nav-link">Accueil</a>
+          <a href="./acheter.html" class="nav-link">Acheter</a>
+          <a href="./vendre.html" class="nav-link">Vendre</a>
+          <a href="./louer.html" class="nav-link">Louer</a>
+          <a href="./guides.html" class="nav-link active">Guides</a>
+        </div>
+        <a href="./login.html" class="nav-cta">Lancer l'IA</a>
+      </div>
+    </nav>
+    <div class="wrap">
+      <div class="shell">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+          <div class="toc-label">Documentation</div>
+          <ul class="toc" id="toc">
+            <li>
+              <a href="#vision"
+                ><span class="toc-num">01</span>Vue d'ensemble</a
+              >
+            </li>
+            <li>
+              <a href="#chat"><span class="toc-num">02</span>Le Chat IA</a>
+            </li>
+            <li>
+              <a href="#parsing"
+                ><span class="toc-num">03</span>Parsing des critères</a
+              >
+            </li>
+            <li>
+              <a href="#criteres"
+                ><span class="toc-num">04</span>Critères &amp; tolérances</a
+              >
+            </li>
+            <li>
+              <a href="#reponse"
+                ><span class="toc-num">05</span>Comment l'IA répond</a
+              >
+            </li>
+            <li>
+              <a href="#matching"
+                ><span class="toc-num">06</span>Moteur de matching</a
+              >
+            </li>
+            <li>
+              <a href="#selection"
+                ><span class="toc-num">07</span>Sélection des profils</a
+              >
+            </li>
+            <li>
+              <a href="#carte"
+                ><span class="toc-num">08</span>La carte interactive</a
+              >
+            </li>
+            <li>
+              <a href="#post"><span class="toc-num">09</span>Post-matching</a>
+            </li>
+            <li>
+              <a href="#messagerie"
+                ><span class="toc-num">10</span>La messagerie</a
+              >
+            </li>
+            <li>
+              <a href="#marche"
+                ><span class="toc-num">11</span>Intelligence de marché</a
+              >
+            </li>
+            <li>
+              <a href="#radar"
+                ><span class="toc-num">12</span>Deal-Radar &amp; reco</a
+              >
+            </li>
+            <li>
+              <a href="#astuces"
+                ><span class="toc-num">13</span>Astuces pour l'IA</a
+              >
+            </li>
+            <li>
+              <a href="#archi"
+                ><span class="toc-num">14</span>Architecture système</a
+              >
+            </li>
+          </ul>
+        </aside>
+        <!-- CONTENT -->
+        <main class="content">
+          <!-- HERO -->
+          <!-- HERO -->
+          <header class="hero">
+            <span class="eyebrow"
+              ><span class="dot"></span>Documentation technique · v3.0</span
+            >
+            <h1>
+              Comment fonctionne
+              <span class="dim">Mon AiGENT.</span>
+            </h1>
+            <p class="lead">
+              Pas un moteur de recherche. Une
+              <em>intelligence conversationnelle</em>
+              qui comprend votre intention, extrait vos critères en langage
+              naturel, croise les profils en temps réel et reste à vos côtés
+              après le match. Voici, dans le détail, chaque rouage du système.
+            </p>
+            <div class="hero-meta">
+              <span class="chip"><b>0</b> formulaire</span>
+              <span class="chip"><b>3</b> modèles LLM en cascade</span>
+              <span class="chip"><b>4</b> dimensions de scoring</span>
+              <span class="chip"><b>&lt;100ms</b> matching</span>
+              <span class="chip"><b>2</b> rôles · acheteur / vendeur</span>
+            </div>
+          </header>
+          <!-- 01 VISION -->
+          <section class="doc" id="vision">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">01 — Vue d'ensemble</div>
+              <h2>Une chaîne, du langage au contact.</h2>
+              <p>
+                Mon AiGENT transforme une conversation libre en une mise en
+                relation qualifiée. Six étages, chacun spécialisé, s'enchaînent
+                sans jamais demander à l'utilisateur de remplir un champ.
+              </p>
+            </div>
+            <div class="fig reveal">
+              <div class="fig-top">
+                <span class="fig-id">FIG 1.0</span>
+                <span class="fig-title"
+                  >Pipeline global — de l'intention au match</span
+                >
+              </div>
+              <div class="fig-body">
+                <svg viewBox="0 0 1080 230" width="1080">
+                  <!-- connecting line -->
+                  <line class="s-dash" x1="120" y1="70" x2="960" y2="70" />
+                  <!-- nodes -->
+                  <g>
+                    <!-- 1 -->
+                    <rect
+                      class="s-node"
+                      x="40"
+                      y="38"
+                      width="150"
+                      height="64"
+                      rx="12"
+                    />
+                    <g transform="translate(60,58)">
+                      <path
+                        class="s-icn"
+                        d="M2 22a8 8 0 0116 0M10 10a4 4 0 100-8 4 4 0 000 8z"
+                      />
+                    </g>
+                    <text class="s-t" x="92" y="66">Conversation</text>
+                    <text class="s-t2" x="92" y="84">langage naturel</text>
+                  </g>
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="210"
+                      y="38"
+                      width="150"
+                      height="64"
+                      rx="12"
+                    />
+                    <g transform="translate(230,58)">
+                      <path class="s-icn" d="M4 4h12v12H4zM7 8h6M7 12h4" />
+                    </g>
+                    <text class="s-t" x="262" y="66">Parsing IA</text>
+                    <text class="s-t2" x="262" y="84">JSON critères</text>
+                  </g>
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="380"
+                      y="38"
+                      width="150"
+                      height="64"
+                      rx="12"
+                    />
+                    <g transform="translate(400,57)">
+                      <path
+                        class="s-icn"
+                        d="M10 2l8 4-8 4-8-4 8-4zM2 10l8 4 8-4M2 14l8 4 8-4"
+                      />
+                    </g>
+                    <text class="s-t" x="432" y="66">Normalisation</text>
+                    <text class="s-t2" x="432" y="84">+ tolérances</text>
+                  </g>
+                  <g>
+                    <!-- highlight -->
+                    <rect
+                      class="s-node-hi"
+                      x="550"
+                      y="38"
+                      width="150"
+                      height="64"
+                      rx="12"
+                    />
+                    <g transform="translate(570,57)">
+                      <path
+                        class="s-icn-dark"
+                        d="M10 2v16M2 6l8 4 8-4M2 14l8 4 8-4"
+                      />
+                    </g>
+                    <text class="s-t-dark" x="602" y="66">Matching</text>
+                    <text
+                      x="602"
+                      y="84"
+                      style="
+                        fill: #444;
+                        font-family: var(--mono);
+                        font-size: 10.5px;
+                      "
+                    >
+                      score O(N)
+                    </text>
+                  </g>
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="720"
+                      y="38"
+                      width="150"
+                      height="64"
+                      rx="12"
+                    />
+                    <g transform="translate(740,57)">
+                      <path
+                        class="s-icn"
+                        d="M10 18s7-4 7-9a7 7 0 10-14 0c0 5 7 9 7 9z"
+                      />
+                      <circle class="s-icn" cx="10" cy="9" r="2" />
+                    </g>
+                    <text class="s-t" x="772" y="66">Carte + Top N</text>
+                    <text class="s-t2" x="772" y="84">profils classés</text>
+                  </g>
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="890"
+                      y="38"
+                      width="150"
+                      height="64"
+                      rx="12"
+                    />
+                    <g transform="translate(910,57)">
+                      <path class="s-icn" d="M2 4h16v10H7l-3 3V4z" />
+                    </g>
+                    <text class="s-t" x="962" y="66">Contact</text>
+                    <text class="s-t2" x="962" y="84">mise en relation</text>
+                  </g>
+                  <!-- arrows -->
+                  <g fill="var(--stroke2)">
+                    <path d="M193 70l8-4v8z" />
+                    <path d="M363 70l8-4v8z" />
+                    <path d="M533 70l8-4v8z" />
+                    <path d="M703 70l8-4v8z" />
+                    <path d="M873 70l8-4v8z" />
+                  </g>
+                  <!-- feedback loop -->
+                  <path class="s-line" d="M810 102 V160 H262 V102" />
+                  <path d="M262 105l-4-8h8z" fill="var(--stroke2)" />
+                  <text class="s-t2" x="540" y="178" text-anchor="middle">
+                    boucle post-matching — l'IA ajuste les critères et relance
+                    une recherche
+                  </text>
+                </svg>
+              </div>
+            </div>
+            <div class="stats reveal">
+              <div class="stat">
+                <div class="n">8</div>
+                <div class="l">critères extraits par message</div>
+              </div>
+              <div class="stat">
+                <div class="n">4</div>
+                <div class="l">dimensions de score pondérées</div>
+              </div>
+              <div class="stat">
+                <div class="n">3</div>
+                <div class="l">LLM en cascade (failover)</div>
+              </div>
+              <div class="stat">
+                <div class="n">Top 5</div>
+                <div class="l">profils renvoyés, triés</div>
+              </div>
+            </div>
+            <p class="body reveal">
+              La philosophie est simple :
+              <b
+                >on n'indexe pas des annonces, on indexe des intentions de
+                transaction</b
+              >. Un acheteur décrit ce qu'il cherche, un vendeur décrit ce qu'il
+              propose, et le moteur croise les deux populations en mémoire vive.
+              Tout le reste de cette documentation détaille chacun de ces
+              étages.
+            </p>
+          </section>
+          <!-- 02 CHAT -->
+          <section class="doc" id="chat">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">02 — Le Chat IA</div>
+              <h2>Un tunnel conversationnel par rôle.</h2>
+              <p>
+                Dès l'ouverture, l'IA détermine si vous êtes acheteur ou
+                vendeur, puis ouvre un tunnel : une question à la fois, jamais
+                deux. Chaque réponse alimente un objet de critères persistant.
+              </p>
+            </div>
+            <div class="fig reveal">
+              <div class="fig-top">
+                <span class="fig-id">FIG 2.0</span>
+                <span class="fig-title"
+                  >Machine à états du chat — phases de conversation</span
+                >
+              </div>
+              <div class="fig-body">
+                <svg viewBox="0 0 1000 250" width="1000">
+                  <!-- states -->
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="20"
+                      y="100"
+                      width="150"
+                      height="56"
+                      rx="12"
+                    />
+                    <text class="s-t" x="95" y="125" text-anchor="middle">
+                      role_detection
+                    </text>
+                    <text class="s-t2" x="95" y="142" text-anchor="middle">
+                      buyer | seller
+                    </text>
+                  </g>
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="240"
+                      y="100"
+                      width="150"
+                      height="56"
+                      rx="12"
+                    />
+                    <text class="s-t" x="315" y="125" text-anchor="middle">
+                      tunnel
+                    </text>
+                    <text class="s-t2" x="315" y="142" text-anchor="middle">
+                      collecte critères
+                    </text>
+                  </g>
+                  <g>
+                    <rect
+                      class="s-node-hi"
+                      x="460"
+                      y="100"
+                      width="150"
+                      height="56"
+                      rx="12"
+                    />
+                    <text class="s-t-dark" x="535" y="129" text-anchor="middle">
+                      matching
+                    </text>
+                  </g>
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="680"
+                      y="100"
+                      width="150"
+                      height="56"
+                      rx="12"
+                    />
+                    <text class="s-t" x="755" y="125" text-anchor="middle">
+                      results
+                    </text>
+                    <text class="s-t2" x="755" y="142" text-anchor="middle">
+                      phase RÉSULTATS
+                    </text>
+                  </g>
+                  <!-- arrows -->
+                  <g fill="var(--stroke2)">
+                    <path d="M170 128h60" stroke="var(--stroke2)" />
+                    <path d="M232 128l-8-4v8z" />
+                    <path d="M390 128h60" stroke="var(--stroke2)" />
+                    <path d="M452 128l-8-4v8z" />
+                    <path d="M610 128h60" stroke="var(--stroke2)" />
+                    <path d="M672 128l-8-4v8z" />
+                  </g>
+                  <line class="s-line" x1="170" y1="128" x2="225" y2="128" />
+                  <line class="s-line" x1="390" y1="128" x2="445" y2="128" />
+                  <line class="s-line" x1="610" y1="128" x2="665" y2="128" />
+                  <!-- self loop tunnel -->
+                  <path class="s-dash" d="M315 100 V60 H260 V100" />
+                  <path d="M260 100l-4-8h8z" fill="var(--stroke2)" />
+                  <text class="s-t2" x="290" y="48" text-anchor="middle">
+                    critère manquant → question suivante
+                  </text>
+                  <!-- results -> matching loop -->
+                  <path class="s-dash" d="M755 156 V210 H535 V156" />
+                  <path d="M535 156l-4 8h8z" fill="var(--stroke2)" />
+                  <text class="s-t2" x="645" y="228" text-anchor="middle">
+                    modify_criteria → nouveau matching
+                  </text>
+                </svg>
+              </div>
+            </div>
+            <p class="body reveal">
+              Le serveur expose la route <code>POST /chat</code>, protégée par
+              authentification et placée derrière une file d'attente par
+              utilisateur (<code>userQueueMiddleware</code>) pour éviter les
+              messages concurrents. Chaque tour renvoie deux choses : un
+              <b>message de réponse</b> à afficher, et un
+              <b>objet critères mis à jour</b> que le front conserve en état.
+            </p>
+            <div class="grid c3 reveal">
+              <div class="gcard">
+                <div class="ic">
+                  <svg width="18" height="18" class="s-icn" viewBox="0 0 20 20">
+                    <path
+                      d="M2 22a8 8 0 0116 0M10 10a4 4 0 100-8 4 4 0 000 8z"
+                    />
+                  </svg>
+                </div>
+                <h4>Détection de rôle</h4>
+                <p>
+                  Acheteur ou vendeur : la conversation entière s'adapte
+                  (champs, questions, ton, scoring).
+                </p>
+                <span class="tag">ROLE_LABELS</span>
+              </div>
+              <div class="gcard">
+                <div class="ic">
+                  <svg width="18" height="18" class="s-icn" viewBox="0 0 20 20">
+                    <path d="M4 4h12v12H4zM7 8h6M7 12h4" />
+                  </svg>
+                </div>
+                <h4>Une question à la fois</h4>
+                <p>
+                  Le tunnel pose uniquement le prochain critère manquant —
+                  jamais de questionnaire bloc.
+                </p>
+                <span class="tag">buildSystemPrompt</span>
+              </div>
+              <div class="gcard">
+                <div class="ic">
+                  <svg width="18" height="18" class="s-icn" viewBox="0 0 20 20">
+                    <path d="M3 10h14M10 3v14" />
+                  </svg>
+                </div>
+                <h4>État persistant</h4>
+                <p>
+                  Les critères acquis sont fusionnés à chaque tour, jamais
+                  ré-demandés.
+                </p>
+                <span class="tag">mergeNewCriteria()</span>
+              </div>
+            </div>
+          </section>
+          <!-- 03 PARSING -->
+          <section class="doc" id="parsing">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">03 — Parsing des critères</div>
+              <h2>Du texte libre au JSON structuré.</h2>
+              <p>
+                Le cœur du système (<code>aiParsee.js</code>) prend une phrase
+                comme « <em>un T3 vers Lyon, budget 250k, pas trop loin</em> »
+                et en extrait un objet propre, typé, normalisé et borné.
+              </p>
+            </div>
+            <div class="fig reveal">
+              <div class="fig-top">
+                <span class="fig-id">FIG 3.0</span>
+                <span class="fig-title"
+                  >Flux d'extraction — message → critères normalisés</span
+                >
+              </div>
+              <div class="fig-body">
+                <svg viewBox="0 0 1000 300" width="1000">
+                  <!-- input -->
+                  <rect
+                    class="s-node"
+                    x="20"
+                    y="30"
+                    width="280"
+                    height="70"
+                    rx="12"
+                  />
+                  <text class="s-t2" x="40" y="55">USER MESSAGE</text>
+                  <text class="s-t" x="40" y="80" style="font-size: 12px">
+                    "T3 vers Lyon, 250k, pas trop loin"
+                  </text>
+                  <!-- LLM -->
+                  <rect
+                    class="s-node"
+                    x="380"
+                    y="30"
+                    width="240"
+                    height="70"
+                    rx="12"
+                  />
+                  <text class="s-t2" x="400" y="55">callLLM()</text>
+                  <text class="s-t" x="400" y="80" style="font-size: 12px">
+                    prompt système + few-shot JSON
+                  </text>
+                  <!-- extract -->
+                  <rect
+                    class="s-node"
+                    x="700"
+                    y="30"
+                    width="280"
+                    height="70"
+                    rx="12"
+                  />
+                  <text class="s-t2" x="720" y="55">extractJSON()</text>
+                  <text class="s-t" x="720" y="80" style="font-size: 12px">
+                    parse + regex fallback {…}
+                  </text>
+                  <!-- arrows row1 -->
+                  <line class="s-line" x1="300" y1="65" x2="375" y2="65" />
+                  <path d="M375 65l-8-4v8z" fill="var(--stroke2)" />
+                  <line class="s-line" x1="620" y1="65" x2="695" y2="65" />
+                  <path d="M695 65l-8-4v8z" fill="var(--stroke2)" />
+                  <!-- down -->
+                  <path class="s-line" d="M840 100 V150 H500 V180" />
+                  <path
+                    d="M500 180l-4-8h8z"
+                    fill="var(--stroke2)"
+                    transform="rotate(180 500 176)"
+                  />
+                  <!-- normalize -->
+                  <rect
+                    class="s-node"
+                    x="300"
+                    y="180"
+                    width="400"
+                    height="92"
+                    rx="12"
+                  />
+                  <text class="s-t2" x="324" y="206">
+                    normalize · normalizeNumber · merge
+                  </text>
+                  <text class="s-t" x="324" y="232" style="font-size: 12px">
+                    ville → "lyon" · "250k" → 250000
+                  </text>
+                  <text class="s-t" x="324" y="252" style="font-size: 12px">
+                    type → "appartement" · toleranceKm → borné
+                  </text>
+                </svg>
+              </div>
+            </div>
+            <div class="code reveal">
+              <div class="code-top">
+                <span class="d"></span><span class="d"></span
+                ><span class="d"></span>
+                <span class="fn"
+                  >aiParsee.js — sortie structurée (extrait)</span
+                >
+              </div>
+              <pre><span class="c">// le LLM renvoie strictement ce schéma, jamais de prose</span>
+{
+  <span class="s">"criteria"</span>: {
+    <span class="s">"intent"</span>: <span class="s">"buyer"</span>,
+    <span class="s">"ville"</span>: <span class="s">"Lyon"</span>,
+    <span class="s">"budgetMin"</span>: <span class="n">null</span>,
+    <span class="s">"budgetMax"</span>: <span class="n">250000</span>,
+    <span class="s">"surfaceMin"</span>: <span class="n">null</span>,
+    <span class="s">"piecesMin"</span>: <span class="n">3</span>,
+    <span class="s">"type"</span>: <span class="s">"appartement"</span>,
+    <span class="s">"toleranceKm"</span>: <span class="n">null</span>,
+    <span class="s">"niveauEnergetique"</span>: <span class="n">null</span>,
+    <span class="s">"proximite"</span>: []
+  }
+}</pre>
+            </div>
+            <p class="body reveal">
+              <b>Robustesse d'abord.</b> <code>normalizeNumber()</code> comprend
+              « 250k », « 250 000 € » et « 250000 ».
+              <code>extractJSON()</code> tente d'abord un
+              <code>JSON.parse</code> direct, puis une extraction par expression
+              régulière <code>{…}</code> si le modèle a ajouté du texte autour.
+              <code>normalize()</code> nettoie accents, casse et séparateurs
+              pour que « Saint-Étienne » et « saint etienne » soient le même
+              lieu.
+            </p>
+            <div class="note reveal">
+              <span class="lab">Règle clé du tunnel</span>
+              Un critère est <b>ACQUIS dès qu'il possède une valeur minimum</b>.
+              L'IA ne redemande jamais un critère déjà rempli et ne mentionne
+              jamais ses variables techniques (<code>budgetMin</code>,
+              <code>toleranceKm</code>…) à l'utilisateur.
+            </div>
+          </section>
+          <!-- 04 CRITERES -->
+          <section class="doc" id="criteres">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">04 — Critères &amp; tolérances</div>
+              <h2>Tous les critères, et leur élasticité.</h2>
+              <p>
+                Chaque critère n'est pas un filtre binaire. La plupart sont
+                <em>élastiques</em> : une tolérance autour de la valeur idéale
+                permet de ne jamais rater une opportunité proche.
+              </p>
+            </div>
+            <div class="ctable reveal">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Critère</th>
+                    <th>Rôle</th>
+                    <th>Comportement &amp; tolérance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Ville</td>
+                    <td>Acheteur</td>
+                    <td>
+                      Distance Haversine réelle entre villes. Sans rayon défini
+                      : score doux mondial dégressif jusqu'à
+                      <span class="pill">300 km</span>. Avec rayon :
+                      <b>zone parfaite = 35 %</b> du rayon, puis décroissance
+                      linéaire jusqu'à 0.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>toleranceKm</td>
+                    <td>Acheteur</td>
+                    <td>
+                      « 60 km » → 60 · « peu importe » → 100. Borne le rayon de
+                      recherche autour de la ville cible.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Budget max</td>
+                    <td>Acheteur</td>
+                    <td>
+                      ≤ budget → score plein. Dépassement toléré selon le DPE :
+                      <span class="pill">+10 % si A/B</span>, +7 % si C, +5 %
+                      sinon. Au-delà → 0.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Pièces min</td>
+                    <td>Acheteur</td>
+                    <td>
+                      ≥ minimum → +45 pts ; <b>+10 si exactement 1 de plus</b> ;
+                      −5 si 3+ de trop (sur-dimensionné).
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Surface min</td>
+                    <td>Acheteur</td>
+                    <td>
+                      ≥ minimum → +45 pts. Ratio m²/pièce vérifié : zone saine
+                      18–45 m²/pièce, sinon ajustement négatif.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Type de bien</td>
+                    <td>Les deux</td>
+                    <td>
+                      Familles proches compatibles : appartement / studio / loft
+                      / duplex ↔ ; maison / villa / pavillon ↔.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>DPE / énergie</td>
+                    <td>Vendeur</td>
+                    <td>
+                      Classé A→G (7→1). Bonus émotionnel
+                      <span class="pill">+4 pts × rang</span> et élargit la
+                      tolérance budget.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>État du bien</td>
+                    <td>Vendeur</td>
+                    <td>
+                      Neuf <span class="pill">+15</span> · rénové +10 · travaux
+                      <span class="pill">−15</span>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Proximité</td>
+                    <td>Les deux</td>
+                    <td>
+                      Infrastructures déclarées : +2 pts/infra (max 12), bonus
+                      diversité. Match acheteur↔vendeur jusqu'à +8 pts.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Photos</td>
+                    <td>Vendeur</td>
+                    <td>
+                      Jusqu'à 6 photos comptées,
+                      <span class="pill">+4 pts chacune</span> sur le score
+                      émotionnel.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="fig reveal">
+              <div class="fig-top">
+                <span class="fig-id">FIG 4.0</span>
+                <span class="fig-title"
+                  >scoreVille() — élasticité géographique</span
+                >
+              </div>
+              <div class="fig-body">
+                <svg viewBox="0 0 900 260" width="900">
+                  <!-- axes -->
+                  <line class="s-line" x1="80" y1="210" x2="840" y2="210" />
+                  <line class="s-line" x1="80" y1="40" x2="80" y2="210" />
+                  <text class="s-t2" x="60" y="46" text-anchor="end">100</text>
+                  <text class="s-t2" x="60" y="214" text-anchor="end">0</text>
+                  <text class="s-t2" x="840" y="232" text-anchor="end">
+                    distance →
+                  </text>
+                  <text class="s-t2" x="92" y="232">ville cible</text>
+                  <!-- zone parfaite -->
+                  <rect
+                    x="80"
+                    y="40"
+                    width="230"
+                    height="170"
+                    fill="rgba(255,255,255,0.05)"
+                  />
+                  <line class="s-dash" x1="310" y1="40" x2="310" y2="210" />
+                  <text class="s-t2" x="195" y="60" text-anchor="middle">
+                    ZONE PARFAITE (35%)
+                  </text>
+                  <!-- curve -->
+                  <path
+                    class="s-line"
+                    style="stroke: #fff; stroke-width: 2"
+                    d="M80 50 H310 L640 210"
+                  />
+                  <line class="s-dash" x1="640" y1="40" x2="640" y2="210" />
+                  <text class="s-t2" x="640" y="232" text-anchor="middle">
+                    rayon max
+                  </text>
+                  <circle cx="310" cy="50" r="4" fill="#fff" />
+                  <circle cx="640" cy="210" r="4" fill="#fff" />
+                  <text
+                    class="s-t"
+                    x="470"
+                    y="125"
+                    transform="rotate(20 470 125)"
+                  >
+                    décroissance linéaire
+                  </text>
+                </svg>
+              </div>
+            </div>
+            <p class="body reveal">
+              Cette élasticité est ce qui distingue Mon AiGENT d'un simple
+              filtre SQL. Un bien à 5 km au-delà du rayon n'est pas rejeté
+              brutalement : il obtient simplement un score plus bas, et peut
+              remonter si ses autres dimensions sont excellentes.
+            </p>
+          </section>
+          <!-- 05 REPONSE -->
+          <section class="doc" id="reponse">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">05 — Comment l'IA répond</div>
+              <h2>Trois modèles, zéro point de panne.</h2>
+              <p>
+                Pour garantir une réponse même en cas d'indisponibilité d'un
+                fournisseur, l'IA s'appuie sur une
+                <em>cascade de failover</em> : Groq en primaire, puis
+                Featherless, puis Mistral, et enfin un message de secours
+                déterministe.
+              </p>
+            </div>
+            <div class="fig reveal">
+              <div class="fig-top">
+                <span class="fig-id">FIG 5.0</span>
+                <span class="fig-title">callLLM() — cascade de fallback</span>
+              </div>
+              <div class="fig-body">
+                <svg viewBox="0 0 1000 200" width="1000">
+                  <g>
+                    <rect
+                      class="s-node-hi"
+                      x="30"
+                      y="70"
+                      width="170"
+                      height="60"
+                      rx="12"
+                    />
+                    <text class="s-t-dark" x="115" y="98" text-anchor="middle">
+                      GROQ
+                    </text>
+                    <text
+                      x="115"
+                      y="115"
+                      text-anchor="middle"
+                      style="
+                        fill: #444;
+                        font-family: var(--mono);
+                        font-size: 10px;
+                      "
+                    >
+                      primaire · 10s
+                    </text>
+                  </g>
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="270"
+                      y="70"
+                      width="170"
+                      height="60"
+                      rx="12"
+                    />
+                    <text class="s-t" x="355" y="98" text-anchor="middle">
+                      FEATHERLESS
+                    </text>
+                    <text class="s-t2" x="355" y="115" text-anchor="middle">
+                      fallback 1 · 12s
+                    </text>
+                  </g>
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="510"
+                      y="70"
+                      width="170"
+                      height="60"
+                      rx="12"
+                    />
+                    <text class="s-t" x="595" y="98" text-anchor="middle">
+                      MISTRAL
+                    </text>
+                    <text class="s-t2" x="595" y="115" text-anchor="middle">
+                      fallback 2 · 12s
+                    </text>
+                  </g>
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="750"
+                      y="70"
+                      width="220"
+                      height="60"
+                      rx="12"
+                      style="stroke-dasharray: 4 4"
+                    />
+                    <text class="s-t" x="860" y="98" text-anchor="middle">
+                      buildFallbackMessage
+                    </text>
+                    <text class="s-t2" x="860" y="115" text-anchor="middle">
+                      secours déterministe
+                    </text>
+                  </g>
+                  <g fill="var(--stroke2)">
+                    <line class="s-line" x1="200" y1="100" x2="265" y2="100" />
+                    <path d="M265 100l-8-4v8z" />
+                    <line class="s-line" x1="440" y1="100" x2="505" y2="100" />
+                    <path d="M505 100l-8-4v8z" />
+                    <line class="s-line" x1="680" y1="100" x2="745" y2="100" />
+                    <path d="M745 100l-8-4v8z" />
+                  </g>
+                  <text class="s-t2" x="232" y="58" text-anchor="middle">
+                    timeout / erreur
+                  </text>
+                  <text class="s-t2" x="472" y="58" text-anchor="middle">
+                    timeout / erreur
+                  </text>
+                  <text class="s-t2" x="712" y="58" text-anchor="middle">
+                    tout échoue
+                  </text>
+                </svg>
+              </div>
+            </div>
+            <p class="body reveal">
+              Les réponses sont <b>contextuelles selon la phase</b>. En tunnel,
+              l'IA pose la prochaine question manquante. En phase RÉSULTATS,
+              elle ne touche plus aux critères : elle reçoit les 5 meilleurs
+              profils en contexte et aide l'utilisateur à les <em>comparer</em>,
+              expliquer un score, ou décider d'un contact. Le prompt système
+              rappelle en permanence les critères déjà enregistrés pour éviter
+              toute répétition.
+            </p>
+            <div class="grid c2 reveal">
+              <div class="gcard">
+                <h4>Phase tunnel</h4>
+                <p>
+                  Objectif : collecter. Une question, fusion des critères,
+                  détection automatique de l'intervalle « entre X et Y ».
+                </p>
+                <span class="tag"
+                  >buildBuyerSystemPrompt / buildSellerSystemPrompt</span
+                >
+              </div>
+              <div class="gcard">
+                <h4>Phase résultats</h4>
+                <p>
+                  Objectif : conseiller. Les profils sont injectés ; l'IA
+                  compare, argumente, propose contact ou ajustement.
+                </p>
+                <span class="tag">buildBuyerResultsPrompt</span>
+              </div>
+            </div>
+          </section>
+          <!-- 06 MATCHING -->
+          <section class="doc" id="matching">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">06 — Moteur de matching</div>
+              <h2>Quatre dimensions, une note.</h2>
+              <p>
+                Le moteur (<code>matchingEngine.js</code>) calcule pour chaque
+                couple acheteur↔vendeur un score final pondéré sur quatre
+                familles : vital, technique, émotionnel, et proximité.
+              </p>
+            </div>
+            <div class="fig reveal">
+              <div class="fig-top">
+                <span class="fig-id">FIG 6.0</span>
+                <span class="fig-title">Composition du score final</span>
+              </div>
+              <div class="fig-body">
+                <svg viewBox="0 0 980 340" width="980">
+                  <!-- inputs left -->
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="20"
+                      y="20"
+                      width="200"
+                      height="52"
+                      rx="10"
+                    />
+                    <text class="s-t" x="40" y="44">Budget</text>
+                    <text class="s-t2" x="40" y="60">
+                      scoreBudgetSmart · 55%
+                    </text>
+                    <rect
+                      class="s-node"
+                      x="20"
+                      y="86"
+                      width="200"
+                      height="52"
+                      rx="10"
+                    />
+                    <text class="s-t" x="40" y="110">Ville</text>
+                    <text class="s-t2" x="40" y="126">scoreVille · 45%</text>
+                  </g>
+                  <!-- vital -->
+                  <rect
+                    class="s-node"
+                    x="300"
+                    y="40"
+                    width="160"
+                    height="78"
+                    rx="12"
+                  />
+                  <text class="s-t" x="380" y="74" text-anchor="middle">
+                    VITAL
+                  </text>
+                  <text class="s-t2" x="380" y="92" text-anchor="middle">
+                    budget·.55 + ville·.45
+                  </text>
+                  <line class="s-line" x1="220" y1="46" x2="300" y2="66" />
+                  <line class="s-line" x1="220" y1="112" x2="300" y2="92" />
+                  <!-- tech -->
+                  <rect
+                    class="s-node"
+                    x="20"
+                    y="158"
+                    width="200"
+                    height="52"
+                    rx="10"
+                  />
+                  <text class="s-t" x="40" y="182">
+                    Pièces · Surface · Type
+                  </text>
+                  <text class="s-t2" x="40" y="198">scoreTechniqueSmart</text>
+                  <rect
+                    class="s-node"
+                    x="300"
+                    y="150"
+                    width="160"
+                    height="56"
+                    rx="12"
+                  />
+                  <text class="s-t" x="380" y="183" text-anchor="middle">
+                    TECHNIQUE
+                  </text>
+                  <line class="s-line" x1="220" y1="184" x2="300" y2="178" />
+                  <!-- emotion -->
+                  <rect
+                    class="s-node"
+                    x="20"
+                    y="232"
+                    width="200"
+                    height="52"
+                    rx="10"
+                  />
+                  <text class="s-t" x="40" y="256">DPE · Photos · État</text>
+                  <text class="s-t2" x="40" y="272">scoreEmotionSmart</text>
+                  <rect
+                    class="s-node"
+                    x="300"
+                    y="232"
+                    width="160"
+                    height="56"
+                    rx="12"
+                  />
+                  <text class="s-t" x="380" y="265" text-anchor="middle">
+                    ÉMOTIONNEL
+                  </text>
+                  <line class="s-line" x1="220" y1="258" x2="300" y2="260" />
+                  <!-- weights to final -->
+                  <line class="s-line" x1="460" y1="78" x2="620" y2="150" />
+                  <line class="s-line" x1="460" y1="178" x2="620" y2="168" />
+                  <line class="s-line" x1="460" y1="260" x2="620" y2="186" />
+                  <text class="s-t2" x="540" y="106">×0.6</text>
+                  <text class="s-t2" x="540" y="166">×0.3</text>
+                  <text class="s-t2" x="540" y="232">×0.1</text>
+                  <!-- proximite -->
+                  <rect
+                    class="s-node"
+                    x="300"
+                    y="304"
+                    width="160"
+                    height="30"
+                    rx="8"
+                    style="stroke-dasharray: 4 4"
+                  />
+                  <text class="s-t2" x="380" y="324" text-anchor="middle">
+                    + bonus proximité
+                  </text>
+                  <line class="s-dash" x1="460" y1="318" x2="620" y2="200" />
+                  <!-- final -->
+                  <rect
+                    class="s-node-hi"
+                    x="620"
+                    y="130"
+                    width="180"
+                    height="80"
+                    rx="14"
+                  />
+                  <text class="s-t-dark" x="710" y="165" text-anchor="middle">
+                    SCORE FINAL
+                  </text>
+                  <text
+                    x="710"
+                    y="188"
+                    text-anchor="middle"
+                    style="
+                      fill: #333;
+                      font-family: var(--mono);
+                      font-size: 11px;
+                    "
+                  >
+                    0 → 100
+                  </text>
+                  <!-- ranking -->
+                  <line class="s-line" x1="800" y1="170" x2="860" y2="170" />
+                  <path d="M860 170l-8-4v8z" fill="var(--stroke2)" />
+                  <rect
+                    class="s-node"
+                    x="860"
+                    y="140"
+                    width="110"
+                    height="60"
+                    rx="12"
+                  />
+                  <text class="s-t" x="915" y="167" text-anchor="middle">
+                    TRI
+                  </text>
+                  <text class="s-t2" x="915" y="184" text-anchor="middle">
+                    Top N=5
+                  </text>
+                </svg>
+              </div>
+            </div>
+            <div class="code reveal">
+              <div class="code-top">
+                <span class="d"></span><span class="d"></span
+                ><span class="d"></span>
+                <span class="fn">matchingEngine.js — formule finale</span>
+              </div>
+              <pre><span class="k">const</span> vital   = budgetScore * <span class="n">0.55</span> + villeScore * <span class="n">0.45</span>;
+<span class="k">const</span> tech    = scoreTechniqueSmart(seller, buyer);
+<span class="k">const</span> emotion = scoreEmotionSmart(seller);
+<span class="k">const</span> final = vital * <span class="n">0.6</span> + tech * <span class="n">0.3</span>
+            + emotion * <span class="n">0.1</span> + proximiteBonus;</pre>
+            </div>
+            <p class="body reveal">
+              Le poids dominant du <b>vital (60 %)</b> reflète une vérité métier
+              : budget et localisation sont éliminatoires. Le technique affine,
+              et l'émotionnel (DPE, photos, état) départage les ex-æquo. Le
+              bonus proximité récompense l'adéquation fine entre le quartier
+              proposé et les attentes exprimées.
+            </p>
+          </section>
+          <!-- 07 SELECTION -->
+          <section class="doc" id="selection">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">07 — Sélection des profils</div>
+              <h2>Comparaison « avec nous », pas « contre tous ».</h2>
+              <p>
+                <code>matchUsers()</code> ne renvoie pas une liste brute. Il
+                applique un filtrage de tolérance, un boost qualitatif, puis un
+                tri global pondéré qui combine compatibilité, score ville et
+                boost.
+              </p>
+            </div>
+            <div class="steps reveal">
+              <div class="step">
+                <div class="num"></div>
+                <div>
+                  <h4>Filtrage par tolérance</h4>
+                  <p>
+                    Les profils hors rayon effectif
+                    (<code>effectiveTolerance</code>) sont écartés. Les profils
+                    dans la moitié du rayon sont marqués « proches ».
+                  </p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="num"></div>
+                <div>
+                  <h4>Score de compatibilité</h4>
+                  <p>
+                    Chaque profil reçoit son score final (FIG 6.0) plus un
+                    <code>villeScoreVal</code> séparé pour le tri.
+                  </p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="num"></div>
+                <div>
+                  <h4>Boost qualitatif</h4>
+                  <p>
+                    Énergie ×0.7, photos (max 6) ×0.6, état du bien : un
+                    <code>boostedScore</code> qui valorise les annonces
+                    soignées.
+                  </p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="num"></div>
+                <div>
+                  <h4>Tri global</h4>
+                  <p>
+                    Note finale = compatibilité ×0.7 + villeScore ×0.2 + boost
+                    ×0.1, puis on coupe au <b>Top N = 5</b>.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="note reveal">
+              <span class="lab">Apprentissage</span>
+              <code>learnPreference()</code> et
+              <code>getSimilarProfiles()</code>
+              permettent au système de comparer les profils entre eux (budget à
+              ±20 %, surface à ±20 %) et d'affiner les suggestions au fil des
+              interactions.
+            </div>
+          </section>
+          <!-- 08 CARTE -->
+          <section class="doc" id="carte">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">08 — La carte interactive</div>
+              <h2>Le match devient géographie.</h2>
+              <p>
+                Une fois les profils renvoyés, une carte Leaflet se déploie. Les
+                coordonnées proviennent de <code>villes-france.json</code>,
+                servies par <code>GET /api/villes-coords</code>, et chaque match
+                y est positionné avec son score.
+              </p>
+            </div>
+            <div class="fig reveal">
+              <div class="fig-top">
+                <span class="fig-id">FIG 8.0</span>
+                <span class="fig-title">Du résultat au pin géolocalisé</span>
+              </div>
+              <div class="fig-body">
+                <svg viewBox="0 0 940 280" width="940">
+                  <!-- result list -->
+                  <rect
+                    class="s-node"
+                    x="20"
+                    y="40"
+                    width="240"
+                    height="200"
+                    rx="12"
+                  />
+                  <text class="s-t2" x="40" y="68">TOP 5 PROFILS</text>
+                  <g>
+                    <line class="s-line" x1="40" y1="86" x2="240" y2="86" />
+                    <rect
+                      x="40"
+                      y="96"
+                      width="200"
+                      height="26"
+                      rx="6"
+                      fill="rgba(255,255,255,0.04)"
+                    />
+                    <text class="s-t" x="52" y="113" style="font-size: 11px">
+                      #1 · Lyon · 94
+                    </text>
+                    <rect
+                      x="40"
+                      y="128"
+                      width="200"
+                      height="26"
+                      rx="6"
+                      fill="rgba(255,255,255,0.03)"
+                    />
+                    <text class="s-t" x="52" y="145" style="font-size: 11px">
+                      #2 · Villeurbanne · 88
+                    </text>
+                    <rect
+                      x="40"
+                      y="160"
+                      width="200"
+                      height="26"
+                      rx="6"
+                      fill="rgba(255,255,255,0.03)"
+                    />
+                    <text class="s-t" x="52" y="177" style="font-size: 11px">
+                      #3 · Bron · 81
+                    </text>
+                    <text class="s-t2" x="52" y="206">…</text>
+                  </g>
+                  <!-- arrow -->
+                  <line class="s-line" x1="260" y1="140" x2="360" y2="140" />
+                  <path d="M360 140l-8-4v8z" fill="var(--stroke2)" />
+                  <text class="s-t2" x="310" y="128" text-anchor="middle">
+                    villes-coords
+                  </text>
+                  <!-- map -->
+                  <rect
+                    class="s-node"
+                    x="380"
+                    y="40"
+                    width="540"
+                    height="200"
+                    rx="12"
+                  />
+                  <path
+                    class="s-dash"
+                    d="M460 90 q120 -30 200 20 q120 60 200 -10"
+                  />
+                  <path
+                    class="s-dash"
+                    d="M440 160 q160 40 300 -10 q80 -20 140 30"
+                  />
+                  <!-- pins -->
+                  <g>
+                    <circle cx="600" cy="120" r="14" fill="#fff" />
+                    <text
+                      class="s-t-dark"
+                      x="600"
+                      y="125"
+                      text-anchor="middle"
+                      style="font-size: 11px"
+                    >
+                      94
+                    </text>
+                    <path d="M600 134 l-6 12 h12z" fill="#fff" />
+                    <circle
+                      cx="690"
+                      cy="160"
+                      r="11"
+                      fill="#0e0e13"
+                      stroke="var(--stroke2)"
+                    />
+                    <text
+                      class="s-t"
+                      x="690"
+                      y="164"
+                      text-anchor="middle"
+                      style="font-size: 10px"
+                    >
+                      88
+                    </text>
+                    <circle
+                      cx="520"
+                      cy="170"
+                      r="11"
+                      fill="#0e0e13"
+                      stroke="var(--stroke2)"
+                    />
+                    <text
+                      class="s-t"
+                      x="520"
+                      y="174"
+                      text-anchor="middle"
+                      style="font-size: 10px"
+                    >
+                      81
+                    </text>
+                  </g>
+                  <text class="s-t2" x="650" y="220" text-anchor="middle">
+                    Leaflet · clic = détails du profil
+                  </text>
+                </svg>
+              </div>
+            </div>
+            <p class="body reveal">
+              Le pin du meilleur match est mis en avant. Un clic ouvre une fiche
+              : critères du bien, photos, DPE, infrastructures de proximité, et
+              le détail du score. La distance Haversine affichée est la
+              <em>vraie</em>
+              distance utilisée par le moteur, pas une estimation.
+            </p>
+          </section>
+          <!-- 09 POST -->
+          <section class="doc" id="post">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">09 — Post-matching</div>
+              <h2>L'IA ne disparaît pas après le match.</h2>
+              <p>
+                C'est là que Mon AiGENT se distingue radicalement d'un portail
+                d'annonces. Une fois les résultats affichés, l'IA reste un
+                interlocuteur : elle commente, négocie l'angle, et peut
+                relancer.
+              </p>
+            </div>
+            <div class="fig reveal">
+              <div class="fig-top">
+                <span class="fig-id">FIG 9.0</span>
+                <span class="fig-title">Boucle de décision post-matching</span>
+              </div>
+              <div class="fig-body">
+                <svg viewBox="0 0 960 280" width="960">
+                  <rect
+                    class="s-node-hi"
+                    x="380"
+                    y="20"
+                    width="200"
+                    height="56"
+                    rx="12"
+                  />
+                  <text class="s-t-dark" x="480" y="53" text-anchor="middle">
+                    RÉSULTATS affichés
+                  </text>
+                  <!-- three branches -->
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="40"
+                      y="150"
+                      width="240"
+                      height="80"
+                      rx="12"
+                    />
+                    <text class="s-t" x="60" y="180">Discuter / comparer</text>
+                    <text class="s-t2" x="60" y="200">
+                      "pourquoi le #2 est moins bien ?"
+                    </text>
+                    <text class="s-t2" x="60" y="218">
+                      l'IA explique le score
+                    </text>
+                  </g>
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="360"
+                      y="150"
+                      width="240"
+                      height="80"
+                      rx="12"
+                    />
+                    <text class="s-t" x="380" y="180">Mise en relation</text>
+                    <text class="s-t2" x="380" y="200">
+                      generateContactMessage()
+                    </text>
+                    <text class="s-t2" x="380" y="218">
+                      message rédigé → messagerie
+                    </text>
+                  </g>
+                  <g>
+                    <rect
+                      class="s-node"
+                      x="680"
+                      y="150"
+                      width="240"
+                      height="80"
+                      rx="12"
+                    />
+                    <text class="s-t" x="700" y="180">
+                      Ajuster &amp; relancer
+                    </text>
+                    <text class="s-t2" x="700" y="200">
+                      modify_criteria détecté
+                    </text>
+                    <text class="s-t2" x="700" y="218">
+                      +20 km → nouveau matching
+                    </text>
+                  </g>
+                  <!-- connectors -->
+                  <line class="s-line" x1="430" y1="76" x2="160" y2="148" />
+                  <path d="M160 148l4-9 6 6z" fill="var(--stroke2)" />
+                  <line class="s-line" x1="480" y1="76" x2="480" y2="148" />
+                  <path d="M480 148l-4-9h8z" fill="var(--stroke2)" />
+                  <line class="s-line" x1="530" y1="76" x2="800" y2="148" />
+                  <path d="M800 148l-10 3 6 6z" fill="var(--stroke2)" />
+                  <!-- relaunch back -->
+                  <path class="s-dash" d="M800 230 V262 H480 V78" />
+                  <path d="M480 84l-4 8h8z" fill="var(--stroke2)" />
+                </svg>
+              </div>
+            </div>
+            <div class="grid c3 reveal">
+              <div class="gcard">
+                <h4>Conseil contextuel</h4>
+                <p>
+                  <code>detectResultsIntent()</code> distingue une question, une
+                  demande de contact ou une volonté d'ajuster les critères.
+                </p>
+                <span class="tag">intent routing</span>
+              </div>
+              <div class="gcard">
+                <h4>Message de contact</h4>
+                <p>
+                  L'IA rédige un message personnalisé citant la ville et
+                  l'adéquation, prêt à envoyer (avec repli déterministe).
+                </p>
+                <span class="tag">generateContactMessage()</span>
+              </div>
+              <div class="gcard">
+                <h4>Meilleure visibilité</h4>
+                <p>
+                  Si peu de matchs, l'IA propose d'élargir le rayon, le budget
+                  ou d'assouplir le type, puis relance le moteur.
+                </p>
+                <span class="tag">re-matching</span>
+              </div>
+            </div>
+          </section>
+          <!-- 10 MESSAGERIE -->
+          <section class="doc" id="messagerie">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">10 — La messagerie</div>
+              <h2>Le match ne vaut rien sans le contact.</h2>
+              <p>
+                La messagerie est le point d'aboutissement. Tout le pipeline
+                converge vers un objectif unique : permettre à deux intentions
+                compatibles de se parler, en sécurité.
+              </p>
+            </div>
+            <div class="ctable reveal">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Route</th>
+                    <th>Méthode</th>
+                    <th>Rôle</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>/api/send-match-message</td>
+                    <td><span class="pill">POST</span></td>
+                    <td>
+                      Envoie le message issu d'un match directement au profil
+                      ciblé.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>/api/messages</td>
+                    <td><span class="pill">GET · POST</span></td>
+                    <td>Fil de discussion : liste et envoi de messages.</td>
+                  </tr>
+                  <tr>
+                    <td>/api/messages/:id</td>
+                    <td><span class="pill">DELETE</span></td>
+                    <td>Suppression d'un message.</td>
+                  </tr>
+                  <tr>
+                    <td>/api/conversations/archive</td>
+                    <td><span class="pill">POST</span></td>
+                    <td>Archivage d'une conversation terminée.</td>
+                  </tr>
+                  <tr>
+                    <td>/api/users/block</td>
+                    <td><span class="pill">POST</span></td>
+                    <td>Blocage d'un interlocuteur indésirable.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="note reveal">
+              <span class="lab">Pourquoi c'est central</span>
+              Un score de 94 ne sert à rien s'il ne déclenche pas une
+              conversation. La messagerie ferme la boucle :
+              <b>intention → matching → contact → transaction</b>. C'est la
+              seule métrique qui compte vraiment.
+            </div>
+          </section>
+          <!-- 11 MARCHE -->
+          <section class="doc" id="marche">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">11 — Intelligence de marché</div>
+              <h2>Le marché, calculé sur du réel.</h2>
+              <p>
+                <code>GET /api/marche</code> ne récite pas des indices externes
+                : il calcule en direct, à partir des vendeurs et acheteurs de la
+                base, le prix au m², les médianes, et la tension par ville.
+              </p>
+            </div>
+            <div class="fig reveal">
+              <div class="fig-top">
+                <span class="fig-id">FIG 11.0</span>
+                <span class="fig-title">Calcul de l'indice de marché</span>
+              </div>
+              <div class="fig-body">
+                <svg viewBox="0 0 960 250" width="960">
+                  <!-- DB -->
+                  <g>
+                    <ellipse cx="90" cy="70" rx="50" ry="14" class="s-node" />
+                    <path
+                      class="s-line"
+                      d="M40 70 v60 a50 14 0 0 0 100 0 v-60"
+                    />
+                    <path class="s-line" d="M40 100 a50 14 0 0 0 100 0" />
+                    <text class="s-t2" x="90" y="160" text-anchor="middle">
+                      users (DB)
+                    </text>
+                  </g>
+                  <!-- filter -->
+                  <rect
+                    class="s-node"
+                    x="220"
+                    y="40"
+                    width="200"
+                    height="64"
+                    rx="12"
+                  />
+                  <text class="s-t" x="240" y="68">Filtre vendeurs</text>
+                  <text class="s-t2" x="240" y="86">
+                    price&gt;0 &amp; surface&gt;0
+                  </text>
+                  <line class="s-line" x1="140" y1="85" x2="218" y2="72" />
+                  <path d="M218 72l-8-2 2 8z" fill="var(--stroke2)" />
+                  <!-- compute -->
+                  <rect
+                    class="s-node"
+                    x="470"
+                    y="20"
+                    width="220"
+                    height="48"
+                    rx="10"
+                  />
+                  <text class="s-t" x="490" y="49">prix/m² par bien</text>
+                  <rect
+                    class="s-node"
+                    x="470"
+                    y="82"
+                    width="220"
+                    height="48"
+                    rx="10"
+                  />
+                  <text class="s-t" x="490" y="111">médiane &amp; moyenne</text>
+                  <rect
+                    class="s-node"
+                    x="470"
+                    y="144"
+                    width="220"
+                    height="48"
+                    rx="10"
+                  />
+                  <text class="s-t" x="490" y="173">tension par ville</text>
+                  <line class="s-line" x1="420" y1="72" x2="468" y2="44" />
+                  <line class="s-line" x1="420" y1="72" x2="468" y2="106" />
+                  <line class="s-line" x1="420" y1="72" x2="468" y2="168" />
+                  <!-- output -->
+                  <rect
+                    class="s-node-hi"
+                    x="740"
+                    y="76"
+                    width="190"
+                    height="60"
+                    rx="12"
+                  />
+                  <text class="s-t-dark" x="835" y="103" text-anchor="middle">
+                    INDICE
+                  </text>
+                  <text
+                    x="835"
+                    y="121"
+                    text-anchor="middle"
+                    style="
+                      fill: #333;
+                      font-family: var(--mono);
+                      font-size: 10px;
+                    "
+                  >
+                    par range (1a…)
+                  </text>
+                  <line class="s-line" x1="690" y1="106" x2="738" y2="106" />
+                  <path d="M738 106l-8-4v8z" fill="var(--stroke2)" />
+                </svg>
+              </div>
+            </div>
+            <p class="body reveal">
+              Pour chaque ville, le moteur agrège prix au m², surfaces et compte
+              les <b>matchs réels</b> contre la population d'acheteurs en
+              mémoire. Il en déduit une <em>compatibilité moyenne</em> qui
+              mesure la tension : beaucoup d'acheteurs, peu de biens compatibles
+              = marché vendeur.
+            </p>
+            <div class="grid c2 reveal">
+              <div class="gcard">
+                <h4>/api/marche-pro</h4>
+                <p>
+                  Vue avancée : transactions, rendements locatifs, indices et
+                  analyse par quartier.
+                </p>
+                <span class="tag">GET · authentifié</span>
+              </div>
+              <div class="gcard">
+                <h4>/api/marche-pro/quartiers</h4>
+                <p>
+                  Granularité quartier : prix, rendement, dynamique locale pour
+                  arbitrer un investissement.
+                </p>
+                <span class="tag">GET</span>
+              </div>
+            </div>
+          </section>
+          <!-- 12 RADAR -->
+          <section class="doc" id="radar">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">
+                12 — Deal-Radar &amp; recommandations
+              </div>
+              <h2>Le marché vous alerte, l'IA vous projette.</h2>
+              <p>
+                Au-delà de la recherche active, Mon AiGENT veille : il vous
+                prévient quand une opportunité apparaît, simule des scénarios et
+                propose des ajustements de critères chiffrés.
+              </p>
+            </div>
+            <div class="grid c2 reveal">
+              <div class="gcard">
+                <div class="ic">
+                  <svg width="18" height="18" class="s-icn" viewBox="0 0 20 20">
+                    <circle cx="10" cy="10" r="3" />
+                    <circle cx="10" cy="10" r="8" />
+                  </svg>
+                </div>
+                <h4>Deal-Radar</h4>
+                <p>
+                  Veille continue du marché : dès qu'un bien correspond à votre
+                  profil, une alerte est levée. Abonnement par critères.
+                </p>
+                <span class="tag">/api/deal-radar · /subscribe</span>
+              </div>
+              <div class="gcard">
+                <div class="ic">
+                  <svg width="18" height="18" class="s-icn" viewBox="0 0 20 20">
+                    <path d="M3 17l4-6 3 3 5-8" />
+                  </svg>
+                </div>
+                <h4>Recommandations simulées</h4>
+                <p>
+                  Le moteur propose des ajustements (« +20 km débloque 7 biens
+                  ») et simule l'impact sur le nombre de matchs.
+                </p>
+                <span class="tag">/api/recommendations/brief</span>
+              </div>
+              <div class="gcard">
+                <div class="ic">
+                  <svg width="18" height="18" class="s-icn" viewBox="0 0 20 20">
+                    <path d="M4 4h12v12H4zM4 9h12" />
+                  </svg>
+                </div>
+                <h4>Scénarios &amp; négociation</h4>
+                <p>
+                  Simulateur de négociation tour par tour, avec synthèse
+                  exportable.
+                </p>
+                <span class="tag">/api/nego/start · /turn · /summary</span>
+              </div>
+              <div class="gcard">
+                <div class="ic">
+                  <svg width="18" height="18" class="s-icn" viewBox="0 0 20 20">
+                    <path d="M5 3h10v14H5zM8 7h4M8 11h4" />
+                  </svg>
+                </div>
+                <h4>Exports PDF / CSV</h4>
+                <p>
+                  Recommandations, scénarios et critères exportables en PDF ;
+                  données brutes en CSV.
+                </p>
+                <span class="tag">/api/export/pdf · /csv</span>
+              </div>
+            </div>
+            <div class="fig reveal">
+              <div class="fig-top">
+                <span class="fig-id">FIG 12.0</span>
+                <span class="fig-title"
+                  >Recommandation — simulation d'ajustement de critère</span
+                >
+              </div>
+              <div class="fig-body">
+                <svg viewBox="0 0 900 200" width="900">
+                  <rect
+                    class="s-node"
+                    x="20"
+                    y="60"
+                    width="180"
+                    height="70"
+                    rx="12"
+                  />
+                  <text class="s-t" x="40" y="90">Critères actuels</text>
+                  <text class="s-t2" x="40" y="110">
+                    rayon 30 km · 2 matchs
+                  </text>
+                  <line class="s-line" x1="200" y1="95" x2="300" y2="95" />
+                  <path d="M300 95l-8-4v8z" fill="var(--stroke2)" />
+                  <rect
+                    class="s-node"
+                    x="320"
+                    y="40"
+                    width="220"
+                    height="50"
+                    rx="10"
+                    style="stroke-dasharray: 4 4"
+                  />
+                  <text class="s-t2" x="340" y="70">simulation +20 km</text>
+                  <rect
+                    class="s-node"
+                    x="320"
+                    y="110"
+                    width="220"
+                    height="50"
+                    rx="10"
+                    style="stroke-dasharray: 4 4"
+                  />
+                  <text class="s-t2" x="340" y="140">
+                    simulation budget +5%
+                  </text>
+                  <line class="s-line" x1="540" y1="65" x2="640" y2="90" />
+                  <line class="s-line" x1="540" y1="135" x2="640" y2="105" />
+                  <rect
+                    class="s-node-hi"
+                    x="640"
+                    y="65"
+                    width="240"
+                    height="64"
+                    rx="12"
+                  />
+                  <text class="s-t-dark" x="760" y="92" text-anchor="middle">
+                    +20 km → 9 matchs
+                  </text>
+                  <text
+                    x="760"
+                    y="112"
+                    text-anchor="middle"
+                    style="
+                      fill: #333;
+                      font-family: var(--mono);
+                      font-size: 11px;
+                    "
+                  >
+                    recommandation retenue
+                  </text>
+                </svg>
+              </div>
+            </div>
+          </section>
+          <!-- 13 ASTUCES -->
+          <section class="doc" id="astuces">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">13 — Astuces pour parler à l'IA</div>
+              <h2>Mieux vous parlez, mieux elle matche.</h2>
+              <p>
+                L'IA comprend le langage naturel, mais quelques réflexes
+                accélèrent la collecte et améliorent la pertinence des
+                résultats.
+              </p>
+            </div>
+            <div class="tips reveal">
+              <div class="tip good">
+                <div class="do">À faire</div>
+                <p>
+                  Donnez plusieurs critères d'un coup. L'IA en extrait autant
+                  qu'elle peut par message.
+                </p>
+                <div class="ex">
+                  "T3 à Lyon, 250k max, rayon 30 km, DPE C minimum"
+                </div>
+              </div>
+              <div class="tip bad">
+                <div class="do">À éviter</div>
+                <p>
+                  Attendre une question pour chaque détail. C'est plus lent et
+                  fragmente l'intention.
+                </p>
+                <div class="ex">
+                  "je cherche un appart." … "à Lyon." … "vers 250k."
+                </div>
+              </div>
+              <div class="tip good">
+                <div class="do">À faire</div>
+                <p>
+                  Exprimez les intervalles naturellement : l'IA enregistre min
+                  et max séparément.
+                </p>
+                <div class="ex">"entre 200 et 260k", "de 60 à 80 m²"</div>
+              </div>
+              <div class="tip bad">
+                <div class="do">À éviter</div>
+                <p>Utiliser des termes ambigus sans contexte de lieu.</p>
+                <div class="ex">
+                  "pas trop cher", "pas trop loin" (sans ville)
+                </div>
+              </div>
+              <div class="tip good">
+                <div class="do">À faire</div>
+                <p>
+                  En phase résultats, demandez des comparaisons. L'IA a les
+                  profils en contexte.
+                </p>
+                <div class="ex">
+                  "pourquoi le #1 bat le #3 ?", "lequel a le meilleur DPE ?"
+                </div>
+              </div>
+              <div class="tip good">
+                <div class="do">À faire</div>
+                <p>
+                  Demandez des ajustements chiffrés pour débloquer plus de
+                  biens.
+                </p>
+                <div class="ex">
+                  "et si j'élargis à 50 km ?", "augmente le budget de 5%"
+                </div>
+              </div>
+            </div>
+            <div class="note reveal">
+              <span class="lab">Le saviez-vous</span>
+              « peu importe » sur le rayon est interprété comme
+              <code>toleranceKm = 100</code>. Et un bon DPE (A/B)
+              <b>élargit automatiquement votre tolérance budgétaire</b> jusqu'à
+              +10 % — un logement économe « coûte » moins cher dans le score.
+            </div>
+          </section>
+          <!-- 14 ARCHI -->
+          <section class="doc" id="archi">
+            <div class="sec-head reveal">
+              <div class="sec-kicker">14 — Architecture système</div>
+              <h2>Les couches, en un coup d'œil.</h2>
+              <p>
+                Un serveur Express sécurisé (helmet, rate-limit, JWT, 2FA)
+                orchestre l'IA, le moteur de matching, la base et les services
+                périphériques.
+              </p>
+            </div>
+            <div class="fig reveal">
+              <div class="fig-top">
+                <span class="fig-id">FIG 14.0</span>
+                <span class="fig-title">Carte des couches</span>
+              </div>
+              <div class="fig-body">
+                <svg viewBox="0 0 960 320" width="960">
+                  <!-- client -->
+                  <rect
+                    class="s-node"
+                    x="40"
+                    y="20"
+                    width="880"
+                    height="48"
+                    rx="10"
+                  />
+                  <text class="s-t" x="60" y="49">
+                    CLIENT — chat, carte Leaflet, messagerie, marché
+                  </text>
+                  <!-- api -->
+                  <rect
+                    class="s-node-hi"
+                    x="40"
+                    y="92"
+                    width="880"
+                    height="48"
+                    rx="10"
+                  />
+                  <text class="s-t-dark" x="60" y="121">
+                    API EXPRESS — JWT · helmet · rate-limit · file par user
+                  </text>
+                  <!-- services row -->
+                  <rect
+                    class="s-node"
+                    x="40"
+                    y="164"
+                    width="280"
+                    height="64"
+                    rx="10"
+                  />
+                  <text class="s-t" x="60" y="192">aiParsee.js</text>
+                  <text class="s-t2" x="60" y="210">parsing · LLM cascade</text>
+                  <rect
+                    class="s-node"
+                    x="340"
+                    y="164"
+                    width="280"
+                    height="64"
+                    rx="10"
+                  />
+                  <text class="s-t" x="360" y="192">matchingEngine.js</text>
+                  <text class="s-t2" x="360" y="210">score · ville · tri</text>
+                  <rect
+                    class="s-node"
+                    x="640"
+                    y="164"
+                    width="280"
+                    height="64"
+                    rx="10"
+                  />
+                  <text class="s-t" x="660" y="192">pdfGenerator.js</text>
+                  <text class="s-t2" x="660" y="210">exports PDF</text>
+                  <!-- data -->
+                  <rect
+                    class="s-node"
+                    x="40"
+                    y="252"
+                    width="430"
+                    height="52"
+                    rx="10"
+                  />
+                  <text class="s-t" x="60" y="283">
+                    DB SQL — users, messages, favoris, projets
+                  </text>
+                  <rect
+                    class="s-node"
+                    x="490"
+                    y="252"
+                    width="430"
+                    height="52"
+                    rx="10"
+                  />
+                  <text class="s-t" x="510" y="283">
+                    externes — Groq · Mistral · Cloudinary · Nodemailer
+                  </text>
+                  <!-- connectors -->
+                  <line class="s-line" x1="480" y1="68" x2="480" y2="90" />
+                  <line class="s-line" x1="480" y1="140" x2="480" y2="162" />
+                  <line class="s-line" x1="480" y1="228" x2="480" y2="250" />
+                </svg>
+              </div>
+            </div>
+            <div class="ctable reveal">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Domaine</th>
+                    <th>Routes principales</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Conversation</td>
+                    <td>
+                      <code>POST /chat</code> · <code>/api/ai</code> ·
+                      <code>/api/ai-analysis</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Comptes &amp; sécurité</td>
+                    <td>
+                      <code>/signup</code> · <code>/login</code> ·
+                      <code>/api/2fa/*</code> · <code>/api/me</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Messagerie</td>
+                    <td>
+                      <code>/api/messages</code> ·
+                      <code>/api/send-match-message</code> ·
+                      <code>/api/conversations/*</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Marché</td>
+                    <td>
+                      <code>/api/marche</code> · <code>/api/marche-pro/*</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Veille &amp; reco</td>
+                    <td>
+                      <code>/api/deal-radar</code> ·
+                      <code>/api/recommendations/brief</code> ·
+                      <code>/api/nego/*</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Espace pro</td>
+                    <td>
+                      <code>/api/projects</code> ·
+                      <code>/api/workspace/*</code> · <code>/api/agenda</code> ·
+                      <code>/api/integrations/*</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Exports</td>
+                    <td>
+                      <code>/api/export/pdf/*</code> ·
+                      <code>/api/export/csv</code>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="body reveal">
+              Chaque couche est isolée et remplaçable. Le LLM peut basculer de
+              fournisseur sans toucher au moteur ; le moteur peut évoluer sans
+              impacter le chat. C'est cette séparation qui permet à Mon AiGENT
+              de rester rapide, robuste et prêt à grandir.
+            </p>
+          </section>
+        </main>
+      </div>
+    </div>
+    <!-- FOOTER -->
+    <footer class="foot">
+      <div class="foot-inner">
+        <div class="logo">
+          <span class="logo-mark">A</span>
+          Mon AiGENT
+        </div>
+        <div class="foot-links">
+          <a href="./index.html">Accueil</a>
           <a href="./acheter.html">Acheter</a>
           <a href="./vendre.html">Vendre</a>
           <a href="./louer.html">Louer</a>
-          <a href="./blog-marche.html">Données</a>
-          <a href="./guides.html" class="active">Technologie</a>
-        </nav>
-
-        <!-- Actions -->
-        <div class="nav-right">
-          <a href="./contact.html" class="btn-outline">Contact</a>
-          <a href="./intro.html" class="btn-accent">Plateforme</a>
+          <a href="./guides.html">Guides</a>
         </div>
+        <small>© 2026 Mon AiGENT — Documentation technique v3.0</small>
       </div>
-    </header>
-
-    <!-- HERO SECTION -->
-    <section class="hero">
-      <div class="hero-inner">
-        <span class="hero-tag">Documentation & Ingénierie</span>
-        <h1 class="hero-title">
-          L'architecture algorithmique derrière Mon AiGENT.
-        </h1>
-        <p class="hero-desc">
-          Découvrez comment notre moteur de traitement du langage naturel (NLP)
-          et nos modèles mathématiques de matching redéfinissent la liquidité et
-          la transparence du marché immobilier.
-        </p>
-      </div>
-    </section>
-
-    <!-- MAIN LAYOUT -->
-    <div class="layout">
-      <!-- SIDEBAR SCROLL SPY -->
-      <aside class="toc-wrapper">
-        <div class="toc-title">Sommaire Technique</div>
-        <nav class="toc-nav">
-          <a href="#vision" class="toc-link">1. Asymétrie d'information</a>
-          <a href="#nlp" class="toc-link">2. Moteur d'Analyse Sémantique</a>
-          <a href="#matching" class="toc-link">3. Scoring Multidimensionnel</a>
-          <a href="#analytics" class="toc-link">4. Intelligence de Marché</a>
-          <a href="#desintermediation" class="toc-link"
-            >5. Désintermédiation P2P</a
-          >
-        </nav>
-      </aside>
-
-      <!-- CONTENT -->
-      <main class="doc-content">
-        <!-- SECTION 1 -->
-        <section id="vision" class="doc-section">
-          <h2>1. Répondre à l'asymétrie d'information</h2>
-          <p>
-            Le marché immobilier transactionnel souffre d'un défaut structurel
-            majeur : l'asymétrie d'information entre l'offre et la demande.
-            Historiquement, les portails de diffusion immobilière ont adopté un
-            modèle asymétrique (le vendeur paie pour exposer, l'acheteur cherche
-            dans le bruit). Ce modèle engendre de la friction, des délais
-            d'écoulement longs et des honoraires d'intermédiation élevés.
-          </p>
-          <p>
-            L'architecture de <span class="highlight">Mon AiGENT</span> repose
-            sur un paradigme inverse :
-            <strong>le matching bilatéral simultané</strong>. Nous ne listons
-            pas des annonces ; nous indexons des
-            <em>intentions de transaction</em> qualifiées, que notre moteur
-            croise en temps réel à l'échelle nationale.
-          </p>
-
-          <figure class="doc-figure">
-            <img
-              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=80"
-              alt="Data visualization dashboard"
-            />
-            <figcaption>
-              Figure 1.1 : Interface de supervision des intentions de
-              transaction en temps réel.
-            </figcaption>
-          </figure>
-        </section>
-
-        <!-- SECTION 2 -->
-        <section id="nlp" class="doc-section">
-          <h2>2. Le Moteur d'Analyse Sémantique (NLP)</h2>
-          <p>
-            La friction initiale dans l'immobilier réside dans la saisie des
-            données. Les formulaires rigides à 40 champs découragent la
-            qualification des profils. Pour pallier cela, notre plateforme
-            intègre un module de
-            <strong>Traitement du Langage Naturel (NLP)</strong> capable de
-            vectoriser une intention formulée en langage courant.
-          </p>
-
-          <h3>Extraction et Vectorisation</h3>
-          <p>
-            Lorsqu'un utilisateur soumet une requête via notre interface
-            conversationnelle, le modèle isole, nettoie et type les données pour
-            alimenter le vecteur de recherche.
-          </p>
-
-          <div class="code-block">
-            <span class="code-key">// Entrée Utilisateur (Raw String)</span
-            ><br />
-            "Je cherche un grand T4 autour de Bordeaux, budget max 450k€, pas de
-            passoire thermique."<br /><br />
-            <span class="code-key"
-              >// Sortie du Parser AiGENT (JSON Payload)</span
-            ><br />
-            {<br />
-            &nbsp;&nbsp;<span class="code-key">"intent"</span>:
-            <span class="code-str">"buyer"</span>,<br />
-            &nbsp;&nbsp;<span class="code-key">"criteria"</span>: {<br />
-            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"ville"</span>:
-            <span class="code-str">"Bordeaux"</span>,<br />
-            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"toleranceKm"</span>:
-            <span class="code-num">15</span>,<br />
-            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"type"</span>:
-            <span class="code-str">"appartement"</span>,<br />
-            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"piecesMin"</span>:
-            <span class="code-num">4</span>,<br />
-            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"budgetMax"</span>:
-            <span class="code-num">450000</span>,<br />
-            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"dpeMin"</span>:
-            <span class="code-str">"E"</span><br />
-            &nbsp;&nbsp;}<br />
-            }
-          </div>
-
-          <p>
-            Cette approche permet non seulement une qualification de la base de
-            données <strong>300% plus rapide</strong> qu'un flux classique, mais
-            elle permet également à l'IA de repérer les variables manquantes. Si
-            l'utilisateur omet de préciser s'il tolère des travaux, l'algorithme
-            génère un prompt conditionnel pour affiner le vecteur avant de
-            déclencher la fonction de matching.
-          </p>
-        </section>
-
-        <!-- SECTION 3 -->
-        <section id="matching" class="doc-section">
-          <h2>3. Algorithmique : Le Scoring Multidimensionnel</h2>
-          <p>
-            Le cœur nucléaire de Mon AiGENT est son algorithme de calcul de
-            compatibilité. À chaque nouvelle insertion dans la base de données
-            (Acheteur ou Vendeur), le moteur exécute une matrice de corrélation
-            <code>O(N)</code> sur le pool inverse.
-          </p>
-
-          <h3>Formule de pondération dynamique</h3>
-          <p>
-            Le score final (sur 100 points) n'est pas un simple filtre booléen.
-            Il s'agit d'un score de proximité calculé sur trois axes majeurs :
-          </p>
-
-          <table class="doc-table">
-            <thead>
-              <tr>
-                <th>Vecteur</th>
-                <th>Poids (%)</th>
-                <th>Méthode de calcul (Pénalités & Seuils)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>Vital</strong> (Finance & Géo)</td>
-                <td>60%</td>
-                <td>
-                  Écart quadratique sur le budget. Distance calculée par formule
-                  de Haversine (GPS). Un dépassement du budget > 5% annule le
-                  score.
-                </td>
-              </tr>
-              <tr>
-                <td><strong>Technique</strong> (Volume)</td>
-                <td>30%</td>
-                <td>
-                  Ratio Surface / Pièces. Une pénalité est appliquée si le ratio
-                  est inférieur à 18m²/pièce (risque de sur-cloisonnement).
-                </td>
-              </tr>
-              <tr>
-                <td><strong>Qualitatif</strong> (Énergie)</td>
-                <td>10%</td>
-                <td>
-                  Matrice DPE. Un DPE A ou B applique un multiplicateur de 1.15.
-                  Un DPE G applique un malus de -15 points, sauf tolérance
-                  "Travaux" déclarée.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="doc-callout">
-            <svg
-              class="callout-icon"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              ></path>
-            </svg>
-            <div class="callout-text">
-              <h4>Le concept de "Soft Limit" Géographique</h4>
-              <p>
-                Contrairement aux portails qui bloquent une recherche à la
-                frontière communale, notre moteur applique une décroissance
-                douce. Un bien situé à 1km en dehors de la zone de recherche ne
-                sera pas exclu, mais subira une pénalité marginale sur son score
-                <i>Vital</i>.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- SECTION 4 -->
-        <section id="analytics" class="doc-section">
-          <h2>4. Intelligence de Marché & Diagnostics</h2>
-          <p>
-            L'un des apports majeurs de notre infrastructure est la restitution
-            de la donnée à l'utilisateur. Lors d'un matching infructueux (score
-            < 40%), l'utilisateur n'est pas abandonné face à un écran vide. Le
-            système exécute une fonction d'analyse prédictive sur les rejets.
-          </p>
-
-          <figure class="doc-figure">
-            <img
-              src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1600&q=80"
-              alt="Analyse financière des données immobilières"
-            />
-            <figcaption>
-              Figure 4.1 : Traitement des données et restitution des écarts
-              médians aux utilisateurs.
-            </figcaption>
-          </figure>
-
-          <h3>Le "Feedback Loop" Chiffré</h3>
-          <p>
-            Le moteur identifie la variable causant la friction maximale. Par
-            exemple, si le budget de l'acquéreur rejette 80% des biens de la
-            zone cible, le système calcule l'écart médian exact (ex:
-            <i>"Écart constaté : 15 400 €"</i>) et propose un ajustement en un
-            clic.
-          </p>
-          <p>
-            Pour le vendeur, ce diagnostic est le
-            <strong>juge de paix de l'estimation</strong>. Si un bien est
-            présenté à 400k€ et qu'il ne matche aucun acquéreur finançable, la
-            surévaluation est mathématiquement prouvée par la base de données,
-            incitant à une correction tarifaire immédiate et rationnelle.
-          </p>
-        </section>
-
-        <!-- SECTION 5 -->
-        <section id="desintermediation" class="doc-section">
-          <h2>5. La Désintermédiation Financière (P2P)</h2>
-          <p>
-            La finalité de cette infrastructure technologique est de rendre le
-            pouvoir transactionnel aux parties prenantes. Le marché immobilier
-            traditionnel impose une taxe d'intermédiation (frais d'agence)
-            s'élevant en moyenne à 5% de la valeur de l'actif, pour un service
-            de matching devenu technologiquement obsolète.
-          </p>
-
-          <h3>Messagerie et Sécurisation</h3>
-          <p>
-            Une fois le "Match Parfait" établi, Mon AiGENT ouvre un canal de
-            communication crypté entre l'Acheteur et le Vendeur. Cette interface
-            permet :
-          </p>
-          <ul>
-            <li>
-              L'échange sécurisé de documents sensibles (Titre de propriété,
-              Procès-verbaux d'AG, Diagnostics Techniques).
-            </li>
-            <li>La planification d'inspections physiques du bien.</li>
-            <li>
-              La transmission directe du dossier au notaire désigné par les
-              parties, actant la transaction finale.
-            </li>
-          </ul>
-
-          <blockquote>
-            "L'intégration de l'IA ne consiste pas à remplacer l'humain, mais à
-            détruire la friction technique qui justifiait historiquement des
-            commissions d'agence de plusieurs dizaines de milliers d'euros."
-          </blockquote>
-
-          <p>
-            En automatisant la qualification, l'estimation comparative et la
-            mise en relation, Mon AiGENT réinjecte l'intégralité de la valeur
-            dans le patrimoine du vendeur et le pouvoir d'achat de l'acquéreur.
-          </p>
-        </section>
-      </main>
-    </div>
-
-    <!-- SCRIPT POUR LE SCROLL SPY (TOC) -->
+    </footer>
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const sections = document.querySelectorAll(".doc-section");
-        const navLinks = document.querySelectorAll(".toc-link");
-
-        const observerOptions = {
-          root: null,
-          rootMargin: "-20% 0px -60% 0px",
-          threshold: 0,
-        };
-
-        const observerCallback = (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              const id = entry.target.getAttribute("id");
-              navLinks.forEach((link) => {
-                link.classList.remove("active");
-                if (link.getAttribute("href") === `#${id}`) {
-                  link.classList.add("active");
-                }
-              });
+      // Reading progress
+      const readBar = document.getElementById("readBar");
+      const onScroll = () => {
+        const h = document.documentElement;
+        const scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight);
+        readBar.style.width = Math.min(100, scrolled * 100) + "%";
+      };
+      document.addEventListener("scroll", onScroll, { passive: true });
+      onScroll();
+      // Scroll-spy
+      const tocLinks = Array.from(document.querySelectorAll("#toc a"));
+      const sections = tocLinks
+        .map((a) => document.querySelector(a.getAttribute("href")))
+        .filter(Boolean);
+      const spy = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              const id = e.target.id;
+              tocLinks.forEach((a) =>
+                a.classList.toggle(
+                  "active",
+                  a.getAttribute("href") === "#" + id,
+                ),
+              );
             }
           });
-        };
-
-        const observer = new IntersectionObserver(
-          observerCallback,
-          observerOptions,
-        );
-        sections.forEach((sec) => observer.observe(sec));
-      });
+        },
+        { rootMargin: "-20% 0px -70% 0px", threshold: 0 },
+      );
+      sections.forEach((s) => spy.observe(s));
+      // Reveal on scroll
+      const reveal = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add("in");
+              reveal.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.12 },
+      );
+      document.querySelectorAll(".reveal").forEach((el) => reveal.observe(el));
     </script>
   </body>
 </html>

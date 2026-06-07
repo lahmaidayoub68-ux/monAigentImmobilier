@@ -151,26 +151,11 @@ function addThinkingIndicator() {
   const box = $("chat-box");
   const el = document.createElement("div");
   el.className = "msg bot thinking-msg";
-
-  // Utilise la même icône que le bot pour rester cohérent, suivi du texte animé
-  el.innerHTML = `
-    <div class="bot-row">
-      <div class="bot-avatar">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-        </svg>
-      </div>
-      <div class="thinking-bubble">
-        <span class="shimmer-text">Analyse en cours</span>
-        <span class="bouncing-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
-      </div>
-    </div>
-  `;
+  el.innerHTML = `<span class="thinking-shimmer">Analyse en cours</span>`;
   box.appendChild(el);
   scrollBottom(box);
   return el;
 }
-
 // ================== MESSAGING ==================
 function addMessage({
   text,

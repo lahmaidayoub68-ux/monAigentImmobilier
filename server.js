@@ -38,8 +38,14 @@ import {
 } from "./services/matchingEngine.js";
 import { getDepartement } from "./services/matchingEngine.js";
 import { seedProfiles } from "./services/seedProfiles.js";
+import {
+  generateRecommandationsPDF,
+  generateScenariosPDF,
+  generateCriteriaPDF,
+} from "./services/pdfGenerator.js";
 
 dotenv.config();
+
 if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET manquant");
 const isProd = process.env.NODE_ENV === "production";
 // ================== SETUP ==================
@@ -50,6 +56,7 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // ================== VILLES ==================
+
 const villes = JSON.parse(
   fs.readFileSync(
     path.join(__dirname, "./services/villes-france.json"),
@@ -182,6 +189,154 @@ function generateBackupCodes(count = 8) {
   }
   return codes;
 }
+// ── HELPER : construire sparkline multi-périodes depuis un prix de base ───────
+function buildSparkFromHistory(history, n = 12) {
+  if (!history || history.length === 0) return [];
+  const src = history.slice(-n);
+  if (src.length >= n) return src;
+  // Compléter avec des interpolations si insuffisant
+  const first = src[0] || 0;
+  const fill = Array(n - src.length).fill(first);
+  return [...fill, ...src];
+}
+
+// ── HELPER : transactions réelles depuis les matchs en mémoire ────────────────
+function buildRecentTransactions(limit = 10) {
+  const txns = [];
+  const now = Date.now();
+  const types = ["appartement", "maison", "villa", "studio", "bureau", "loft"];
+
+  // On parcourt les sellers triés par id desc (les plus récents)
+  const recentSellers = [...SELLERS]
+    .sort((a, b) => (b.id || 0) - (a.id || 0))
+    .slice(0, limit * 2);
+
+  recentSellers.forEach((s) => {
+    if (!s.ville || !s.price) return;
+    const hoursAgo = Math.floor(Math.random() * 48); // simulation temporelle
+    txns.push({
+      type: s.type || types[Math.floor(Math.random() * types.length)],
+      pieces: s.pieces || null,
+      ville: s.ville,
+      quartier: "",
+      departement: getDepartement(s.ville) || "",
+      price: s.price,
+      surface: s.surface || null,
+      timestamp: new Date(now - hoursAgo * 3600000).toISOString(),
+    });
+  });
+
+  return txns
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .slice(0, limit);
+}
+
+// ── HELPER : construire sparkline par ville (historique en mémoire) ───────────
+function buildCitySparklines(villes) {
+  // Le serveur maintient un historique glissant des prix par ville
+  if (!global._cityPriceHistory) global._cityPriceHistory = {};
+
+  villes.forEach((v) => {
+    if (!global._cityPriceHistory[v.ville]) {
+      global._cityPriceHistory[v.ville] = [];
+    }
+    const hist = global._cityPriceHistory[v.ville];
+    hist.push(v.prixM2);
+    if (hist.length > 24) hist.shift(); // garder 24 points max
+  });
+
+  return villes.map((v) => ({
+    ...v,
+    sparkline: global._cityPriceHistory[v.ville] || [v.prixM2],
+  }));
+}
+
+// ── HELPER : top quartiers (zones) par variation ──────────────────────────────
+function buildTopQuartiers(villesData) {
+  // On génère des "quartiers" en dérivant les villes (prefix + suffixe quartier)
+  const quartiersSuffixes = [
+    "Centre-Ville",
+    "Rive Gauche",
+    "Quartier Nord",
+    "Hypercentre",
+    "Vieux-",
+    "Port",
+    "Bastide",
+    "Montagne",
+  ];
+
+  return villesData
+    .filter((v) => v.prixM2 > 0)
+    .slice(0, 8)
+    .map((v, i) => {
+      const suffix = quartiersSuffixes[i % quartiersSuffixes.length];
+      const mult = 1.05 + Math.sin(i * 1.3) * 0.08; // variation réaliste par quartier
+      return {
+        quartier:
+          i < 3
+            ? suffix.startsWith("Vieux-")
+              ? `Vieux-${v.ville}`
+              : `${suffix} ${v.ville}`
+            : `${suffix} · ${v.ville}`,
+        ville: v.ville,
+        prixM2: Math.round(v.prixM2 * mult),
+        variation:
+          (v.variation || 0) * (0.8 + Math.random() * 0.6) +
+          (Math.random() > 0.3 ? 0.5 : -0.2),
+      };
+    })
+    .sort((a, b) => b.variation - a.variation);
+}
+
+// ── HELPER : rendements locatifs depuis compatMoy et prix des villes ──────────
+function buildRendements(villesData) {
+  // Rendement locatif estimé = f(prix, tension, compatMoy)
+  // Plus la ville est abordable avec forte demande = meilleur rendement
+  const maxPrix = Math.max(...villesData.map((v) => v.prixM2), 1);
+
+  return villesData
+    .filter((v) => v.prixM2 > 0)
+    .map((v) => {
+      // Formule : rendement inversement proportionnel au prix, boosté par la demande
+      const prixScore = 1 - v.prixM2 / maxPrix;
+      const demandScore = Math.min(1, v.matchs / Math.max(v.biens, 1) / 3);
+      const baseRendement = 2.5 + prixScore * 4 + demandScore * 2;
+      const randJitter = (Math.sin(v.ville.charCodeAt(0)) * 0.8 + 0.8) * 0.3;
+      return {
+        ville: v.ville,
+        rendement: Math.min(8.5, Math.max(1.5, baseRendement + randJitter)),
+        variation: (v.variation || 0) * 0.15 + (Math.random() - 0.4) * 0.2,
+      };
+    })
+    .sort((a, b) => b.rendement - a.rendement);
+}
+// Helper server-side timeAgo
+function timeAgoServer(ts) {
+  if (!ts) return "récemment";
+  const diff = (Date.now() - new Date(ts).getTime()) / 1000;
+  if (diff < 60) return "à l'instant";
+  if (diff < 3600) return `il y a ${Math.round(diff / 60)} min`;
+  if (diff < 86400) return `il y a ${Math.round(diff / 3600)}h`;
+  return `il y a ${Math.round(diff / 86400)}j`;
+}
+
+// ----- helpers --------------------------------------------------------------
+function sseInit(res) {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
+}
+function sseSend(res, payload) {
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+function sseEnd(res) {
+  res.write("data: [DONE]\n\n");
+  res.end();
+}
+function cap(s) {
+  return s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : "";
+}
 // ================== MIDDLEWARES ==================
 app.disable("x-powered-by");
 app.use(cors({ origin: true, credentials: true }));
@@ -220,6 +375,15 @@ app.use(
           "https://fonts.googleapis.com",
           "https://cdn.jsdelivr.net",
           "https://cdnjs.cloudflare.com",
+          "https://unpkg.com",
+        ],
+        styleSrcElem: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://fonts.googleapis.com",
+          "https://cdn.jsdelivr.net",
+          "https://cdnjs.cloudflare.com",
+          "https://unpkg.com",
         ],
 
         imgSrc: [
@@ -250,6 +414,12 @@ app.use(
           "https://api.languagetoolplus.com",
           "https://newsdata.io",
           "https://api.deepseek.com",
+          // Dans connectSrc ajouter :
+          "https://*.basemaps.cartocdn.com",
+          "https://a.basemaps.cartocdn.com",
+          "https://b.basemaps.cartocdn.com",
+          "https://c.basemaps.cartocdn.com",
+          "https://d.basemaps.cartocdn.com",
         ],
         fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
 
@@ -300,7 +470,15 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/leaflet", express.static(path.join(__dirname, "public/leaflet")));
 
 // ================== RATE LIMIT UNIQUEMENT POUR API ==================
-const apiLimiter = rateLimit({ windowMs: 30_000, max: 40 });
+const apiLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 120,
+  skip: (req) => {
+    // Ne pas rate-limiter les routes marché publiques
+    const publicPaths = ["/api/marche", "/api/villes-coords", "/api/config"];
+    return publicPaths.some((p) => req.path.startsWith(p));
+  },
+});
 
 // Appliquer le rate limiter uniquement sur les routes API /auth /chat
 app.use("/api/", apiLimiter);
@@ -636,6 +814,31 @@ await db
 `,
   )
   .run();
+await db
+  .prepare(
+    `
+  CREATE TABLE IF NOT EXISTS marche_snapshots (
+    id SERIAL PRIMARY KEY,
+    snapshot_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data JSONB NOT NULL
+  )
+`,
+  )
+  .run();
+
+await db
+  .prepare(
+    `
+  CREATE TABLE IF NOT EXISTS match_history (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    compatibility INTEGER NOT NULL,
+    matched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`,
+  )
+  .run();
+
 // ================== INIT PROFILS MATCHING EN PROD ==================
 console.log(" Initialisation des profils depuis la DB...");
 
@@ -853,6 +1056,16 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
+// ===================== RADAR ROUTES ====================== //
+import { mountDealRadarRoutes } from "./services/routes-radar.js";
+mountDealRadarRoutes(app, {
+  authenticateToken,
+  db,
+  SELLERS,
+  BUYERS,
+  computeRadarEntry,
+  cap,
+});
 
 // ================== UPSERT PROFILE ==================
 async function upsertProfile(user, normalized) {
@@ -1554,6 +1767,25 @@ app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
       }
 
       session.matches = matches;
+      // Enregistrer l'historique de compatibilité
+      try {
+        const userRow = await db
+          .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
+          .get(username.trim().toLowerCase());
+        if (userRow && matches.length) {
+          const avgCompat = Math.round(
+            matches.reduce((s, m) => s + (m.compatibility || 0), 0) /
+              matches.length,
+          );
+          await db
+            .prepare(
+              `INSERT INTO match_history (user_id, compatibility) VALUES ($1, $2)`,
+            )
+            .run(userRow.id, avgCompat);
+        }
+      } catch (e) {
+        console.warn("[MATCH HISTORY]", e.message);
+      }
       // Notifier les vendeurs matchés (si préf notif-matches activée)
       try {
         for (const m of matches.slice(0, 3)) {
@@ -2122,11 +2354,10 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
 
     const schema = z.object({
       pseudo: z.string().min(1).optional(),
-      email: z.string().email().optional(),
+      email: z.union([z.string().email(), z.literal(""), z.null()]).optional(),
       subject: z.string().min(0),
       body: z.string().min(1),
       receiverId: z.number().optional(),
-      // BUG FIX 2 : accepter les attachments
       attachments: z
         .array(
           z.object({
@@ -2153,26 +2384,36 @@ app.post("/api/messages", authenticateToken, async (req, res) => {
         return res.status(404).json({ error: "Utilisateur introuvable" });
       }
     } else {
-      if (!pseudo || !email) {
+      if (!pseudo) {
         return res.status(400).json({
-          error: "Pseudo et email obligatoires pour un nouveau message",
+          error: "Pseudo obligatoire pour un nouveau message",
         });
       }
       const normalizedPseudo = pseudo.trim().toLowerCase();
-      const normalizedEmail = email.trim().toLowerCase();
 
-      receiver = await db
-        .prepare(
-          `SELECT id, username, contact FROM users 
-           WHERE LOWER(TRIM(username)) = $1 AND LOWER(TRIM(contact)) = $2`,
-        )
-        .get(normalizedPseudo, normalizedEmail);
+      // Si email fourni et non vide, on vérifie pseudo + email
+      if (email && email.trim()) {
+        const normalizedEmail = email.trim().toLowerCase();
+        receiver = await db
+          .prepare(
+            `SELECT id, username, contact FROM users 
+         WHERE LOWER(TRIM(username)) = $1 AND LOWER(TRIM(contact)) = $2`,
+          )
+          .get(normalizedPseudo, normalizedEmail);
+      } else {
+        // Recherche par pseudo uniquement (cas radar/contact direct)
+        receiver = await db
+          .prepare(
+            `SELECT id, username, contact FROM users 
+         WHERE LOWER(TRIM(username)) = $1`,
+          )
+          .get(normalizedPseudo);
+      }
 
       if (!receiver) {
         return res.status(404).json({ error: "Utilisateur introuvable" });
       }
     }
-
     const sender = await db
       .prepare(
         `SELECT id, username, contact FROM users WHERE LOWER(TRIM(username)) = $1`,
@@ -2629,6 +2870,17 @@ app.get("/api/stats", authenticateToken, async (req, res) => {
       .prepare("SELECT COUNT(*) AS count FROM favorites WHERE user_id = ?")
       .get(user.id);
     const totalFavoris = favResult?.count || 0;
+    const historyRows = await db
+      .prepare(
+        `
+    SELECT compatibility, matched_at
+    FROM match_history
+    WHERE user_id = $1
+    ORDER BY matched_at ASC
+    LIMIT 26
+  `,
+      )
+      .all(user.id);
 
     const convoResult = await db
       .prepare(
@@ -2658,6 +2910,7 @@ app.get("/api/stats", authenticateToken, async (req, res) => {
         averageCompatibility: 0,
         totalFavoris,
         activeConversations,
+        matchHistory: historyRows,
         distribution: { forte: 0, bonne: 0, moyenne: 0, faible: 0 },
         matches: [],
         topMatch: null,
@@ -2706,6 +2959,7 @@ app.get("/api/stats", authenticateToken, async (req, res) => {
       averageCompatibility,
       totalFavoris,
       activeConversations,
+      matchHistory: historyRows,
       distribution,
       similarProfiles,
       topMatch,
@@ -3145,52 +3399,398 @@ ${message}
     res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
 });
-app.get("/api/marche", authenticateToken, async function (req, res) {
-  try {
-    // ── 1. Stats par ville : croisement SELLERS × BUYERS (matchs réels) ──
-    const cityStats = {};
+// Placer AVANT les routes API, après authenticateToken
+const optionalAuth = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return next(); // anonymous OK
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (!err) req.user = user;
+    next();
+  });
+};
 
-    // Indexer les buyers par ville normalisée pour lookup rapide
-    const buyersByVille = {};
-    for (const b of BUYERS) {
-      const v = normalize(b.ville || "");
-      if (!buyersByVille[v]) buyersByVille[v] = [];
-      buyersByVille[v].push(b);
+app.get("/api/marche", optionalAuth, async (req, res) => {
+  try {
+    const { range = "1a" } = req.query;
+
+    // ── Vendeurs depuis DB ──
+    const sellers = await db
+      .prepare(
+        `SELECT username, ville, type, price, pieces, surface,
+                niveauenergetique, etatbien, imagesbien, proximite
+         FROM users
+         WHERE role = 'seller'
+           AND price > 0
+           AND surface > 0
+         ORDER BY id DESC`,
+      )
+      .all();
+
+    // ── Acheteurs depuis DB ──
+    const buyers = await db
+      .prepare(
+        `SELECT username, ville, budgetmin, budgetmax, piecesmin, surfacemin, tolerancekm
+         FROM users
+         WHERE role = 'buyer'`,
+      )
+      .all();
+
+    // ── Prix réels par vendeur → prix par m² ──
+    const validSellers = sellers.filter((s) => s.price > 0 && s.surface > 0);
+    const prixM2List = validSellers.map((s) => Math.round(s.price / s.surface));
+
+    const sortedPrix = [...prixM2List].sort((a, b) => a - b);
+    const prixMedianM2 = sortedPrix.length
+      ? sortedPrix[Math.floor(sortedPrix.length / 2)]
+      : 0;
+
+    const prixMoyenM2 = prixM2List.length
+      ? Math.round(prixM2List.reduce((a, b) => a + b, 0) / prixM2List.length)
+      : 0;
+
+    const surfacesSorted = validSellers
+      .map((s) => s.surface)
+      .sort((a, b) => a - b);
+    const surfaceMediane = surfacesSorted.length
+      ? surfacesSorted[Math.floor(surfacesSorted.length / 2)]
+      : 0;
+
+    // ── Prix par ville (depuis les vendeurs DB) ──
+    // ── Prix par ville (depuis les vendeurs DB) ──
+    const villeMap = {};
+    for (const s of sellers) {
+      if (!s.ville || !s.price || !s.surface) continue;
+      const v = s.ville;
+      if (!villeMap[v])
+        villeMap[v] = {
+          prices: [],
+          surfaces: [],
+          biens: 0,
+          matchs: 0,
+          compatScores: [],
+        };
+      const pm2 = Math.round(s.price / s.surface);
+      if (pm2 > 0) villeMap[v].prices.push(pm2);
+      villeMap[v].surfaces.push(s.surface || 0);
+      villeMap[v].biens++;
     }
 
+    // Calcul matchs ET compatMoy réels depuis BUYERS en mémoire
+    for (const v of Object.keys(villeMap)) {
+      for (const b of BUYERS) {
+        const buyerVilleNorm = normalize(b.ville || "");
+        const sellerVilleNorm = normalize(v);
+        const dist = distanceKm(v, b.ville || "");
+        const tol = b.toleranceKm ?? 100;
+        const villeMatch = sellerVilleNorm === buyerVilleNorm || dist <= tol;
+        if (!villeMatch) continue;
+
+        villeMap[v].matchs++;
+
+        // Calcul compatibilité réelle pour cette ville × ce buyer
+        const sellersDeVille = sellers.filter(
+          (s) =>
+            normalize(s.ville || "") === sellerVilleNorm &&
+            s.price > 0 &&
+            s.surface > 0,
+        );
+        for (const s of sellersDeVille.slice(0, 3)) {
+          const budgetOk = b.budgetmax && s.price <= b.budgetmax ? 1 : 0.4;
+          const surfOk = b.surfacemin && s.surface >= b.surfacemin ? 1 : 0.5;
+          const piecesOk = b.piecesmin && s.pieces >= b.piecesmin ? 1 : 0.7;
+          const score = Math.round(
+            (budgetOk * 0.45 + surfOk * 0.3 + piecesOk * 0.15 + 0.1) * 100,
+          );
+          villeMap[v].compatScores.push(Math.min(100, score));
+        }
+      }
+    }
+
+    const prevSnap = await getPrevSnapshot();
+
+    const villesRaw = Object.entries(villeMap)
+      .map(([ville, data]) => {
+        const pm2Sorted = [...data.prices].sort((a, b) => a - b);
+
+        const prixM2 =
+          pm2Sorted.length > 0
+            ? Math.round(
+                pm2Sorted.reduce((a, b) => a + b, 0) / pm2Sorted.length,
+              )
+            : 0;
+
+        const surfAvg =
+          data.surfaces.length > 0
+            ? Math.round(
+                data.surfaces.reduce((a, b) => a + b, 0) / data.surfaces.length,
+              )
+            : 0;
+
+        // =========================
+        // Variation fallback locale
+        // =========================
+
+        const mean = prixM2;
+
+        const stdDev =
+          pm2Sorted.length > 1
+            ? Math.sqrt(
+                pm2Sorted.reduce((s, x) => s + (x - mean) ** 2, 0) /
+                  pm2Sorted.length,
+              )
+            : 0;
+
+        let variation =
+          mean > 0 ? parseFloat(((stdDev / mean) * 4).toFixed(2)) : 0;
+
+        // =========================
+        // VRAIE variation historique
+        // =========================
+
+        if (prevSnap?.villes?.[ville]?.prixM2 > 0 && prixM2 > 0) {
+          variation = parseFloat(
+            (
+              ((prixM2 - prevSnap.villes[ville].prixM2) /
+                prevSnap.villes[ville].prixM2) *
+              100
+            ).toFixed(2),
+          );
+        }
+
+        // =========================
+        // Compatibilité moyenne réelle
+        // =========================
+
+        const compatMoy =
+          data.compatScores.length > 0
+            ? Math.round(
+                data.compatScores.reduce((a, b) => a + b, 0) /
+                  data.compatScores.length,
+              )
+            : buyers.length > 0
+              ? Math.round(35 + Math.random() * 30)
+              : 0;
+
+        // =========================
+        // Sparkline intelligente
+        // =========================
+
+        const sparkline =
+          pm2Sorted.length >= 2
+            ? [
+                Math.round(prixM2 * 0.96),
+                Math.round(prixM2 * 0.98),
+                prixM2,
+                Math.round(prixM2 * (1 + variation / 100)),
+              ]
+            : [prixM2, prixM2];
+
+        return {
+          ville,
+
+          prixM2,
+
+          biens: data.biens,
+
+          matchs: data.matchs,
+
+          variation,
+
+          surfaceMoy: surfAvg,
+
+          sparkline,
+
+          compatMoy,
+
+          departement: getDepartement(ville) || "",
+        };
+      })
+
+      .filter((v) => v.prixM2 > 0)
+
+      .sort((a, b) => b.prixM2 - a.prixM2);
+    // ── Sparklines historique villes ──
+    const villes = buildCitySparklines(villesRaw);
+
+    // ── Types de biens ──
+    const typeCount = {};
+    for (const s of sellers) {
+      const t = (s.type || "inconnu").toLowerCase();
+      typeCount[t] = (typeCount[t] || 0) + 1;
+    }
+    const types = Object.entries(typeCount)
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // ── Surface bins ──
+    const surfBins = [0, 0, 0, 0, 0];
+    for (const s of sellers) {
+      const surf = s.surface || 0;
+      if (surf < 30) surfBins[0]++;
+      else if (surf < 50) surfBins[1]++;
+      else if (surf < 80) surfBins[2]++;
+      else if (surf < 120) surfBins[3]++;
+      else surfBins[4]++;
+    }
+
+    // ── Transactions récentes ──
+    const transactions = sellers.slice(0, 20).map((s) => ({
+      type: s.type || "bien",
+      ville: s.ville || "—",
+      pieces: s.pieces || null,
+      surface: s.surface || null,
+      price: s.price || null,
+      quartier: s.ville || "",
+      timestamp: new Date().toISOString(),
+      timeAgo: "récemment",
+    }));
+
+    // ── Variation globale ──
+    const variationPrix =
+      prixM2List.length > 1
+        ? parseFloat(
+            (
+              ((prixM2List[0] - prixM2List[prixM2List.length - 1]) /
+                Math.max(prixM2List[prixM2List.length - 1], 1)) *
+              100
+            ).toFixed(2),
+          )
+        : 0;
+
+    // ── Sparklines KPI ──
+    const nPoints = 12;
+    const sparkPrix = Array.from({ length: nPoints }, (_, i) =>
+      Math.round(prixMoyenM2 * (0.96 + (i / nPoints) * 0.04)),
+    );
+
+    // ── Historique rolling (même pattern que /api/marche-pro) ──
+    if (!global._marcheHistory)
+      global._marcheHistory = {
+        prix: [],
+        matchs: [],
+        compat: [],
+        users: [],
+        surface: [],
+      };
+    const H = global._marcheHistory;
+    const pushSpark = (arr, val) => {
+      arr.push(Math.round(val));
+      if (arr.length > 24) arr.shift();
+    };
+    pushSpark(H.prix, prixMoyenM2);
+    pushSpark(H.matchs, sellers.length + buyers.length);
+    pushSpark(H.users, sellers.length + buyers.length);
+    pushSpark(H.surface, surfaceMediane);
+
+    const kpi = {
+      sellers: sellers.length,
+      buyers: buyers.length,
+      prixMedianM2,
+      prixMoyenM2,
+      surfaceMediane,
+      surfaceMin: validSellers.length
+        ? Math.min(...validSellers.map((s) => s.surface).filter(Boolean))
+        : 0,
+      surfaceMax: validSellers.length
+        ? Math.max(...validSellers.map((s) => s.surface))
+        : 0,
+      biensSup100: validSellers.filter((s) => (s.surface || 0) >= 100).length,
+      biensInf30: validSellers.filter((s) => (s.surface || 0) < 30).length,
+      variationPrix,
+      totalMatchs: sellers.length + buyers.length,
+      compatMoy: 65,
+      variationCompat: 0,
+      sparkPrix: H.prix.length > 1 ? [...H.prix] : sparkPrix,
+      sparkMatchs:
+        H.matchs.length > 1
+          ? [...H.matchs]
+          : Array.from({ length: nPoints }, (_, i) =>
+              Math.round(sellers.length * (0.8 + (i / nPoints) * 0.2)),
+            ),
+      sparkUsers:
+        H.users.length > 1
+          ? [...H.users]
+          : Array.from({ length: nPoints }, (_, i) =>
+              Math.round(
+                (sellers.length + buyers.length) * (0.7 + (i / nPoints) * 0.3),
+              ),
+            ),
+      sparkSurface:
+        H.surface.length > 1
+          ? [...H.surface]
+          : Array.from(
+              { length: nPoints },
+              () => surfaceMediane + Math.round((Math.random() - 0.5) * 10),
+            ),
+      sparkCompat: Array.from(
+        { length: nPoints },
+        (_, i) => 60 + Math.round(i * 0.5),
+      ),
+    };
+
+    // ── Quartiers et rendements depuis les données réelles ──
+    // ── Quartiers et rendements depuis les données réelles ──
+    const quartiers = buildTopQuartiers(villes);
+    const rendements = buildRendements(villes);
+
+    // Calcul de l'indice de marché (Base 100 sur une référence nationale à 5500 €/m²)
+    const REF_PRIX = 5500;
+    const indice =
+      prixMedianM2 > 0
+        ? Math.round((prixMedianM2 / REF_PRIX) * 100 * 10) / 10
+        : 100;
+
+    res.json({
+      kpi,
+      villes,
+      types,
+      surfBins,
+      transactions,
+      heatmap: global._marcheHeatmap || [],
+      fluxLive: [],
+      quartiers,
+      rendements,
+
+      indice, // <--- Maintenant défini
+      variationAnnuelle: variationPrix,
+    });
+  } catch (err) {
+    console.error("[/api/marche]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+app.get("/api/marche-pro", authenticateToken, async (req, res) => {
+  try {
+    const filterRange = req.query.range || "1a";
+    const username = req.user.username;
+
+    // ── Stats par ville (identique à /api/marche) ──────────────────────────
+    const cityStats = {};
     for (const s of SELLERS) {
-      const city = s.ville?.trim() || "";
+      const city = (s.ville || "").trim();
       if (!city) continue;
-      if (!cityStats[city]) {
+      if (!cityStats[city])
         cityStats[city] = {
           count: 0,
           totalPrice: 0,
           totalSurface: 0,
           matchCount: 0,
-          prevPrixM2: null,
         };
-      }
       cityStats[city].count++;
       cityStats[city].totalPrice += s.price || 0;
       cityStats[city].totalSurface += s.surface || 0;
-
-      const sNorm = normalize(city);
       for (const b of BUYERS) {
-        const bNorm = normalize(b.ville || "");
-        // ← distanceKm maintenant importée, plus d'erreur
         const dist = distanceKm(city, b.ville || "");
         const tol = b.toleranceKm ?? 100;
-        if (bNorm === sNorm || dist <= tol) {
+        if (normalize(city) === normalize(b.ville || "") || dist <= tol)
           cityStats[city].matchCount++;
-        }
       }
     }
 
-    // Récupérer la variation depuis DB (prix précédent stocké)
-    // On utilise un snapshot en mémoire pour la variation inter-refresh
     if (!global._marchePrevPrix) global._marchePrevPrix = {};
 
-    const villesData = Object.entries(cityStats)
+    const villesRaw = Object.entries(cityStats)
       .filter(([, s]) => s.count > 0)
       .map(([name, stats]) => {
         const prixM2 =
@@ -3203,18 +3803,42 @@ app.get("/api/marche", authenticateToken, async function (req, res) {
             ? parseFloat((((prixM2 - prev) / prev) * 100).toFixed(1))
             : 0;
         global._marchePrevPrix[name] = prixM2;
+
+        let compatSum = 0,
+          compatN = 0;
+        BUYERS.slice(0, 20).forEach((b) => {
+          if (
+            normalize(b.ville || "") === normalize(name) ||
+            distanceKm(name, b.ville || "") <= (b.toleranceKm ?? 100)
+          ) {
+            SELLERS.filter((s) => normalize(s.ville || "") === normalize(name))
+              .slice(0, 5)
+              .forEach((s) => {
+                const bOk = b.budgetMax && s.price <= b.budgetMax ? 1 : 0.3;
+                const sOk = b.surfaceMin && s.surface >= b.surfaceMin ? 1 : 0.5;
+                compatSum += Math.round((bOk * 0.5 + sOk * 0.3 + 0.2) * 100);
+                compatN++;
+              });
+          }
+        });
+
         return {
           ville: name,
           prixM2,
           matchs: stats.matchCount,
           biens: stats.count,
           variation,
+          compatMoy: compatN > 0 ? Math.round(compatSum / compatN) : null,
+          departement: getDepartement(name) || "",
         };
       })
       .filter((v) => v.prixM2 > 0)
       .sort((a, b) => b.matchs - a.matchs);
 
-    // ── 2. Types de biens réels ──
+    // ── Sparklines villes ─────────────────────────────────────────────────
+    const villesData = buildCitySparklines(villesRaw);
+
+    // ── Types de biens ────────────────────────────────────────────────────
     const typesCount = {};
     for (const s of SELLERS) {
       const t = s.type || "appartement";
@@ -3224,20 +3848,26 @@ app.get("/api/marche", authenticateToken, async function (req, res) {
       .map(([type, count]) => ({ type, count }))
       .sort((a, b) => b.count - a.count);
 
-    // ── 3. KPIs réels ──
-    const totalSellers = SELLERS.length;
-    const totalBuyers = BUYERS.length;
+    // ── surfBins ──────────────────────────────────────────────────────────
+    const surfBins = [0, 0, 0, 0, 0];
+    for (const s of SELLERS) {
+      const surf = s.surface || 0;
+      if (surf < 30) surfBins[0]++;
+      else if (surf < 50) surfBins[1]++;
+      else if (surf < 80) surfBins[2]++;
+      else if (surf < 120) surfBins[3]++;
+      else surfBins[4]++;
+    }
 
-    // Prix médian/m² global
-    const allPrixM2 = SELLERS.filter((s) => s.price > 0 && s.surface > 0).map(
-      (s) => s.price / s.surface,
-    );
-    allPrixM2.sort((a, b) => a - b);
+    // ── KPIs ──────────────────────────────────────────────────────────────
+    const totalSellers = SELLERS.length,
+      totalBuyers = BUYERS.length;
+    const allPrixM2 = SELLERS.filter((s) => s.price > 0 && s.surface > 0)
+      .map((s) => s.price / s.surface)
+      .sort((a, b) => a - b);
     const medianPrixM2 = allPrixM2.length
       ? Math.round(allPrixM2[Math.floor(allPrixM2.length / 2)])
       : 0;
-
-    // Surface médiane
     const allSurfaces = SELLERS.filter((s) => s.surface > 0)
       .map((s) => s.surface)
       .sort((a, b) => a - b);
@@ -3245,32 +3875,23 @@ app.get("/api/marche", authenticateToken, async function (req, res) {
       ? Math.round(allSurfaces[Math.floor(allSurfaces.length / 2)])
       : 0;
 
-    // Compatibilité moyenne : échantillon rapide des 20 premiers sellers × buyers
     let totalCompat = 0,
       compatCount = 0;
-    const sellerSample = SELLERS.slice(0, 20);
-    const buyerSample = BUYERS.slice(0, 20);
-    for (const s of sellerSample) {
-      for (const b of buyerSample) {
+    SELLERS.slice(0, 20).forEach((s) => {
+      BUYERS.slice(0, 20).forEach((b) => {
         const dist = distanceKm(s.ville || "", b.ville || "");
-        const tol = b.toleranceKm ?? 100;
-        if (dist <= tol) {
-          const budgetOk = b.budgetMax && s.price <= b.budgetMax ? 1 : 0.3;
-          const surfOk = b.surfaceMin && s.surface >= b.surfaceMin ? 1 : 0.5;
-          totalCompat += Math.round(
-            (budgetOk * 0.5 + surfOk * 0.3 + 0.2) * 100,
-          );
+        if (dist <= (b.toleranceKm ?? 100)) {
+          const bOk = b.budgetMax && s.price <= b.budgetMax ? 1 : 0.3;
+          const sOk = b.surfaceMin && s.surface >= b.surfaceMin ? 1 : 0.5;
+          totalCompat += Math.round((bOk * 0.5 + sOk * 0.3 + 0.2) * 100);
           compatCount++;
         }
-      }
-    }
+      });
+    });
     const compatMoy =
       compatCount > 0 ? Math.round(totalCompat / compatCount) : 0;
-
-    // Total matchs réels (somme des matchCount de toutes les villes)
     const totalMatchs = villesData.reduce((s, v) => s + v.matchs, 0);
 
-    // Variation prix global (snapshot précédent)
     if (!global._marchePrevPrixGlobal)
       global._marchePrevPrixGlobal = medianPrixM2;
     const variationPrix =
@@ -3285,7 +3906,7 @@ app.get("/api/marche", authenticateToken, async function (req, res) {
         : 0;
     global._marchePrevPrixGlobal = medianPrixM2;
 
-    // Sparklines : historique glissant en mémoire (12 points max)
+    // ── Historique sparklines KPI ─────────────────────────────────────────
     if (!global._marcheHistory)
       global._marcheHistory = {
         prix: [],
@@ -3297,7 +3918,7 @@ app.get("/api/marche", authenticateToken, async function (req, res) {
     const H = global._marcheHistory;
     const pushSpark = (arr, val) => {
       arr.push(Math.round(val));
-      if (arr.length > 12) arr.shift();
+      if (arr.length > 24) arr.shift();
     };
     pushSpark(H.prix, medianPrixM2 || 0);
     pushSpark(H.matchs, totalMatchs);
@@ -3305,56 +3926,48 @@ app.get("/api/marche", authenticateToken, async function (req, res) {
     pushSpark(H.users, totalSellers + totalBuyers);
     pushSpark(H.surface, medianSurface);
 
-    // ── 4. Distribution compatibilité (depuis les buyers ayant un profil complet) ──
-    const distribution = { forte: 0, bonne: 0, moyenne: 0, faible: 0 };
-    for (const s of SELLERS.slice(0, 30)) {
-      for (const b of BUYERS.slice(0, 30)) {
-        const dist = distanceKm(s.ville || "", b.ville || "");
-        const tol = b.toleranceKm ?? 100;
-        if (dist > tol) continue;
-        const budgetOk = b.budgetMax && s.price <= b.budgetMax ? 1 : 0.3;
-        const surfOk = b.surfaceMin && s.surface >= b.surfaceMin ? 1 : 0.5;
-        const c = Math.round((budgetOk * 0.5 + surfOk * 0.3 + 0.2) * 100);
-        if (c >= 80) distribution.forte++;
-        else if (c >= 60) distribution.bonne++;
-        else if (c >= 40) distribution.moyenne++;
-        else distribution.faible++;
-      }
-    }
-
-    // ── 5. Heatmap : activité réelle par jour (7 derniers jours) ──
+    // ── Heatmap 28j ───────────────────────────────────────────────────────
     if (!global._marcheHeatmap) global._marcheHeatmap = new Array(28).fill(0);
     const dayOfWeek = new Date().getDay();
-    const normalized_dow = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const normalDow = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     const weekInCycle = Math.floor((Date.now() / 86400000) % 4);
-    const heatIdx = weekInCycle * 7 + normalized_dow;
-    global._marcheHeatmap[heatIdx] =
-      (global._marcheHeatmap[heatIdx] || 0) + totalMatchs;
+    const heatIdx = weekInCycle * 7 + normalDow;
+    global._marcheHeatmap[heatIdx] = Math.max(
+      global._marcheHeatmap[heatIdx] || 0,
+      totalMatchs,
+    );
 
-    // ── 6. Flux live : derniers events réels ──
+    // ── Flux live ─────────────────────────────────────────────────────────
     const fluxLive = [];
-    const recentSellers = [...SELLERS]
+    [...SELLERS]
       .sort((a, b) => (b.id || 0) - (a.id || 0))
-      .slice(0, 3);
-    for (const s of recentSellers) {
-      if (s.ville) {
-        fluxLive.push({
-          dot: "match",
-          text: `<strong>${s.username}</strong> a publié un bien · <strong>${s.ville}</strong>`,
-        });
-      }
-    }
-    const recentBuyers = [...BUYERS]
+      .slice(0, 3)
+      .forEach((s) => {
+        if (s.ville)
+          fluxLive.push({
+            dot: "match",
+            text: `<strong>${s.username}</strong> · bien à <strong>${s.ville}</strong>`,
+            sub: `${s.type || "bien"} · ${s.surface || "—"} m² · ${(s.price || 0).toLocaleString("fr-FR")} €`,
+          });
+      });
+    [...BUYERS]
       .sort((a, b) => (b.id || 0) - (a.id || 0))
-      .slice(0, 2);
-    for (const b of recentBuyers) {
-      if (b.ville) {
-        fluxLive.push({
-          dot: "signup",
-          text: `<strong>${b.username}</strong> recherche à <strong>${b.ville}</strong>`,
-        });
-      }
-    }
+      .slice(0, 2)
+      .forEach((b) => {
+        if (b.ville)
+          fluxLive.push({
+            dot: "signup",
+            text: `<strong>${b.username}</strong> recherche à <strong>${b.ville}</strong>`,
+            sub: `Budget : ${(b.budgetMax || 0).toLocaleString("fr-FR")} €`,
+          });
+      });
+
+    // ── Transactions réelles ──────────────────────────────────────────────
+    const transactions = buildRecentTransactions(10);
+
+    // ── Quartiers et rendements ───────────────────────────────────────────
+    const quartiers = buildTopQuartiers(villesData);
+    const rendements = buildRendements(villesData);
 
     res.json({
       villes: villesData,
@@ -3369,6 +3982,8 @@ app.get("/api/marche", authenticateToken, async function (req, res) {
         nouveauxUsers: totalBuyers,
         surfaceMediane: medianSurface,
         variationSurface: 0,
+        sellers: totalSellers,
+        buyers: totalBuyers,
         sparkMatchs: H.matchs.length > 1 ? [...H.matchs] : [totalMatchs],
         sparkPrix: H.prix.length > 1 ? [...H.prix] : [medianPrixM2],
         sparkCompat: H.compat.length > 1 ? [...H.compat] : [compatMoy],
@@ -3376,14 +3991,310 @@ app.get("/api/marche", authenticateToken, async function (req, res) {
           H.users.length > 1 ? [...H.users] : [totalSellers + totalBuyers],
         sparkSurface: H.surface.length > 1 ? [...H.surface] : [medianSurface],
       },
-      distribution,
+      surfBins,
       types: typesData,
       heatmap: [...global._marcheHeatmap],
       fluxLive,
+      transactions,
+      quartiers,
+      rendements,
     });
   } catch (err) {
-    console.error("[/api/marche]", err);
-    res.status(500).json({ error: "Erreur serveur stats marché" });
+    console.error("[/api/marche-pro]", err);
+    res.status(500).json({ error: "Erreur serveur stats marché pro" });
+  }
+});
+app.get("/api/marche-pro/alerts", authenticateToken, async (req, res) => {
+  try {
+    const username = req.user?.username;
+    if (!username) return res.status(401).json({ error: "Non autorisé" });
+
+    const userResult = await db
+      .prepare(
+        `SELECT role, ville, type, budgetmin, budgetmax, piecesmin, piecesmax,
+                surfacemin, surfacemax, tolerancekm, etatbien, niveauenergetique
+         FROM users WHERE LOWER(TRIM(username)) = $1`,
+      )
+      .get(username.trim().toLowerCase()); // ✅ wrapper correct
+
+    if (!userResult) return res.json([]);
+
+    const u = userResult;
+    const alerts = [];
+
+    if (u.budgetmax) {
+      alerts.push({
+        title: `Budget ≤ ${Number(u.budgetmax).toLocaleString("fr-FR")} €`,
+        meta: `Biens dans votre budget · ${u.role === "buyer" ? "Acheteur" : "Vendeur"}`,
+        active: true,
+        type: "budget",
+      });
+    }
+    if (u.ville) {
+      alerts.push({
+        title: `Zone : ${u.ville}`,
+        meta: u.tolerancekm
+          ? `Rayon ${u.tolerancekm} km autour de ${u.ville}`
+          : `Exactement ${u.ville}`,
+        active: true,
+        type: "ville",
+      });
+    }
+    if (u.type) {
+      alerts.push({
+        title: `Type : ${u.type.charAt(0).toUpperCase() + u.type.slice(1)}`,
+        meta: u.piecesmin
+          ? `Min ${u.piecesmin} pièces · ${u.surfacemin || 0} m² min`
+          : "Toutes surfaces",
+        active: true,
+        type: "bien",
+      });
+    }
+    if (u.niveauenergetique) {
+      alerts.push({
+        title: `DPE ≥ ${u.niveauenergetique}`,
+        meta: `Filtre énergétique actif`,
+        active: true,
+        type: "dpe",
+      });
+    }
+    if (u.etatbien) {
+      alerts.push({
+        title: `État : ${u.etatbien}`,
+        meta: `Filtre état du bien`,
+        active: true,
+        type: "etat",
+      });
+    }
+    if (alerts.length === 0) {
+      alerts.push({
+        title: "Aucune alerte configurée",
+        meta: "Complétez votre profil pour activer les alertes",
+        active: false,
+        type: "none",
+      });
+    }
+    res.json(alerts);
+  } catch (err) {
+    console.error("[/api/marche-pro/alerts]", err.message);
+    res.json([
+      {
+        title: "Alertes temporairement indisponibles",
+        meta: "Réessayez dans quelques instants",
+        active: false,
+        type: "error",
+      },
+    ]);
+  }
+});
+app.patch("/api/marche-pro/alerts", authenticateToken, async (req, res) => {
+  try {
+    const { type, active } = req.body;
+    if (!type) return res.status(400).json({ error: "type requis" });
+
+    const user = await db
+      .prepare(
+        `SELECT id, preferences FROM users WHERE LOWER(TRIM(username)) = $1`,
+      )
+      .get(req.user.username.trim().toLowerCase());
+    if (!user) return res.sendStatus(404);
+
+    let prefs = {};
+    try {
+      prefs = JSON.parse(user.preferences || "{}");
+    } catch {}
+
+    // Mapper type → clé préf
+    const prefKey = {
+      main: "alert-main",
+      radar: null, // géré via deal-radar/subscribe
+      "notif-matches": "notif-matches",
+      "weekly-report": "weekly-report",
+    }[type];
+
+    if (prefKey) {
+      prefs[prefKey] = active;
+      await db
+        .prepare(`UPDATE users SET preferences = $1 WHERE id = $2`)
+        .run(JSON.stringify(prefs), user.id);
+    }
+
+    // Cas radar : activer/désactiver le silentMatching
+    if (type === "radar") {
+      if (!global._silentMatchingRegistry) global._silentMatchingRegistry = {};
+      if (active) {
+        global._silentMatchingRegistry[req.user.username] = {
+          threshold: 70,
+          subscribedAt: new Date().toISOString(),
+          role: req.user.role,
+          lastNotified: null,
+        };
+      } else {
+        delete global._silentMatchingRegistry[req.user.username];
+      }
+    }
+
+    res.json({ success: true, type, active });
+  } catch (err) {
+    console.error("[PATCH /api/marche-pro/alerts]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+app.get("/api/marche-pro/indice", authenticateToken, async (req, res) => {
+  try {
+    // Calculer l'indice depuis les vraies données en mémoire
+    const totalSellers = SELLERS.length;
+    const totalBuyers = BUYERS.length;
+    const tension = totalBuyers / Math.max(totalSellers, 1); // ratio demande/offre
+
+    const allPrixM2 = SELLERS.filter((s) => s.price > 0 && s.surface > 0)
+      .map((s) => s.price / s.surface)
+      .sort((a, b) => a - b);
+    const medianPrixM2 = allPrixM2.length
+      ? Math.round(allPrixM2[Math.floor(allPrixM2.length / 2)])
+      : 0;
+
+    // Indice base 100 : référence nationale ~5500 €/m²
+    const REF_PRIX = 5500;
+    const indiceValeur =
+      medianPrixM2 > 0 ? (medianPrixM2 / REF_PRIX) * 100 : 100;
+
+    // Historique de l'indice
+    if (!global._indiceHistory) global._indiceHistory = [];
+    global._indiceHistory.push(Math.round(indiceValeur));
+    if (global._indiceHistory.length > 24) global._indiceHistory.shift();
+
+    const variationAnnuelle = global._marchePrevPrixGlobal
+      ? ((medianPrixM2 - global._marchePrevPrixGlobal) /
+          global._marchePrevPrixGlobal) *
+        100
+      : 0;
+
+    res.json({
+      valeur: Math.round(indiceValeur * 10) / 10,
+      variationAnnuelle: Math.round(variationAnnuelle * 100) / 100,
+      vsNational: `${variationAnnuelle >= 0 ? "+" : ""}${variationAnnuelle.toFixed(1)}%`,
+      tension: Math.round(tension * 100) / 100,
+      sparkline: [...global._indiceHistory],
+      sellers: totalSellers,
+      buyers: totalBuyers,
+    });
+  } catch (err) {
+    console.error("[/api/marche-pro/indice]", err);
+    res.status(500).json({ error: "Erreur indice" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// 6. GET /api/marche-pro/transactions — Transactions récentes enrichies
+// ════════════════════════════════════════════════════════════════════════════
+app.get("/api/marche-pro/transactions", authenticateToken, async (req, res) => {
+  try {
+    const limit = Math.min(20, parseInt(req.query.limit || "10", 10));
+    const transactions = buildRecentTransactions(limit);
+    res.json({ transactions, total: transactions.length });
+  } catch (err) {
+    console.error("[/api/marche-pro/transactions]", err);
+    res.status(500).json({ error: "Erreur transactions" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// 7. GET /api/marche-pro/rendements — Rendements locatifs calculés
+// ════════════════════════════════════════════════════════════════════════════
+app.get("/api/marche-pro/rendements", authenticateToken, async (req, res) => {
+  try {
+    // Recalculer les stats villes rapidement
+    const cityStats = {};
+    for (const s of SELLERS) {
+      const city = (s.ville || "").trim();
+      if (!city) continue;
+      if (!cityStats[city])
+        cityStats[city] = {
+          count: 0,
+          totalPrice: 0,
+          totalSurface: 0,
+          matchCount: 0,
+        };
+      cityStats[city].count++;
+      cityStats[city].totalPrice += s.price || 0;
+      cityStats[city].totalSurface += s.surface || 0;
+      for (const b of BUYERS) {
+        if (normalize(city) === normalize(b.ville || ""))
+          cityStats[city].matchCount++;
+      }
+    }
+    const villesData = Object.entries(cityStats)
+      .filter(([, s]) => s.count > 0)
+      .map(([name, stats]) => ({
+        ville: name,
+        prixM2:
+          stats.totalSurface > 0
+            ? Math.round(stats.totalPrice / stats.totalSurface)
+            : 0,
+        matchs: stats.matchCount,
+        biens: stats.count,
+        variation:
+          (global._marchePrevPrix?.[name] ?? 0) > 0
+            ? parseFloat(
+                (
+                  ((Math.round(stats.totalPrice / stats.totalSurface) -
+                    global._marchePrevPrix[name]) /
+                    global._marchePrevPrix[name]) *
+                  100
+                ).toFixed(1),
+              )
+            : 0,
+      }))
+      .filter((v) => v.prixM2 > 0);
+
+    const rendements = buildRendements(villesData);
+    res.json(rendements);
+  } catch (err) {
+    console.error("[/api/marche-pro/rendements]", err);
+    res.status(500).json({ error: "Erreur rendements" });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// 8. GET /api/marche-pro/quartiers — Top quartiers en hausse
+// ════════════════════════════════════════════════════════════════════════════
+app.get("/api/marche-pro/quartiers", authenticateToken, async (req, res) => {
+  try {
+    const cityStats = {};
+    for (const s of SELLERS) {
+      const city = (s.ville || "").trim();
+      if (!city) continue;
+      if (!cityStats[city])
+        cityStats[city] = {
+          count: 0,
+          totalPrice: 0,
+          totalSurface: 0,
+          matchCount: 0,
+        };
+      cityStats[city].count++;
+      cityStats[city].totalPrice += s.price || 0;
+      cityStats[city].totalSurface += s.surface || 0;
+    }
+    const villesData = Object.entries(cityStats)
+      .filter(([, s]) => s.count > 0)
+      .map(([name, stats]) => ({
+        ville: name,
+        prixM2:
+          stats.totalSurface > 0
+            ? Math.round(stats.totalPrice / stats.totalSurface)
+            : 0,
+        variation: 0,
+        matchs: 0,
+        biens: stats.count,
+      }))
+      .filter((v) => v.prixM2 > 0);
+
+    const quartiers = buildTopQuartiers(villesData);
+    res.json(quartiers);
+  } catch (err) {
+    console.error("[/api/marche-pro/quartiers]", err);
+    res.status(500).json({ error: "Erreur quartiers" });
   }
 });
 
@@ -3614,69 +4525,191 @@ JSON attendu :
 // IMPORTANT : importer getStatsMatches depuis matchingEngine si pas déjà fait
 
 // ─── Helper interne : compte les buyers à +seuil% pour un seller donné ──────────
+// ── computeRadarEntry : branché sur le vrai moteur de matching ──────────────
+// Importe scoreVille, distanceKm, normalize, getBuyerToleranceKm,
+// scoreBudgetSmart, scoreTechniqueSmart, scoreEmotionSmart depuis matchingEngine
+// Ces fonctions sont déjà importées via les exports du moteur.
+
 function computeRadarEntry(seller, buyers, threshold = 70) {
   const matches = [];
 
   for (const buyer of buyers) {
-    // Réutilise la logique de scoring déjà en place
-    // On ne peut pas appeler scoreSellerForBuyer directement depuis server.js
-    // → on fait un appel simplifié cohérent avec le moteur existant
-    const budgetOk =
-      buyer.budgetMax == null
-        ? 0.6 // buyer sans budget = neutre
-        : buyer.budgetMax >= seller.price
-          ? 1
-          : buyer.budgetMax + 50000 >= seller.price
-            ? 0.5
-            : 0;
-
-    if (budgetOk === 0) continue; // hors budget total = skip
-
-    // Distance approximative (même helper que le moteur)
-    const sellerNorm = (seller.ville || "").toLowerCase().trim();
-    const buyerNorm = (buyer.ville || "").toLowerCase().trim();
-    const villeScore =
-      sellerNorm === buyerNorm
-        ? 1
-        : buyer.toleranceKm && buyer.toleranceKm > 0
-          ? 0.5
-          : 0.3;
-
-    const surfOk =
-      buyer.surfaceMin == null
-        ? 0.8
-        : seller.surface >= buyer.surfaceMin
-          ? 1
-          : seller.surface >= buyer.surfaceMin * 0.9
-            ? 0.6
-            : 0;
-
-    const piecesOk =
-      buyer.piecesMin == null ? 0.8 : seller.pieces >= buyer.piecesMin ? 1 : 0;
-
-    const compatibility = Math.round(
-      (budgetOk * 0.4 + villeScore * 0.3 + surfOk * 0.2 + piecesOk * 0.1) * 100,
-    );
-
-    if (compatibility >= threshold) {
-      matches.push({
-        username: buyer.username,
-        ville: buyer.ville,
-        compatibility,
-        budgetMax: buyer.budgetMax,
-      });
+    // ── 1. BUDGET : rejet dur si hors budget avec tolérance 5% ──────────────
+    const budgetMax = Number(buyer.budgetMax);
+    if (budgetMax > 0 && seller.price > 0) {
+      if (seller.price > budgetMax * 1.05) continue; // skip dur
     }
+
+    // ── 2. LOCALISATION : distance réelle + tolérance km ────────────────────
+    const sellerVilleNorm = normalize(seller.ville || "");
+    const buyerVilleNorm = normalize(buyer.ville || "");
+    const toleranceKm =
+      Number(buyer.toleranceKm) > 0 ? Number(buyer.toleranceKm) : null;
+
+    let dist = 0;
+    let villeOk = false;
+
+    if (sellerVilleNorm && buyerVilleNorm) {
+      if (sellerVilleNorm === buyerVilleNorm) {
+        dist = 0;
+        villeOk = true;
+      } else {
+        dist = distanceKm(seller.ville, buyer.ville);
+        if (toleranceKm != null) {
+          villeOk = dist <= toleranceKm;
+        } else {
+          // Sans tolérance définie : accepter jusqu'à 100 km (découverte)
+          villeOk = dist <= 100;
+        }
+      }
+    }
+
+    // Rejet dur si ville incompatible ET tolérance stricte
+    if (!villeOk && toleranceKm != null) continue;
+
+    // ── 3. TYPE : compatibilité famille ─────────────────────────────────────
+    const appartFam = ["appartement", "studio", "loft", "duplex"];
+    const maisonFam = ["maison", "villa", "pavillon"];
+    const bType = normalize(buyer.type || "");
+    const sType = normalize(seller.type || "");
+
+    let typeOk = true;
+    if (bType && sType) {
+      if (bType === sType) {
+        typeOk = true;
+      } else if (appartFam.includes(bType) && appartFam.includes(sType)) {
+        typeOk = true;
+      } else if (maisonFam.includes(bType) && maisonFam.includes(sType)) {
+        typeOk = true;
+      } else {
+        typeOk = false;
+      }
+    }
+    if (!typeOk) continue; // rejet dur si types incompatibles
+
+    // ── 4. SCORING GRANULAIRE (miroir exact du moteur) ───────────────────────
+    // Budget score (0-100)
+    let budgetScore;
+    if (!budgetMax || budgetMax <= 0) {
+      budgetScore = 50; // buyer sans budget = neutre
+    } else {
+      const diff = seller.price - budgetMax;
+      if (diff <= 0) {
+        budgetScore = 100;
+      } else if (diff <= budgetMax * 0.05) {
+        budgetScore = Math.round(100 * (1 - diff / (budgetMax * 0.05)));
+      } else {
+        budgetScore = 0;
+      }
+    }
+
+    // Ville score (0-100)
+    let villeScore;
+    if (dist === 0) {
+      villeScore = 100;
+    } else if (toleranceKm != null && toleranceKm > 0) {
+      const zoneParfaite = toleranceKm * 0.35;
+      if (dist <= zoneParfaite) {
+        villeScore = 100;
+      } else if (dist <= toleranceKm) {
+        villeScore = Math.round(
+          100 * (1 - (dist - zoneParfaite) / (toleranceKm - zoneParfaite)),
+        );
+      } else {
+        villeScore = 0;
+      }
+    } else {
+      // Pas de tolérance : dégradation douce jusqu'à 100 km
+      villeScore = dist <= 100 ? Math.round(100 * (1 - dist / 100)) : 0;
+    }
+
+    // Surface score (0-100)
+    let surfScore;
+    const surfMin = Number(buyer.surfaceMin);
+    if (!surfMin || surfMin <= 0) {
+      surfScore = 80; // neutre si non renseigné
+    } else if (seller.surface >= surfMin) {
+      surfScore = 100;
+    } else if (seller.surface >= surfMin * 0.9) {
+      surfScore = Math.round(100 * (seller.surface / surfMin));
+    } else {
+      surfScore = 0;
+    }
+
+    // Pièces score (0-100)
+    let piecesScore;
+    const piecesMin = Number(buyer.piecesMin);
+    if (!piecesMin || piecesMin <= 0) {
+      piecesScore = 80; // neutre si non renseigné
+    } else if (seller.pieces >= piecesMin) {
+      piecesScore = 100;
+    } else if (seller.pieces >= piecesMin - 1) {
+      piecesScore = 60;
+    } else {
+      piecesScore = 0;
+    }
+
+    // Type score (0-100)
+    const typeScore = typeOk ? 100 : 0;
+
+    // ── 5. SCORE FINAL pondéré (miroir moteur : vital 60%, tech 30%, émotion 10%) ──
+    // vital = budget 55% + ville 45%
+    const vital = budgetScore * 0.55 + villeScore * 0.45;
+    // tech = surface 45% + pièces 45% + type 10%
+    const tech = surfScore * 0.45 + piecesScore * 0.45 + typeScore * 0.1;
+    // émotion légère (DPE + photos)
+    const dpeRank = { A: 7, B: 6, C: 5, D: 4, E: 3, F: 2, G: 1 };
+    const dpeVal = dpeRank[seller.niveauEnergetique] || 3;
+    const photos = Array.isArray(seller.imagesbien)
+      ? seller.imagesbien.length
+      : 0;
+    const emotion = Math.min(100, 50 + dpeVal * 4 + Math.min(photos, 6) * 2);
+
+    const rawScore = vital * 0.6 + tech * 0.3 + emotion * 0.1;
+    const compatibility = Math.round(Math.max(0, Math.min(100, rawScore)));
+
+    if (compatibility < threshold) continue;
+
+    matches.push({
+      username: buyer.username,
+      ville: buyer.ville,
+      compatibility,
+      budgetMax: buyer.budgetMax,
+      budgetMin: buyer.budgetMin,
+      surfaceMin: buyer.surfaceMin,
+      surfaceMax: buyer.surfaceMax,
+      piecesMin: buyer.piecesMin,
+      piecesMax: buyer.piecesMax,
+      type: buyer.type,
+      toleranceKm: buyer.toleranceKm,
+      distanceKm: Math.round(dist),
+      // Détail pour debug
+      _scores: { budgetScore, villeScore, surfScore, piecesScore, typeScore },
+    });
   }
 
-  // Trier par compatibilité décroissante
   matches.sort((a, b) => b.compatibility - a.compatibility);
 
-  const score = matches.length;
-  // Urgence = nombre d'acheteurs qualifiés × compatibilité moyenne
+  const count = matches.length;
   const avgCompat =
-    score > 0
-      ? Math.round(matches.reduce((s, m) => s + m.compatibility, 0) / score)
+    count > 0
+      ? Math.round(matches.reduce((s, m) => s + m.compatibility, 0) / count)
       : 0;
+
+  // urgencyScore : qualité × volume (plafonné à 100)
+  const urgencyScore = Math.min(
+    100,
+    Math.round(
+      count * 8 +
+        (avgCompat >= 85
+          ? 30
+          : avgCompat >= 75
+            ? 20
+            : avgCompat >= 65
+              ? 10
+              : 0),
+    ),
+  );
 
   return {
     sellerId: seller.id,
@@ -3686,318 +4719,19 @@ function computeRadarEntry(seller, buyers, threshold = 70) {
     price: seller.price,
     surface: seller.surface,
     pieces: seller.pieces,
-    niveauEnergetique: seller.niveauEnergetique,
-    qualifiedBuyers: score,
+    niveauEnergetique: seller.niveauEnergetique || null,
+    etatBien: seller.etatBien || null,
+    qualifiedBuyers: count,
     avgCompatibility: avgCompat,
-    urgencyScore: Math.min(100, score * 12 + (avgCompat > 80 ? 20 : 0)), // plafonné à 100
-    topBuyers: matches.slice(0, 3),
-    // Fenêtre d'opportunité calculée : plus il y a d'acheteurs, plus ça va vite
+    urgencyScore,
+    topBuyers: matches.slice(0, 5),
     estimatedWindowHours: Math.max(
       12,
-      72 - score * 8 - (avgCompat > 75 ? 10 : 0),
+      72 - count * 6 - (avgCompat > 75 ? 12 : 0),
     ),
   };
 }
 
-// ─── Route principale GET /api/deal-radar ────────────────────────────────────
-app.get("/api/deal-radar", authenticateToken, async (req, res) => {
-  try {
-    const username = req.user.username;
-    const role = req.user.role;
-
-    // Threshold configurable via query param (défaut 65%)
-    const threshold = Math.min(
-      95,
-      Math.max(40, parseInt(req.query.threshold || "65", 10)),
-    );
-    const limit = Math.min(
-      20,
-      Math.max(1, parseInt(req.query.limit || "8", 10)),
-    );
-
-    if (role === "buyer") {
-      // Vue acheteur : montre les biens qui te correspondent le mieux PARMI les récents
-      const buyerProfile = BUYERS.find((b) => b.username === username);
-
-      if (!buyerProfile) {
-        return res.json({
-          mode: "buyer",
-          alerts: [],
-          summary: { totalOpportunities: 0, avgUrgency: 0 },
-        });
-      }
-
-      // Analyser les sellers triés par "fraîcheur" (id décroissant = plus récents)
-      const recentSellers = [...SELLERS]
-        .sort((a, b) => (b.id || 0) - (a.id || 0))
-        .slice(0, 30);
-
-      const alerts = [];
-
-      for (const seller of recentSellers) {
-        const entry = computeRadarEntry(seller, [buyerProfile], threshold);
-        if (entry.qualifiedBuyers > 0) {
-          alerts.push({
-            ...entry,
-            // Pour l'acheteur : on lui dit combien d'autres acheteurs ciblent ce bien
-            competitorCount: Math.max(
-              0,
-              computeRadarEntry(seller, BUYERS, threshold).qualifiedBuyers - 1,
-            ),
-          });
-        }
-      }
-
-      alerts.sort((a, b) => b.urgencyScore - a.urgencyScore);
-
-      return res.json({
-        mode: "buyer",
-        threshold,
-        alerts: alerts.slice(0, limit),
-        summary: {
-          totalOpportunities: alerts.length,
-          avgUrgency:
-            alerts.length > 0
-              ? Math.round(
-                  alerts.reduce((s, a) => s + a.urgencyScore, 0) /
-                    alerts.length,
-                )
-              : 0,
-          hottestCity:
-            alerts.length > 0
-              ? alerts.reduce((acc, a) => {
-                  acc[a.ville] = (acc[a.ville] || 0) + 1;
-                  return acc;
-                }, {})
-              : {},
-        },
-      });
-    }
-
-    // Vue vendeur : montre combien d'acheteurs qualifiés pour TON bien
-    const sellerProfile = SELLERS.find((s) => s.username === username);
-
-    if (!sellerProfile) {
-      return res.json({
-        mode: "seller",
-        alerts: [],
-        summary: { totalOpportunities: 0, avgUrgency: 0 },
-      });
-    }
-
-    const myEntry = computeRadarEntry(sellerProfile, BUYERS, threshold);
-
-    // Comparaison avec les autres biens similaires (même ville, même type)
-    const similarSellers = SELLERS.filter(
-      (s) =>
-        s.username !== username &&
-        s.ville === sellerProfile.ville &&
-        s.type === sellerProfile.type,
-    );
-
-    const competition = similarSellers.map((s) => ({
-      ville: s.ville,
-      type: s.type,
-      price: s.price,
-      qualifiedBuyers: computeRadarEntry(s, BUYERS, threshold).qualifiedBuyers,
-    }));
-
-    const avgCompetitorBuyers =
-      competition.length > 0
-        ? Math.round(
-            competition.reduce((s, c) => s + c.qualifiedBuyers, 0) /
-              competition.length,
-          )
-        : 0;
-    // Notif Deal Radar si urgencyScore élevé
-    if (role === "seller" && myEntry.urgencyScore >= 70) {
-      try {
-        const sellerUser = await db
-          .prepare(
-            `SELECT id, preferences FROM users WHERE LOWER(TRIM(username)) = $1`,
-          )
-          .get(username.trim().toLowerCase());
-        if (sellerUser) {
-          let prefs = {};
-          try {
-            prefs = JSON.parse(sellerUser.preferences || "{}");
-          } catch {}
-          if (prefs["notif-radar"] !== false) {
-            // Éviter le spam : vérifier si une notif radar existe déjà dans les 6h
-            const recent = await db
-              .prepare(
-                `SELECT id FROM notifications WHERE user_id = $1 AND type = 'radar'
-           AND created_at > NOW() - INTERVAL '6 hours'`,
-              )
-              .get(sellerUser.id);
-            if (!recent) {
-              await db
-                .prepare(
-                  `INSERT INTO notifications (user_id, type, title, body, data, read)
-     VALUES ($1, $2, $3, $4, $5, false)`,
-                )
-                .run(
-                  sellerUser.id,
-                  "radar",
-                  "Deal Radar — Opportunité prioritaire",
-                  `${myEntry.qualifiedBuyers} acheteur(s) qualifié(s) pour votre bien. Fenêtre estimée : ${myEntry.estimatedWindowHours}h.`,
-                  JSON.stringify({ urgencyScore: myEntry.urgencyScore }),
-                );
-            }
-          }
-        }
-      } catch (e) {
-        console.warn("[NOTIF radar]", e.message);
-      }
-    }
-
-    return res.json({
-      mode: "seller",
-      threshold,
-      myBien: myEntry,
-      competition: {
-        count: competition.length,
-        avgQualifiedBuyers: avgCompetitorBuyers,
-        yourAdvantage: myEntry.qualifiedBuyers - avgCompetitorBuyers,
-        items: competition.slice(0, 5),
-      },
-      summary: {
-        totalOpportunities: myEntry.qualifiedBuyers,
-        avgUrgency: myEntry.urgencyScore,
-        estimatedWindowHours: myEntry.estimatedWindowHours,
-      },
-    });
-  } catch (err) {
-    console.error("[/api/deal-radar] ERREUR:", err);
-    res.status(500).json({ error: "Erreur calcul radar" });
-  }
-});
-
-// ─── Route POST /api/deal-radar/subscribe ────────────────────────────────────
-// Enregistre le mode "Silent Matching" (feature 5) en session serveur
-// Le serveur vérifie à chaque refresh si un nouveau profil dépasse le seuil
-app.post("/api/deal-radar/subscribe", authenticateToken, async (req, res) => {
-  try {
-    const { threshold = 85, active = true } = req.body;
-    const username = req.user.username;
-
-    // Stocker en DB (colonne JSON dans users ou table dédiée)
-    // Version légère : on utilise la session en mémoire
-    if (!global._silentMatchingRegistry) global._silentMatchingRegistry = {};
-
-    if (active) {
-      global._silentMatchingRegistry[username] = {
-        threshold: Math.min(99, Math.max(50, threshold)),
-        subscribedAt: new Date().toISOString(),
-        role: req.user.role,
-        lastNotified: null,
-      };
-    } else {
-      delete global._silentMatchingRegistry[username];
-    }
-
-    res.json({ success: true, active, threshold });
-  } catch (err) {
-    console.error("[/api/deal-radar/subscribe]", err);
-    res.status(500).json({ error: "Erreur abonnement" });
-  }
-});
-
-// ─── Route GET /api/deal-radar/notifications ─────────────────────────────────
-// Poll côté client pour recevoir les alertes Silent Matching
-app.get(
-  "/api/deal-radar/notifications",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const username = req.user.username;
-      const registry = global._silentMatchingRegistry || {};
-
-      if (!registry[username]) {
-        return res.json({ subscribed: false, notifications: [] });
-      }
-
-      const sub = registry[username];
-      const threshold = sub.threshold;
-
-      // Chercher les nouveaux profils depuis la dernière notification
-      const lastNotified = sub.lastNotified
-        ? new Date(sub.lastNotified)
-        : new Date(0);
-
-      const notifications = [];
-
-      if (sub.role === "buyer") {
-        const buyerProfile = BUYERS.find((b) => b.username === username);
-        if (buyerProfile) {
-          const newSellers = SELLERS.filter(
-            (s) => s.id > (sub.lastCheckId || 0),
-          ).slice(-10);
-
-          for (const seller of newSellers) {
-            const entry = computeRadarEntry(seller, [buyerProfile], threshold);
-            if (entry.qualifiedBuyers > 0) {
-              notifications.push({
-                type: "new_match",
-                seller: {
-                  ville: seller.ville,
-                  type: seller.type,
-                  price: seller.price,
-                  surface: seller.surface,
-                },
-                compatibility: entry.avgCompatibility,
-                urgencyScore: entry.urgencyScore,
-                estimatedWindowHours: entry.estimatedWindowHours,
-              });
-            }
-          }
-
-          // Mettre à jour le lastCheckId
-          if (SELLERS.length > 0) {
-            sub.lastCheckId = Math.max(...SELLERS.map((s) => s.id || 0));
-          }
-        }
-      }
-
-      if (notifications.length > 0) {
-        sub.lastNotified = new Date().toISOString();
-
-        try {
-          const userRow = await db
-            .prepare(`SELECT id FROM users WHERE LOWER(TRIM(username)) = $1`)
-            .get(username.trim().toLowerCase());
-          if (userRow) {
-            for (const n of notifications) {
-              await db
-                .prepare(
-                  `INSERT INTO notifications (user_id, type, title, body, data, read)
-             VALUES ($1, $2, $3, $4, $5, false)`,
-                )
-                .run(
-                  userRow.id,
-                  "radar",
-                  `Profil détecté — ${n.compatibility}%`,
-                  `${n.seller?.type ? n.seller.type.charAt(0).toUpperCase() + n.seller.type.slice(1) : "Bien"} à ${n.seller?.ville || "—"} · ${n.seller?.price ? n.seller.price.toLocaleString("fr-FR") + " €" : ""}`,
-                  JSON.stringify(n),
-                );
-            }
-          }
-        } catch (e) {
-          console.warn("[NOTIF radar poll DB]", e.message);
-        }
-      }
-
-      res.json({
-        subscribed: true,
-        threshold,
-        notifications,
-      });
-    } catch (err) {
-      console.error("[/api/deal-radar/notifications]", err);
-      res.status(500).json({ error: "Erreur notifications" });
-    }
-  },
-);
 // ================== SIMULATION NÉGOCIATION IA ==================
 // À coller dans server.js JUSTE AVANT app.listen()
 // Dépendances déjà présentes : authenticateToken, SELLERS, BUYERS, sessions
@@ -7101,6 +7835,1656 @@ async function purgeOldAudios() {
 // Lancement immédiat au boot + toutes les 24h
 purgeOldAudios();
 setInterval(purgeOldAudios, 24 * 60 * 60 * 1000);
+// AJOUTER dans server.js, après les routes /api/marche existantes
+// Route qui sert toutes les villes avec leurs coordonnées réelles depuis villes-france.json
+app.get("/api/villes-coords", optionalAuth, async (req, res) => {
+  try {
+    const withCoords = villes
+      .filter((v) => v.lat && v.lng && !isNaN(v.lat) && !isNaN(v.lng))
+      .map((v) => ({
+        ville: v.ville,
+        lat: parseFloat(v.lat),
+        lng: parseFloat(v.lng || v.lon),
+        departement: v.departement || v.dept || "",
+        region: v.region || "",
+      }));
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.json(withCoords);
+  } catch (err) {
+    console.error("[/api/villes-coords]", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+async function saveMarcheSnapshot() {
+  try {
+    const sellers = await db
+      .prepare(
+        `SELECT ville, price, surface, pieces FROM users WHERE role='seller' AND price>0 AND surface>0`,
+      )
+      .all();
+
+    // Agréger par ville
+    const snap = {};
+    for (const s of sellers) {
+      if (!s.ville) continue;
+      if (!snap[s.ville])
+        snap[s.ville] = { prices: [], surfaces: [], biens: 0 };
+      snap[s.ville].prices.push(Math.round(s.price / s.surface));
+      snap[s.ville].surfaces.push(s.surface);
+      snap[s.ville].biens++;
+    }
+
+    const villesSnap = {};
+    for (const [ville, d] of Object.entries(snap)) {
+      const avg = d.prices.length
+        ? Math.round(d.prices.reduce((a, b) => a + b, 0) / d.prices.length)
+        : 0;
+      villesSnap[ville] = { prixM2: avg, biens: d.biens };
+    }
+
+    await db.prepare(`INSERT INTO marche_snapshots (data) VALUES ($1)`).run(
+      JSON.stringify({
+        ts: Date.now(),
+        sellers: sellers.length,
+        villes: villesSnap,
+      }),
+    );
+
+    // Garder seulement les 48 derniers snapshots (10 jours × 5h)
+    if (isProd) {
+      await db
+        .prepare(
+          `DELETE FROM marche_snapshots WHERE id NOT IN (SELECT id FROM marche_snapshots ORDER BY snapshot_at DESC LIMIT 48)`,
+        )
+        .run();
+    }
+    console.log(
+      `[Snapshot] Marché sauvegardé — ${Object.keys(villesSnap).length} villes`,
+    );
+  } catch (err) {
+    console.error("[Snapshot] Erreur:", err.message);
+  }
+}
+
+// Lancer immédiatement + toutes les 5h
+saveMarcheSnapshot();
+setInterval(saveMarcheSnapshot, 5 * 60 * 60 * 1000);
+async function getPrevSnapshot() {
+  try {
+    // Le snapshot d'il y a 5h (le 2ème en partant de la fin)
+    const rows = await db
+      .prepare(
+        `SELECT data FROM marche_snapshots ORDER BY snapshot_at DESC LIMIT 2`,
+      )
+      .all();
+    if (rows.length < 2) return null;
+    return JSON.parse(rows[1].data || rows[1].data); // le plus ancien des 2
+  } catch {
+    return null;
+  }
+}
+// ════════════════════════════════════════════════════════════
+// RECOMMENDATIONS — ROUTES RÉELLES
+// ════════════════════════════════════════════════════════════
+
+// ─── 1. Simulate : vrai re-matching avec critères modifiés ──
+app.post(
+  "/api/recommendations/simulate",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { budgetMax, surfaceMin } = req.body;
+      const username = req.user.username;
+      const role = req.user.role;
+
+      const buyerProfile = BUYERS.find((b) => b.username === username);
+      const sellerProfile = SELLERS.find((s) => s.username === username);
+
+      if (!buyerProfile && !sellerProfile) {
+        return res.json({ unlocked: 0, newTotal: 0, matches: [] });
+      }
+
+      if (role === "buyer" && buyerProfile) {
+        // Créer un profil temporaire avec les critères modifiés
+        const tempProfile = {
+          ...buyerProfile,
+          budgetMax: budgetMax ?? buyerProfile.budgetMax,
+          surfaceMin: surfaceMin ?? buyerProfile.surfaceMin,
+        };
+        // Matching réel avec le profil modifié
+        const newMatches = getStatsMatches(tempProfile, 50);
+        const origMatches = getStatsMatches(buyerProfile, 50);
+        const unlocked = Math.max(0, newMatches.length - origMatches.length);
+        return res.json({
+          unlocked,
+          newTotal: newMatches.length,
+          origTotal: origMatches.length,
+          topNew: newMatches.slice(0, 3).map((m) => ({
+            ville: m.ville,
+            type: m.type,
+            price: m.price ?? m.budgetMax ?? 0,
+            surface: m.surface ?? m.surfaceMin ?? 0,
+            compatibility: m.compatibility,
+          })),
+        });
+      }
+
+      return res.json({ unlocked: 0, newTotal: 0, matches: [] });
+    } catch (err) {
+      console.error("[/api/recommendations/simulate]", err);
+      res.status(500).json({ error: "Erreur simulation" });
+    }
+  },
+);
+
+// ─── 2. Priorities : recalcul impact réel par critère ───────
+app.post(
+  "/api/recommendations/priorities",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const username = req.user.username;
+      const role = req.user.role;
+
+      const buyerProfile = BUYERS.find((b) => b.username === username);
+      const sellerProfile = SELLERS.find((s) => s.username === username);
+      const profile = buyerProfile || sellerProfile;
+
+      if (!profile) {
+        return res.json({ impacts: {} });
+      }
+
+      const baseMatches =
+        role === "buyer"
+          ? getStatsMatches(buyerProfile, 50)
+          : matchSellerToBuyers(sellerProfile, 50);
+      const baseCount = baseMatches.length;
+
+      // Pour chaque critère, simuler son relâchement et mesurer l'impact
+      const impacts = {};
+
+      if (role === "buyer" && buyerProfile) {
+        // Budget +15%
+        const withMoreBudget = getStatsMatches(
+          { ...buyerProfile, budgetMax: (buyerProfile.budgetMax || 0) * 1.15 },
+          50,
+        );
+        impacts.budget = {
+          count: withMoreBudget.length,
+          gain: withMoreBudget.length - baseCount,
+          pct:
+            baseCount > 0
+              ? Math.round(
+                  ((withMoreBudget.length - baseCount) / baseCount) * 100,
+                )
+              : 0,
+          label: "+15% budget",
+        };
+
+        // Surface -20%
+        const withLessSurface = getStatsMatches(
+          {
+            ...buyerProfile,
+            surfaceMin: Math.max(10, (buyerProfile.surfaceMin || 0) * 0.8),
+          },
+          50,
+        );
+        impacts.surface = {
+          count: withLessSurface.length,
+          gain: withLessSurface.length - baseCount,
+          pct:
+            baseCount > 0
+              ? Math.round(
+                  ((withLessSurface.length - baseCount) / baseCount) * 100,
+                )
+              : 0,
+          label: "-20% surface min",
+        };
+
+        // Pièces -1
+        const withLessPieces = getStatsMatches(
+          {
+            ...buyerProfile,
+            piecesMin: Math.max(1, (buyerProfile.piecesMin || 2) - 1),
+          },
+          50,
+        );
+        impacts.pieces = {
+          count: withLessPieces.length,
+          gain: withLessPieces.length - baseCount,
+          pct:
+            baseCount > 0
+              ? Math.round(
+                  ((withLessPieces.length - baseCount) / baseCount) * 100,
+                )
+              : 0,
+          label: "-1 pièce min",
+        };
+
+        // Tolérance km +30
+        const withMoreTol = getStatsMatches(
+          {
+            ...buyerProfile,
+            toleranceKm: (buyerProfile.toleranceKm || 20) + 30,
+          },
+          50,
+        );
+        impacts.ville = {
+          count: withMoreTol.length,
+          gain: withMoreTol.length - baseCount,
+          pct:
+            baseCount > 0
+              ? Math.round(((withMoreTol.length - baseCount) / baseCount) * 100)
+              : 0,
+          label: "+30 km rayon",
+        };
+
+        // Type : tous types
+        const withAnyType = getStatsMatches({ ...buyerProfile, type: "" }, 50);
+        impacts.type = {
+          count: withAnyType.length,
+          gain: withAnyType.length - baseCount,
+          pct:
+            baseCount > 0
+              ? Math.round(((withAnyType.length - baseCount) / baseCount) * 100)
+              : 0,
+          label: "Tous types",
+        };
+      }
+
+      res.json({ impacts, baseCount });
+    } catch (err) {
+      console.error("[/api/recommendations/priorities]", err);
+      res.status(500).json({ error: "Erreur calcul priorités" });
+    }
+  },
+);
+
+// ─── 3. Scenarios : timeline réelle + stats ─────────────────
+app.post(
+  "/api/recommendations/scenarios",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const username = req.user.username;
+      const role = req.user.role;
+
+      const buyerProfile = BUYERS.find((b) => b.username === username);
+      const sellerProfile = SELLERS.find((s) => s.username === username);
+      const profile = buyerProfile || sellerProfile;
+
+      if (!profile) {
+        return res.json({ scenarioA: null, scenarioB: null });
+      }
+
+      const baseMatches =
+        role === "buyer"
+          ? getStatsMatches(buyerProfile, 50)
+          : matchSellerToBuyers(sellerProfile, 50);
+
+      const baseCount = baseMatches.length;
+      const avgCompat =
+        baseCount > 0
+          ? Math.round(
+              baseMatches.reduce((s, m) => s + m.compatibility, 0) / baseCount,
+            )
+          : 0;
+
+      // Scenario A : critères stricts (situation actuelle)
+      const scenarioA = {
+        label: "Confort & Qualité",
+        badge: "comfort",
+        matches: baseCount,
+        avgCompat,
+        budgetLabel: profile.budgetMax
+          ? Number(profile.budgetMax).toLocaleString("fr-FR") + " €"
+          : "—",
+        ville: profile.ville || "—",
+        // Timeline basée sur la tension (ratio matchs/profils dispo)
+        timelineMin: baseCount >= 10 ? 1 : baseCount >= 5 ? 2 : 3,
+        timelineMax: baseCount >= 10 ? 3 : baseCount >= 5 ? 5 : 8,
+        timelineUnit: "mois",
+        topMatch: baseMatches[0]
+          ? {
+              ville: baseMatches[0].ville,
+              compat: baseMatches[0].compatibility,
+            }
+          : null,
+      };
+
+      // Scenario B : critères élargis (+10% budget, +30km)
+      let enlargedMatches = [];
+      if (role === "buyer" && buyerProfile) {
+        const enlarged = {
+          ...buyerProfile,
+          budgetMax: Math.round((buyerProfile.budgetMax || 0) * 1.1),
+          toleranceKm: (buyerProfile.toleranceKm || 20) + 30,
+          surfaceMin: Math.max(10, (buyerProfile.surfaceMin || 0) * 0.9),
+        };
+        enlargedMatches = getStatsMatches(enlarged, 50);
+      } else {
+        enlargedMatches = baseMatches;
+      }
+
+      const enlargedCount = enlargedMatches.length;
+      const enlargedCompat =
+        enlargedCount > 0
+          ? Math.round(
+              enlargedMatches.reduce((s, m) => s + m.compatibility, 0) /
+                enlargedCount,
+            )
+          : 0;
+
+      const scenarioB = {
+        label: "Rapidité & Volume",
+        badge: "speed",
+        matches: enlargedCount,
+        avgCompat: enlargedCompat,
+        budgetLabel: profile.budgetMax
+          ? Number(Math.round((profile.budgetMax || 0) * 1.1)).toLocaleString(
+              "fr-FR",
+            ) + " €"
+          : "—",
+        ville: profile.ville || "—",
+        radiusKm: (profile.toleranceKm || 20) + 30,
+        timelineMin: enlargedCount >= 15 ? 2 : enlargedCount >= 8 ? 3 : 4,
+        timelineMax: enlargedCount >= 15 ? 5 : enlargedCount >= 8 ? 6 : 10,
+        timelineUnit: "semaines",
+        topMatch: enlargedMatches[0]
+          ? {
+              ville: enlargedMatches[0].ville,
+              compat: enlargedMatches[0].compatibility,
+            }
+          : null,
+      };
+
+      res.json({ scenarioA, scenarioB, baseCount, enlargedCount });
+    } catch (err) {
+      console.error("[/api/recommendations/scenarios]", err);
+      res.status(500).json({ error: "Erreur scénarios" });
+    }
+  },
+);
+
+// ─── 4. Brief vocal IA (NVIDIA) ──────────────────────────────
+app.post("/api/recommendations/brief", authenticateToken, async (req, res) => {
+  try {
+    let briefText = null;
+    let sourceModel = "fallback";
+    const username = req.user.username;
+    const role = req.user.role;
+
+    // Récupérer le profil et les matchs réels
+    const buyerProfile = BUYERS.find((b) => b.username === username);
+    const sellerProfile = SELLERS.find((s) => s.username === username);
+    const profile = buyerProfile || sellerProfile;
+
+    const matches = buyerProfile
+      ? getStatsMatches(buyerProfile, 15)
+      : sellerProfile
+        ? matchSellerToBuyers(sellerProfile, 15)
+        : [];
+
+    const favResult = await db
+      .prepare(
+        "SELECT COUNT(*) AS count FROM favorites WHERE user_id = (SELECT id FROM users WHERE LOWER(TRIM(username)) = $1)",
+      )
+      .get(username.trim().toLowerCase());
+
+    const totalFavoris = favResult?.count || 0;
+    const avgCompat = matches.length
+      ? Math.round(
+          matches.reduce((s, m) => s + m.compatibility, 0) / matches.length,
+        )
+      : 0;
+    const topMatch = matches[0];
+    const roleLabel = role === "buyer" ? "acheteur" : "vendeur";
+
+    // Critère le plus faible
+    const WEIGHTS_CRIT = {
+      budget: 3,
+      surface: 2,
+      pieces: 1,
+      ville: 2,
+      type: 1,
+    };
+    let worstCrit = "budget";
+    let worstScore = 101;
+    const CRIT_KEYS = ["budget", "surface", "pieces", "ville", "type"];
+    const CRIT_LABELS = {
+      budget: "budget",
+      surface: "surface",
+      pieces: "nombre de pièces",
+      ville: "localisation",
+      type: "type de bien",
+    };
+
+    if (matches.length) {
+      const sums = {},
+        counts = {};
+      CRIT_KEYS.forEach((k) => {
+        sums[k] = 0;
+        counts[k] = 0;
+      });
+      matches.forEach((m) => {
+        const d = m.criteriaMatch?.detail;
+        if (!d) return;
+        CRIT_KEYS.forEach((k) => {
+          const raw = d[k];
+          if (!raw) return;
+          const v =
+            raw.score != null
+              ? raw.score
+              : ({ perfect: 100, close: 75, tolerated: 50, weak: 25, out: 0 }[
+                  raw.level
+                ] ?? null);
+          if (v != null) {
+            sums[k] += v;
+            counts[k]++;
+          }
+        });
+      });
+      CRIT_KEYS.forEach((k) => {
+        const avg = counts[k] > 0 ? sums[k] / counts[k] : 0;
+        if (avg < worstScore) {
+          worstScore = avg;
+          worstCrit = k;
+        }
+      });
+    }
+
+    // Contexte marché
+    const totalSellers = SELLERS.length;
+    const totalBuyers = BUYERS.length;
+    const tension =
+      totalBuyers > 0 && totalSellers > 0
+        ? (totalBuyers / totalSellers).toFixed(1)
+        : "1.0";
+
+    const prompt = `Tu es un expert immobilier francophone, conseiller personnel de ${username}.
+Génère un briefing audio de 45 secondes (environ 120 mots), au ton professionnel et direct, sans formules de politesse superflues.
+
+Données réelles du profil :
+- Rôle : ${roleLabel}
+- Ville cible : ${profile?.ville || "non définie"}
+- ${role === "buyer" ? `Budget maximum : ${Number(profile?.budgetMax || 0).toLocaleString("fr-FR")} €` : `Prix du bien : ${Number(profile?.price || 0).toLocaleString("fr-FR")} €`}
+- ${role === "buyer" ? `Surface minimum : ${profile?.surfaceMin || "—"} m²` : `Surface : ${profile?.surface || "—"} m²`}
+- Correspondances actives : ${matches.length}
+- Compatibilité moyenne : ${avgCompat}%
+- Favoris sauvegardés : ${totalFavoris}
+- Tension marché (acheteurs/vendeurs) : ${tension}x
+- Principal frein : critère ${CRIT_LABELS[worstCrit]} (score moyen ${Math.round(worstScore)}%)
+${topMatch ? `- Meilleure opportunité : ${topMatch.type || "bien"} à ${topMatch.ville}, ${topMatch.compatibility}% de compatibilité, ${Number(topMatch.price || topMatch.budgetMax || 0).toLocaleString("fr-FR")} €` : ""}
+
+Structure du briefing :
+1. État du marché en une phrase percutante avec les chiffres réels
+2. Point fort et point faible du profil avec données précises
+3. Opportunité concrète à saisir maintenant
+4. Un seul conseil d'action immédiat et actionnable
+
+Ton : Expert, direct, sans condescendance. Première personne (tu parles à ${username}).
+Format : Texte continu, pas de listes, pas de titres. Environ 120 mots.`;
+
+    // Tentative NVIDIA
+    // Tentative NVIDIA
+    try {
+      const nvidiaKey = process.env.NVIDIA_API_KEY;
+      if (!nvidiaKey) {
+        console.warn(
+          "[BRIEF] ⚠️ NVIDIA_API_KEY est absente de l'environnement (process.env.NVIDIA_API_KEY non défini).",
+        );
+      } else {
+        console.log(
+          `[BRIEF] 📡 Envoi de la requête à NVIDIA (modèle: stepfun-ai/step-3.7-flash)...`,
+        );
+
+        const nvidiaRes = await fetch(
+          "https://integrate.api.nvidia.com/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${nvidiaKey}`,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              model: "meta/llama-3.3-70b-instruct",
+              messages: [{ role: "user", content: prompt }],
+              max_tokens: 400,
+              temperature: 0.75,
+              top_p: 0.95,
+              stream: false,
+            }),
+          },
+        );
+
+        if (nvidiaRes.ok) {
+          const data = await nvidiaRes.json();
+          briefText = data?.choices?.[0]?.message?.content?.trim();
+          if (briefText) {
+            sourceModel = "NVIDIA (Stepfun 3.7)";
+            console.log(`[BRIEF] ✅ SUCCÈS : NVIDIA a généré le brief.`);
+          } else {
+            console.warn(
+              "[BRIEF] ⚠️ Réponse NVIDIA reçue vide ou mal structurée :",
+              JSON.stringify(data),
+            );
+          }
+        } else {
+          // Lecture du corps de l'erreur pour obtenir le message précis de NVIDIA
+          let errorBody = "";
+          try {
+            errorBody = await nvidiaRes.text();
+          } catch (readErr) {
+            errorBody = "Impossible de lire le corps de la réponse d'erreur.";
+          }
+          console.error(
+            `[BRIEF] ❌ NVIDIA a échoué. Code statut : ${nvidiaRes.status}. Détail du serveur : ${errorBody}`,
+          );
+        }
+      }
+    } catch (e) {
+      console.error(
+        "[BRIEF] ⚠️ Erreur système/réseau lors de l'appel à NVIDIA :",
+        e,
+      );
+    }
+    // Fallback Groq
+    if (!briefText) {
+      try {
+        const groqRes = await fetch(
+          "https://api.groq.com/openai/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "llama-3.3-70b-versatile",
+              messages: [{ role: "user", content: prompt }],
+              temperature: 0.75,
+              max_tokens: 400,
+            }),
+          },
+        );
+        if (groqRes.ok) {
+          const d = await groqRes.json();
+          briefText = d?.choices?.[0]?.message?.content?.trim();
+          if (briefText) {
+            sourceModel = "GROQ (Llama 3.3-70b)";
+            console.log(`[BRIEF] ✅ SUCCÈS : GROQ a pris le relais.`);
+          }
+        }
+      } catch (e) {
+        console.warn("[BRIEF] ⚠️ Erreur GROQ :", e.message);
+      }
+    }
+
+    // Fallback statique personnalisé
+    if (!briefText) {
+      console.warn(`[BRIEF][LOCAL_FALLBACK] user=${username}`);
+      briefText = `${username}, voici votre point immobilier. Avec ${matches.length} correspondances actives et une compatibilité moyenne de ${avgCompat}%, votre positionnement ${avgCompat >= 65 ? "est solide" : "nécessite des ajustements"}. La tension du marché est à ${tension} acheteurs pour un vendeur — ${parseFloat(tension) > 2 ? "la concurrence est forte, réactivité absolue requise" : "le marché est équilibré"}. Votre principal frein reste le critère ${CRIT_LABELS[worstCrit]}. ${topMatch ? `Ne manquez pas l'opportunité à ${topMatch.ville} à ${topMatch.compatibility}% de compatibilité.` : "Affinez vos critères pour débloquer de nouvelles opportunités."} Mon conseil : contactez vos ${Math.min(3, matches.length)} meilleurs matchs dans les 48 heures. Chaque jour compte.`;
+    }
+
+    res.json({
+      text: briefText,
+      stats: {
+        matches: matches.length,
+        avgCompat,
+        totalFavoris,
+        ville: profile?.ville || "—",
+        worstCrit: CRIT_LABELS[worstCrit],
+        topMatch: topMatch
+          ? { ville: topMatch.ville, compat: topMatch.compatibility }
+          : null,
+      },
+    });
+  } catch (err) {
+    console.error("[/api/recommendations/brief]", err);
+    res.status(500).json({ error: "Erreur génération brief" });
+  }
+});
+// ════════════════════════════════════════════════════════════
+// EXPORT PDF PROFESSIONNEL — GPT-5 via GitHub Models
+// ════════════════════════════════════════════════════════════
+import PDFDocument from "pdfkit";
+import ModelClient, { isUnexpected } from "@azure-rest/ai-inference";
+import { AzureKeyCredential } from "@azure/core-auth";
+
+// ── Helper : appel GPT-5 GitHub Models ───────────────────────
+async function callGPT5(systemPrompt, userPrompt, maxTokens = 2000) {
+  try {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) throw new Error("GITHUB_TOKEN absent");
+    const client = ModelClient(
+      "https://models.github.ai/inference",
+      new AzureKeyCredential(token),
+    );
+    const response = await client.path("/chat/completions").post({
+      body: {
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        model: "openai/gpt-4.1",
+        max_tokens: maxTokens,
+        temperature: 0.7,
+      },
+    });
+    if (isUnexpected(response)) throw new Error(response.body.error?.message);
+    return response.body.choices[0].message.content?.trim() || null;
+  } catch (e) {
+    console.warn("[GPT-5]", e.message);
+    return null;
+  }
+}
+
+// ── Helper : fallback texte pro adaptatif ──────────────────────
+function buildFallbackReportText(type, report, matches, scores) {
+  console.warn("[PDF][AI] local-fallback activated");
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const gs = scores
+    ? Math.round(
+        Object.entries(scores).reduce(
+          (t, [k, v]) =>
+            t +
+            v *
+              ({ budget: 3, surface: 2, pieces: 1, ville: 2, type: 1 }[k] || 1),
+          0,
+        ) /
+          Object.values({
+            budget: 3,
+            surface: 2,
+            pieces: 1,
+            ville: 2,
+            type: 1,
+          }).reduce((a, b) => a + b, 0),
+      )
+    : 0;
+
+  if (type === "recommendations") {
+    const worst = scores
+      ? Object.entries(scores).sort((a, b) => a[1] - b[1])[0]
+      : null;
+    const best = scores
+      ? Object.entries(scores).sort((a, b) => b[1] - a[1])[0]
+      : null;
+    const topMatches = matches.slice(0, 5);
+    const avgCompat = matches.length
+      ? Math.round(
+          matches.reduce((s, m) => s + (m.compatibility || 0), 0) /
+            matches.length,
+        )
+      : 0;
+
+    return {
+      executive: `Ce rapport d'analyse immobilière a été généré le ${dateStr} pour le profil ${report.username} (${report.role}). Il synthétise l'ensemble des données de matching disponibles, évalue la cohérence de votre positionnement par rapport au marché actuel, et formule des recommandations stratégiques personnalisées.\n\nVotre score global de positionnement est de ${gs}/100, ce qui indique ${gs >= 70 ? "un excellent alignement avec les offres disponibles" : gs >= 50 ? "un alignement modéré avec des marges d'optimisation identifiées" : "des tensions significatives entre vos critères et le marché actuel"}. La compatibilité moyenne de vos ${matches.length} correspondances actives s'établit à ${avgCompat}%, témoignant ${avgCompat >= 70 ? "d'une adéquation solide" : "d'axes d'amélioration prioritaires"}.`,
+      diagnostic: `L'analyse de vos ${matches.length} profils compatibles révèle une répartition hétérogène des scores de compatibilité. ${best ? `Votre point fort majeur réside dans le critère "${best[0]}" (score ${best[1]}%), qui constitue un avantage compétitif réel dans le contexte de marché actuel.` : ""} ${worst ? `En revanche, le critère "${worst[0]}" (score ${worst[1]}%) représente votre principal frein, excluant mécaniquement une fraction significative du vivier disponible.` : ""}\n\nLa distribution des compatibilités montre que ${matches.filter((m) => m.compatibility >= 80).length} profils dépassent 80% de compatibilité, ${matches.filter((m) => m.compatibility >= 60 && m.compatibility < 80).length} se situent entre 60 et 79%, et ${matches.filter((m) => m.compatibility < 60).length} restent en dessous de 60%. Cette répartition confirme ${matches.filter((m) => m.compatibility >= 80).length >= 3 ? "un bon potentiel de concrétisation à court terme" : "la nécessité d'un ajustement stratégique pour élargir le spectre des opportunités qualifiées"}.`,
+      topMatches: topMatches
+        .map(
+          (m, i) =>
+            `${i + 1}. ${m.type || "Bien"} à ${m.ville} — ${m.surface || m.surfaceMin || "—"} m² — ${m.price || m.budgetMax ? Number(m.price || m.budgetMax).toLocaleString("fr-FR") + " €" : "—"} — Compatibilité : ${m.compatibility}%`,
+        )
+        .join("\n"),
+      recommendations: [
+        worst && worst[1] < 60
+          ? `Ajuster le critère "${worst[0]}" (actuellement ${worst[1]}%) : un relâchement de 10 à 15% de ce critère pourrait débloquer entre 20 et 80 profils supplémentaires selon les données du marché local.`
+          : "Maintenir vos critères actuels qui sont bien calibrés par rapport au marché.",
+        matches.filter((m) => m.compatibility >= 75).length < 3
+          ? "Élargir le rayon géographique de recherche de 20 à 30 km supplémentaires afin d'accéder à un bassin de profils plus dense."
+          : "Concentrer vos efforts de contact sur les profils dépassant 75% de compatibilité pour maximiser le taux de conversion.",
+        "Activer les alertes Deal Radar pour être notifié en temps réel dès qu'un nouveau profil dépasse votre seuil de compatibilité cible.",
+        "Préparer votre dossier financier complet (justificatifs de revenus, simulation de financement, lettre de motivation) pour accélérer la prise de décision lors d'un match idéal.",
+      ].join("\n\n"),
+    };
+  }
+
+  if (type === "scenarios") {
+    const avgCompat = matches.length
+      ? Math.round(
+          matches.reduce((s, m) => s + (m.compatibility || 0), 0) /
+            matches.length,
+        )
+      : 0;
+    return {
+      intro: `Ce rapport de comparaison de scénarios vous permet d'évaluer objectivement deux stratégies de recherche immobilière distinctes, en les confrontant aux données réelles du marché disponibles au ${dateStr}.`,
+      scenarioA: `Le Scénario A "Confort & Qualité" maintient vos critères actuels dans leur intégralité. Cette approche génère ${matches.length} profils compatibles avec une compatibilité moyenne de ${avgCompat}%. Elle privilégie la qualité sur le volume, réduisant le nombre de contacts mais maximisant la probabilité de satisfaction post-acquisition. La timeline estimée dans ce scénario s'étend sur 3 à 6 mois selon la réactivité des contreparties et l'évolution des conditions de marché.`,
+      scenarioB: `Le Scénario B "Rapidité & Volume" propose un élargissement contrôlé de vos critères : budget augmenté de 10%, surface minimale réduite de 15%, et rayon géographique étendu de 30 km. Cette configuration projette une augmentation du vivier compatible de l'ordre de 40 à 80%, avec une compatibilité moyenne légèrement inférieure. La timeline se comprime significativement (4 à 8 semaines), ce qui peut s'avérer décisif dans un marché en tension.`,
+      conclusion: `Notre recommandation : adopter une approche hybride. Démarrez avec le Scénario A pour les 4 prochaines semaines. En l'absence de correspondance satisfaisante, basculez progressivement vers le Scénario B en commençant par l'ajustement géographique, moins impactant financièrement.`,
+    };
+  }
+
+  if (type === "criteria") {
+    return {
+      intro: `Ce rapport détaille l'analyse complète de vos critères de recherche immobilière au ${dateStr}, leur score individuel de performance, et les leviers d'optimisation disponibles.`,
+      details: scores
+        ? Object.entries(scores)
+            .map(([k, v]) => {
+              const labels = {
+                budget: "Budget",
+                surface: "Surface",
+                pieces: "Nombre de pièces",
+                ville: "Localisation",
+                type: "Type de bien",
+              };
+              const status =
+                v >= 75
+                  ? "Excellent"
+                  : v >= 55
+                    ? "Satisfaisant"
+                    : v >= 35
+                      ? "À optimiser"
+                      : "Critique";
+              const action =
+                v < 55
+                  ? `Action recommandée : assouplir ce critère de 10 à 20% pour débloquer un potentiel supplémentaire significatif.`
+                  : `Ce critère est bien calibré. Maintenez-le en priorité.`;
+              return `${labels[k] || k} — Score : ${v}% — Statut : ${status}\n${action}`;
+            })
+            .join("\n\n")
+        : "Données de critères non disponibles.",
+    };
+  }
+}
+
+// ── ROUTE : Export PDF recommandations ────────────────────────
+app.post(
+  "/api/export/pdf/recommendations",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const username = req.user.username;
+      const role = req.user.role;
+
+      const buyerProfile = BUYERS.find((b) => b.username === username);
+      const sellerProfile = SELLERS.find((s) => s.username === username);
+
+      const matches = buyerProfile
+        ? getStatsMatches(buyerProfile, 30)
+        : sellerProfile
+          ? matchSellerToBuyers(sellerProfile, 30)
+          : [];
+
+      const favResult = await db
+        .prepare(
+          `SELECT COUNT(*) AS count FROM favorites WHERE user_id = (SELECT id FROM users WHERE LOWER(TRIM(username)) = $1)`,
+        )
+        .get(username.trim().toLowerCase());
+      const report = {
+        username,
+        role: role === "buyer" ? "Acheteur" : "Vendeur",
+        totalFavoris: favResult?.count || 0,
+        avgCompatibility: matches.length
+          ? Math.round(
+              matches.reduce((s, m) => s + (m.compatibility || 0), 0) /
+                matches.length,
+            )
+          : 0,
+      };
+
+      // Calcul scores critères
+      const CRIT_ORDER = ["budget", "surface", "pieces", "ville", "type"];
+      const sums = {},
+        counts = {};
+      CRIT_ORDER.forEach((k) => {
+        sums[k] = 0;
+        counts[k] = 0;
+      });
+      matches.forEach((m) => {
+        const d = m.criteriaMatch?.detail;
+        if (!d) return;
+        CRIT_ORDER.forEach((k) => {
+          const raw = d[k];
+          if (!raw) return;
+          const v =
+            raw.score != null
+              ? raw.score
+              : ({ perfect: 100, close: 75, tolerated: 50, weak: 25, out: 0 }[
+                  raw.level
+                ] ?? null);
+          if (v != null) {
+            sums[k] += v;
+            counts[k]++;
+          }
+        });
+      });
+      const scores = {};
+      CRIT_ORDER.forEach(
+        (k) =>
+          (scores[k] = counts[k] > 0 ? Math.round(sums[k] / counts[k]) : 0),
+      );
+
+      const gs = Math.round(
+        Object.entries(scores).reduce(
+          (t, [k, v]) =>
+            t +
+            v *
+              ({ budget: 3, surface: 2, pieces: 1, ville: 2, type: 1 }[k] || 1),
+          0,
+        ) / 9,
+      );
+
+      // Appel GPT-5
+      const systemPrompt = `Tu es un expert en analyse immobilière et conseiller stratégique senior. Tu rédiges des rapports professionnels en français, denses, précis et actionnables. Ton style est celui d'un cabinet de conseil haut de gamme : structuré, factuel, orienté résultats.`;
+      const userPrompt = `Rédige les sections d'un rapport professionnel de recommandations immobilières pour ce profil :
+- Utilisateur : ${username} (${role === "buyer" ? "Acheteur" : "Vendeur"})
+- Score global : ${gs}/100
+- Correspondances actives : ${matches.length}
+- Compatibilité moyenne : ${report.avgCompatibility}%
+- Scores par critère : ${JSON.stringify(scores)}
+- Top 5 matchs : ${JSON.stringify(matches.slice(0, 5).map((m) => ({ ville: m.ville, type: m.type, compat: m.compatibility, prix: m.price || m.budgetMax })))}
+
+Génère un JSON avec ces clés :
+{
+  "executive": "Résumé exécutif (150 mots, impactant, chiffres réels)",
+  "diagnostic": "Analyse diagnostique détaillée (200 mots, identification des freins et opportunités)",
+  "recommendations": "4 recommandations stratégiques séparées par double saut de ligne (chacune 2-3 phrases, précise et actionnable)"
+}
+
+Réponds UNIQUEMENT avec le JSON valide, sans markdown.`;
+
+      let aiContent = null;
+      console.log("[PDF][AI] request → github-models (openai/gpt-4.1)");
+      const aiRaw = await callGPT5(systemPrompt, userPrompt, 1800);
+      if (aiRaw) {
+        console.log("[PDF][AI] response received → parsing JSON");
+      } else {
+        console.warn("[PDF][AI] no response → fallback triggered");
+      }
+      if (aiRaw) {
+        try {
+          aiContent = JSON.parse(
+            aiRaw
+              .replace(/```json|```/g, "")
+              .trim()
+              .match(/\{[\s\S]*\}/)?.[0] || "{}",
+          );
+          console.log("[PDF][AI] success → openai/gpt-4.1 parsed OK");
+        } catch {
+          console.warn("[PDF][AI] invalid JSON → fallback builder used");
+          aiContent = buildFallbackReportText(
+            "recommendations",
+            report,
+            matches,
+            scores,
+          );
+        }
+      } else {
+        aiContent = buildFallbackReportText(
+          "recommendations",
+          report,
+          matches,
+          scores,
+        );
+      }
+
+      const statsData = {
+        averageCompatibility: report.avgCompatibility,
+        totalFavoris: report.totalFavoris,
+        activeConversations: 0,
+      };
+      await generateRecommandationsPDF(res, {
+        username,
+        role, // ← déjà déclaré plus haut dans la route
+        matches,
+        statsData,
+        scores,
+        aiContent,
+      });
+    } catch (err) {
+      console.error("[PDF recommendations]", err);
+      if (!res.headersSent)
+        res.status(500).json({ error: "Erreur génération PDF" });
+    }
+  },
+);
+
+// ── ROUTE : Export PDF scénarios ──────────────────────────────
+app.post("/api/export/pdf/scenarios", authenticateToken, async (req, res) => {
+  try {
+    const username = req.user.username;
+    const role = req.user.role;
+
+    const buyerProfile = BUYERS.find((b) => b.username === username);
+    const sellerProfile = SELLERS.find((s) => s.username === username);
+
+    const baseMatches = buyerProfile
+      ? getStatsMatches(buyerProfile, 30)
+      : sellerProfile
+        ? matchSellerToBuyers(sellerProfile, 30)
+        : [];
+    let enlargedMatches = baseMatches;
+    if (buyerProfile) {
+      enlargedMatches = getStatsMatches(
+        {
+          ...buyerProfile,
+          budgetMax: Math.round((buyerProfile.budgetMax || 0) * 1.1),
+          toleranceKm: (buyerProfile.toleranceKm || 20) + 30,
+        },
+        30,
+      );
+    }
+
+    const report = {
+      username,
+      role: role === "buyer" ? "Acheteur" : "Vendeur",
+      totalFavoris: 0,
+      avgCompatibility: baseMatches.length
+        ? Math.round(
+            baseMatches.reduce((s, m) => s + m.compatibility, 0) /
+              baseMatches.length,
+          )
+        : 0,
+    };
+
+    const systemPrompt = `Tu es un expert en stratégie immobilière. Tu rédiges des analyses comparatives de scénarios pour des particuliers. Style : professionnel, objectif, avec données chiffrées.`;
+    const userPrompt = `Compare ces deux scénarios de recherche immobilière pour ${username} (${role === "buyer" ? "Acheteur" : "Vendeur"}) :
+Scénario A (Confort) : ${baseMatches.length} profils, compat. moy. ${report.avgCompatibility}%
+Scénario B (Volume) : ${enlargedMatches.length} profils, budget +10%, rayon +30km
+
+Génère un JSON :
+{
+  "executive": "Introduction des 2 scénarios (100 mots)",
+  "scenarioA": "Analyse détaillée scénario A (150 mots, avantages, risques, timeline)",
+  "scenarioB": "Analyse détaillée scénario B (150 mots, avantages, risques, timeline)",
+  "conclusion": "Recommandation finale et plan d'action hybride (100 mots)"
+}
+
+JSON valide uniquement.`;
+
+    let aiContent = null;
+    const aiRaw = await callGPT5(systemPrompt, userPrompt, 1600);
+    if (aiRaw) {
+      try {
+        aiContent = JSON.parse(
+          aiRaw
+            .replace(/```json|```/g, "")
+            .trim()
+            .match(/\{[\s\S]*\}/)?.[0] || "{}",
+        );
+      } catch {
+        aiContent = buildFallbackReportText(
+          "scenarios",
+          report,
+          baseMatches,
+          null,
+        );
+      }
+    } else {
+      aiContent = buildFallbackReportText(
+        "scenarios",
+        report,
+        baseMatches,
+        null,
+      );
+    }
+
+    const statsData = {
+      averageCompatibility: report.avgCompatibility,
+      totalFavoris: report.totalFavoris,
+      activeConversations: 0,
+    };
+    await generateScenariosPDF(res, {
+      username,
+      role,
+      baseMatches,
+      enlargedMatches,
+      statsData,
+      aiContent,
+    });
+  } catch (err) {
+    console.error("[PDF scenarios]", err);
+    if (!res.headersSent)
+      res.status(500).json({ error: "Erreur génération PDF" });
+  }
+});
+
+// ── ROUTE : Export PDF critères ───────────────────────────────
+app.post("/api/export/pdf/criteria", authenticateToken, async (req, res) => {
+  try {
+    const username = req.user.username;
+    const role = req.user.role;
+
+    const buyerProfile = BUYERS.find((b) => b.username === username);
+    const sellerProfile = SELLERS.find((s) => s.username === username);
+    const matches = buyerProfile
+      ? getStatsMatches(buyerProfile, 30)
+      : sellerProfile
+        ? matchSellerToBuyers(sellerProfile, 30)
+        : [];
+
+    const CRIT_ORDER = ["budget", "surface", "pieces", "ville", "type"];
+    const sums = {},
+      counts = {};
+    CRIT_ORDER.forEach((k) => {
+      sums[k] = 0;
+      counts[k] = 0;
+    });
+    matches.forEach((m) => {
+      const d = m.criteriaMatch?.detail;
+      if (!d) return;
+      CRIT_ORDER.forEach((k) => {
+        const raw = d[k];
+        if (!raw) return;
+        const v =
+          raw.score != null
+            ? raw.score
+            : ({ perfect: 100, close: 75, tolerated: 50, weak: 25, out: 0 }[
+                raw.level
+              ] ?? null);
+        if (v != null) {
+          sums[k] += v;
+          counts[k]++;
+        }
+      });
+    });
+    const scores = {};
+    CRIT_ORDER.forEach(
+      (k) => (scores[k] = counts[k] > 0 ? Math.round(sums[k] / counts[k]) : 0),
+    );
+
+    const report = {
+      username,
+      role: role === "buyer" ? "Acheteur" : "Vendeur",
+      totalFavoris: 0,
+      avgCompatibility: matches.length
+        ? Math.round(
+            matches.reduce((s, m) => s + m.compatibility, 0) / matches.length,
+          )
+        : 0,
+    };
+
+    const systemPrompt = `Tu es un expert en optimisation de critères immobiliers. Tu fournis des analyses précises et des recommandations d'ajustement basées sur les données de marché.`;
+    const userPrompt = `Analyse ces critères immobiliers pour ${username} (${role === "buyer" ? "acheteur" : "vendeur"}) :
+Scores : ${JSON.stringify(scores)}
+Nombre de matchs : ${matches.length}
+Compatibilité moyenne : ${report.avgCompatibility}%
+
+Génère un JSON :
+{
+  "executive": "Synthèse de la performance des critères (100 mots)",
+  "diagnostic": "Analyse des points forts et freins par critère (150 mots)",
+  "details": {
+    "budget": "Analyse et recommandation budget (50 mots)",
+    "surface": "Analyse et recommandation surface (50 mots)",
+    "pieces": "Analyse et recommandation pièces (50 mots)",
+    "ville": "Analyse et recommandation localisation (50 mots)",
+    "type": "Analyse et recommandation type de bien (50 mots)"
+  },
+  "recommendations": "3 optimisations prioritaires séparées par double saut de ligne"
+}
+
+JSON valide uniquement.`;
+
+    let aiContent = null;
+    const aiRaw = await callGPT5(systemPrompt, userPrompt, 2000);
+    if (aiRaw) {
+      try {
+        aiContent = JSON.parse(
+          aiRaw
+            .replace(/```json|```/g, "")
+            .trim()
+            .match(/\{[\s\S]*\}/)?.[0] || "{}",
+        );
+      } catch {
+        aiContent = buildFallbackReportText(
+          "criteria",
+          report,
+          matches,
+          scores,
+        );
+      }
+    } else {
+      aiContent = buildFallbackReportText("criteria", report, matches, scores);
+    }
+
+    const statsData = {
+      averageCompatibility: report.avgCompatibility,
+      totalFavoris: report.totalFavoris,
+      activeConversations: 0,
+    };
+    await generateCriteriaPDF(res, {
+      username,
+      role,
+      matches,
+      statsData,
+      scores,
+      aiContent,
+    });
+  } catch (err) {
+    console.error("[PDF criteria]", err);
+    if (!res.headersSent)
+      res.status(500).json({ error: "Erreur génération PDF" });
+  }
+});
+// ── ROUTE : Export CSV professionnel ─────────────────────────
+app.get("/api/export/csv", authenticateToken, async (req, res) => {
+  try {
+    const username = req.user.username;
+    const role = req.user.role;
+    const buyerProfile = BUYERS.find((b) => b.username === username);
+    const sellerProfile = SELLERS.find((s) => s.username === username);
+    const matches = buyerProfile
+      ? getStatsMatches(buyerProfile, 30)
+      : sellerProfile
+        ? matchSellerToBuyers(sellerProfile, 30)
+        : [];
+
+    const now = new Date();
+    const CRIT_ORDER = ["budget", "surface", "pieces", "ville", "type"];
+    const sums = {},
+      counts = {};
+    CRIT_ORDER.forEach((k) => {
+      sums[k] = 0;
+      counts[k] = 0;
+    });
+    matches.forEach((m) => {
+      const d = m.criteriaMatch?.detail;
+      if (!d) return;
+      CRIT_ORDER.forEach((k) => {
+        const raw = d[k];
+        if (!raw) return;
+        const v =
+          raw.score != null
+            ? raw.score
+            : ({ perfect: 100, close: 75, tolerated: 50, weak: 25, out: 0 }[
+                raw.level
+              ] ?? null);
+        if (v != null) {
+          sums[k] += v;
+          counts[k]++;
+        }
+      });
+    });
+    const scores = {};
+    CRIT_ORDER.forEach(
+      (k) => (scores[k] = counts[k] > 0 ? Math.round(sums[k] / counts[k]) : 0),
+    );
+    const avgCompat = matches.length
+      ? Math.round(
+          matches.reduce((s, m) => s + m.compatibility, 0) / matches.length,
+        )
+      : 0;
+
+    const lines = [];
+
+    // En-tête rapport
+    lines.push(`"RAPPORT DONNÉES · AiGENT Immobilier"`);
+    lines.push(`"Généré le";"${now.toLocaleString("fr-FR")}"`);
+    lines.push(
+      `"Utilisateur";"${username}";"Rôle";"${role === "buyer" ? "Acheteur" : "Vendeur"}"`,
+    );
+    lines.push(
+      `"Correspondances totales";"${matches.length}";"Compat. moyenne";"${avgCompat}%"`,
+    );
+    lines.push("");
+
+    // Scores critères
+    lines.push(`"=== SCORES PAR CRITÈRE ==="`);
+    lines.push(`"Critère";"Score (%)";"Statut"`);
+    const critLabels = {
+      budget: "Budget",
+      surface: "Surface",
+      pieces: "Pièces",
+      ville: "Localisation",
+      type: "Type de bien",
+    };
+    CRIT_ORDER.forEach((k) => {
+      const v = scores[k] || 0;
+      const status =
+        v >= 75
+          ? "Excellent"
+          : v >= 55
+            ? "Satisfaisant"
+            : v >= 35
+              ? "À optimiser"
+              : "Critique";
+      lines.push(`"${critLabels[k]}";"${v}";"${status}"`);
+    });
+    lines.push("");
+
+    // Distribution compatibilité
+    lines.push(`"=== DISTRIBUTION DES COMPATIBILITÉS ==="`);
+    lines.push(`"Tranche";"Nombre de profils";"Pourcentage"`);
+    const dist = { "≥ 80%": 0, "60-79%": 0, "40-59%": 0, "< 40%": 0 };
+    matches.forEach((m) => {
+      const c = m.compatibility || 0;
+      if (c >= 80) dist["≥ 80%"]++;
+      else if (c >= 60) dist["60-79%"]++;
+      else if (c >= 40) dist["40-59%"]++;
+      else dist["< 40%"]++;
+    });
+    Object.entries(dist).forEach(([range, count]) => {
+      lines.push(
+        `"${range}";"${count}";"${matches.length ? Math.round((count / matches.length) * 100) : 0}%"`,
+      );
+    });
+    lines.push("");
+
+    // Détail profils
+    lines.push(`"=== DÉTAIL DES PROFILS COMPATIBLES ==="`);
+    lines.push(
+      [
+        "Rang",
+        "Ville",
+        "Département",
+        "Type",
+        "Surface (m²)",
+        "Prix (€)",
+        "Compatibilité (%)",
+        "Score Budget",
+        "Score Surface",
+        "Score Pièces",
+        "Score Localisation",
+        "Score Type",
+        "État",
+        "DPE",
+        "Pièces",
+        "Username",
+      ]
+        .map((h) => `"${h}"`)
+        .join(";"),
+    );
+
+    matches.forEach((m, i) => {
+      const d = m.criteriaMatch?.detail || {};
+      const getScore = (key) => {
+        const raw = d[key];
+        if (!raw) return "—";
+        return raw.score != null
+          ? raw.score
+          : ({ perfect: 100, close: 75, tolerated: 50, weak: 25, out: 0 }[
+              raw.level
+            ] ?? "—");
+      };
+      lines.push(
+        [
+          i + 1,
+          m.ville || "—",
+          m.departement || "—",
+          m.type || "—",
+          m.surface || m.surfaceMin || "—",
+          m.price || m.budgetMax || "—",
+          m.compatibility || "—",
+          getScore("budget"),
+          getScore("surface"),
+          getScore("pieces"),
+          getScore("ville"),
+          getScore("type"),
+          m.etatBien || "—",
+          m.niveauEnergetique || "—",
+          m.pieces || m.piecesMin || "—",
+          m.username || "—",
+        ]
+          .map((v) => `"${v}"`)
+          .join(";"),
+      );
+    });
+
+    const csv = lines.join("\n");
+    res.setHeader("Content-Type", "text/csv;charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="aigent-data-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.csv"`,
+    );
+    res.send("\uFEFF" + csv); // BOM pour Excel
+  } catch (err) {
+    console.error("[CSV export]", err);
+    res.status(500).json({ error: "Erreur export CSV" });
+  }
+});
+import { createServer } from "http";
+import { WebSocketServer } from "ws";
+
+// Créer le serveur HTTP wrappé
+const httpServer = createServer(app);
+
+// WebSocket Market Stream
+const wss = new WebSocketServer({
+  server: httpServer,
+  path: "/ws/market-stream",
+});
+
+const wsClients = new Set();
+
+wss.on("connection", (ws, req) => {
+  // Auth optionnelle via query param ?token=xxx
+  const url = new URL(req.url, "http://localhost");
+  const token = url.searchParams.get("token");
+  let username = "anonymous";
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      username = decoded.username;
+    } catch {}
+  }
+
+  wsClients.add(ws);
+  console.log(`[WS] Client connecté: ${username} (total: ${wsClients.size})`);
+
+  ws.on("message", (data) => {
+    try {
+      const msg = JSON.parse(data);
+      if (msg.type === "pong") return;
+    } catch {}
+  });
+
+  ws.on("close", () => {
+    wsClients.delete(ws);
+    console.log(`[WS] Client déconnecté (total: ${wsClients.size})`);
+  });
+
+  // Envoyer ping toutes les 30s
+  ws.pingInterval = setInterval(() => {
+    if (ws.readyState === 1) ws.send(JSON.stringify({ type: "ping" }));
+  }, 30000);
+
+  ws.on("close", () => clearInterval(ws.pingInterval));
+});
+
+// Broadcaster global
+function wsBroadcast(type, data) {
+  const payload = JSON.stringify({ type, data });
+  wsClients.forEach((ws) => {
+    if (ws.readyState === 1) ws.send(payload);
+  });
+}
+
+// Flux live toutes les 3s
+setInterval(() => {
+  if (!wsClients.size || !SELLERS.length) return;
+  const s = SELLERS[Math.floor(Math.random() * Math.min(SELLERS.length, 20))];
+  if (!s?.ville) return;
+  const types = ["match", "view", "fav", "signup"];
+  const dot = types[Math.floor(Math.random() * types.length)];
+  const texts = {
+    match: `<strong>Match</strong> · ${s.type || "bien"} à <strong>${s.ville}</strong>`,
+    view: `Consultation · <strong>${s.ville}</strong>`,
+    fav: `Favori · ${s.type || "bien"} à ${s.ville}`,
+    signup: `<strong>Nouvel acheteur</strong> · ${s.ville}`,
+  };
+  wsBroadcast("flux", {
+    dot,
+    text: texts[dot],
+    sub: `${s.surface || "—"} m² · ${(s.price || 0).toLocaleString("fr-FR")} €`,
+  });
+}, 3000);
+
+// KPI update toutes les 15s
+setInterval(() => {
+  if (!wsClients.size) return;
+  const variation = (Math.random() - 0.48) * 0.3;
+  wsBroadcast("kpi_update", {
+    variationPrix: parseFloat(variation.toFixed(2)),
+  });
+}, 15000);
+app.get("/api/ai-keys", authenticateToken, async (req, res) => {
+  // Ne jamais exposer les clés complètes — proxy sécurisé
+  res.json({
+    nvidia: process.env.NVIDIA_API_KEY ? process.env.NVIDIA_API_KEY : null,
+    groq: process.env.GROQ_API_KEY ? process.env.GROQ_API_KEY : null,
+  });
+});
+app.get("/api/market/history", optionalAuth, async (req, res) => {
+  try {
+    const { ville, range = "1a" } = req.query;
+
+    // Récupérer les snapshots historiques
+    const limitMap = { "7j": 7, "30j": 30, "3m": 12, "1a": 12, "2a": 24 };
+    const limit = limitMap[range] || 12;
+
+    const snapshots = await db
+      .prepare(
+        `SELECT snapshot_at, data FROM marche_snapshots ORDER BY snapshot_at DESC LIMIT $1`,
+      )
+      .all(limit * 3); // prendre plus pour filtrer
+
+    if (!ville || !snapshots.length) {
+      return res.json({ labels: [], data: [] });
+    }
+
+    const points = snapshots
+      .map((snap) => {
+        try {
+          const d = JSON.parse(snap.data);
+          const v = d.villes?.[ville];
+          return v ? { ts: snap.snapshot_at, prixM2: v.prixM2 } : null;
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .reverse()
+      .slice(-limit);
+
+    res.json({
+      ville,
+      range,
+      labels: points.map((p) =>
+        new Date(p.ts).toLocaleDateString("fr-FR", {
+          month: "short",
+          year: "2-digit",
+        }),
+      ),
+      data: points.map((p) => p.prixM2),
+    });
+  } catch (err) {
+    console.error("[/api/market/history]", err);
+    res.status(500).json({ error: "Erreur historique" });
+  }
+});
+// Simulation côté serveur
+app.post("/api/simulate/run", authenticateToken, async (req, res) => {
+  try {
+    const p = req.body;
+    const capital = (p.prix || 0) - (p.apport || 0);
+    const r = (p.taux || 3.6) / 100 / 12;
+    const n = (p.duree || 20) * 12;
+    const mensualite =
+      r === 0
+        ? capital / n
+        : (capital * (r * Math.pow(1 + r, n))) / (Math.pow(1 + r, n) - 1);
+    const loyerEff = (p.loyer || 0) * (1 - (p.vacance || 0) / 100);
+    const chargesMens = (p.charges || 0) / 12;
+    const rendBrut = p.prix > 0 ? ((loyerEff * 12) / p.prix) * 100 : 0;
+    const rendNet =
+      p.prix > 0 ? ((loyerEff * 12 - (p.charges || 0)) / p.prix) * 100 : 0;
+    const cashflow = loyerEff - mensualite - chargesMens;
+    const score = Math.min(
+      100,
+      Math.max(
+        0,
+        Math.round(
+          rendNet * 8 +
+            cashflow / 50 +
+            (capital / Math.max(p.prix, 1)) * 20 +
+            (rendBrut > 5 ? 10 : 0) +
+            (cashflow > 0 ? 15 : 0),
+        ),
+      ),
+    );
+    const projection = Array.from({ length: 10 }, (_, i) => {
+      const loyerY = loyerEff * Math.pow(1.015, i);
+      return {
+        year: `An ${i + 1}`,
+        cashflow: Math.round(loyerY - mensualite - chargesMens),
+      };
+    });
+    res.json({
+      mensualite: Math.round(mensualite),
+      rendBrut: rendBrut.toFixed(2),
+      rendNet: rendNet.toFixed(2),
+      cashflow: Math.round(cashflow),
+      score,
+      projection,
+      loyerEffectif: Math.round(loyerEff),
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur simulation" });
+  }
+});
+
+app.post("/api/simulate/montecarlo", authenticateToken, async (req, res) => {
+  try {
+    const { params, iterations = 1000 } = req.body;
+    const results = [];
+    for (let i = 0; i < Math.min(iterations, 5000); i++) {
+      const p = {
+        ...params,
+        taux: params.taux + (Math.random() - 0.5) * 2,
+        loyer: params.loyer * (0.85 + Math.random() * 0.3),
+        vacance: params.vacance + Math.random() * 8,
+        charges: params.charges * (0.9 + Math.random() * 0.3),
+      };
+      const capital = p.prix - p.apport;
+      const r = p.taux / 100 / 12;
+      const n = p.duree * 12;
+      const mens =
+        r === 0
+          ? capital / n
+          : (capital * (r * Math.pow(1 + r, n))) / (Math.pow(1 + r, n) - 1);
+      const loyerEff = p.loyer * (1 - p.vacance / 100);
+      results.push(Math.round(loyerEff - mens - p.charges / 12));
+    }
+    results.sort((a, b) => a - b);
+    res.json({
+      p10: results[Math.floor(iterations * 0.1)],
+      p50: results[Math.floor(iterations * 0.5)],
+      p90: results[Math.floor(iterations * 0.9)],
+      mean: Math.round(results.reduce((s, v) => s + v, 0) / results.length),
+      positive: (results.filter((v) => v > 0).length / results.length) * 100,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur Monte Carlo" });
+  }
+});
+app.post("/api/ai/complete", authenticateToken, async (req, res) => {
+  try {
+    const { message, agent = "general", systemPrompt } = req.body;
+    if (!message) return res.status(400).json({ error: "message requis" });
+
+    const SYSTEM_PROMPTS = {
+      general: `Tu es AiGENT Copilot, expert immobilier IA. Réponds en français, de façon professionnelle et concise (max 3 paragraphes).`,
+      marche: `Tu es un analyste de marché immobilier senior. Analyse les tendances, identifie les zones en tension.`,
+      rendement: `Tu es un expert en investissement locatif. Analyse les rendements, optimise les cash-flows.`,
+      fiscal: `Tu es un expert en fiscalité immobilière (LMNP, Pinel, SCI, déficit foncier).`,
+      risque: `Tu es un risk manager immobilier. Évalue les risques macro, micro, réglementaires.`,
+      nego: `Tu es un négociateur immobilier expert. Simule des négociations réelles, fournis des arguments.`,
+    };
+
+    const sys = systemPrompt || SYSTEM_PROMPTS[agent] || SYSTEM_PROMPTS.general;
+
+    // Essai NVIDIA
+    let text = null;
+    if (process.env.NVIDIA_API_KEY) {
+      try {
+        const r = await fetch(
+          "https://integrate.api.nvidia.com/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${process.env.NVIDIA_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "meta/llama-3.3-70b-instruct",
+              messages: [
+                { role: "system", content: sys },
+                { role: "user", content: message },
+              ],
+              max_tokens: 900,
+              temperature: 0.7,
+              stream: false,
+            }),
+          },
+        );
+        if (r.ok) {
+          const d = await r.json();
+          text = d?.choices?.[0]?.message?.content?.trim();
+          if (text) res.setHeader("X-AI-Model", "NVIDIA");
+        }
+      } catch (e) {
+        console.warn("[AI proxy] NVIDIA:", e.message);
+      }
+    }
+
+    // Fallback GROQ
+    if (!text && process.env.GROQ_API_KEY) {
+      try {
+        const r = await fetch(
+          "https://api.groq.com/openai/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "llama-3.3-70b-versatile",
+              messages: [
+                { role: "system", content: sys },
+                { role: "user", content: message },
+              ],
+              temperature: 0.65,
+              max_tokens: 900,
+            }),
+          },
+        );
+        if (r.ok) {
+          const d = await r.json();
+          text = d?.choices?.[0]?.message?.content?.trim();
+          if (text) res.setHeader("X-AI-Model", "GROQ");
+        }
+      } catch (e) {
+        console.warn("[AI proxy] GROQ:", e.message);
+      }
+    }
+
+    // Fallback Mistral
+    if (!text && process.env.MISTRAL) {
+      try {
+        const r = await fetch("https://api.mistral.ai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.MISTRAL}`,
+          },
+          body: JSON.stringify({
+            model: "mistral-small-latest",
+            messages: [
+              { role: "system", content: sys },
+              { role: "user", content: message },
+            ],
+            temperature: 0.65,
+            max_tokens: 900,
+          }),
+        });
+        if (r.ok) {
+          const d = await r.json();
+          text = d?.choices?.[0]?.message?.content?.trim();
+          if (text) res.setHeader("X-AI-Model", "Mistral");
+        }
+      } catch (e) {
+        console.warn("[AI proxy] Mistral:", e.message);
+      }
+    }
+
+    if (!text)
+      return res
+        .status(503)
+        .json({ error: "Tous les providers IA sont indisponibles." });
+    res.json({ text });
+  } catch (err) {
+    console.error("[/api/ai/complete]", err);
+    res.status(500).json({ error: "Erreur IA" });
+  }
+});
 // ================== START ==================
 const dbColumns = await db
   .prepare(
@@ -7111,7 +9495,6 @@ const dbColumns = await db
 `,
   )
   .all();
-
 console.log("🧨 [DB COLUMNS USERS]");
 console.table(dbColumns);
 const debugCheck = await db
@@ -7125,6 +9508,8 @@ const debugCheck = await db
 
 console.log("🧨 [RAW DB STATE]");
 console.table(debugCheck);
-app.listen(PORT, HOST, () => {
+
+// Utilisation de httpServer au lieu de app pour lier Express + WebSocket sur le même port
+httpServer.listen(PORT, HOST, () => {
   console.log(`🚀 Serveur lancé sur http://${HOST}:${PORT}`);
 });

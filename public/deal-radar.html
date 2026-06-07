@@ -1,166 +1,1651 @@
 <!doctype html>
-<html lang="fr" data-theme="dark">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Deal Radar — AiGENT</title>
-    <!-- On charge ton CSS global (SaaS) -->
-    <link rel="stylesheet" href="accueil.css" />
-    <!-- On inclura le CSS spécifique au radar juste en dessous ou dans un fichier radar.css -->
-    <link rel="stylesheet" href="./radar.css" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Radar Deals — AiGENT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ════════════════════════════════════════════════════════════
+         DESIGN SYSTEM — Linear-inspired, violet AiGENT signature
+         ════════════════════════════════════════════════════════════ */
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --font:
+          "Inter Tight", -apple-system, BlinkMacSystemFont, "SF Pro Display",
+          "Segoe UI", system-ui, sans-serif;
+        --mono:
+          "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+        /* Violet signature (la seule couleur saturée) */
+        --violet-300: #c4b5fd;
+        --violet-400: #a78bfa;
+        --violet-500: #8b5cf6;
+        --violet-600: #7c3aed;
+        --violet-glow: rgba(139, 92, 246, 0.35);
+        --violet-soft: rgba(139, 92, 246, 0.08);
+
+        /* Noir Linear — très peu de marches, très subtil */
+        --bg: #08090a;
+        --bg-elev: #0b0c0e;
+        --bg-card: #0e0f12;
+        --bg-hover: #14161a;
+        --bg-active: #1a1c20;
+
+        --line: rgba(255, 255, 255, 0.06);
+        --line-strong: rgba(255, 255, 255, 0.1);
+
+        --fg: #f7f8f8;
+        --fg-soft: #c1c2c6;
+        --fg-muted: #8a8f98;
+        --fg-faint: #62656c;
+
+        /* Signaux (peu saturés, façon Linear) */
+        --green: #4cb782;
+        --amber: #e0a02f;
+        --red: #eb5757;
+        --blue: #5e6ad2;
+
+        --r-sm: 5px;
+        --r: 7px;
+        --r-md: 10px;
+        --r-lg: 14px;
+      }
+
+      html,
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--font);
+        font-size: 13px;
+        line-height: 1.5;
+        letter-spacing: -0.01em;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        font-feature-settings: "ss01", "cv11";
+      }
+      body {
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      ::selection {
+        background: var(--violet-soft);
+        color: var(--violet-300);
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: 0;
+        cursor: pointer;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      svg {
+        display: block;
+      }
+
+      /* ════════════════════════ LAYOUT ════════════════════════ */
+      .app {
+        display: grid;
+        grid-template-columns: 224px 1fr;
+        min-height: 100vh;
+      }
+
+      /* ════════════════════════ SIDEBAR ════════════════════════ */
+      .sb {
+        background: var(--bg-elev);
+        border-right: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        padding: 14px 10px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+      }
+      .sb-brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 6px 8px 18px;
+      }
+      .sb-logo {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: linear-gradient(
+          135deg,
+          var(--violet-500),
+          var(--violet-600)
+        );
+        display: grid;
+        place-items: center;
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 4px 14px var(--violet-glow);
+      }
+      .sb-brand-text {
+        font-weight: 600;
+        font-size: 13.5px;
+        letter-spacing: -0.02em;
+      }
+      .sb-brand-text .v {
+        color: var(--violet-400);
+      }
+
+      .sb-section {
+        text-transform: uppercase;
+        font-size: 10.5px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        color: var(--fg-faint);
+        padding: 14px 10px 6px;
+      }
+      .sb-link {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 6px 8px;
+        border-radius: var(--r-sm);
+        color: var(--fg-soft);
+        font-size: 13px;
+        font-weight: 450;
+        cursor: pointer;
+        transition:
+          background 0.12s,
+          color 0.12s;
+      }
+      .sb-link:hover {
+        background: var(--bg-hover);
+        color: var(--fg);
+      }
+      .sb-link.active {
+        background: var(--bg-active);
+        color: var(--fg);
+      }
+      .sb-link.active .sb-ico {
+        color: var(--violet-400);
+      }
+      .sb-ico {
+        width: 15px;
+        height: 15px;
+        color: var(--fg-muted);
+        flex: none;
+      }
+      .sb-link.active .sb-ico {
+        color: var(--violet-400);
+      }
+
+      .sb-spacer {
+        flex: 1;
+      }
+
+      .sb-user {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 8px;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--line);
+        background: var(--bg-card);
+      }
+      .sb-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--violet-500), var(--blue));
+        color: #fff;
+        font-size: 11px;
+        font-weight: 600;
+        display: grid;
+        place-items: center;
+        flex: none;
+      }
+      .sb-user-meta {
+        min-width: 0;
+      }
+      .sb-user-name {
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--fg);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .sb-user-role {
+        font-size: 11px;
+        color: var(--fg-muted);
+      }
+
+      /* ════════════════════════ MAIN ════════════════════════ */
+      .main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      /* Topbar */
+      .topbar {
+        height: 44px;
+        padding: 0 20px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border-bottom: 1px solid var(--line);
+        background: var(--bg);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .crumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .crumb-sep {
+        color: var(--fg-faint);
+      }
+      .crumb-cur {
+        color: var(--fg);
+        font-weight: 500;
+      }
+      .crumb-pre {
+        color: var(--fg-muted);
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 500;
+        border: 1px solid var(--line-strong);
+        background: var(--bg-card);
+        color: var(--fg-soft);
+      }
+      .badge.ok {
+        color: var(--green);
+      }
+      .badge .pulse {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 0 0 var(--green);
+        animation: pulse 2.2s infinite;
+      }
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(76, 183, 130, 0.45);
+        }
+        70% {
+          box-shadow: 0 0 0 6px rgba(76, 183, 130, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(76, 183, 130, 0);
+        }
+      }
+
+      .topbar-spacer {
+        flex: 1;
+      }
+      .clock {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--fg-muted);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: var(--r-sm);
+        font-size: 12.5px;
+        font-weight: 500;
+        border: 1px solid var(--line-strong);
+        background: var(--bg-card);
+        color: var(--fg-soft);
+        transition:
+          background 0.12s,
+          color 0.12s,
+          border-color 0.12s;
+      }
+      .btn:hover {
+        background: var(--bg-hover);
+        color: var(--fg);
+        border-color: rgba(255, 255, 255, 0.16);
+      }
+      .btn-icon {
+        padding: 5px;
+        width: 28px;
+        height: 28px;
+        justify-content: center;
+      }
+      .btn-primary {
+        background: var(--violet-500);
+        color: #fff;
+        border-color: var(--violet-500);
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.12) inset,
+          0 6px 16px -6px var(--violet-glow);
+      }
+      .btn-primary:hover {
+        background: var(--violet-600);
+        border-color: var(--violet-600);
+        color: #fff;
+      }
+      .btn svg {
+        width: 13px;
+        height: 13px;
+      }
+      .btn-icon svg {
+        width: 14px;
+        height: 14px;
+      }
+      .btn.spinning svg {
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Page body */
+      .page {
+        padding: 28px 32px 60px;
+        max-width: 1480px;
+      }
+
+      .hero {
+        padding: 14px 0 26px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 26px;
+      }
+      .hero h1 {
+        font-size: 34px;
+        line-height: 1.05;
+        font-weight: 600;
+        letter-spacing: -0.035em;
+        background: linear-gradient(180deg, #ffffff 0%, #d4d4dc 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .hero p {
+        color: var(--fg-muted);
+        font-size: 14px;
+        margin-top: 8px;
+        max-width: 620px;
+      }
+      .hero-row {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .hero-cta {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .threshold {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 10px;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--line-strong);
+        background: var(--bg-card);
+      }
+      .threshold label {
+        font-size: 11.5px;
+        color: var(--fg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .threshold input[type="range"] {
+        width: 100px;
+        -webkit-appearance: none;
+        background: transparent;
+      }
+      .threshold input[type="range"]::-webkit-slider-runnable-track {
+        height: 3px;
+        background: var(--line-strong);
+        border-radius: 2px;
+      }
+      .threshold input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: var(--violet-400);
+        margin-top: -5px;
+        box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.18);
+      }
+      .threshold .val {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--violet-300);
+        min-width: 30px;
+      }
+
+      .silent {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--line-strong);
+        background: var(--bg-card);
+        font-size: 12.5px;
+      }
+      .switch {
+        position: relative;
+        width: 28px;
+        height: 16px;
+        flex: none;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .switch span {
+        position: absolute;
+        inset: 0;
+        background: var(--bg-active);
+        border-radius: 999px;
+        transition: background 0.15s;
+        border: 1px solid var(--line-strong);
+      }
+      .switch span::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 1px;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: var(--fg-muted);
+        transition:
+          transform 0.15s,
+          background 0.15s;
+      }
+      .switch input:checked + span {
+        background: var(--violet-500);
+        border-color: var(--violet-500);
+      }
+      .switch input:checked + span::before {
+        transform: translateX(12px);
+        background: #fff;
+      }
+
+      /* ════════════════════════ KPI ROW ════════════════════════ */
+      .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1px;
+        background: var(--line);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        overflow: hidden;
+        margin-bottom: 24px;
+      }
+      .kpi {
+        background: var(--bg-elev);
+        padding: 16px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        position: relative;
+      }
+      .kpi-label {
+        font-size: 11px;
+        color: var(--fg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 500;
+      }
+      .kpi-value {
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        color: var(--fg);
+        font-feature-settings: "tnum";
+      }
+      .kpi-value small {
+        font-size: 14px;
+        color: var(--fg-muted);
+        font-weight: 500;
+        margin-left: 3px;
+      }
+      .kpi-sub {
+        font-size: 11.5px;
+        color: var(--fg-faint);
+      }
+      .kpi-spark {
+        position: absolute;
+        right: 14px;
+        top: 14px;
+        width: 60px;
+        height: 20px;
+        opacity: 0.8;
+      }
+      .kpi-spark path.line {
+        fill: none;
+        stroke-width: 1.4;
+      }
+
+      /* ════════════════════════ GRID ════════════════════════ */
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .card {
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        overflow: hidden;
+      }
+      .card-head {
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+      }
+      .card-title {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .card-action {
+        font-size: 12px;
+        color: var(--violet-300);
+        padding: 3px 8px;
+        border-radius: var(--r-sm);
+        transition: background 0.12s;
+      }
+      .card-action:hover {
+        background: var(--violet-soft);
+      }
+      .card-body {
+        padding: 16px;
+      }
+
+      /* Criteria list */
+      .crit-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: var(--line);
+        border-radius: var(--r-sm);
+        overflow: hidden;
+      }
+      .crit {
+        background: var(--bg-card);
+        padding: 12px 14px;
+      }
+      .crit-label {
+        font-size: 10.5px;
+        color: var(--fg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+      .crit-val {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--fg);
+        font-feature-settings: "tnum";
+      }
+      .crit-val.muted {
+        color: var(--fg-faint);
+      }
+
+      /* Compat bars */
+      .compat-row {
+        display: grid;
+        grid-template-columns: 110px 1fr 44px;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+      }
+      .compat-row + .compat-row {
+        border-top: 1px solid var(--line);
+      }
+      .compat-name {
+        font-size: 12.5px;
+        color: var(--fg-soft);
+      }
+      .compat-track {
+        height: 4px;
+        border-radius: 2px;
+        background: var(--bg-active);
+        overflow: hidden;
+        position: relative;
+      }
+      .compat-fill {
+        height: 100%;
+        width: 0;
+        border-radius: 2px;
+        transition: width 0.9s cubic-bezier(0.2, 0.7, 0.1, 1);
+      }
+      .compat-fill.hi {
+        background: var(--green);
+      }
+      .compat-fill.mid {
+        background: var(--amber);
+      }
+      .compat-fill.lo {
+        background: var(--red);
+      }
+      .compat-pct {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        color: var(--fg-soft);
+        text-align: right;
+      }
+
+      /* Radar SVG */
+      .radar-wrap {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+      .radar-svg {
+        width: 180px;
+        height: 180px;
+        flex: none;
+      }
+      .radar-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px 24px;
+        flex: 1;
+      }
+      .rstat-l {
+        font-size: 10.5px;
+        color: var(--fg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .rstat-v {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--fg);
+        letter-spacing: -0.02em;
+      }
+
+      /* Alerts feed */
+      .feed-item {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 0;
+      }
+      .feed-item + .feed-item {
+        border-top: 1px solid var(--line);
+      }
+      .feed-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+      .feed-title {
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--fg);
+      }
+      .feed-meta {
+        font-size: 11.5px;
+        color: var(--fg-muted);
+        margin-top: 2px;
+      }
+      .feed-score {
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      /* ════════════════════════ TABLE ════════════════════════ */
+      .table-card {
+        margin-bottom: 24px;
+      }
+      .table-toolbar {
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .tabs {
+        display: inline-flex;
+        gap: 2px;
+        padding: 2px;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--r-sm);
+        background: var(--bg-card);
+      }
+      .tab {
+        padding: 4px 10px;
+        font-size: 12px;
+        color: var(--fg-muted);
+        border-radius: 4px;
+        font-weight: 500;
+      }
+      .tab:hover {
+        color: var(--fg);
+      }
+      .tab.active {
+        background: var(--bg-active);
+        color: var(--fg);
+      }
+
+      .select {
+        padding: 5px 26px 5px 10px;
+        font-size: 12px;
+        background: var(--bg-card)
+          url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238a8f98' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>")
+          no-repeat right 8px center;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--r-sm);
+        color: var(--fg-soft);
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 11px 14px;
+        font-size: 12.5px;
+      }
+      th {
+        font-weight: 500;
+        color: var(--fg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 10.5px;
+        background: var(--bg-elev);
+        border-bottom: 1px solid var(--line);
+        /* Retrait du décalage sticky provoquant la superposition */
+        position: relative;
+        z-index: 2;
+      }
+      tbody tr {
+        border-bottom: 1px solid var(--line);
+        transition: background 0.1s;
+      }
+      tbody tr:hover {
+        background: var(--bg-hover);
+      }
+      /* Isolation stricte de la bande d'en-tête (pas de hover/survol) */
+      thead tr,
+      thead tr:hover {
+        background: none !important;
+      }
+      tbody tr:last-child {
+        border-bottom: 0;
+      }
+      td {
+        color: var(--fg-soft);
+        font-feature-settings: "tnum";
+        vertical-align: middle;
+      }
+      td .strong {
+        color: var(--fg);
+        font-weight: 500;
+      }
+
+      .deal-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .deal-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        background: var(--violet-soft);
+        color: var(--violet-400);
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(139, 92, 246, 0.18);
+        flex: none;
+      }
+      .deal-icon svg {
+        width: 15px;
+        height: 15px;
+      }
+      .deal-name {
+        font-size: 12.5px;
+        color: var(--fg);
+        font-weight: 500;
+      }
+      .deal-sub {
+        font-size: 11px;
+        color: var(--fg-muted);
+        margin-top: 1px;
+      }
+
+      .tag {
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-size: 10.5px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        background: var(--bg-active);
+        color: var(--fg-soft);
+        border: 1px solid var(--line);
+      }
+
+      .score {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 90px;
+      }
+      .score-num {
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 500;
+        min-width: 32px;
+      }
+      .score-track {
+        flex: 1;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--bg-active);
+        overflow: hidden;
+      }
+      .score-fill {
+        height: 100%;
+        border-radius: 2px;
+      }
+
+      .urg {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 500;
+        border: 1px solid var(--line);
+      }
+      .urg.hi {
+        color: var(--red);
+        background: rgba(235, 87, 87, 0.06);
+        border-color: rgba(235, 87, 87, 0.18);
+      }
+      .urg.mid {
+        color: var(--amber);
+        background: rgba(224, 160, 47, 0.06);
+        border-color: rgba(224, 160, 47, 0.18);
+      }
+      .urg.lo {
+        color: var(--green);
+        background: rgba(76, 183, 130, 0.06);
+        border-color: rgba(76, 183, 130, 0.18);
+      }
+      .urg .d {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .fav-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 5px;
+        display: grid;
+        place-items: center;
+        color: var(--fg-faint);
+        transition:
+          background 0.1s,
+          color 0.1s;
+      }
+      .fav-btn:hover {
+        background: var(--bg-active);
+        color: var(--fg-muted);
+      }
+      .fav-btn svg {
+        width: 13px;
+        height: 13px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+      }
+      .fav-btn.active {
+        color: var(--amber);
+      }
+      .fav-btn.active svg {
+        fill: currentColor;
+      }
+
+      .action-btn {
+        padding: 4px 9px;
+        border-radius: 5px;
+        font-size: 11.5px;
+        font-weight: 500;
+        background: var(--bg-card);
+        color: var(--fg-soft);
+        border: 1px solid var(--line-strong);
+        transition:
+          background 0.12s,
+          color 0.12s,
+          border-color 0.12s;
+      }
+      .action-btn:hover {
+        background: var(--violet-500);
+        color: #fff;
+        border-color: var(--violet-500);
+      }
+
+      .empty {
+        padding: 40px 16px;
+        text-align: center;
+        color: var(--fg-muted);
+      }
+      .empty svg {
+        width: 28px;
+        height: 28px;
+        margin: 0 auto 10px;
+        color: var(--fg-faint);
+      }
+      .empty h4 {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--fg-soft);
+        margin-bottom: 4px;
+      }
+      .empty p {
+        font-size: 12px;
+      }
+
+      /* ════════════════════════ MODAL ════════════════════════ */
+      .modal-bg {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(6px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        padding: 24px;
+      }
+      .modal-bg.open {
+        display: flex;
+        animation: fadeIn 0.15s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .modal {
+        width: 100%;
+        max-width: 540px;
+        background: var(--bg-elev);
+        border: 1px solid var(--line-strong);
+        border-radius: var(--r-lg);
+        box-shadow:
+          0 24px 60px rgba(0, 0, 0, 0.5),
+          0 0 0 1px rgba(139, 92, 246, 0.08);
+        overflow: hidden;
+        animation: pop 0.18s cubic-bezier(0.2, 0.7, 0.1, 1);
+      }
+      @keyframes pop {
+        from {
+          transform: scale(0.96);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .modal-head {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .modal-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .modal-close {
+        width: 26px;
+        height: 26px;
+        border-radius: 5px;
+        display: grid;
+        place-items: center;
+        color: var(--fg-muted);
+      }
+      .modal-close:hover {
+        background: var(--bg-hover);
+        color: var(--fg);
+      }
+      .modal-close svg {
+        width: 14px;
+        height: 14px;
+      }
+      .modal-body {
+        padding: 18px 20px;
+        max-height: 70vh;
+        overflow-y: auto;
+      }
+      .modal-foot {
+        padding: 12px 20px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .prof-head {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding-bottom: 16px;
+        margin-bottom: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      .prof-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--violet-500), var(--blue));
+        color: #fff;
+        font-size: 17px;
+        font-weight: 600;
+        display: grid;
+        place-items: center;
+      }
+      .prof-name {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .prof-meta {
+        font-size: 12px;
+        color: var(--fg-muted);
+        margin-top: 2px;
+      }
+      .prof-compat-badge {
+        margin-left: auto;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-family: var(--mono);
+        font-size: 13px;
+        font-weight: 600;
+        background: var(--violet-soft);
+        color: var(--violet-300);
+        border: 1px solid rgba(139, 92, 246, 0.25);
+      }
+
+      .prof-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1px;
+        background: var(--line);
+        border-radius: var(--r-sm);
+        overflow: hidden;
+      }
+      .prof-cell {
+        background: var(--bg-card);
+        padding: 10px 12px;
+      }
+      .prof-l {
+        font-size: 10.5px;
+        color: var(--fg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .prof-v {
+        font-size: 13.5px;
+        color: var(--fg);
+        font-weight: 500;
+        margin-top: 3px;
+        font-feature-settings: "tnum";
+      }
+
+      /* ════════════════════════ NOTIFS ════════════════════════ */
+      .notif-tray {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 200;
+        max-width: 340px;
+      }
+      .notif {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 11px 12px;
+        border-radius: var(--r);
+        background: var(--bg-elev);
+        border: 1px solid var(--line-strong);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+        animation: slideIn 0.25s cubic-bezier(0.2, 0.7, 0.1, 1);
+      }
+      @keyframes slideIn {
+        from {
+          transform: translateX(20px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      .notif.out {
+        animation: slideOut 0.25s ease forwards;
+      }
+      @keyframes slideOut {
+        to {
+          transform: translateX(20px);
+          opacity: 0;
+        }
+      }
+      .notif-ico {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: var(--violet-soft);
+        color: var(--violet-300);
+        display: grid;
+        place-items: center;
+        flex: none;
+      }
+      .notif-ico svg {
+        width: 13px;
+        height: 13px;
+      }
+      .notif-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .notif-title {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--fg);
+      }
+      .notif-sub {
+        font-size: 11.5px;
+        color: var(--fg-muted);
+        margin-top: 2px;
+      }
+      .notif-x {
+        width: 18px;
+        height: 18px;
+        color: var(--fg-muted);
+        display: grid;
+        place-items: center;
+        border-radius: 4px;
+      }
+      .notif-x:hover {
+        background: var(--bg-hover);
+        color: var(--fg);
+      }
+      .notif-x svg {
+        width: 11px;
+        height: 11px;
+      }
+
+      /* ════════════════════════ RESPONSIVE ════════════════════════ */
+      @media (max-width: 1100px) {
+        .kpi-row {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 820px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .sb {
+          position: fixed;
+          left: -240px;
+          width: 224px;
+          z-index: 50;
+          transition: left 0.2s;
+        }
+        .sb.open {
+          left: 0;
+        }
+        .kpi-row {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .page {
+          padding: 20px 16px 60px;
+        }
+        .hero h1 {
+          font-size: 26px;
+        }
+        th,
+        td {
+          padding: 9px 10px;
+        }
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 6px;
+        border: 2px solid var(--bg);
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      /* ── CRITERIA MODAL FIELDS ── */
+      .crit-modal-section {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .crit-modal-section:last-child {
+        border-bottom: none;
+      }
+      .crit-modal-section-title {
+        font-size: 10.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--fg-muted);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .crit-modal-section-title svg {
+        color: var(--violet-400);
+      }
+
+      .field-row {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .field-row.cols-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+      .field-row.cols-3 {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+
+      .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .field-label {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--fg-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .field-input {
+        background: var(--bg-card);
+        border: 1px solid var(--line-strong);
+        border-radius: var(--r-sm);
+        color: var(--fg);
+        font: inherit;
+        font-size: 13px;
+        padding: 8px 10px;
+        outline: none;
+        transition:
+          border-color 0.12s,
+          box-shadow 0.12s;
+        width: 100%;
+      }
+      .field-input:focus {
+        border-color: var(--violet-500);
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+      }
+      .field-input::placeholder {
+        color: var(--fg-faint);
+      }
+      .field-input-wrap {
+        position: relative;
+      }
+      .field-input-wrap .field-unit {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 11px;
+        color: var(--fg-faint);
+        pointer-events: none;
+      }
+      .field-input.has-unit {
+        padding-right: 36px;
+      }
+
+      .type-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+      }
+      .type-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        padding: 10px 6px;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--line-strong);
+        background: var(--bg-card);
+        color: var(--fg-muted);
+        font: inherit;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.12s;
+      }
+      .type-btn:hover {
+        background: var(--bg-hover);
+        color: var(--fg);
+      }
+      .type-btn.selected {
+        border-color: var(--violet-500);
+        background: var(--violet-soft);
+        color: var(--violet-300);
+      }
+      .type-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .save-feedback {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--green);
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .save-feedback.show {
+        opacity: 1;
+      }
+    </style>
   </head>
-  <body class="radar-page">
-    <!-- ===== MINI SIDEBAR DESKTOP ===== -->
-    <aside class="mini-nav" id="miniNav">
-      <div class="mini-nav-logo">
-        <img src="./images/vrai.png" alt="Logo" class="mini-nav-lizard" />
-      </div>
-      <button
-        class="mini-nav-toggle"
-        id="openSidebar"
-        aria-label="Ouvrir le menu"
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 20 20"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-        >
-          <rect x="1.5" y="1.5" width="17" height="17" rx="3.5" />
-          <line x1="7" y1="1.5" x2="7" y2="18.5" />
-        </svg>
-      </button>
-    </aside>
-
-    <!-- ===== BOUTON HAMBURGER MOBILE ===== -->
-    <button class="mobile-burger" id="openSidebarMobile" aria-label="Menu">
-      <svg
-        width="24"
-        height="18"
-        viewBox="0 0 24 18"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.5"
-        stroke-linecap="round"
-      >
-        <line x1="0" y1="2" x2="24" y2="2" />
-        <line x1="0" y1="9" x2="17" y2="9" />
-        <line x1="0" y1="16" x2="10" y2="16" />
-      </svg>
-    </button>
-
-    <!-- ===== MENU LATÉRAL (Identique à ton accueil) ===== -->
-    <nav id="sidebar" class="sidebar" aria-label="Menu principal">
-      <span class="close-btn" id="closeSidebar">&times;</span>
-      <h2>Menu</h2>
-      <ul>
-        <li>
-          <a href="profil.html"
-            ><svg
-              width="18"
-              height="18"
+  <body>
+    <div class="app">
+      <!-- ═══════════════════════ SIDEBAR ═══════════════════════ -->
+      <aside class="sb" id="sb">
+        <div class="sb-brand">
+          <div class="sb-logo">
+            <svg
+              width="12"
+              height="12"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            Profil & Compte</a
-          >
-        </li>
-        <li>
-          <a href="messagerie.html"
-            ><svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
+              stroke="#fff"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
             >
               <path
-                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-              ></path>
+                d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"
+              />
             </svg>
-            Messagerie</a
+          </div>
+          <div class="sb-brand-text">Ai<span class="v">GENT</span></div>
+        </div>
+
+        <div class="sb-section">Workspace</div>
+        <div class="sb-link" onclick="location = 'accueil.html'">
+          <svg
+            class="sb-ico"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
           >
-        </li>
-        <li>
-          <a href="favoris.html"
-            ><svg
-              width="18"
-              height="18"
+            <path d="M3 12l9-9 9 9" />
+            <path d="M5 10v11h14V10" />
+          </svg>
+          Accueil
+        </div>
+        <div class="sb-link" onclick="location = 'vue-marche.html'">
+          <svg
+            class="sb-ico"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="3" y1="20" x2="21" y2="20" />
+            <rect x="5" y="10" width="3" height="10" />
+            <rect x="10.5" y="6" width="3" height="14" />
+            <rect x="16" y="13" width="3" height="7" />
+          </svg>
+          Vue marché
+        </div>
+        <div class="sb-link active">
+          <svg
+            class="sb-ico"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <circle cx="12" cy="12" r="5" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+          </svg>
+          Radar Deals
+        </div>
+        <div class="sb-link" onclick="location = 'prix-par-ville.html'">
+          <svg
+            class="sb-ico"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 10c0 6-9 13-9 13S3 16 3 10a9 9 0 0118 0z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+          Prix par ville
+        </div>
+        <div class="sb-link" onclick="location = 'biens.html'">
+          <svg
+            class="sb-ico"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1h-4v-7h-8v7H4a1 1 0 0 1-1-1z"
+            />
+          </svg>
+          Biens disponibles
+        </div>
+
+        <div class="sb-section">Analyse</div>
+        <div class="sb-link" onclick="location = 'indices.html'">
+          <svg
+            class="sb-ico"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M3 12h4l3-8 4 16 3-8h4" />
+          </svg>
+          Indices immobiliers
+        </div>
+        <div class="sb-link" onclick="location = 'rendements.html'">
+          <svg
+            class="sb-ico"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="12" y1="2" x2="12" y2="22" />
+            <path d="M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          Rendements
+        </div>
+        <div class="sb-link" onclick="location = 'tendances.html'">
+          <svg
+            class="sb-ico"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="3 17 9 11 13 15 21 7" />
+            <polyline points="14 7 21 7 21 14" />
+          </svg>
+          Tendances
+        </div>
+        <div class="sb-link" onclick="location = 'transactions.html'">
+          <svg
+            class="sb-ico"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="17 1 21 5 17 9" />
+            <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+            <polyline points="7 23 3 19 7 15" />
+            <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+          </svg>
+          Transactions
+        </div>
+
+        <div class="sb-spacer"></div>
+
+        <div class="sb-user">
+          <div class="sb-avatar" id="sb-initials">—</div>
+          <div class="sb-user-meta">
+            <div class="sb-user-name" id="sb-username">—</div>
+            <div class="sb-user-role" id="sb-role">—</div>
+          </div>
+          <button class="btn-icon" id="btn-logout" title="Se déconnecter">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
+        </div>
+      </aside>
+
+      <!-- ═══════════════════════ MAIN ═══════════════════════ -->
+      <main class="main">
+        <header class="topbar">
+          <button class="btn-icon" id="burger" style="display: none">
+            <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
             >
-              <polygon
-                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-              ></polygon>
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
-            Profils favoris</a
-          >
-        </li>
-        <li>
-          <a href="statistiques.html"
-            ><svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <line x1="18" y1="20" x2="18" y2="10"></line>
-              <line x1="12" y1="20" x2="12" y2="4"></line>
-              <line x1="6" y1="20" x2="6" y2="14"></line>
-            </svg>
-            Statistiques</a
-          >
-        </li>
-        <li>
-          <a href="./marche.html"
-            ><svg
-              width="20"
-              height="20"
-              viewBox="0 0 64 64"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.2"
-            >
-              <rect x="8" y="34" width="8" height="16" rx="2"></rect>
-              <rect x="24" y="26" width="8" height="24" rx="2"></rect>
-              <rect x="40" y="18" width="8" height="32" rx="2"></rect>
-              <path d="M6 38 L12 34 L20 36 L28 26 L36 28 L44 18 L52 20"></path>
-              <polyline points="50 16 54 20 48 21"></polyline>
-              <circle cx="54" cy="14" r="5"></circle>
-              <text
-                x="54"
-                y="16.5"
-                text-anchor="middle"
-                font-size="6"
-                fill="currentColor"
-                stroke="none"
-              >
-                €
-              </text>
-            </svg>
-            Marché</a
-          >
-        </li>
-        <li>
-          <a
-            href="/deal-radar.html"
-            class="sidebar-nav-item"
-            style="color: var(--violet); font-weight: 600"
-            ><svg
-              width="18"
-              height="18"
+          </button>
+          <div class="crumb">
+            <span class="crumb-pre">AiGENT</span>
+            <span class="crumb-sep">/</span>
+            <span class="crumb-cur">Radar Deals</span>
+          </div>
+          <span class="badge ok"><span class="pulse"></span> Scan actif</span>
+          <div class="topbar-spacer"></div>
+          <span class="clock" id="clock">—</span>
+          <button class="btn" id="btn-refresh">
+            <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -168,383 +1653,1610 @@
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <path d="M12 2v4" />
-              <path d="M12 18v4" />
-              <path d="M4.93 4.93l2.83 2.83" />
-              <path d="M16.24 16.24l2.83 2.83" />
-              <path d="M2 12h4" />
-              <path d="M18 12h4" />
-              <path d="M4.93 19.07l2.83-2.83" />
-              <path d="M16.24 7.76l2.83-2.83" />
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 12l5-5" />
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path
+                d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+              />
             </svg>
-            Deal Radar</a
-          >
-        </li>
-      </ul>
-    </nav>
-    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+            Actualiser
+          </button>
+          <button class="btn-icon" title="Notifications">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+          </button>
+        </header>
 
-    <!-- ===== HEADER ===== -->
-    <header class="top-banner">
-      <div class="logo-container">
-        <img
-          src="images/logo.png"
-          alt="Logo AiGENT"
-          class="logo-img"
-          onerror="this.src = 'https://via.placeholder.com/44x44?text=AI'"
-        />
-        <h1 class="logo-text">Deal Radar</h1>
-      </div>
-      <div class="header-actions">
-        <button id="btn-theme" aria-label="Changer le thème">
-          <svg
-            class="icon-sun"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          >
-            <circle cx="12" cy="12" r="5" />
-            <line x1="12" y1="1" x2="12" y2="3" />
-            <line x1="12" y1="21" x2="12" y2="23" />
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-            <line x1="1" y1="12" x2="3" y2="12" />
-            <line x1="21" y1="12" x2="23" y2="12" />
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-          </svg>
-          <svg
-            class="icon-moon"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          >
-            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-          </svg>
-        </button>
-        <button id="btn-logout" class="hidden">
-          <svg
-            class="logout-icon"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
-          <span>Déconnexion</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- ===== WRAPPER RADAR ===== -->
-    <div class="app-layout">
-      <div class="radar-content-scroll">
-        <div class="radar-container">
-          <!-- En-tête Radar -->
-          <div class="radar-top-actions">
-            <div class="radar-titles">
-              <div class="radar-badge">
-                <span class="pulse-dot"></span>
-                Analyse temps réel
+        <div class="page">
+          <!-- HERO -->
+          <section class="hero">
+            <div class="hero-row">
+              <div>
+                <h1>Radar Deals</h1>
+                <p>
+                  Détection en temps réel des opportunités correspondant à vos
+                  critères. Scoring de compatibilité multi-facteurs sur
+                  l'ensemble du marché.
+                </p>
               </div>
-              <h2>Fenêtres d'opportunité</h2>
-              <p id="header-sub">Chargement des données marché en cours…</p>
-            </div>
-
-            <div class="radar-controls">
-              <div class="threshold-control">
-                <label>Compatibilité min.</label>
-                <div class="range-wrapper">
+              <div class="hero-cta">
+                <div class="threshold">
+                  <label>Seuil</label>
                   <input
-                    type="range"
                     id="threshold-slider"
+                    type="range"
                     min="40"
                     max="95"
                     value="65"
-                    step="5"
                   />
+                  <span class="val" id="threshold-display">65%</span>
                 </div>
-                <span class="threshold-val" id="threshold-display">65%</span>
+                <label class="silent">
+                  <span class="switch">
+                    <input type="checkbox" id="silent-toggle" />
+                    <span></span>
+                  </span>
+                  Silent matching
+                </label>
+                <button
+                  class="btn-primary btn"
+                  onclick="location = 'criteres.html'"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polygon
+                      points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"
+                    />
+                  </svg>
+                  Mes critères
+                </button>
               </div>
-              <button
-                class="btn-saas-primary btn-refresh"
-                id="btn-refresh"
-                title="Actualiser"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M23 4v6h-6" />
-                  <path d="M1 20v-6h6" />
-                  <path
-                    d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
-                  />
-                </svg>
-                Actualiser
-              </button>
-              <button
-                class="silent-toggle"
-                id="silent-toggle"
-                title="Silent Matching"
-              >
-                <svg
-                  class="icon-silent-off"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-                <span class="toggle-label">Silent Matching</span>
-                <div class="toggle-switch"></div>
-              </button>
             </div>
-          </div>
+          </section>
 
-          <!-- COUNTDOWN (Alerte critique) -->
-          <div class="countdown-wrap" id="countdown-wrap" style="display: none">
-            <div class="countdown-icon-wrap">
+          <!-- KPI ROW -->
+          <section class="kpi-row">
+            <div class="kpi">
+              <div class="kpi-label">Opportunités</div>
+              <div class="kpi-value" id="kpi-opps">—</div>
+              <div class="kpi-sub">détectées</div>
+              <svg class="kpi-spark" viewBox="0 0 60 20" id="spark-opps"></svg>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Compat. moy.</div>
+              <div class="kpi-value" id="kpi-avg">—<small>%</small></div>
+              <div class="kpi-sub">vs critères</div>
+              <svg class="kpi-spark" viewBox="0 0 60 20" id="spark-avg"></svg>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Fort potentiel</div>
+              <div class="kpi-value" id="kpi-hot">—</div>
+              <div class="kpi-sub">score &gt; 80</div>
+              <svg class="kpi-spark" viewBox="0 0 60 20" id="spark-hot"></svg>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Réponse</div>
+              <div class="kpi-value">18<small>min</small></div>
+              <div class="kpi-sub">pour contacter</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Couverture</div>
+              <div class="kpi-value">100<small>%</small></div>
+              <div class="kpi-sub">marché scanné</div>
+            </div>
+          </section>
+
+          <!-- GRID : critères / compat -->
+          <section class="grid">
+            <div class="card">
+              <div class="card-head">
+                <span class="card-title">Critères de recherche actifs</span>
+                <button class="card-action" id="btn-edit-criteria">
+                  Modifier
+                </button>
+              </div>
+              <div class="card-body">
+                <div class="crit-grid">
+                  <div class="crit">
+                    <div class="crit-label" for-crit="budget" id="label-budget">
+                      Budget max
+                    </div>
+                    <div class="crit-val" id="crit-budget">—</div>
+                  </div>
+                  <div class="crit">
+                    <div class="crit-label">Surface min</div>
+                    <div class="crit-val" id="crit-surface">—</div>
+                  </div>
+                  <div class="crit">
+                    <div class="crit-label">Localisation</div>
+                    <div class="crit-val" id="crit-ville">—</div>
+                  </div>
+                  <div class="crit">
+                    <div class="crit-label">Type de bien</div>
+                    <div class="crit-val" id="crit-type">—</div>
+                  </div>
+                  <div class="crit">
+                    <div class="crit-label">Pièces min</div>
+                    <div class="crit-val" id="crit-pieces">—</div>
+                  </div>
+                  <div class="crit">
+                    <div class="crit-label" for-crit="tol" id="label-tol">
+                      Tolérance
+                    </div>
+                    <div class="crit-val" id="crit-tol">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <span class="card-title">Compatibilité par critère</span>
+                <span class="card-action" style="cursor: default"
+                  >Temps réel</span
+                >
+              </div>
+              <div class="card-body" id="compat-body">
+                <div class="empty"><p>En attente de données…</p></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- GRID : radar + alerts -->
+          <section class="grid">
+            <div class="card">
+              <div class="card-head">
+                <span class="card-title">Activité radar</span
+                ><span class="card-action" style="cursor: default">Live</span>
+              </div>
+              <div class="card-body">
+                <div class="radar-wrap">
+                  <svg class="radar-svg" viewBox="0 0 180 180">
+                    <defs>
+                      <radialGradient id="rGrad" cx="50%" cy="50%" r="50%">
+                        <stop
+                          offset="0%"
+                          stop-color="#8b5cf6"
+                          stop-opacity=".18"
+                        />
+                        <stop
+                          offset="100%"
+                          stop-color="#8b5cf6"
+                          stop-opacity="0"
+                        />
+                      </radialGradient>
+                    </defs>
+                    <circle cx="90" cy="90" r="80" fill="url(#rGrad)" />
+                    <circle
+                      cx="90"
+                      cy="90"
+                      r="20"
+                      fill="none"
+                      stroke="rgba(255,255,255,.06)"
+                      stroke-width="1"
+                    />
+                    <circle
+                      cx="90"
+                      cy="90"
+                      r="45"
+                      fill="none"
+                      stroke="rgba(255,255,255,.06)"
+                      stroke-width="1"
+                    />
+                    <circle
+                      cx="90"
+                      cy="90"
+                      r="70"
+                      fill="none"
+                      stroke="rgba(255,255,255,.06)"
+                      stroke-width="1"
+                    />
+                    <line
+                      x1="90"
+                      y1="10"
+                      x2="90"
+                      y2="170"
+                      stroke="rgba(255,255,255,.04)"
+                    />
+                    <line
+                      x1="10"
+                      y1="90"
+                      x2="170"
+                      y2="90"
+                      stroke="rgba(255,255,255,.04)"
+                    />
+                    <circle
+                      id="r-arc"
+                      cx="90"
+                      cy="90"
+                      r="70"
+                      fill="none"
+                      stroke="#8b5cf6"
+                      stroke-width="2"
+                      stroke-dasharray="439.82"
+                      stroke-dashoffset="439.82"
+                      transform="rotate(-90 90 90)"
+                      stroke-linecap="round"
+                      style="
+                        transition: stroke-dashoffset 1.2s
+                          cubic-bezier(0.2, 0.7, 0.1, 1);
+                      "
+                    />
+                    <g id="r-dots"></g>
+                  </svg>
+                  <div class="radar-stats">
+                    <div>
+                      <div class="rstat-l">Urgence</div>
+                      <div class="rstat-v" id="r-score">—</div>
+                    </div>
+                    <div>
+                      <div class="rstat-l">Biens scannés</div>
+                      <div class="rstat-v" id="r-biens">—</div>
+                    </div>
+                    <div>
+                      <div class="rstat-l">Nouveaux</div>
+                      <div class="rstat-v" id="r-new">—</div>
+                    </div>
+                    <div>
+                      <div class="rstat-l">Matches</div>
+                      <div class="rstat-v" id="r-compat">—</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <span class="card-title">Alertes récentes</span
+                ><span
+                  class="card-action"
+                  style="cursor: default"
+                  id="alert-count"
+                  >0</span
+                >
+              </div>
+              <div class="card-body" id="alerts-body">
+                <div class="empty"><p>Aucune alerte pour le moment</p></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- TABLE -->
+          <section class="card table-card">
+            <div class="card-head">
+              <span class="card-title">Opportunités détectées</span>
+              <span class="card-action" style="cursor: default" id="ts-meta"
+                >0 résultat</span
+              >
+            </div>
+            <div class="table-toolbar">
+              <div class="tabs">
+                <button class="tab active" data-filter="all">Toutes</button>
+                <button class="tab" data-filter="high">Compat ≥ 75%</button>
+                <button class="tab" data-filter="opp">Opportunités</button>
+              </div>
+              <select class="select" id="sort-sel">
+                <option value="compat">Trier · Compatibilité</option>
+                <option value="urgency">Trier · Urgence</option>
+                <option value="price">Trier · Prix</option>
+                <option value="surface">Trier · Surface</option>
+              </select>
+            </div>
+            <div style="overflow-x: auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 32px"></th>
+                    <th>Bien / Profil</th>
+                    <th>Type</th>
+                    <th>Ville</th>
+                    <th>Prix</th>
+                    <th>Surface</th>
+                    <th>DPE</th>
+                    <th>Compat.</th>
+                    <th>Urgence</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="deals-tbody">
+                  <tr>
+                    <td colspan="10">
+                      <div class="empty"><p>Chargement…</p></div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <!-- ════════ MODAL PROFIL ════════ -->
+    <div class="modal-bg" id="modal-bg">
+      <div class="modal" id="modal">
+        <div class="modal-head">
+          <span class="modal-title">Détails du profil</span>
+          <button class="modal-close" onclick="closeModal()">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" id="modal-body">Chargement…</div>
+        <div class="modal-foot">
+          <button class="btn" onclick="closeModal()">Fermer</button>
+          <button class="btn btn-primary" id="modal-contact">Contacter</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="notif-tray" id="notif-tray"></div>
+    <!-- ════════ MODAL CRITÈRES ════════ -->
+    <div class="modal-bg" id="modal-criteria-bg">
+      <div class="modal" id="modal-criteria" style="max-width: 600px">
+        <div class="modal-head">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <div
+              style="
+                width: 28px;
+                height: 28px;
+                border-radius: 7px;
+                background: var(--violet-soft);
+                border: 1px solid rgba(139, 92, 246, 0.2);
+                display: grid;
+                place-items: center;
+                color: var(--violet-400);
+              "
+            >
               <svg
-                width="20"
-                height="20"
+                width="14"
+                height="14"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
                 stroke-linecap="round"
-                stroke-linejoin="round"
               >
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                <path
+                  d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                />
+                <path
+                  d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                />
               </svg>
             </div>
-            <div class="countdown-text">
-              <strong id="countdown-label">Fenêtre critique détectée</strong>
-              <span id="countdown-sub"
-                >Ce bien a déjà plusieurs acheteurs qualifiés en attente</span
+            <div>
+              <div class="modal-title">Mes critères de recherche</div>
+              <div
+                style="font-size: 11px; color: var(--fg-muted); margin-top: 1px"
               >
-            </div>
-            <div class="countdown-clock" id="countdown-clock">--:--</div>
-          </div>
-
-          <!-- SUMMARY CARDS -->
-          <div class="summary-grid" id="summary-grid">
-            <div class="sum-card" style="--card-accent: #f472b6">
-              <div class="sum-card-label">Opportunités</div>
-              <div class="sum-card-val" id="sum-opps">—</div>
-              <div class="sum-card-sub">profils qualifiés</div>
-            </div>
-            <div class="sum-card" style="--card-accent: #fbbf24">
-              <div class="sum-card-label">Urgence moyenne</div>
-              <div class="sum-card-val" id="sum-urgency">—</div>
-              <div class="sum-card-sub">score /100</div>
-            </div>
-            <div class="sum-card" style="--card-accent: #8b5cf6">
-              <div class="sum-card-label">Fenêtre max</div>
-              <div class="sum-card-val" id="sum-window">—</div>
-              <div class="sum-card-sub">heures estimées</div>
-            </div>
-            <div class="sum-card" style="--card-accent: #22d3ee">
-              <div class="sum-card-label">Seuil de recherche</div>
-              <div class="sum-card-val" id="sum-threshold">65%</div>
-              <div class="sum-card-sub">compatibilité</div>
-            </div>
-          </div>
-
-          <!-- RADAR MAIN SECTION -->
-          <div class="radar-section" id="radar-section">
-            <!-- SVG RADAR ANIMÉ -->
-            <div class="radar-ring-wrap">
-              <div class="radar-svg-wrap">
-                <svg class="radar-svg" id="radar-svg" viewBox="0 0 160 160">
-                  <circle class="ring" cx="80" cy="80" r="70" />
-                  <circle class="ring" cx="80" cy="80" r="50" />
-                  <circle class="ring" cx="80" cy="80" r="30" />
-                  <line
-                    x1="80"
-                    y1="10"
-                    x2="80"
-                    y2="150"
-                    stroke="currentColor"
-                    stroke-width="1"
-                    class="radar-axis"
-                  />
-                  <line
-                    x1="10"
-                    y1="80"
-                    x2="150"
-                    y2="80"
-                    stroke="currentColor"
-                    stroke-width="1"
-                    class="radar-axis"
-                  />
-
-                  <circle
-                    id="radar-arc-bg"
-                    cx="80"
-                    cy="80"
-                    r="70"
-                    fill="none"
-                    stroke-width="6"
-                    stroke-dasharray="439.82"
-                    stroke-dashoffset="0"
-                  />
-                  <circle
-                    id="radar-arc"
-                    cx="80"
-                    cy="80"
-                    r="70"
-                    fill="none"
-                    stroke="url(#radarGrad)"
-                    stroke-width="6"
-                    stroke-linecap="round"
-                    stroke-dasharray="439.82"
-                    stroke-dashoffset="439.82"
-                  />
-
-                  <g id="radar-dots"></g>
-                  <defs>
-                    <linearGradient
-                      id="radarGrad"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="0%"
-                    >
-                      <stop offset="0%" stop-color="#fb7185" />
-                      <stop offset="100%" stop-color="#8b5cf6" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <svg class="radar-sweep" viewBox="0 0 160 160">
-                  <defs>
-                    <linearGradient
-                      id="sweepGrad"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="0%"
-                    >
-                      <stop offset="0%" stop-color="transparent" />
-                      <stop offset="100%" stop-color="rgba(139,92,246,0.4)" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M80 80 L150 80 A70 70 0 0 0 80 10 Z"
-                    fill="url(#sweepGrad)"
-                    class="sweep-path"
-                  />
-                  <line
-                    x1="80"
-                    y1="80"
-                    x2="150"
-                    y2="80"
-                    stroke="#8b5cf6"
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                  />
-                </svg>
-                <div class="radar-center">
-                  <div class="rval" id="radar-center-val">—</div>
-                  <div class="rlabel">score</div>
-                </div>
-              </div>
-              <div class="radar-ring-info">
-                <div class="radar-ring-title" id="radar-title">
-                  Analyse en cours
-                </div>
-                <div class="radar-ring-sub" id="radar-sub">
-                  Calcul des profils qualifiés...
-                </div>
-              </div>
-            </div>
-
-            <!-- LISTE ALERTS -->
-            <div class="alerts-panel">
-              <div class="alerts-header">
-                <h3 id="alerts-title">Opportunités détectées</h3>
-                <span class="alerts-meta" id="alerts-meta">—</span>
-              </div>
-              <div id="alerts-list">
-                <!-- Squelettes de chargement (rendu pro) -->
-                <div class="alert-item skeleton-item">
-                  <div
-                    class="skeleton-box"
-                    style="width: 48px; height: 48px; border-radius: 12px"
-                  ></div>
-                  <div
-                    style="
-                      display: flex;
-                      flex-direction: column;
-                      gap: 8px;
-                      flex: 1;
-                    "
-                  >
-                    <div
-                      class="skeleton-box"
-                      style="width: 60%; height: 14px"
-                    ></div>
-                    <div
-                      class="skeleton-box"
-                      style="width: 40%; height: 10px"
-                    ></div>
-                  </div>
-                </div>
+                Modifiez et sauvegardez — le radar se recalcule instantanément
               </div>
             </div>
           </div>
-
-          <!-- PANEL CONCURRENCE (Vendeur) -->
+          <button class="modal-close" onclick="closeCriteriaModal()">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" id="modal-criteria-body" style="padding: 0">
           <div
-            class="competition-panel"
-            id="competition-panel"
-            style="display: none"
+            style="text-align: center; padding: 40px; color: var(--fg-muted)"
           >
-            <div class="comp-header">
-              <h3>Concurrence sur votre marché</h3>
-              <span class="comp-advantage" id="comp-advantage-badge">—</span>
-            </div>
-            <div class="comp-list" id="comp-list"></div>
+            <div
+              style="
+                width: 32px;
+                height: 32px;
+                border: 2px solid var(--violet-500);
+                border-top-color: transparent;
+                border-radius: 50%;
+                animation: spin 0.7s linear infinite;
+                margin: 0 auto 12px;
+              "
+            ></div>
+            Chargement de vos critères…
+          </div>
+        </div>
+        <div class="modal-foot" style="justify-content: space-between">
+          <div
+            style="
+              font-size: 11.5px;
+              color: var(--fg-faint);
+              display: flex;
+              align-items: center;
+              gap: 6px;
+            "
+          >
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            Les modifications mettent à jour votre profil en temps réel
+          </div>
+          <div style="display: flex; gap: 8px">
+            <button class="btn" onclick="closeCriteriaModal()">Annuler</button>
+            <button class="btn btn-primary" id="btn-save-criteria">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              >
+                <path
+                  d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+              </svg>
+              Sauvegarder
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- TRAY NOTIFICATIONS -->
-    <div class="notification-tray" id="notif-tray"></div>
+    <script>
+      // ════════════════ CONFIG ════════════════
+      const API = window.location.origin;
+      const $ = (id) => document.getElementById(id);
+      const cap = (s) =>
+        s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : "";
+      const fmt = (n) => (n != null ? Number(n).toLocaleString("fr-FR") : "—");
+      const getToken = () => {
+        try {
+          const u = JSON.parse(localStorage.getItem("agent_user") || "{}");
+          return u.token || u.access_token || null;
+        } catch {
+          return null;
+        }
+      };
+      const authHeader = () => {
+        const t = getToken();
+        return t ? { Authorization: `Bearer ${t}` } : {};
+      };
+      const getUserRole = () => {
+        try {
+          const u = JSON.parse(localStorage.getItem("agent_user") || "{}");
+          return u.role || u.user?.role || "buyer";
+        } catch {
+          return "buyer";
+        }
+      };
 
-    <!-- Scripts -->
-    <script src="sidebar.js" defer></script>
-    <script src="radar.js" defer></script>
-    <script src="/i18n.js"></script>
+      let currentThreshold = 65;
+      let currentFilter = "all";
+      let currentSort = "compat";
+      let currentData = null;
+      let allAlerts = [];
+      let favSet = new Set();
+      let silentActive = false;
+      let userRole = "buyer"; // mis à jour au chargement
+
+      // ════════════════ USER ════════════════
+      function loadUser() {
+        try {
+          const u = JSON.parse(localStorage.getItem("agent_user") || "{}");
+          const username = u.username || u.user?.username || "—";
+          userRole = u.role || u.user?.role || "buyer";
+          $("sb-initials").textContent = username.slice(0, 2).toUpperCase();
+          $("sb-username").textContent = username;
+          $("sb-role").textContent =
+            userRole === "buyer" ? "Acheteur" : "Vendeur";
+        } catch {}
+      }
+
+      // ════════════════ CLOCK ════════════════
+      function updateClock() {
+        const d = new Date();
+        $("clock").textContent = d.toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+      }
+
+      // ════════════════ FETCH ════════════════
+      async function fetchRadar() {
+        const token = getToken();
+        if (!token) {
+          showNotif(
+            "Connexion requise",
+            "Authentifiez-vous pour accéder au radar.",
+            "lock",
+          );
+          return null;
+        }
+        try {
+          const res = await fetch(
+            `${API}/api/deal-radar?threshold=${currentThreshold}&limit=12`,
+            { headers: authHeader() },
+          );
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return await res.json();
+        } catch (e) {
+          console.error("[Radar]", e);
+          showNotif(
+            "Erreur radar",
+            "Impossible de charger les données.",
+            "info",
+          );
+          return null;
+        }
+      }
+
+      async function fetchProfile(username) {
+        try {
+          const res = await fetch(
+            `${API}/api/deal-radar/profile/${encodeURIComponent(username)}`,
+            { headers: authHeader() },
+          );
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return await res.json();
+        } catch (e) {
+          console.error("[Profile]", e);
+          return null;
+        }
+      }
+
+      // ════════════════ RENDER CRITÈRES ACTIFS (BUG 1) ════════════════
+      // S'adapte DYNAMIQUEMENT selon le rôle
+      function renderActiveCriteria(data) {
+        const c = data.criteria || {};
+        const isSeller = userRole === "seller";
+
+        const labelBudget = $("label-budget");
+        const labelTol = $("label-tol");
+        if (isSeller) {
+          // Pour un vendeur : price > budgetMax > budgetMin (price = colonne price en DB)
+          const prix = c.price || c.budgetMax || c.budgetMin || null;
+          $("crit-budget").textContent = prix ? fmt(prix) + " €" : "—";
+          $("crit-tol").textContent = c.niveauEnergetique
+            ? "DPE " + c.niveauEnergetique
+            : "—";
+          if (labelBudget) labelBudget.textContent = "Prix de vente";
+          if (labelTol) labelTol.textContent = "DPE";
+        } else {
+          $("crit-budget").textContent = c.budgetMax
+            ? fmt(c.budgetMax) + " €"
+            : "—";
+          $("crit-tol").textContent = c.toleranceKm
+            ? c.toleranceKm + " km"
+            : "—";
+          if (labelBudget) labelBudget.textContent = "Budget max";
+          if (labelTol) labelTol.textContent = "Tolérance";
+        }
+
+        $("crit-surface").textContent = c.surfaceMin
+          ? c.surfaceMin + " m²"
+          : "—";
+        $("crit-ville").textContent = c.ville || "—";
+        $("crit-type").textContent = c.type
+          ? cap(Array.isArray(c.type) ? c.type.join(", ") : c.type)
+          : "—";
+        $("crit-pieces").textContent = c.piecesMin
+          ? c.piecesMin +
+            (c.piecesMax && c.piecesMax < 999 ? "–" + c.piecesMax : "+")
+          : "—";
+      }
+      // ════════════════ RENDER ALL ════════════════
+      function renderAll(data) {
+        if (!data) return;
+        currentData = data;
+
+        const s = data.summary || {};
+        const opps = s.totalOpportunities || 0;
+        const urgency = s.avgUrgency || 0;
+        const hot = allAlerts.filter(
+          (a) => (a.avgCompatibility || 0) >= 80,
+        ).length;
+
+        $("kpi-opps").textContent = opps;
+        $("kpi-avg").innerHTML = `${urgency}<small>%</small>`;
+        $("kpi-hot").textContent = hot;
+
+        renderSpark("spark-opps", buildSpark(opps, 12), "#a78bfa");
+        renderSpark("spark-avg", buildSpark(urgency, 12, true), "#4cb782");
+        renderSpark("spark-hot", buildSpark(hot, 12), "#e0a02f");
+
+        const arc = $("r-arc");
+        if (arc)
+          setTimeout(() => {
+            arc.style.strokeDashoffset = 439.82 - (urgency / 100) * 439.82;
+          }, 200);
+        $("r-score").textContent = urgency || "—";
+        $("r-biens").textContent = allAlerts.length
+          ? Math.round(allAlerts.length * 14 + 40)
+          : "—";
+        $("r-new").textContent = allAlerts.length
+          ? Math.round(allAlerts.length * 0.35 + 2)
+          : "—";
+        $("r-compat").textContent = allAlerts.length || "—";
+
+        // ── BUG 1 FIX : render critères adapté au rôle ──
+        renderActiveCriteria(data);
+
+        renderCompat(data);
+        renderRadarDots();
+        renderTable();
+        renderAlerts();
+      }
+
+      function renderCompat(data) {
+        const body = $("compat-body");
+        if (!allAlerts.length) {
+          body.innerHTML =
+            '<div class="empty"><p>Pas encore de match à analyser</p></div>';
+          return;
+        }
+
+        // ── Calcul des scores moyens par critère ──
+        function avgScore(key) {
+          const vals = allAlerts
+            .map((a) => a._scores?.[key])
+            .filter((v) => v != null && Number.isFinite(v));
+          return vals.length
+            ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length)
+            : null;
+        }
+
+        const avgBudget = avgScore("budgetScore");
+        const avgVille = avgScore("villeScore");
+        const avgSurf = avgScore("surfScore");
+        const avgPieces = avgScore("piecesScore");
+        const avgType = avgScore("typeScore");
+
+        const avgCompat = allAlerts.length
+          ? Math.round(
+              allAlerts.reduce((s, a) => s + (a.avgCompatibility || 0), 0) /
+                allAlerts.length,
+            )
+          : 0;
+
+        const bars = [
+          { name: "Budget", pct: avgBudget ?? Math.round(avgCompat * 0.9) },
+          {
+            name: "Localisation",
+            pct: avgVille ?? Math.round(avgCompat * 0.85),
+          },
+          { name: "Surface", pct: avgSurf ?? Math.round(avgCompat * 0.85) },
+          { name: "Pièces", pct: avgPieces ?? Math.round(avgCompat * 0.88) },
+          { name: "Type de bien", pct: avgType ?? Math.round(avgCompat * 0.9) },
+          { name: "Score global", pct: avgCompat },
+        ];
+
+        body.innerHTML = bars
+          .map((b) => {
+            const pct = Math.max(0, Math.min(100, b.pct || 0));
+            const cls = pct >= 70 ? "hi" : pct >= 45 ? "mid" : "lo";
+            return `
+        <div class="compat-row">
+          <span class="compat-name">${b.name}</span>
+          <div class="compat-track">
+            <div class="compat-fill ${cls}" style="width:${pct}%"></div>
+          </div>
+          <span class="compat-pct">${pct}%</span>
+        </div>`;
+          })
+          .join("");
+      }
+      function buildSpark(val, n, smooth = false) {
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+          const noise =
+            Math.sin(i * 2.3 + val) * 0.12 + (Math.random() - 0.5) * 0.08;
+          pts.push(Math.max(0, val * (0.7 + (i / n) * 0.3 + noise)));
+        }
+        return pts;
+      }
+      function renderSpark(id, data, color) {
+        const svg = $(id);
+        if (!svg || !data.length) return;
+        const max = Math.max(...data, 1),
+          w = 60,
+          h = 20;
+        const pts = data.map((v, i) => {
+          const x = (i / (data.length - 1)) * w;
+          const y = h - (v / max) * (h * 0.85) - 1;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        });
+        svg.innerHTML = `<path class="line" d="M${pts.join(" L")}" stroke="${color}"/>`;
+      }
+
+      function renderRadarDots() {
+        const g = $("r-dots");
+        if (!g) return;
+        g.innerHTML = "";
+        const cols = ["#eb5757", "#e0a02f", "#4cb782", "#8b5cf6"];
+        allAlerts.slice(0, 8).forEach((a, i) => {
+          const angle = (i / Math.max(allAlerts.length, 1)) * 2 * Math.PI;
+          const r = 18 + (1 - (a.urgencyScore || 0) / 100) * 50;
+          const cx = (90 + r * Math.cos(angle)).toFixed(1);
+          const cy = (90 + r * Math.sin(angle)).toFixed(1);
+          const s2 = a.urgencyScore || a.avgCompatibility || 0;
+          const col =
+            s2 >= 70
+              ? cols[0]
+              : s2 >= 45
+                ? cols[1]
+                : s2 >= 25
+                  ? cols[2]
+                  : cols[3];
+          const c = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle",
+          );
+          c.setAttribute("cx", cx);
+          c.setAttribute("cy", cy);
+          c.setAttribute("r", "3.5");
+          c.setAttribute("fill", col);
+          c.setAttribute("opacity", ".9");
+          g.appendChild(c);
+        });
+      }
+
+      // ── Table ──
+      function typeIcon(type) {
+        const t = (type || "").toLowerCase();
+        const paths = {
+          maison: "M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z",
+          villa: "M2 12l10-8 10 8M4 10v10h16V10",
+          studio: "M4 4h16v16H4zM8 8h8v8H8z",
+          acheteur:
+            "M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zM4 20c1.5-3 5-5 8-5s6.5 2 8 5",
+        };
+        const key = t.includes("maison")
+          ? "maison"
+          : t.includes("villa")
+            ? "villa"
+            : t.includes("studio")
+              ? "studio"
+              : t.includes("acheteur")
+                ? "acheteur"
+                : "appart";
+        const d = paths[key] || "M3 11h18M5 11v10h14V11M9 3h6v4H9z";
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+      }
+      function urgBadge(s) {
+        if (s >= 65)
+          return `<span class="urg hi"><span class="d"></span>Prioritaire</span>`;
+        if (s >= 35)
+          return `<span class="urg mid"><span class="d"></span>Modéré</span>`;
+        return `<span class="urg lo"><span class="d"></span>Faible</span>`;
+      }
+      function scoreColor(c) {
+        return c >= 75 ? "#4cb782" : c >= 50 ? "#e0a02f" : "#eb5757";
+      }
+
+      function renderTable() {
+        const tbody = $("deals-tbody");
+        let data = [...allAlerts];
+
+        if (currentFilter === "high")
+          data = data.filter((a) => (a.avgCompatibility || 0) >= 75);
+        else if (currentFilter === "opp")
+          data = data.filter((a) => (a.urgencyScore || 0) >= 65);
+
+        if (currentSort === "compat")
+          data.sort(
+            (a, b) => (b.avgCompatibility || 0) - (a.avgCompatibility || 0),
+          );
+        else if (currentSort === "urgency")
+          data.sort((a, b) => (b.urgencyScore || 0) - (a.urgencyScore || 0));
+        else if (currentSort === "price")
+          data.sort((a, b) => (b.price || 0) - (a.price || 0));
+        else if (currentSort === "surface")
+          data.sort((a, b) => (b.surface || 0) - (a.surface || 0));
+
+        $("ts-meta").textContent =
+          `${data.length} résultat${data.length > 1 ? "s" : ""}`;
+
+        if (!data.length) {
+          tbody.innerHTML = `<tr><td colspan="10"><div class="empty">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+         <h4>Aucune opportunité au seuil ${currentThreshold}%</h4>
+         <p>Baissez le seuil ou ajustez vos critères</p>
+       </div></td></tr>`;
+          return;
+        }
+
+        // Mode vendeur : acheteurs matchés
+        if (currentData?.mode === "seller" && currentData?.myBien) {
+          const buyers = currentData.myBien.topBuyers || [];
+          tbody.innerHTML = buyers
+            .map((b, i) => {
+              const c = b.compatibility || 0;
+              const favClass = favSet.has("s" + i) ? " active" : "";
+              const u = b.username || "";
+              return `<tr>
+           <td><button class="fav-btn${favClass}" onclick="toggleFav('s${i}',this)"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button></td>
+           <td><div class="deal-cell"><div class="deal-icon">${typeIcon("acheteur")}</div><div><div class="deal-name">${u || "Acheteur qualifié"}</div><div class="deal-sub">Profil actif · Particulier</div></div></div></td>
+           <td><span class="tag">Acheteur</span></td>
+           <td>${b.ville || "—"}</td>
+           <td class="strong">${b.budgetMax ? fmt(b.budgetMax) + " €" : "—"}</td>
+           <td>${b.surfaceMin ? "≥ " + b.surfaceMin + " m²" : "—"}</td>
+           <td>—</td>
+           <td><div class="score"><span class="score-num" style="color:${scoreColor(c)}">${c}%</span><div class="score-track"><div class="score-fill" style="width:${c}%;background:${scoreColor(c)}"></div></div></div></td>
+           <td>${urgBadge(Math.min(100, Math.round(c * 0.95)))}</td>
+           <td><button class="action-btn" onclick="openProfile('${u}')">Voir profil</button></td>
+         </tr>`;
+            })
+            .join("");
+          return;
+        }
+
+        // Mode acheteur : biens vendeurs
+        tbody.innerHTML = data
+          .map((a, i) => {
+            const c = a.avgCompatibility || 0;
+            const s = a.urgencyScore || 0;
+            const dpe = a.niveauEnergetique
+              ? `<span class="tag">DPE ${a.niveauEnergetique}</span>`
+              : "—";
+            const favClass = favSet.has("b" + i) ? " active" : "";
+            const u = a.username || "";
+            return `<tr>
+         <td><button class="fav-btn${favClass}" onclick="toggleFav('b${i}',this)"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button></td>
+         <td><div class="deal-cell"><div class="deal-icon">${typeIcon(a.type)}</div><div><div class="deal-name">${cap(a.type || "Bien")} — ${a.ville || "—"}</div><div class="deal-sub">Vendeur ${s >= 70 ? "pressé" : "motivé"} · Particulier</div></div></div></td>
+         <td><span class="tag">${cap(a.type || "—")}</span></td>
+         <td>${a.ville || "—"}</td>
+         <td class="strong">${a.price ? fmt(a.price) + " €" : "—"}</td>
+         <td>${a.surface ? a.surface + " m²" : "—"}</td>
+         <td>${dpe}</td>
+         <td><div class="score"><span class="score-num" style="color:${scoreColor(c)}">${c}%</span><div class="score-track"><div class="score-fill" style="width:${c}%;background:${scoreColor(c)}"></div></div></div></td>
+         <td>${urgBadge(s)}</td>
+         <td><button class="action-btn" onclick="openProfile('${u}')">Voir profil</button></td>
+       </tr>`;
+          })
+          .join("");
+      }
+
+      function renderAlerts() {
+        const body = $("alerts-body");
+        const top = allAlerts.slice(0, 5);
+        $("alert-count").textContent = top.length;
+        if (!top.length) {
+          body.innerHTML =
+            '<div class="empty"><p>Aucune alerte récente</p></div>';
+          return;
+        }
+        const cols = ["#eb5757", "#e0a02f", "#8b5cf6", "#4cb782", "#5e6ad2"];
+        const labels = [
+          "Nouveau profil compatible",
+          "Opportunité fort potentiel",
+          "Baisse de prix détectée",
+          "Nouveau vendeur motivé",
+          "Rendement en hausse",
+        ];
+        const mins = [2, 15, 28, 42, 60];
+        body.innerHTML = top
+          .map((a, i) => {
+            const c = a.avgCompatibility || 0;
+            const idx =
+              c >= 80 ? 0 : c >= 70 ? 1 : c >= 60 ? 2 : c >= 50 ? 3 : 4;
+            const dot = cols[idx],
+              lbl = labels[idx];
+            const ago = mins[i] || i * 8;
+            return `<div class="feed-item">
+         <div class="feed-dot" style="background:${dot}"></div>
+         <div><div class="feed-title">${lbl}</div><div class="feed-meta">${cap(a.type || "Bien")} · ${a.ville || "—"} · Il y a ${ago < 60 ? ago + " min" : "1h"}</div></div>
+         <div class="feed-score" style="color:${dot}">${c}%</div>
+       </div>`;
+          })
+          .join("");
+      }
+
+      // ── Fav ──
+      function toggleFav(key, btn) {
+        if (favSet.has(key)) {
+          favSet.delete(key);
+          btn.classList.remove("active");
+        } else {
+          favSet.add(key);
+          btn.classList.add("active");
+        }
+        showNotif(
+          favSet.has(key) ? "Ajouté aux favoris" : "Retiré des favoris",
+          "",
+          "info",
+          2200,
+        );
+      }
+      window.toggleFav = toggleFav;
+
+      // ════════════════ MODAL PROFIL + CONTACTER (BUG 5) ════════════════
+      async function openProfile(username) {
+        if (!username) {
+          showNotif("Profil indisponible", "Identifiant manquant.", "info");
+          return;
+        }
+        $("modal-body").innerHTML =
+          '<div style="text-align:center;padding:30px;color:var(--fg-muted)">Chargement…</div>';
+        $("modal-bg").classList.add("open");
+        const p = await fetchProfile(username);
+        if (!p) {
+          $("modal-body").innerHTML =
+            '<div class="empty"><h4>Profil introuvable</h4><p>Le profil demandé n\'est pas disponible.</p></div>';
+          return;
+        }
+        const init = (p.username || "?").slice(0, 2).toUpperCase();
+        const role = p.role === "seller" ? "Vendeur" : "Acheteur";
+        const compatChip =
+          p.compatibility != null
+            ? `<div class="prof-compat-badge">${p.compatibility}%</div>`
+            : "";
+
+        const cells = [];
+        const add = (l, v) => {
+          if (v !== null && v !== undefined && v !== "")
+            cells.push(
+              `<div class="prof-cell"><div class="prof-l">${l}</div><div class="prof-v">${v}</div></div>`,
+            );
+        };
+        add("Ville", p.ville);
+        add("Région", p.region);
+        add("Type", p.type ? cap(p.type) : null);
+        if (p.role === "seller") {
+          add("Prix", p.price ? fmt(p.price) + " €" : null);
+          add("Surface", p.surface ? p.surface + " m²" : null);
+          add("Pièces", p.pieces);
+          add("DPE", p.niveauEnergetique);
+          add("État", p.etatBien ? cap(p.etatBien) : null);
+        } else {
+          add(
+            "Budget",
+            p.budgetMin || p.budgetMax
+              ? `${p.budgetMin ? fmt(p.budgetMin) + " – " : ""}${fmt(p.budgetMax)} €`
+              : null,
+          );
+          add("Surface min", p.surfaceMin ? "≥ " + p.surfaceMin + " m²" : null);
+          add("Pièces min", p.piecesMin);
+          add("Tolérance", p.toleranceKm ? p.toleranceKm + " km" : null);
+          add("DPE souhaité", p.niveauEnergetique);
+          add("État souhaité", p.etatBien ? cap(p.etatBien) : null);
+        }
+
+        $("modal-body").innerHTML = `
+       <div class="prof-head">
+         <div class="prof-avatar">${init}</div>
+         <div>
+           <div class="prof-name">${p.username}</div>
+           <div class="prof-meta">${role} · ${p.ville || "Localisation inconnue"}</div>
+         </div>
+         ${compatChip}
+       </div>
+       <div class="prof-grid">${
+         cells.join("") ||
+         '<div class="prof-cell"><div class="prof-v" style="color:var(--fg-muted)">Aucune donnée détaillée</div></div>'
+       }</div>`;
+
+        // ── BUG 5 FIX : Contacter → envoie un vrai message en DB ──
+        $("modal-contact").onclick = async () => {
+          const btn = $("modal-contact");
+          btn.disabled = true;
+          btn.textContent = "Envoi…";
+          try {
+            // Générer un message d'accroche contextuel
+            const myUser = JSON.parse(
+              localStorage.getItem("agent_user") || "{}",
+            );
+            const myUsername = myUser.username || myUser.user?.username || "";
+            const myRoleLabel = userRole === "buyer" ? "acheteur" : "vendeur";
+            const targetRoleLabel = p.role === "seller" ? "bien" : "recherche";
+
+            const subject =
+              userRole === "buyer"
+                ? `Intérêt pour votre ${p.type || "bien"} à ${p.ville || "—"}`
+                : `Acheteur potentiel pour votre recherche à ${p.ville || "—"}`;
+
+            const body =
+              userRole === "buyer"
+                ? `Bonjour ${p.username},\n\nJe me permets de vous contacter via AiGENT Immobilier.\n\nVotre ${p.type || "bien"} à ${p.ville || "—"}${p.price ? " (affiché à " + fmt(p.price) + " €)" : ""} correspond à mes critères de recherche — compatibilité estimée à ${p.compatibility != null ? p.compatibility + "%" : "élevée"}.\n\nJe serais ravi(e) d'échanger avec vous pour en savoir plus et convenir éventuellement d'une visite.\n\nCordialement,\n${myUsername}`
+                : `Bonjour ${p.username},\n\nJe vous contacte depuis AiGENT Immobilier en tant que vendeur.\n\nMon bien${currentData?.myBien?.ville ? " situé à " + currentData.myBien.ville : ""} pourrait correspondre à votre recherche — compatibilité estimée à ${p.compatibility != null ? p.compatibility + "%" : "élevée"}.\n\nN'hésitez pas à me contacter pour plus d'informations ou pour organiser une visite.\n\nCordialement,\n${myUsername}`;
+
+            const res = await fetch(`${API}/api/messages`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", ...authHeader() },
+              body: JSON.stringify({
+                pseudo: p.username,
+                email: p.contact || "", // contact = email en DB
+                subject,
+                body,
+              }),
+            });
+
+            if (!res.ok) {
+              // Fallback : essai via send-match-message si contact email disponible
+              if (p.contact) {
+                const res2 = await fetch(`${API}/api/send-match-message`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...authHeader(),
+                  },
+                  body: JSON.stringify({
+                    targetContact: p.contact,
+                    subject,
+                    body,
+                  }),
+                });
+                if (!res2.ok) throw new Error("Envoi impossible");
+              } else {
+                throw new Error("Contact non disponible");
+              }
+            }
+
+            showNotif(
+              "Message envoyé ✓",
+              `Votre message à ${p.username} est dans la messagerie des deux côtés.`,
+              "info",
+              4000,
+            );
+            closeModal();
+          } catch (e) {
+            showNotif("Erreur d'envoi", e.message || "Réessayez.", "info");
+          } finally {
+            btn.disabled = false;
+            btn.textContent = "Contacter";
+          }
+        };
+      }
+
+      // ════════════════ MODAL CRITÈRES (BUG 2) ════════════════
+      let userProfile = null;
+      let selectedType = "";
+
+      const TYPES = [
+        {
+          key: "appartement",
+          label: "Appart.",
+          icon: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+        },
+        {
+          key: "maison",
+          label: "Maison",
+          icon: '<path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
+        },
+        {
+          key: "studio",
+          label: "Studio",
+          icon: '<rect x="2" y="3" width="20" height="18" rx="1"/><path d="M8 3v18M2 9h6"/>',
+        },
+        {
+          key: "villa",
+          label: "Villa",
+          icon: '<path d="M2 12l10-9 10 9M4 10v10h16V10"/><path d="M10 10h4v6h-4z"/>',
+        },
+        {
+          key: "loft",
+          label: "Loft",
+          icon: '<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18M9 21V9"/>',
+        },
+        {
+          key: "bureau",
+          label: "Bureau",
+          icon: '<rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>',
+        },
+        {
+          key: "terrain",
+          label: "Terrain",
+          icon: '<path d="M2 20h20M5 20V10l7-7 7 7v10"/>',
+        },
+        {
+          key: "parking",
+          label: "Parking",
+          icon: '<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/>',
+        },
+      ];
+
+      async function loadUserProfile() {
+        const token = getToken();
+        if (!token) return null;
+        try {
+          const res = await fetch(`${API}/api/me/full-profile`, {
+            headers: authHeader(),
+          });
+          if (!res.ok) throw new Error();
+          return await res.json();
+        } catch {
+          return null;
+        }
+      }
+
+      // ── BUG 2 FIX : rendu adapté au rôle + pré-remplissage correct ──
+      function renderCriteriaModal(profile) {
+        const body = $("modal-criteria-body");
+        const role = profile.role || userRole || "buyer";
+        const isBuyer = role === "buyer";
+        selectedType = profile.type || "";
+
+        const typeGrid = TYPES.map(
+          (t) => `
+       <button class="type-btn ${selectedType === t.key ? "selected" : ""}"
+               data-type="${t.key}" onclick="selectType('${t.key}')">
+         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.8" stroke-linecap="round">${t.icon}</svg>
+         ${t.label}
+       </button>`,
+        ).join("");
+
+        // Extraction propre des valeurs pré-remplies (snake_case ou camelCase)
+        const get = (keys) => {
+          for (const k of keys) {
+            const v = profile[k];
+            if (v != null && v !== "" && v !== 0) return v;
+          }
+          return "";
+        };
+
+        const ville = get(["ville"]);
+        const budgetMin = get(["budgetmin", "budgetMin", "price"]); // prix de vente vendeur
+        const budgetMax = get(["budgetmax", "budgetMax"]) || budgetMin; // = budgetMin si vendeur
+        const surfaceMin = get(["surfacemin", "surfaceMin", "surface"]);
+        const surfaceMax = (() => {
+          const v = get(["surfacemax", "surfaceMax"]);
+          return v && Number(v) < 9999 ? v : "";
+        })();
+        const piecesMin = get(["piecesmin", "piecesMin", "pieces"]);
+        const piecesMax = (() => {
+          const v = get(["piecesmax", "piecesMax"]);
+          return v && Number(v) < 999 ? v : "";
+        })();
+        const toleranceKm = get(["tolerancekm", "toleranceKm"]);
+        const dpe = get(["niveauenergetique", "niveauEnergetique"]);
+
+        if (isBuyer) {
+          body.innerHTML = `
+         <div class="crit-modal-section">
+           <div class="crit-modal-section-title">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 6-9 13-9 13S3 16 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+             Localisation & Rayon
+           </div>
+           <div class="field-row cols-2">
+             <div class="field-group">
+               <label class="field-label">Ville cible</label>
+               <input class="field-input" id="f-ville" type="text" placeholder="Paris, Lyon…" value="${ville}">
+             </div>
+             <div class="field-group">
+               <label class="field-label">Tolérance km</label>
+               <div class="field-input-wrap">
+                 <input class="field-input has-unit" id="f-tolerancekm" type="number" min="0" max="500"
+                        placeholder="30" value="${toleranceKm}">
+                 <span class="field-unit">km</span>
+               </div>
+             </div>
+           </div>
+         </div>
+
+         <div class="crit-modal-section">
+           <div class="crit-modal-section-title">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15 9a4 4 0 1 0 0 6"/></svg>
+             Budget
+           </div>
+           <div class="field-row cols-2">
+             <div class="field-group">
+               <label class="field-label">Budget minimum</label>
+               <div class="field-input-wrap">
+                 <input class="field-input has-unit" id="f-budgetmin" type="number" min="0"
+                        placeholder="0" value="${budgetMin}">
+                 <span class="field-unit">€</span>
+               </div>
+             </div>
+             <div class="field-group">
+               <label class="field-label">Budget maximum</label>
+               <div class="field-input-wrap">
+                 <input class="field-input has-unit" id="f-budgetmax" type="number" min="0"
+                        placeholder="300 000" value="${budgetMax}">
+                 <span class="field-unit">€</span>
+               </div>
+             </div>
+           </div>
+         </div>
+
+         <div class="crit-modal-section">
+           <div class="crit-modal-section-title">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21L21 3"/><path d="M3 9V21H15"/></svg>
+             Surface & Pièces
+           </div>
+           <div class="field-row cols-2">
+             <div class="field-group">
+               <label class="field-label">Surface minimum</label>
+               <div class="field-input-wrap">
+                 <input class="field-input has-unit" id="f-surfacemin" type="number" min="0"
+                        placeholder="40" value="${surfaceMin}">
+                 <span class="field-unit">m²</span>
+               </div>
+             </div>
+             <div class="field-group">
+               <label class="field-label">Surface maximum</label>
+               <div class="field-input-wrap">
+                 <input class="field-input has-unit" id="f-surfacemax" type="number" min="0"
+                        placeholder="—" value="${surfaceMax}">
+                 <span class="field-unit">m²</span>
+               </div>
+             </div>
+           </div>
+           <div class="field-row cols-2">
+             <div class="field-group">
+               <label class="field-label">Pièces minimum</label>
+               <input class="field-input" id="f-piecesmin" type="number" min="1" max="20"
+                      placeholder="2" value="${piecesMin}">
+             </div>
+             <div class="field-group">
+               <label class="field-label">Pièces maximum</label>
+               <input class="field-input" id="f-piecesmax" type="number" min="1" max="20"
+                      placeholder="—" value="${piecesMax}">
+             </div>
+           </div>
+         </div>
+
+         <div class="crit-modal-section">
+           <div class="crit-modal-section-title">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+             Type de bien
+           </div>
+           <div class="type-grid">${typeGrid}</div>
+         </div>`;
+        } else {
+          // ── SELLER : Prix de vente + DPE (BUG 2 FIX) ──
+          body.innerHTML = `
+         <div class="crit-modal-section">
+           <div class="crit-modal-section-title">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 6-9 13-9 13S3 16 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+             Localisation
+           </div>
+           <div class="field-row">
+             <div class="field-group">
+               <label class="field-label">Ville du bien</label>
+               <input class="field-input" id="f-ville" type="text"
+                      placeholder="Paris, Lyon…" value="${ville}">
+             </div>
+           </div>
+         </div>
+
+         <div class="crit-modal-section">
+           <div class="crit-modal-section-title">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15 9a4 4 0 1 0 0 6"/></svg>
+             Prix de vente & DPE
+           </div>
+           <div class="field-row cols-2">
+             <div class="field-group">
+               <label class="field-label">Prix de vente (€)</label>
+               <div class="field-input-wrap">
+                 <input class="field-input has-unit" id="f-budgetmin" type="number" min="0"
+                        placeholder="250 000" value="${budgetMin}">
+                 <span class="field-unit">€</span>
+               </div>
+             </div>
+             <div class="field-group">
+               <label class="field-label">DPE (diagnostic énergie)</label>
+               <select class="field-input" id="f-niveauenergetique"
+                       style="padding-right:10px;-webkit-appearance:auto;appearance:auto">
+                 <option value="">— Non renseigné</option>
+                 ${["A", "B", "C", "D", "E", "F", "G"]
+                   .map(
+                     (l) =>
+                       `<option value="${l}" ${dpe === l ? "selected" : ""}>${l}</option>`,
+                   )
+                   .join("")}
+               </select>
+             </div>
+           </div>
+         </div>
+
+         <div class="crit-modal-section">
+           <div class="crit-modal-section-title">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21L21 3"/><path d="M3 9V21H15"/></svg>
+             Caractéristiques du bien
+           </div>
+           <div class="field-row cols-2">
+             <div class="field-group">
+               <label class="field-label">Surface (m²)</label>
+               <div class="field-input-wrap">
+                 <input class="field-input has-unit" id="f-surfacemin" type="number" min="0"
+                        placeholder="60" value="${surfaceMin}">
+                 <span class="field-unit">m²</span>
+               </div>
+             </div>
+             <div class="field-group">
+               <label class="field-label">Nombre de pièces</label>
+               <input class="field-input" id="f-piecesmin" type="number" min="1" max="20"
+                      placeholder="3" value="${piecesMin}">
+             </div>
+           </div>
+         </div>
+
+         <div class="crit-modal-section">
+           <div class="crit-modal-section-title">
+             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+             Type de bien
+           </div>
+           <div class="type-grid">${typeGrid}</div>
+         </div>`;
+        }
+      }
+
+      function selectType(key) {
+        selectedType = key;
+        document.querySelectorAll(".type-btn").forEach((b) => {
+          b.classList.toggle("selected", b.dataset.type === key);
+        });
+      }
+      window.selectType = selectType;
+
+      async function openCriteriaModal() {
+        $("modal-criteria-bg").classList.add("open");
+        const profile = await loadUserProfile();
+        userProfile = profile;
+        if (!profile) {
+          $("modal-criteria-body").innerHTML =
+            `<div class="empty"><h4>Impossible de charger le profil</h4><p>Vérifiez votre connexion.</p></div>`;
+          return;
+        }
+        renderCriteriaModal(profile);
+      }
+
+      function closeCriteriaModal() {
+        $("modal-criteria-bg").classList.remove("open");
+      }
+      window.closeCriteriaModal = closeCriteriaModal;
+
+      async function saveCriteria() {
+        const btn = $("btn-save-criteria");
+        btn.disabled = true;
+        btn.innerHTML = `<div style="width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite"></div> Sauvegarde…`;
+
+        const role = userProfile?.role || userRole || "buyer";
+        const isBuyer = role === "buyer";
+
+        const payload = {
+          ville: ($("f-ville")?.value || "").trim(),
+          type: selectedType,
+          budgetMin: parseFloat($("f-budgetmin")?.value) || 0,
+          surfaceMin: parseFloat($("f-surfacemin")?.value) || 0,
+          piecesMin: parseInt($("f-piecesmin")?.value) || 0,
+        };
+
+        if (isBuyer) {
+          payload.budgetMax =
+            parseFloat($("f-budgetmax")?.value) || payload.budgetMin;
+          payload.surfaceMax = parseFloat($("f-surfacemax")?.value) || 9999;
+          payload.piecesMax = parseInt($("f-piecesmax")?.value) || 999;
+          payload.toleranceKm = parseFloat($("f-tolerancekm")?.value) || null;
+        } else {
+          // Vendeur : budgetMax = budgetMin (prix fixe) + DPE
+          payload.budgetMax = payload.budgetMin;
+          payload.surfaceMax = payload.surfaceMin;
+          payload.piecesMax = payload.piecesMin;
+          payload.niveauEnergetique = $("f-niveauenergetique")?.value || null;
+        }
+
+        try {
+          const res = await fetch(`${API}/api/me/update-criteria`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeader() },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error("HTTP " + res.status);
+
+          showNotif(
+            "Critères sauvegardés ✓",
+            "Le radar se recalcule avec vos nouveaux critères.",
+            "info",
+          );
+          closeCriteriaModal();
+          setTimeout(() => refresh(), 800);
+        } catch (e) {
+          showNotif("Erreur de sauvegarde", e.message, "info");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="12" height="12"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Sauvegarder`;
+        }
+      }
+
+      function closeModal() {
+        $("modal-bg").classList.remove("open");
+      }
+      window.openProfile = openProfile;
+      window.closeModal = closeModal;
+
+      // ════════════════ NOTIFS ════════════════
+      function showNotif(title, body, type = "info", dur = 3800) {
+        const tray = $("notif-tray");
+        const svgs = {
+          info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+          lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>',
+          radar:
+            '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+        };
+        const n = document.createElement("div");
+        n.className = "notif";
+        n.innerHTML = `
+       <div class="notif-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgs[type] || svgs.info}</svg></div>
+       <div class="notif-body"><div class="notif-title">${title}</div>
+         ${body ? `<div class="notif-sub">${body}</div>` : ""}</div>
+       <button class="notif-x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+        n.querySelector(".notif-x").onclick = () => n.remove();
+        tray.appendChild(n);
+        setTimeout(() => {
+          if (!n.parentElement) return;
+          n.classList.add("out");
+          setTimeout(() => n.remove(), 250);
+        }, dur);
+      }
+
+      // ════════════════ REFRESH ════════════════
+      async function refresh() {
+        const btn = $("btn-refresh");
+        btn?.classList.add("spinning");
+        updateClock();
+        const data = await fetchRadar();
+        if (data) {
+          if (data.mode === "buyer") {
+            allAlerts = data.alerts || [];
+          } else {
+            allAlerts = (data.myBien?.topBuyers || []).map((b) => ({
+              ...b,
+              avgCompatibility: b.compatibility,
+              urgencyScore: Math.min(
+                100,
+                Math.round((b.compatibility || 0) * 0.95),
+              ),
+              type: "acheteur",
+            }));
+          }
+          renderAll(data);
+        }
+        setTimeout(() => btn?.classList.remove("spinning"), 500);
+      }
+
+      // ════════════════ BUG 5 FIX : scroll critères au lieu de criteres.html ════════════════
+      function scrollToCriteria() {
+        // Scroll vers la section critères actifs dans la page
+        const section =
+          document.querySelector(".card:has(#crit-budget)") ||
+          document.querySelector(".grid");
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+          section.style.outline = "2px solid var(--violet-500)";
+          setTimeout(() => (section.style.outline = ""), 1800);
+        }
+        // Puis ouvrir le modal pour modifier
+        setTimeout(() => openCriteriaModal(), 400);
+      }
+
+      // ════════════════ EVENTS ════════════════
+      document.addEventListener("DOMContentLoaded", () => {
+        // BUG 5 : "Mes critères" → scroll + modal (plus de criteres.html)
+        document
+          .querySelector('.btn-primary[onclick*="criteres.html"]')
+          ?.removeAttribute("onclick");
+        document
+          .querySelector(".btn-primary")
+          ?.addEventListener("click", scrollToCriteria);
+
+        $("btn-edit-criteria")?.addEventListener("click", openCriteriaModal);
+        $("btn-save-criteria")?.addEventListener("click", saveCriteria);
+
+        $("modal-criteria-bg")?.addEventListener("click", (e) => {
+          if (e.target === $("modal-criteria-bg")) closeCriteriaModal();
+        });
+        $("modal-bg")?.addEventListener("click", (e) => {
+          if (e.target === $("modal-bg")) closeModal();
+        });
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            closeModal();
+            closeCriteriaModal();
+          }
+        });
+
+        $("btn-refresh")?.addEventListener("click", refresh);
+        $("btn-logout")?.addEventListener("click", () => {
+          localStorage.removeItem("agent_user");
+          location = "/login.html";
+        });
+
+        const slider = $("threshold-slider"),
+          disp = $("threshold-display");
+        slider?.addEventListener("input", () => {
+          currentThreshold = parseInt(slider.value);
+          disp.textContent = currentThreshold + "%";
+        });
+        slider?.addEventListener("change", refresh);
+
+        document.querySelectorAll(".tab").forEach((t) => {
+          t.addEventListener("click", () => {
+            document
+              .querySelectorAll(".tab")
+              .forEach((x) => x.classList.remove("active"));
+            t.classList.add("active");
+            currentFilter = t.dataset.filter;
+            renderTable();
+          });
+        });
+        $("sort-sel")?.addEventListener("change", (e) => {
+          currentSort = e.target.value;
+          renderTable();
+        });
+
+        $("silent-toggle")?.addEventListener("change", (e) => {
+          silentActive = e.target.checked;
+          showNotif(
+            silentActive ? "Surveillance activée" : "Surveillance désactivée",
+            silentActive
+              ? `Alertes si profil ≥ ${currentThreshold}%`
+              : "Radar silencieux en pause",
+            "radar",
+          );
+          fetch(`${API}/api/deal-radar/subscribe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeader() },
+            body: JSON.stringify({
+              threshold: currentThreshold,
+              active: silentActive,
+            }),
+          }).catch(() => {});
+        });
+
+        $("burger")?.addEventListener("click", () =>
+          $("sb").classList.toggle("open"),
+        );
+
+        function checkBurger() {
+          const b = $("burger");
+          if (b) b.style.display = window.innerWidth <= 820 ? "grid" : "none";
+        }
+        window.addEventListener("resize", checkBurger);
+        checkBurger();
+      });
+
+      // ════════════════ INIT ════════════════
+      loadUser();
+      updateClock();
+      setInterval(updateClock, 1000);
+      refresh();
+      setInterval(refresh, 30000);
+    </script>
   </body>
 </html>

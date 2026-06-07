@@ -17,6 +17,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@azure-rest/ai-inference": "^1.0.0-beta.6",
+    "@azure/core-auth": "^1.10.1",
     "@cerebras/cerebras_cloud_sdk": "^1.64.1",
     "@google/genai": "^1.43.0",
     "@google/generative-ai": "^0.24.1",
@@ -47,6 +49,7 @@
     "gpt4all": "^1.0.0",
     "gsap": "^3.14.2",
     "helmet": "^8.1.0",
+    "http": "^0.0.1-security",
     "jsonwebtoken": "^9.0.3",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",
@@ -63,6 +66,7 @@
     "open": "^10.2.0",
     "openai": "^5.23.2",
     "os": "^0.1.2",
+    "pdfkit": "^0.18.0",
     "pg": "^8.20.0",
     "puppeteer": "^24.34.0",
     "remove-accents": "^0.5.0",
@@ -71,11 +75,13 @@
     "sentence-case": "^3.0.4",
     "sentence-splitter": "^5.0.0",
     "streamifier": "^0.1.1",
+    "tailwindcss": "^4.3.0",
     "three": "^0.183.2",
     "together-ai": "^0.37.0",
     "tracery-grammar": "^2.8.4",
     "twilio": "^6.0.2",
     "unidecode": "^1.1.0",
+    "ws": "^8.21.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

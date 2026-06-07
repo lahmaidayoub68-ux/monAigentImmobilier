@@ -440,83 +440,51 @@
       [data-theme="light"] .toggle-sidebar-btn:hover {
         background: rgba(0, 0, 0, 0.05);
       }
-      /* ---- NOUVEAU THINKING INDICATOR PRO ---- */
+
+      /* ── THINKING INDICATOR — shimmer propre ── */
       .thinking-msg {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        animation: fadeIn 0.3s ease;
-      }
-      .thinking-bubble {
-        padding: 8px 12px;
+        padding: 4px 0 2px;
         display: flex;
         align-items: center;
-        gap: 10px;
       }
-      .shimmer-text {
+
+      .thinking-shimmer {
         font-size: 14px;
         font-weight: 500;
-        /* Effet de lumière qui glisse sur le texte */
+        letter-spacing: 0.01em;
         background: linear-gradient(
           90deg,
           var(--text-muted) 0%,
-          #fff 50%,
+          #ffffff 45%,
+          #ffffff 55%,
           var(--text-muted) 100%
         );
-        background-size: 200% auto;
+        background-size: 250% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
         color: transparent;
-        -webkit-background-clip: text;
-        background-clip: text;
-        animation: shimmer 2s linear infinite;
-        letter-spacing: 0.2px;
+        animation: thinking-sweep 2s ease-in-out infinite;
       }
-      [data-theme="light"] .shimmer-text {
+
+      [data-theme="light"] .thinking-shimmer {
         background: linear-gradient(
           90deg,
           var(--text-muted) 0%,
-          #000 50%,
+          #6366f1 45%,
+          #8b5cf6 55%,
           var(--text-muted) 100%
         );
-        background-size: 200% auto;
+        background-size: 250% auto;
         -webkit-background-clip: text;
         background-clip: text;
       }
-      @keyframes shimmer {
-        to {
+
+      @keyframes thinking-sweep {
+        0% {
           background-position: 200% center;
         }
-      }
-      /* Petits points bondissants fluides */
-      .bouncing-dots {
-        display: flex;
-        gap: 4px;
-        align-items: center;
-        margin-top: 2px;
-      }
-      .bouncing-dots .dot {
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: var(--violet);
-        animation: bounce 1.4s infinite ease-in-out both;
-      }
-      .bouncing-dots .dot:nth-child(1) {
-        animation-delay: -0.32s;
-      }
-      .bouncing-dots .dot:nth-child(2) {
-        animation-delay: -0.16s;
-      }
-      @keyframes bounce {
-        0%,
-        80%,
         100% {
-          transform: scale(0);
-          opacity: 0.3;
-        }
-        40% {
-          transform: scale(1);
-          opacity: 1;
-          box-shadow: 0 0 6px var(--violet);
+          background-position: -50% center;
         }
       }
       /* ============================================================
@@ -4733,7 +4701,7 @@
             />
             <path d="M12 12l5-5" />
           </svg>
-          Deal Radar
+          Radar
         </a>
       </nav>
 
@@ -5324,7 +5292,7 @@
                 d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
               />
             </svg>
-            Deal Radar
+            Radar
           </a>
         </nav>
         <div class="mobile-drawer-profile">
