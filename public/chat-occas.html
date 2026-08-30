@@ -1,0 +1,2826 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Mon AiGENT Occasion - Chat Intelligence Artificielle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      /* ── Session guard : redirige vers login si non connecté ── */
+      (function () {
+        const raw = localStorage.getItem("agent_occas_user");
+        if (!raw) {
+          window.location.href = "./login-occas.html";
+        } else {
+          try {
+            const user = JSON.parse(raw);
+            const payload = JSON.parse(atob(user.token.split(".")[1]));
+            if (Date.now() >= payload.exp * 1000) {
+              localStorage.removeItem("agent_occas_user");
+              window.location.href = "./login-occas.html";
+            }
+          } catch {
+            localStorage.removeItem("agent_occas_user");
+            window.location.href = "./login-occas.html";
+          }
+        }
+      })();
+
+      /* ── Thème sombre/clair, indépendant de l'Immo ── */
+      (function () {
+        const savedTheme = localStorage.getItem("aigent_occas_theme") || "dark";
+        document.documentElement.setAttribute("data-theme", savedTheme);
+        window.__toggleTheme = function () {
+          const current = document.documentElement.getAttribute("data-theme");
+          const next = current === "dark" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", next);
+          localStorage.setItem("aigent_occas_theme", next);
+        };
+        document.addEventListener("DOMContentLoaded", () => {
+          document
+            .getElementById("btn-theme")
+            ?.addEventListener("click", window.__toggleTheme);
+          document
+            .getElementById("mobile-theme-btn")
+            ?.addEventListener("click", window.__toggleTheme);
+        });
+      })();
+    </script>
+
+    <style>
+      /* ============================================================
+         MON AIGENT OCCASION — Chat (front only, IA branchée plus tard)
+         Identité : orange -> rouge, sur fond noir, style Linear
+         ============================================================ */
+      :root,
+      [data-theme="dark"] {
+        --bg-root: #0c0908;
+        --bg-panel: #120d0b;
+        --bg-surface: #180f0c;
+        --bg-hover: #1f130e;
+        --bg-card: #190f0c;
+
+        --border-soft: rgba(255, 255, 255, 0.06);
+        --border-mid: rgba(255, 255, 255, 0.09);
+        --border-accent: rgba(255, 106, 61, 0.28);
+
+        --text-primary: #fff3ec;
+        --text-secondary: #e0bfab;
+        --text-muted: #a08370;
+        --text-faint: rgba(255, 255, 255, 0.15);
+
+        --primary-gradient: linear-gradient(135deg, #ff8a3d, #ff3d3d);
+        --orange-glow: rgba(255, 106, 61, 0.35);
+        --orange: #ff6a3d;
+        --amber: #ffb066;
+        --red: #ff5c5c;
+        --emerald: #10b981;
+
+        --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.4);
+        --shadow-hover: 0 8px 40px rgba(0, 0, 0, 0.6);
+        --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.3);
+
+        --sidebar-width: 240px;
+        --header-h: 60px;
+        --footer-h: 38px;
+        --right-panel-w: 300px;
+      }
+
+      [data-theme="light"] {
+        --bg-root: #fbf7f4;
+        --bg-panel: #ffffff;
+        --bg-surface: #f6efe9;
+        --bg-hover: #fdece1;
+        --bg-card: #ffffff;
+        --border-soft: rgba(0, 0, 0, 0.06);
+        --border-mid: rgba(0, 0, 0, 0.09);
+        --border-accent: rgba(255, 106, 61, 0.22);
+        --text-primary: #1a0f0a;
+        --text-secondary: #6b4a38;
+        --text-muted: #a58671;
+        --text-faint: rgba(0, 0, 0, 0.12);
+        --orange-glow: rgba(255, 106, 61, 0.15);
+        --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.06);
+        --shadow-hover: 0 8px 40px rgba(0, 0, 0, 0.1);
+        --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.05);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Inter", system-ui, sans-serif;
+      }
+      html,
+      body {
+        height: 100%;
+        width: 100%;
+        background: var(--bg-root);
+        color: var(--text-primary);
+        overflow: hidden;
+        transition:
+          background 0.25s,
+          color 0.25s;
+      }
+      ::selection {
+        background: #ff6a3d;
+        color: #fff;
+      }
+      a {
+        color: inherit;
+      }
+      button {
+        font-family: inherit;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background:
+          radial-gradient(
+            circle at 50% -10%,
+            rgba(255, 106, 61, 0.12) 0%,
+            transparent 40%
+          ),
+          radial-gradient(
+            ellipse 80% 60% at 50% 50%,
+            rgba(255, 61, 61, 0.06) 0%,
+            transparent 70%
+          );
+      }
+      [data-theme="light"] body::before {
+        background:
+          radial-gradient(
+            circle at 50% -10%,
+            rgba(255, 106, 61, 0.05) 0%,
+            transparent 40%
+          ),
+          radial-gradient(
+            ellipse 80% 60% at 50% 50%,
+            rgba(255, 61, 61, 0.025) 0%,
+            transparent 70%
+          );
+      }
+
+      /* ============ HEADER ============ */
+      .top-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--header-h);
+        background: #0a0706;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        z-index: 5000;
+      }
+      [data-theme="light"] .top-banner {
+        background: #0a0706;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .logo-mark {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        background: var(--primary-gradient);
+        display: grid;
+        place-items: center;
+        box-shadow: 0 6px 18px -8px rgba(255, 90, 40, 0.7);
+        flex-shrink: 0;
+      }
+      .logo-mark svg {
+        width: 17px;
+        height: 17px;
+        color: #fff;
+      }
+      .logo-text {
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+      }
+      .logo-text span {
+        background: linear-gradient(90deg, #ff9c5c, #ff5c5c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .hbtn {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        color: rgba(255, 255, 255, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: 0.2s;
+        flex-shrink: 0;
+        position: relative;
+      }
+      .hbtn:hover {
+        border-color: rgba(255, 106, 61, 0.5);
+        color: #ff9c5c;
+      }
+      .notif-badge-hdr {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--primary-gradient);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #0a0706;
+      }
+      .btn-logout-hdr {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 18px;
+        height: 38px;
+        border: none;
+        border-radius: 10px;
+        background: var(--primary-gradient);
+        color: #fff;
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(255, 90, 40, 0.3);
+        transition: 0.2s;
+        white-space: nowrap;
+      }
+      .btn-logout-hdr:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 28px rgba(255, 90, 40, 0.4);
+      }
+
+      /* ============ SIDEBAR ============ */
+      .sidebar {
+        position: fixed;
+        top: var(--header-h);
+        left: 0;
+        width: var(--sidebar-width);
+        height: calc(100vh - var(--header-h) - var(--footer-h));
+        background: var(--bg-panel);
+        border-right: 1px solid var(--border-soft);
+        display: flex;
+        flex-direction: column;
+        z-index: 100;
+        overflow-y: auto;
+        padding: 16px 12px;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .sidebar::-webkit-scrollbar {
+        width: 0;
+      }
+
+      .btn-new-listing {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 11px 16px;
+        border: none;
+        border-radius: 10px;
+        background: var(--primary-gradient);
+        color: #fff;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(255, 90, 40, 0.25);
+        transition: 0.2s;
+        margin-bottom: 20px;
+        letter-spacing: 0.01em;
+      }
+      .btn-new-listing:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 28px rgba(255, 90, 40, 0.35);
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: 9px;
+        cursor: pointer;
+        text-decoration: none;
+        color: var(--text-muted);
+        font-size: 13.5px;
+        font-weight: 500;
+        transition: 0.18s;
+        white-space: nowrap;
+        margin-bottom: 2px;
+      }
+      .nav-item:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+      }
+      .nav-item.active {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 138, 61, 0.14),
+          rgba(255, 61, 61, 0.08)
+        );
+        color: var(--orange);
+        border: 1px solid rgba(255, 106, 61, 0.18);
+      }
+      .nav-item.active svg {
+        stroke: var(--orange);
+      }
+      .nav-item svg {
+        flex-shrink: 0;
+        stroke: currentColor;
+        transition: 0.18s;
+      }
+      .nav-badge {
+        margin-left: auto;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 20px;
+        background: var(--primary-gradient);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .sidebar-bottom {
+        margin-top: auto;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-soft);
+      }
+      .profile-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 9px;
+        cursor: pointer;
+        transition: 0.18s;
+        text-decoration: none;
+      }
+      .profile-row:hover {
+        background: var(--bg-hover);
+      }
+      .profile-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .profile-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .profile-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .profile-role {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: capitalize;
+      }
+      .profile-chevron {
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+
+      /* ============ APP LAYOUT ============ */
+      .app-layout {
+        position: fixed;
+        top: var(--header-h);
+        left: var(--sidebar-width);
+        right: 0;
+        bottom: var(--footer-h);
+        display: flex;
+        z-index: 10;
+        transition: left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      body.sidebar-collapsed .sidebar {
+        transform: translateX(-100%);
+      }
+      body.sidebar-collapsed .app-layout {
+        left: 0;
+      }
+      .toggle-sidebar-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+      }
+      .toggle-sidebar-btn:hover {
+        background: var(--bg-hover);
+        color: var(--orange);
+      }
+
+      /* ============ CHAT SECTION ============ */
+      .chat-section {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        justify-content: center;
+        background: var(--bg-root);
+        border-right: 1px solid var(--border-soft);
+        overflow: hidden;
+        position: relative;
+      }
+      .chat-section::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background: radial-gradient(
+          ellipse 70% 60% at 50% 40%,
+          rgba(255, 106, 61, 0.07) 0%,
+          transparent 60%
+        );
+      }
+      [data-theme="light"] .chat-section::before {
+        background: radial-gradient(
+          ellipse 70% 60% at 50% 40%,
+          rgba(255, 106, 61, 0.03) 0%,
+          transparent 60%
+        );
+      }
+
+      .chat-container {
+        width: 100%;
+        max-width: 800px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        position: relative;
+        z-index: 1;
+      }
+      .chat-messages {
+        flex: 1;
+        padding: 28px 32px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        scroll-behavior: smooth;
+      }
+      .chat-messages::-webkit-scrollbar {
+        width: 4px;
+      }
+      .chat-messages::-webkit-scrollbar-thumb {
+        background: var(--border-mid);
+        border-radius: 4px;
+      }
+
+      /* ============ EMPTY STATE ============ */
+      .chat-empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 400px;
+        user-select: none;
+      }
+      .ces-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        text-align: center;
+        max-width: 800px;
+        padding: 24px;
+        width: 100%;
+      }
+      .ces-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 14px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+      }
+      .pulse-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--emerald);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+        animation: pulse 2.2s infinite;
+        flex-shrink: 0;
+      }
+      @keyframes pulse {
+        70% {
+          box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+      }
+      .ces-title {
+        font-size: 32px;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: -0.015em;
+        background: linear-gradient(135deg, #ff9c5c 0%, #ff5c5c 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0;
+      }
+      .ces-sub {
+        font-size: 14px;
+        color: var(--text-muted);
+        line-height: 1.6;
+        margin: 0 0 24px 0;
+        font-weight: 400;
+        max-width: 480px;
+      }
+      .ces-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        width: 100%;
+        max-width: 760px;
+      }
+      .ces-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 24px 16px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        transition: all 0.25s ease;
+        text-align: center;
+        min-height: 140px;
+      }
+      .ces-card:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 106, 61, 0.3);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      }
+      [data-theme="light"] .ces-card {
+        background: #ffffff;
+        border-color: rgba(0, 0, 0, 0.06);
+      }
+      .ces-card-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .ces-card-icon.c1 {
+        background: rgba(255, 106, 61, 0.12);
+        color: #ff9c5c;
+      }
+      .ces-card-icon.c2 {
+        background: rgba(255, 92, 92, 0.12);
+        color: #ff8080;
+      }
+      .ces-card-icon.c3 {
+        background: rgba(255, 176, 102, 0.12);
+        color: #ffb066;
+      }
+      .ces-card-icon.c4 {
+        background: rgba(16, 185, 129, 0.1);
+        color: #34d399;
+      }
+      .ces-card-title {
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--text-primary);
+        line-height: 1.4;
+      }
+
+      /* ============ MESSAGES (préparé pour l'IA) ============ */
+      .msg {
+        display: flex;
+        gap: 10px;
+        width: 100%;
+        animation: fadeInUp 0.28s ease forwards;
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .msg.user {
+        justify-content: flex-end;
+        margin-bottom: 12px;
+      }
+      .bubble-user {
+        padding: 10px 14px;
+        border-radius: 20px 20px 4px 20px;
+        font-size: 14px;
+        line-height: 1.5;
+        max-width: 75%;
+        background: var(--primary-gradient);
+        color: #fff;
+        box-shadow: 0 4px 20px rgba(255, 90, 40, 0.25);
+      }
+      .msg.bot {
+        justify-content: flex-start;
+      }
+      .bot-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .bot-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 138, 61, 0.18),
+          rgba(255, 61, 61, 0.15)
+        );
+        border: 1px solid rgba(255, 138, 61, 0.22);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: #ff9c5c;
+      }
+      .ai-text {
+        font-size: 14px;
+        line-height: 1.65;
+        color: var(--text-primary);
+        flex: 1;
+        padding-top: 4px;
+      }
+
+      /* ============ COMPOSER ============ */
+      .composer-zone {
+        padding: 12px 24px 18px;
+        background: var(--bg-root);
+        border-top: 1px solid var(--border-soft);
+      }
+      .chat-suggestions {
+        display: flex;
+        gap: 7px;
+        margin-bottom: 10px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 2px 0;
+      }
+      .chat-suggestions::-webkit-scrollbar {
+        display: none;
+      }
+      .suggestion-btn {
+        white-space: nowrap;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        color: var(--text-secondary);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 12.5px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.18s;
+        flex-shrink: 0;
+      }
+      .suggestion-btn:hover {
+        border-color: rgba(255, 106, 61, 0.4);
+        color: #ff9c5c;
+      }
+
+      .chat-form-wrap {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        border-radius: 16px;
+        padding: 14px 14px 10px 18px;
+        transition: 0.2s;
+      }
+      .chat-form-wrap:focus-within {
+        border-color: rgba(255, 106, 61, 0.45);
+        box-shadow: 0 0 0 3px rgba(255, 90, 40, 0.08);
+      }
+      .chat-input-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+      }
+      .chat-input {
+        flex: 1;
+        background: none;
+        border: none;
+        outline: none;
+        color: var(--text-primary);
+        font-size: 14.5px;
+        line-height: 1.6;
+        resize: none;
+        min-height: 24px;
+        max-height: 120px;
+        font-family: inherit;
+        font-weight: 400;
+      }
+      .chat-input::placeholder {
+        color: var(--text-faint);
+      }
+      .send-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: none;
+        background: var(--primary-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(255, 90, 40, 0.3);
+        transition: 0.2s;
+        flex-shrink: 0;
+        align-self: flex-end;
+      }
+      .send-btn:hover {
+        transform: scale(1.06);
+        box-shadow: 0 6px 24px rgba(255, 90, 40, 0.4);
+      }
+
+      .attach-row {
+        display: flex;
+        gap: 4px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--border-soft);
+      }
+      .attach-btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 8px;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.18s;
+        font-family: inherit;
+      }
+      .attach-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-secondary);
+      }
+
+      .user-info-bar {
+        margin-top: 8px;
+        text-align: center;
+        font-size: 11.5px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .user-info-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+      }
+
+      /* ============ RIGHT PANEL — CERVEAU IA ============ */
+      .ai-panel {
+        width: var(--right-panel-w);
+        flex-shrink: 0;
+        background: var(--bg-panel);
+        border-left: 1px solid var(--border-soft);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .ai-panel-inner {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 18px;
+      }
+      .ai-panel-inner::-webkit-scrollbar {
+        width: 3px;
+      }
+      .ai-panel-inner::-webkit-scrollbar-thumb {
+        background: var(--border-soft);
+        border-radius: 3px;
+      }
+
+      .ai-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+      .ai-panel-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .ai-panel-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 138, 61, 0.18),
+          rgba(255, 61, 61, 0.15)
+        );
+        border: 1px solid rgba(255, 138, 61, 0.22);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ff5c5c;
+      }
+      .ai-panel-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+      .ai-panel-sub {
+        font-size: 11.5px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+      .ai-active-badge {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #10b981;
+      }
+      .ai-active-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+      }
+
+      .ai-section {
+        margin-top: 20px;
+      }
+      .ai-section-label {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 10px;
+      }
+
+      .criteria-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .criteria-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-soft);
+      }
+      .criteria-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: var(--bg-hover);
+        border: 1px solid var(--border-mid);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--orange);
+        flex-shrink: 0;
+      }
+      .criteria-text {
+        flex: 1;
+        min-width: 0;
+      }
+      .criteria-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .criteria-val {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .ai-actions {
+        padding: 16px 18px 18px;
+        border-top: 1px solid var(--border-soft);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .ai-btn-primary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        border: none;
+        background: var(--primary-gradient);
+        color: #fff;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        box-shadow: 0 4px 18px rgba(255, 90, 40, 0.25);
+        transition: 0.2s;
+      }
+      .ai-btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 24px rgba(255, 90, 40, 0.35);
+      }
+      .ai-btn-secondary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        color: var(--text-secondary);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.18s;
+      }
+      .ai-btn-secondary:hover {
+        background: var(--bg-hover);
+        border-color: var(--border-accent);
+        color: var(--text-primary);
+      }
+      .ai-btn-secondary svg {
+        color: var(--orange);
+        flex-shrink: 0;
+      }
+      .ai-btn-ghost {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: transparent;
+        border: 1px solid var(--border-mid);
+        color: var(--text-muted);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.18s;
+      }
+      .ai-btn-ghost:hover {
+        background: var(--bg-hover);
+        color: var(--text-secondary);
+      }
+
+      /* ============ FOOTER ============ */
+      .bottom-banner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: var(--footer-h);
+        background: var(--bg-root);
+        border-top: 1px solid var(--border-soft);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: var(--text-muted);
+        z-index: 100;
+      }
+
+      /* ============================================================
+   MON AIGENT OCCASION — Styles pop-ups IA & cartes d'annonces
+   À inclure après le <style> existant de chat-occas.html
+   ============================================================ */
+
+      .thinking-shimmer {
+        font-size: 13px;
+        color: var(--text-muted);
+        background: linear-gradient(
+          90deg,
+          var(--text-muted) 0%,
+          #fff 50%,
+          var(--text-muted) 100%
+        );
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: shimmer 1.4s linear infinite;
+      }
+      @keyframes shimmer {
+        to {
+          background-position: -200% center;
+        }
+      }
+
+      /* ── SAAS POPUP GÉNÉRIQUE ─────────────────────────────────── */
+      .saas-popup {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        border-radius: 18px;
+        padding: 20px;
+        max-width: 480px;
+        width: 100%;
+        box-shadow: var(--shadow-card);
+      }
+      .saas-popup-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .saas-popup-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        background: rgba(255, 106, 61, 0.14);
+        border: 1px solid rgba(255, 106, 61, 0.25);
+        color: var(--orange);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .saas-popup-icon svg {
+        width: 19px;
+        height: 19px;
+      }
+      .saas-popup-title {
+        font-size: 14.5px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+      }
+      .saas-popup-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin: 2px 0 0;
+      }
+      .saas-popup-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .btn-saas-primary,
+      .btn-saas-ghost {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 11px 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .btn-saas-primary {
+        border: none;
+        background: var(--primary-gradient);
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(255, 90, 40, 0.25);
+      }
+      .btn-saas-primary:hover {
+        transform: translateY(-1px);
+      }
+      .btn-saas-primary:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .btn-saas-ghost {
+        background: transparent;
+        border: 1px solid var(--border-mid);
+        color: var(--text-muted);
+      }
+      .btn-saas-ghost:hover {
+        color: var(--text-primary);
+        border-color: var(--border-accent);
+      }
+      .btn-loading {
+        width: 13px;
+        height: 13px;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-top-color: #fff;
+        border-radius: 50%;
+        display: inline-block;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* ── DIAGRAMME VOITURE (état par zones) ───────────────────── */
+      .car-diagram-wrap {
+        position: relative;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-soft);
+        border-radius: 14px;
+        padding: 10px;
+      }
+      .car-diagram-svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .car-zone-hit:hover {
+        fill: rgba(255, 106, 61, 0.18) !important;
+        stroke: var(--orange) !important;
+      }
+      .zone-mini-popup {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #14100c;
+        border: 1px solid var(--border-accent);
+        border-radius: 12px;
+        padding: 10px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        z-index: 20;
+        min-width: 220px;
+      }
+      .zmp-title {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+      }
+      .zmp-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .zmp-opt {
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid var(--zc);
+        background: color-mix(in srgb, var(--zc) 15%, transparent);
+        color: var(--zc);
+      }
+      .car-diagram-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .zone-chip {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        border: 1px solid var(--zc);
+        color: var(--zc);
+        background: color-mix(in srgb, var(--zc) 12%, transparent);
+      }
+      .etat-progress {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 14px;
+        font-size: 11.5px;
+        color: var(--text-muted);
+      }
+      .etat-progress-bar {
+        flex: 1;
+        height: 6px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        overflow: hidden;
+      }
+      .etat-progress-bar > div {
+        height: 100%;
+        background: var(--primary-gradient);
+        transition: width 0.25s;
+      }
+
+      /* ── CARBURANT / BOÎTE ─────────────────────────────────────── */
+      .fuel-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .fuel-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 14px 8px;
+        border-radius: 12px;
+        background: var(--bg-hover);
+        border: 1px solid var(--border-mid);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.18s;
+      }
+      .fuel-card .fuel-icon {
+        font-size: 20px;
+      }
+      .fuel-card:hover {
+        border-color: var(--border-accent);
+      }
+      .fuel-card.selected {
+        border-color: var(--orange);
+        background: rgba(255, 106, 61, 0.14);
+        color: var(--orange);
+      }
+      .fuel-boite-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .boite-card {
+        flex: 1;
+        padding: 10px;
+        border-radius: 10px;
+        background: var(--bg-hover);
+        border: 1px solid var(--border-mid);
+        color: var(--text-secondary);
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .boite-card:hover {
+        border-color: var(--orange);
+        color: var(--orange);
+      }
+
+      /* ── PHOTOS / DROPZONE ─────────────────────────────────────── */
+      .img-drop-zone {
+        border: 1.5px dashed var(--border-mid);
+        border-radius: 12px;
+        padding: 22px 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: 0.18s;
+        color: var(--text-muted);
+      }
+      .img-drop-zone:hover {
+        border-color: var(--orange);
+        color: var(--orange);
+      }
+      .img-drop-label {
+        font-size: 12.5px;
+        font-weight: 600;
+        margin: 0;
+      }
+      .img-drop-link {
+        color: var(--orange);
+        text-decoration: underline;
+      }
+      .img-drop-hint {
+        font-size: 11px;
+        color: var(--text-faint);
+        margin: 0;
+      }
+      .img-thumbs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .img-thumb {
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+      }
+      .img-thumb-remove {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #ff3d3d;
+        color: #fff;
+        border: none;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      /* ── CARVERTICAL ───────────────────────────────────────────── */
+      .carvertical-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .cv-badge {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: #10b981;
+      }
+      .cv-file-name {
+        font-size: 12.5px;
+        color: var(--text-secondary);
+      }
+      #cv-file-preview {
+        margin-top: 8px;
+      }
+
+      /* ── PUBLICATION ──────────────────────────────────────────── */
+      .publish-recap {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 12.5px;
+        color: var(--text-secondary);
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-soft);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 4px;
+      }
+
+      /* ── CARTES D'ANNONCES VOITURES ──────────────────────────────── */
+      .car-card-wrap {
+        background: var(--bg-card);
+        border: 1px solid var(--border-mid);
+        border-radius: 18px;
+        overflow: hidden;
+        max-width: 420px;
+        width: 100%;
+        box-shadow: var(--shadow-card);
+        transition: 0.2s;
+      }
+      .car-card-wrap:hover {
+        border-color: var(--border-accent);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-hover);
+      }
+      .car-card-media {
+        position: relative;
+        height: 180px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 106, 61, 0.12),
+          rgba(255, 61, 61, 0.08)
+        );
+      }
+      .car-card-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .car-card-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 46px;
+        opacity: 0.3;
+      }
+      .car-card-compat {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 13px;
+        font-weight: 800;
+        padding: 5px 11px;
+        border-radius: 20px;
+        background: rgba(10, 7, 6, 0.75);
+        border: 1px solid;
+        backdrop-filter: blur(6px);
+      }
+      .car-card-gallery-btn {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 20px;
+        background: rgba(10, 7, 6, 0.7);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        backdrop-filter: blur(6px);
+      }
+      .car-card-body {
+        padding: 16px;
+      }
+      .car-card-title {
+        font-size: 15px;
+        font-weight: 800;
+        color: var(--text-primary);
+      }
+      .car-card-year {
+        font-weight: 500;
+        color: var(--text-muted);
+        font-size: 12.5px;
+      }
+      .car-card-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--text-muted);
+        margin: 8px 0;
+      }
+      .car-card-price {
+        font-size: 17px;
+        font-weight: 800;
+        background: linear-gradient(90deg, #ff9c5c, #ff5c5c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+      }
+      .car-card-cv {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11.5px;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 20px;
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        color: #10b981;
+        text-decoration: none;
+        margin-bottom: 12px;
+        cursor: pointer;
+      }
+      .car-card-cv .cv-hover-hint {
+        display: none;
+        position: absolute;
+        bottom: 130%;
+        left: 0;
+        width: 220px;
+        font-size: 10.5px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        background: #14100c;
+        border: 1px solid var(--border-mid);
+        border-radius: 8px;
+        padding: 8px 10px;
+        white-space: normal;
+      }
+      .car-card-cv:hover .cv-hover-hint {
+        display: block;
+      }
+      .car-card-footer {
+        display: flex;
+      }
+      .mc-btn {
+        flex: 1;
+        padding: 10px;
+        border-radius: 10px;
+        border: none;
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .mc-btn-contact {
+        background: var(--primary-gradient);
+        color: #fff;
+        box-shadow: 0 4px 16px rgba(255, 90, 40, 0.25);
+      }
+      .mc-btn-contact:hover {
+        transform: translateY(-1px);
+      }
+      /* Alignement propre des SVGs dans les popups et badges */
+      .cv-badge,
+      .car-card-gallery-btn,
+      .car-card-meta span,
+      .cv-file-name {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .recap-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 3px 0;
+      }
+      .recap-row svg {
+        flex-shrink: 0;
+      }
+      .fuel-card .fuel-icon svg {
+        color: #fff;
+        transition:
+          transform 0.2s,
+          stroke 0.2s;
+      }
+      .fuel-card:hover .fuel-icon svg,
+      .fuel-card.selected .fuel-icon svg {
+        stroke: var(--orange);
+        transform: scale(1.1);
+      }
+      /* ============================================================
+   PATCH À COLLER dans chat-occas.html, à la fin du bloc <style>
+   existant (juste avant la fermeture </style>).
+   Aucune autre modification du fichier HTML n'est nécessaire :
+   chat-occas.js cible tout le reste via closest()/querySelector(),
+   compatible avec la structure HTML actuelle telle quelle.
+   ============================================================ */
+
+/* ── CARTE RÉCAPITULATIVE VENDEUR (image 60% + infos 40%) ─────────── */
+.recap-ad-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border-mid);
+  border-radius: 20px;
+  overflow: hidden;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: var(--shadow-card);
+}
+.recap-ad-media {
+  position: relative;
+  height: 230px; /* ~60% de la carte */
+  background: linear-gradient(135deg, rgba(255,106,61,0.14), rgba(255,61,61,0.08));
+}
+.recap-ad-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.recap-ad-media-overlay {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 30px 16px 14px;
+  background: linear-gradient(to top, rgba(6,4,3,.92) 0%, rgba(6,4,3,.35) 65%, transparent 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+.recap-ad-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.25;
+}
+.recap-ad-title span {
+  font-weight: 500;
+  color: rgba(255,255,255,0.65);
+  font-size: 13px;
+}
+.recap-ad-price {
+  font-size: 19px;
+  font-weight: 800;
+  background: linear-gradient(90deg, #ffb066, #ff8a5c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+}
+.recap-ad-badges {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
+}
+.recap-badge-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border-radius: 20px;
+  background: rgba(10,7,6,0.72);
+  border: 1px solid rgba(255,255,255,0.22);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: 0.18s;
+}
+.recap-badge-btn:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+.recap-badge-cv {
+  background: rgba(16,185,129,0.22);
+  border-color: rgba(16,185,129,0.4);
+  color: #34d399;
+}
+.recap-ad-body {
+  padding: 16px;
+}
+.recap-ad-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.recap-ad-meta span::before {
+  content: "•";
+  margin-right: 8px;
+  color: var(--text-faint);
+}
+.recap-ad-meta span:first-child::before {
+  content: "";
+  margin-right: 0;
+}
+.recap-more-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  background: transparent;
+  border: none;
+  color: var(--orange);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+.recap-more-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 16px;
+  right: 16px;
+  margin-bottom: 8px;
+  min-width: unset;
+}
+.recap-detail-row {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 3px 0;
+  display: flex;
+  justify-content: space-between;
+}
+.recap-ad-body {
+  position: relative;
+}
+
+/* ── Bouton "état" sur les cartes de résultats de matching ─────────── */
+.car-card-etat-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(10,7,6,0.7);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.18s;
+}
+.car-card-etat-btn:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+/* ── Visionneuse d'état plein écran (lecture seule) ─────────────────── */
+.etat-viewer-content {
+  max-width: 640px;
+  width: 80vw;
+}
+@media (max-width: 700px) {
+  .etat-viewer-content { width: 92vw; }
+  .recap-ad-media { height: 190px; }
+}
+
+      /* ============ RESPONSIVE MOBILE ============ */
+      .mobile-menu-btn,
+      .mobile-theme-btn {
+        display: none;
+      }
+      @media (max-width: 900px) {
+        :root {
+          --sidebar-width: 0px;
+          --right-panel-w: 0px;
+        }
+        .sidebar {
+          display: none;
+        }
+        .ai-panel {
+          display: none;
+        }
+        .app-layout {
+          left: 0;
+        }
+        .top-banner {
+          padding: 0 14px;
+          height: 52px;
+          --header-h: 52px;
+        }
+        .logo-text {
+          font-size: 14px;
+        }
+        .btn-logout-hdr span {
+          display: none;
+        }
+        .btn-logout-hdr {
+          width: 36px;
+          height: 36px;
+          padding: 0;
+          justify-content: center;
+          border-radius: 10px;
+        }
+        #btn-theme {
+          display: none;
+        }
+        .hbtn {
+          width: 36px;
+          height: 36px;
+        }
+        .app-layout {
+          top: 52px;
+          bottom: var(--footer-h);
+          flex-direction: column;
+        }
+        .chat-section {
+          border-right: none;
+        }
+        .chat-messages {
+          padding: 16px 14px;
+          gap: 10px;
+        }
+        .composer-zone {
+          padding: 8px 12px 12px;
+        }
+        .chat-form-wrap {
+          padding: 10px 10px 8px 14px;
+          border-radius: 14px;
+        }
+        .chat-input {
+          font-size: 16px;
+          min-height: 22px;
+        }
+        .send-btn {
+          width: 40px;
+          height: 40px;
+        }
+        .ces-title {
+          font-size: 24px;
+        }
+        .ces-cards {
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+        .ces-card {
+          min-height: 110px;
+          padding: 16px 10px;
+        }
+        .ces-card-title {
+          font-size: 11px;
+        }
+        .bottom-banner {
+          font-size: 11px;
+          height: 32px;
+          --footer-h: 32px;
+        }
+
+        .mobile-menu-btn {
+          display: flex;
+          position: fixed;
+          top: 58px;
+          left: 14px;
+          width: 40px;
+          height: 40px;
+          z-index: 4500;
+          justify-content: center;
+          align-items: center;
+          background: var(--bg-panel);
+          border: 1px solid var(--border-mid);
+          border-radius: 11px;
+          box-shadow: var(--shadow-soft);
+          cursor: pointer;
+        }
+        .mobile-theme-btn {
+          display: flex;
+          position: fixed;
+          top: 58px;
+          right: 14px;
+          width: 40px;
+          height: 40px;
+          z-index: 4500;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-panel);
+          border: 1px solid var(--border-mid);
+          border-radius: 11px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+          cursor: pointer;
+        }
+        .mobile-theme-btn svg {
+          stroke: var(--text-primary);
+        }
+      }
+      @media (min-width: 901px) {
+        .mobile-menu-btn,
+        .mobile-theme-btn,
+        .mobile-sidebar-drawer {
+          display: none !important;
+        }
+      }
+
+      /* ── DRAWER SIDEBAR MOBILE ── */
+      .mobile-sidebar-drawer {
+        position: fixed;
+        inset: 0;
+        z-index: 6000;
+        display: flex;
+        pointer-events: none;
+      }
+      .mobile-sidebar-drawer.open {
+        pointer-events: auto;
+      }
+      .mobile-drawer-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0);
+        transition: background 0.3s;
+      }
+      .mobile-sidebar-drawer.open .mobile-drawer-overlay {
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(3px);
+      }
+      .mobile-drawer-panel {
+        position: relative;
+        width: 80%;
+        max-width: 280px;
+        height: 100%;
+        background: var(--bg-panel);
+        border-right: 1px solid var(--border-soft);
+        transform: translateX(-100%);
+        transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        padding: 20px 16px;
+        overflow-y: auto;
+      }
+      .mobile-sidebar-drawer.open .mobile-drawer-panel {
+        transform: translateX(0);
+      }
+      .mobile-drawer-close {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .mobile-drawer-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+      .mobile-drawer-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+      }
+      .mobile-drawer-nav .nav-item {
+        font-size: 14px;
+        padding: 11px 14px;
+      }
+      .mobile-drawer-profile {
+        margin-top: auto;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-soft);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.001ms !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- HEADER -->
+    <header class="top-banner">
+      <div class="logo-container">
+        <span class="logo-mark">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM3 17V9l2-5h10l4 5v8"
+            />
+            <path d="M3 12h18" />
+          </svg>
+        </span>
+        <span class="logo-text">Mon <span>AiGENT</span> Occasion</span>
+      </div>
+      <div class="header-actions">
+        <button class="hbtn" id="btn-theme" aria-label="Changer le thème">
+          <svg
+            class="icon-sun"
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+        </button>
+        <button
+          class="hbtn"
+          id="btn-notif-bell"
+          aria-label="Notifications"
+          style="position: relative"
+        >
+          <svg
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+        </button>
+        <button class="btn-logout-hdr" id="btn-logout">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          <span>Déconnexion</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <button class="btn-new-listing" id="btn-new-listing">
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        >
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Nouvelle annonce
+      </button>
+
+      <nav class="nav-section">
+        <a href="#" class="nav-item active">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          Accueil
+        </a>
+        <a href="./profil-occas.html" class="nav-item">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM3 17V9l2-5h10l4 5v8"
+            />
+          </svg>
+          Mes annonces
+        </a>
+        <a href="./messagerie-occas.html" class="nav-item">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            />
+          </svg>
+          Messagerie
+        </a>
+        <a href="./favoris-occas.html" class="nav-item">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polygon
+              points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+            />
+          </svg>
+          Favoris
+        </a>
+        <a href="#" class="nav-item">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          >
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          Statistiques
+        </a>
+        <a href="#" class="nav-item">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+            <polyline points="16 7 22 7 22 13" />
+          </svg>
+          Marché occasion
+        </a>
+        <a href="#" class="nav-item">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+            />
+          </svg>
+          Deal Radar
+        </a>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <a href="./profil-occas.html" class="profile-row" id="profile-row">
+          <div class="profile-avatar" id="profile-avatar">?</div>
+          <div class="profile-info">
+            <div class="profile-name" id="profile-name">—</div>
+            <div class="profile-role" id="profile-role">—</div>
+          </div>
+          <svg
+            class="profile-chevron"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </a>
+      </div>
+    </aside>
+
+    <!-- APP LAYOUT -->
+    <div class="app-layout">
+      <!-- CHAT SECTION -->
+      <main class="chat-section">
+        <div class="chat-container">
+          <div id="chat-box" class="chat-messages" aria-live="polite">
+            <div class="chat-empty-state">
+              <div class="ces-inner">
+                <div class="ces-badge">
+                  <span class="pulse-dot"></span>
+                  Moteur de mise en relation Occasion — actif
+                </div>
+                <h1 class="ces-title">
+                  Trouvez le bon véhicule,<br />ou le bon acheteur.
+                </h1>
+                <p class="ces-sub">
+                  Décrivez ce que vous cherchez ou ce que vous vendez — l'IA
+                  analyse modèle, kilométrage, état et budget pour vous mettre
+                  en relation directement.
+                </p>
+                <div class="ces-cards">
+                  <div class="ces-card">
+                    <div class="ces-card-icon c1">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM3 17V9l2-5h10l4 5v8"
+                        />
+                      </svg>
+                    </div>
+                    <div class="ces-card-title">
+                      Je veux acheter un véhicule
+                    </div>
+                  </div>
+                  <div class="ces-card">
+                    <div class="ces-card-icon c2">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <line x1="12" y1="1" x2="12" y2="23" />
+                        <path
+                          d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                        />
+                      </svg>
+                    </div>
+                    <div class="ces-card-title">Vendre mon véhicule</div>
+                  </div>
+                  <div class="ces-card">
+                    <div class="ces-card-icon c3">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                          d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"
+                        />
+                      </svg>
+                    </div>
+                    <div class="ces-card-title">
+                      Rechercher une pièce détachée
+                    </div>
+                  </div>
+                  <div class="ces-card">
+                    <div class="ces-card-icon c4">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                        <polyline points="16 7 22 7 22 13" />
+                      </svg>
+                    </div>
+                    <div class="ces-card-title">
+                      Analyser le marché occasion
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="composer-zone">
+            <div class="chat-suggestions" id="chat-suggestions">
+              <button class="suggestion-btn">
+                Je cherche une citadine essence -10 000 €
+              </button>
+              <button class="suggestion-btn">
+                Estimer mon véhicule pour vendre
+              </button>
+              <button class="suggestion-btn">
+                Pièces détachées moteur diesel
+              </button>
+              <button class="suggestion-btn">
+                Tendances du marché occasion
+              </button>
+            </div>
+            <div class="chat-form-wrap">
+              <div class="chat-input-row">
+                <textarea
+                  id="user-input"
+                  class="chat-input"
+                  placeholder="Décris ton projet véhicule..."
+                  rows="1"
+                  autocomplete="off"
+                ></textarea>
+                <button
+                  type="button"
+                  class="send-btn"
+                  id="send-btn"
+                  title="Envoyer"
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              </div>
+              <div class="attach-row">
+                <button class="attach-btn" id="btn-attach-file">
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  >
+                    <path
+                      d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"
+                    />
+                  </svg>
+                  Joindre un fichier
+                </button>
+                <button class="attach-btn" id="btn-attach-image">
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  Photos du véhicule
+                </button>
+                <button class="attach-btn" id="btn-attach-doc">
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  >
+                    <path
+                      d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                    />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                  Carte grise / CT
+                </button>
+              </div>
+            </div>
+            <div class="user-info-bar" id="user-info">
+              <span class="user-info-dot"></span>
+              <span id="user-info-text">Connecté</span>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT PANEL -->
+      <aside class="ai-panel">
+        <div class="ai-panel-inner">
+          <div class="ai-panel-header">
+            <div>
+              <div class="ai-panel-title-row">
+                <div class="ai-panel-icon">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M12 2c-5.5 0-10 4.5-10 10s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"
+                    />
+                    <path d="M12 6v6l4 2" />
+                  </svg>
+                </div>
+                <div class="ai-panel-title">Cerveau IA</div>
+              </div>
+              <div class="ai-panel-sub">Analyse cognitive en temps réel</div>
+            </div>
+            <div class="ai-active-badge">
+              <div class="ai-active-dot"></div>
+              Actif
+            </div>
+          </div>
+
+          <div class="ai-section">
+            <div class="ai-section-label">Critères actifs</div>
+            <div class="criteria-list">
+              <div class="criteria-item">
+                <div class="criteria-icon">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM3 17V9l2-5h10l4 5v8"
+                    />
+                  </svg>
+                </div>
+                <div class="criteria-text">
+                  <div class="criteria-label">Modèle</div>
+                  <div class="criteria-val" id="ai-modele">En attente</div>
+                </div>
+              </div>
+              <div class="criteria-item">
+                <div class="criteria-icon">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                </div>
+                <div class="criteria-text">
+                  <div class="criteria-label">Kilométrage</div>
+                  <div class="criteria-val" id="ai-km">En attente</div>
+                </div>
+              </div>
+              <div class="criteria-item">
+                <div class="criteria-icon">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                    />
+                  </svg>
+                </div>
+                <div class="criteria-text">
+                  <div class="criteria-label">État</div>
+                  <div class="criteria-val" id="ai-etat">En attente</div>
+                </div>
+              </div>
+              <div class="criteria-item">
+                <div class="criteria-icon">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <line x1="12" y1="1" x2="12" y2="23" />
+                    <path
+                      d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                    />
+                  </svg>
+                </div>
+                <div class="criteria-text">
+                  <div class="criteria-label">Budget</div>
+                  <div class="criteria-val" id="ai-budget">En attente</div>
+                </div>
+              </div>
+              <div class="criteria-item">
+                <div class="criteria-icon">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                </div>
+                <div class="criteria-text">
+                  <div class="criteria-label">Zone</div>
+                  <div class="criteria-val" id="ai-zone">En attente</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-actions">
+          <button class="ai-btn-primary" id="btn-mise-relation">
+            Être mis en relation
+          </button>
+          <button class="ai-btn-secondary" id="btn-analyse-marche">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+              <polyline points="16 7 22 7 22 13" />
+            </svg>
+            Analyser le marché
+          </button>
+          <button class="ai-btn-ghost" id="btn-modifier-criteres">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+            Modifier mes critères
+          </button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- BOUTONS MOBILE -->
+    <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <line x1="3" y1="6" x2="21" y2="6" stroke="var(--orange)" />
+        <line x1="3" y1="12" x2="15" y2="12" stroke="var(--orange)" />
+        <line x1="3" y1="18" x2="9" y2="18" stroke="var(--orange)" />
+      </svg>
+    </button>
+    <button
+      class="mobile-theme-btn hbtn"
+      id="mobile-theme-btn"
+      aria-label="Thème"
+    >
+      <svg
+        class="icon-sun"
+        width="17"
+        height="17"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <circle cx="12" cy="12" r="5" />
+        <line x1="12" y1="1" x2="12" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="23" />
+      </svg>
+    </button>
+
+    <!-- DRAWER SIDEBAR MOBILE -->
+    <div class="mobile-sidebar-drawer" id="mobile-sidebar-drawer">
+      <div class="mobile-drawer-overlay" id="mobile-drawer-overlay"></div>
+      <div class="mobile-drawer-panel">
+        <button class="mobile-drawer-close" id="mobile-drawer-close">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+        <div class="mobile-drawer-logo">
+          <span class="logo-mark">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              width="16"
+              height="16"
+            >
+              <path
+                d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM3 17V9l2-5h10l4 5v8"
+              />
+            </svg>
+          </span>
+          <span class="logo-text">Mon <span>AiGENT</span></span>
+        </div>
+        <nav class="mobile-drawer-nav">
+          <a href="#" class="nav-item active">Accueil</a>
+          <a href="#" class="nav-item">Mes annonces</a>
+          <a href="./messagerie-occas.html" class="nav-item">Messagerie</a>
+          <a href="#" class="nav-item">Favoris</a>
+          <a href="#" class="nav-item">Statistiques</a>
+          <a href="#" class="nav-item">Marché occasion</a>
+          <a href="#" class="nav-item">Deal Radar</a>
+        </nav>
+        <div class="mobile-drawer-profile">
+          <div class="profile-row">
+            <div class="profile-avatar" id="mobile-profile-avatar">?</div>
+            <div class="profile-info">
+              <div class="profile-name" id="mobile-profile-name">—</div>
+              <div class="profile-role" id="mobile-profile-role">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bottom-banner">
+      <p>© Mon AiGENT Occasion - Tous droits réservés</p>
+    </footer>
+
+    <script>
+      /* ============================================================
+         FRONT ONLY — l'IA sera branchée dans une prochaine étape.
+         Ici : session, thème, sidebar, menu mobile, envoi local d'un
+         message utilisateur (echo visuel, pas d'appel serveur chat).
+         ============================================================ */
+      const $ = (id) => document.getElementById(id);
+
+      // ---- Session : afficher pseudo/role connectés ----
+      (function initSession() {
+        const raw = localStorage.getItem("agent_occas_user");
+        if (!raw) return;
+        try {
+          const user = JSON.parse(raw);
+          const initial = (user.username || "?").charAt(0).toUpperCase();
+          const roleLabel = user.role === "seller" ? "Vendeur" : "Acheteur";
+
+          $("profile-avatar").textContent = initial;
+          $("profile-name").textContent = user.username;
+          $("profile-role").textContent = roleLabel;
+
+          $("mobile-profile-avatar").textContent = initial;
+          $("mobile-profile-name").textContent = user.username;
+          $("mobile-profile-role").textContent = roleLabel;
+
+          $("user-info-text").textContent =
+            `Connecté : ${user.username} (${roleLabel})`;
+        } catch {
+          /* silencieux */
+        }
+      })();
+
+      // ---- Déconnexion (Purger tout l'historique et la session) ----
+      $("btn-logout")?.addEventListener("click", () => {
+        // Supprime l'utilisateur ainsi que TOUS les historiques de chat et critères stockés
+        Object.keys(localStorage).forEach((key) => {
+          if (key.includes("occas")) {
+            localStorage.removeItem(key);
+          }
+        });
+        sessionStorage.clear();
+        window.location.href = "./login-occas.html";
+      });
+
+      // ---- Sidebar collapse (desktop) ----
+      // (bouton dédié à ajouter si besoin ; structure prête via body.sidebar-collapsed)
+
+      // ---- Menu mobile (drawer) ----
+      const drawer = $("mobile-sidebar-drawer");
+      $("mobile-menu-btn")?.addEventListener("click", () =>
+        drawer.classList.add("open"),
+      );
+      $("mobile-drawer-close")?.addEventListener("click", () =>
+        drawer.classList.remove("open"),
+      );
+      $("mobile-drawer-overlay")?.addEventListener("click", () =>
+        drawer.classList.remove("open"),
+      );
+
+      // ---- Suggestions -> remplissent l'input ----
+      document.querySelectorAll(".suggestion-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          $("user-input").value = btn.textContent;
+          $("user-input").focus();
+        });
+      });
+      document.querySelectorAll(".ces-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          const label =
+            card.querySelector(".ces-card-title")?.textContent || "";
+          $("user-input").value = label;
+          $("user-input").focus();
+        });
+      });
+
+      // ---- Auto-resize textarea ----
+      const input = $("user-input");
+      input.addEventListener("input", () => {
+        input.style.height = "auto";
+        input.style.height = Math.min(input.scrollHeight, 120) + "px";
+      });
+    </script>
+     <script src="./i18n-occas.js"></script>
+    <script type="module" src="chat-occas.js"></script>
+    <link rel="stylesheet" href="vehicle-ad-cards.css">
+  </body>
+</html>

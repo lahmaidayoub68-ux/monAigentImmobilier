@@ -1,0 +1,2009 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Mon AiGENT Occasion — l'IA qui met en relation acheteurs et vendeurs de véhicules d'occasion : matching ultra-détaillé (modèle, kilométrage, carburant, zone, budget, état par zones, photos, rapport CarVertical)."
+    />
+    <title>
+      Mon AiGENT Occasion | L'IA qui matche acheteurs et vendeurs auto
+    </title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ============================================================
+         MON AIGENT OCCASION — Landing / CTO
+         Style Linear : fond noir profond, accent orange -> rouge fluo
+         ============================================================ */
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg-root: #0a0706;
+        --bg-panel: #100b09;
+        --bg-surface: rgba(255, 255, 255, 0.026);
+        --bg-surface-2: rgba(255, 255, 255, 0.045);
+        --bg-glass: rgba(22, 15, 12, 0.68);
+
+        --border: rgba(255, 255, 255, 0.08);
+        --border-strong: rgba(255, 255, 255, 0.14);
+        --border-orange: rgba(255, 106, 61, 0.34);
+
+        --text-1: #f7f5f4;
+        --text-2: #a9a19d;
+        --text-3: #6d6663;
+        --text-ink: #0a0706;
+
+        --orange: #ff6a3d;
+        --orange-bright: #ff8f5e;
+        --red: #ff3d3d;
+        --green: #10b981;
+        --amber: #f5b14c;
+
+        --grad-main: linear-gradient(135deg, #ff8f4a 0%, #ff3d3d 100%);
+        --grad-text: linear-gradient(180deg, #ffffff 0%, #c7bab4 130%);
+
+        --radius-xs: 8px;
+        --radius-sm: 12px;
+        --radius-md: 16px;
+        --radius-lg: 22px;
+        --radius-xl: 30px;
+
+        --shadow-card:
+          0 1px 0 rgba(255, 255, 255, 0.06) inset,
+          0 24px 60px -28px rgba(0, 0, 0, 0.9);
+        --glow: 0 0 90px -12px rgba(255, 106, 61, 0.42);
+
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+        --maxw: 1180px;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background: var(--bg-root);
+        color: var(--text-1);
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      ::selection {
+        background: rgba(255, 106, 61, 0.32);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .wrap {
+        width: 100%;
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* ============ NAV ============ */
+      header.nav {
+        position: fixed;
+        inset: 0 0 auto 0;
+        z-index: 100;
+        backdrop-filter: blur(18px);
+        background: rgba(10, 7, 6, 0.7);
+        border-bottom: 1px solid transparent;
+        transition:
+          border-color 0.3s var(--ease),
+          background 0.3s var(--ease);
+      }
+      header.nav.scrolled {
+        border-bottom-color: var(--border);
+        background: rgba(10, 7, 6, 0.88);
+      }
+      .nav-inner {
+        height: 66px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        font-size: 16px;
+      }
+      .brand-mark {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        background: var(--grad-main);
+        display: grid;
+        place-items: center;
+        color: #fff;
+        box-shadow: 0 6px 22px -8px rgba(255, 106, 61, 0.8);
+      }
+      .brand span.accent {
+        background: var(--grad-main);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .nav-links {
+        display: flex;
+        gap: 28px;
+        font-size: 14px;
+        color: var(--text-2);
+      }
+      .nav-links a {
+        transition: color 0.16s var(--ease);
+      }
+      .nav-links a:hover {
+        color: var(--text-1);
+      }
+      .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        color: var(--text-1);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 9px 16px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.18s var(--ease);
+        white-space: nowrap;
+      }
+      .btn:hover {
+        background: var(--bg-surface-2);
+        border-color: var(--border-strong);
+        transform: translateY(-1px);
+      }
+      .btn-primary {
+        background: var(--grad-main);
+        border-color: transparent;
+        color: #fff;
+        box-shadow: 0 10px 30px -12px rgba(255, 90, 50, 0.9);
+      }
+      .btn-primary:hover {
+        background: var(--grad-main);
+        filter: brightness(1.07);
+      }
+      .btn-lg {
+        padding: 13px 22px;
+        font-size: 15px;
+        border-radius: 12px;
+      }
+
+      /* ============ HERO HERO PLEINE LARGEUR (STYLE MODÈLE DE DROITE) ============ */
+      .hero {
+        position: relative;
+        min-height: 100vh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding-top: 100px;
+        padding-bottom: 48px;
+        overflow: hidden;
+      }
+
+      /* Arrière-plan : l'image s'étend sur 100% de la largeur sans aucune bordure */
+      .hero-bg-wrapper {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      .hero-bg-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: right 60%;
+        display: block;
+      }
+
+      /* Dégradé noir profond à gauche pour fondre le texte naturellement + fondus bords */
+      .hero-bg-wrapper::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            90deg,
+            #0a0706 0%,
+            #0a0706 28%,
+            rgba(10, 7, 6, 0.75) 48%,
+            rgba(10, 7, 6, 0.15) 75%,
+            transparent 100%
+          ),
+          linear-gradient(
+            180deg,
+            rgba(10, 7, 6, 0.85) 0%,
+            transparent 18%,
+            transparent 75%,
+            #0a0706 100%
+          );
+      }
+
+      /* Conteneur principal du texte et des cartes */
+      .hero-content {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        max-width: 1380px;
+        margin: 0 auto;
+        padding: 0 clamp(20px, 4vw, 56px);
+        display: flex;
+        flex-direction: column;
+        gap: clamp(36px, 5vh, 64px);
+      }
+
+      .hero-text-zone {
+        max-width: 610px;
+      }
+
+      .eyebrow-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #ff855f;
+        background: rgba(255, 90, 40, 0.1);
+        border: 1px solid rgba(255, 90, 40, 0.3);
+        padding: 6px 14px;
+        border-radius: 999px;
+        margin-bottom: 20px;
+      }
+      .eyebrow-pill .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #ff6a3d;
+        box-shadow: 0 0 8px #ff6a3d;
+      }
+
+      .hero-title {
+        font-size: clamp(34px, 4.2vw, 56px);
+        font-weight: 800;
+        line-height: 1.08;
+        letter-spacing: -0.035em;
+        color: #ffffff;
+        margin-bottom: 18px;
+      }
+      .hero-title .accent-red {
+        color: #ff5537;
+      }
+
+      .hero-desc {
+        font-size: clamp(14.5px, 1.1vw, 15.5px);
+        line-height: 1.65;
+        color: #a39b97;
+        max-width: 530px;
+        margin-bottom: 28px;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+      }
+
+      /* Grille des 4 cartes distinctes en bas */
+      .hero-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        width: 100%;
+      }
+
+      .hero-stat-card {
+        background: rgba(18, 13, 11, 0.72);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 20px 22px;
+        transition:
+          border-color 0.2s ease,
+          transform 0.2s ease;
+      }
+      .hero-stat-card:hover {
+        border-color: rgba(255, 106, 61, 0.35);
+        transform: translateY(-2px);
+      }
+      .hero-stat-card .stat-num {
+        display: block;
+        font-size: 22px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.02em;
+        margin-bottom: 5px;
+      }
+      .hero-stat-card .stat-label {
+        display: block;
+        font-size: 13px;
+        color: #8e8581;
+        line-height: 1.4;
+      }
+
+      @media (max-width: 1024px) {
+        .hero-stats-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 600px) {
+        .hero {
+          padding-top: 84px;
+        }
+        .hero-stats-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      /* ============ SECTIONS ============ */
+      section.block {
+        padding: clamp(64px, 9vw, 118px) 0;
+        position: relative;
+      }
+      .sec-head {
+        max-width: 720px;
+        margin-bottom: 46px;
+      }
+      .kicker {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--orange);
+        margin-bottom: 14px;
+      }
+      h2 {
+        font-size: clamp(27px, 3.5vw, 42px);
+        line-height: 1.12;
+        letter-spacing: -0.03em;
+        font-weight: 700;
+      }
+      h3 {
+        font-size: 19px;
+        letter-spacing: -0.02em;
+        font-weight: 650;
+      }
+      .lead {
+        margin-top: 16px;
+        color: var(--text-2);
+        font-size: 16.5px;
+      }
+      p.body {
+        color: var(--text-2);
+      }
+      p.body + p.body {
+        margin-top: 14px;
+      }
+      .hr {
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--border),
+          transparent
+        );
+      }
+
+      .icon-badge {
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        color: var(--orange);
+        background: rgba(255, 106, 61, 0.11);
+        border: 1px solid var(--border-orange);
+      }
+      .icon-badge svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      /* Split rows (paragraphe + image) */
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: clamp(28px, 5vw, 64px);
+        align-items: center;
+      }
+      .split + .split {
+        margin-top: clamp(48px, 7vw, 96px);
+      }
+      .split.rev .split-media {
+        order: -1;
+      }
+      .split-media {
+        position: relative;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-card);
+      }
+      .split-media img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-height: 400px;
+        object-fit: cover;
+      }
+      .split-media::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          160deg,
+          rgba(255, 106, 61, 0.12),
+          transparent 55%
+        );
+        pointer-events: none;
+      }
+      .split-text .icon-badge {
+        margin-bottom: 18px;
+      }
+      .split-text h3 {
+        font-size: clamp(21px, 2.4vw, 28px);
+        letter-spacing: -0.025em;
+        margin-bottom: 14px;
+      }
+
+      /* Cards grid */
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+      .grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .grid-4 {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .card {
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        border-radius: var(--radius-md);
+        padding: 22px;
+        transition: 0.22s var(--ease);
+      }
+      .card:hover {
+        border-color: var(--border-orange);
+        background: var(--bg-surface-2);
+        transform: translateY(-3px);
+      }
+      .card .icon-badge {
+        margin-bottom: 16px;
+      }
+      .card h3 {
+        margin-bottom: 8px;
+        font-size: 16.5px;
+      }
+      .card p {
+        font-size: 14.2px;
+        color: var(--text-2);
+      }
+      .card .tag {
+        display: inline-block;
+        margin-top: 14px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--orange-bright);
+        border: 1px solid var(--border-orange);
+        background: rgba(255, 106, 61, 0.08);
+        padding: 3px 9px;
+        border-radius: 999px;
+      }
+
+      /* Steps */
+      .steps {
+        display: grid;
+        gap: 14px;
+      }
+      .step {
+        display: grid;
+        grid-template-columns: 54px 1fr;
+        gap: 20px;
+        align-items: start;
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        border-radius: var(--radius-md);
+        padding: 22px 24px;
+        transition: 0.22s var(--ease);
+      }
+      .step:hover {
+        border-color: var(--border-orange);
+        background: var(--bg-surface-2);
+      }
+      .step-num {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 15px;
+        color: #fff;
+        background: var(--grad-main);
+        box-shadow: 0 10px 26px -14px rgba(255, 90, 50, 1);
+      }
+      .step h3 {
+        margin-bottom: 6px;
+        font-size: 17px;
+      }
+      .step p {
+        color: var(--text-2);
+        font-size: 14.6px;
+      }
+      .step-meta {
+        margin-top: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-2);
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        padding: 4px 10px;
+        border-radius: 999px;
+      }
+      .chip svg {
+        width: 13px;
+        height: 13px;
+        color: var(--orange);
+      }
+
+      /* Critères */
+      .crit-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 12px;
+      }
+      .crit {
+        display: flex;
+        gap: 13px;
+        align-items: flex-start;
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        border-radius: var(--radius-sm);
+        padding: 15px 16px;
+        transition: 0.2s var(--ease);
+      }
+      .crit:hover {
+        border-color: var(--border-orange);
+        transform: translateY(-2px);
+      }
+      .crit .icon-badge {
+        width: 32px;
+        height: 32px;
+        flex-basis: 32px;
+        border-radius: 9px;
+      }
+      .crit .icon-badge svg {
+        width: 16px;
+        height: 16px;
+      }
+      .crit b {
+        display: block;
+        font-size: 14.2px;
+        font-weight: 600;
+      }
+      .crit span {
+        font-size: 12.6px;
+        color: var(--text-3);
+      }
+
+      /* Weights */
+      .weights {
+        border: 1px solid var(--border);
+        background: var(--bg-panel);
+        border-radius: var(--radius-lg);
+        padding: clamp(22px, 3vw, 34px);
+        box-shadow: var(--shadow-card);
+      }
+      .weight-row {
+        display: grid;
+        grid-template-columns: 168px 1fr 52px;
+        gap: 14px;
+        align-items: center;
+        padding: 9px 0;
+        font-size: 14px;
+      }
+      .weight-row + .weight-row {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .weight-bar {
+        height: 7px;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.06);
+        overflow: hidden;
+      }
+      .weight-bar i {
+        display: block;
+        height: 100%;
+        border-radius: 99px;
+        background: var(--grad-main);
+        width: 0;
+        transition: width 1.1s var(--ease);
+      }
+      .weight-val {
+        text-align: right;
+        color: var(--text-2);
+        font-variant-numeric: tabular-nums;
+        font-size: 13px;
+      }
+      .weights-foot {
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .bonus {
+        font-size: 12.5px;
+        color: var(--text-2);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 5px 12px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .bonus b {
+        color: var(--green);
+      }
+
+      /* Top 5 mock */
+      .top5 {
+        display: grid;
+        gap: 10px;
+      }
+      .top5-row {
+        display: grid;
+        grid-template-columns: 34px 1fr auto;
+        gap: 16px;
+        align-items: center;
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        border-radius: var(--radius-sm);
+        padding: 14px 16px;
+      }
+      .top5-row .rank {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        font-size: 12.5px;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        color: var(--text-2);
+      }
+      .top5-row:first-child .rank {
+        background: var(--grad-main);
+        color: #fff;
+        border-color: transparent;
+      }
+      .top5-name {
+        font-size: 14.6px;
+        font-weight: 600;
+      }
+      .top5-meta {
+        font-size: 12.5px;
+        color: var(--text-3);
+      }
+      .score {
+        font-size: 13.5px;
+        font-weight: 700;
+        padding: 5px 11px;
+        border-radius: 999px;
+        border: 1px solid;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Credibility */
+      .cred {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: clamp(28px, 5vw, 60px);
+        align-items: center;
+      }
+      .cred-list {
+        margin-top: 22px;
+        display: grid;
+        gap: 12px;
+      }
+      .cred-item {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        font-size: 14.6px;
+        color: var(--text-2);
+      }
+      .check {
+        width: 22px;
+        height: 22px;
+        flex: 0 0 22px;
+        border-radius: 7px;
+        display: grid;
+        place-items: center;
+        background: rgba(16, 185, 129, 0.14);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: var(--green);
+      }
+      .check svg {
+        width: 13px;
+        height: 13px;
+      }
+      .cred-item b {
+        color: var(--text-1);
+        font-weight: 600;
+      }
+
+      /* CTA final */
+      .cta-final {
+        position: relative;
+        border: 1px solid var(--border-orange);
+        border-radius: var(--radius-xl);
+        background:
+          radial-gradient(
+            80% 120% at 50% 0%,
+            rgba(255, 106, 61, 0.16),
+            transparent 70%
+          ),
+          var(--bg-panel);
+        padding: clamp(38px, 6vw, 72px) 28px;
+        text-align: center;
+        box-shadow: var(--glow);
+      }
+      .cta-final h2 {
+        max-width: 18ch;
+        margin: 0 auto;
+      }
+      .cta-final p {
+        margin: 16px auto 0;
+        max-width: 56ch;
+        color: var(--text-2);
+      }
+      .cta-final .hero-cta {
+        justify-content: center;
+      }
+
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 34px 0 44px;
+        color: var(--text-3);
+        font-size: 13.4px;
+      }
+      .foot-inner {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      /* Reveal */
+      .reveal {
+        opacity: 0;
+        transform: translateY(18px);
+        transition:
+          opacity 0.7s var(--ease),
+          transform 0.7s var(--ease);
+      }
+      .reveal.in {
+        opacity: 1;
+        transform: none;
+      }
+
+      @media (max-width: 980px) {
+        .grid-4 {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .grid-3 {
+          grid-template-columns: 1fr;
+        }
+        .split,
+        .cred {
+          grid-template-columns: 1fr;
+        }
+        .split.rev .split-media {
+          order: 0;
+        }
+        .nav-links {
+          display: none;
+        }
+        .weight-row {
+          grid-template-columns: 120px 1fr 46px;
+          font-size: 13px;
+        }
+      }
+      @media (max-width: 560px) {
+        .grid-4 {
+          grid-template-columns: 1fr;
+        }
+        .step {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ============ NAV ============ -->
+    <header class="nav" id="nav">
+      <div class="wrap nav-inner">
+        <div class="brand">
+          <span class="brand-mark">
+            <svg
+              width="17"
+              height="17"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.9"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M5 17h14M3 17V9l2-5h10l4 5v8" />
+              <circle cx="7.5" cy="17" r="1.8" />
+              <circle cx="16.5" cy="17" r="1.8" />
+            </svg>
+          </span>
+          Mon <span class="accent">AiGENT</span> Occasion
+        </div>
+
+        <nav class="nav-links">
+          <a href="#fonctionnement">Fonctionnement</a>
+          <a href="#criteres">Critères</a>
+          <a href="#moteur">Moteur IA</a>
+          <a href="#parcours">Mise en relation</a>
+          <a href="#credibilite">Crédibilité</a>
+        </nav>
+
+        <div class="nav-actions">
+          <a class="btn btn-primary" href="./login-occas.html">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
+            Se connecter
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============ HERO PLEINE LARGEUR (MODÈLE EXACT) ============ -->
+    <section class="hero">
+      <!-- Image pleine largeur avec dégradé d'ombre gauche intégré -->
+      <div class="hero-bg-wrapper">
+        <img
+          src="./images/hero-lambo.jpg"
+          alt="Voiture de sport rouge Lamborghini en ville"
+          width="1920"
+          height="1080"
+        />
+      </div>
+
+      <!-- Contenu textuel sans boîte fermée + 4 cartes en bas -->
+      <div class="hero-content">
+        <div class="hero-text-zone">
+          <div class="eyebrow-pill">
+            <span class="dot"></span> Cerveau IA · matching acheteur / vendeur
+            en temps réel
+          </div>
+
+          <h1 class="hero-title">
+            L'IA qui <span class="accent-red">vend</span> et qui <br />
+            <span class="accent-red">trouve</span> votre voiture.
+          </h1>
+
+          <p class="hero-desc">
+            Mon AiGENT Occasion remplace les petites annonces passives par un
+            agent intelligent : il collecte vos critères en conversation, publie
+            une annonce ultra-détaillée, score chaque profil du marché et vous
+            met en relation avec les 5 meilleurs — jusqu'au rendez-vous.
+          </p>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary btn-lg" href="./login-occas.html"
+              >Démarrer avec l'IA</a
+            >
+            <a class="btn btn-lg" href="#fonctionnement"
+              >Voir comment ça marche</a
+            >
+          </div>
+        </div>
+
+        <!-- 4 onglets / cartes flottantes en bas -->
+        <div class="hero-stats-grid">
+          <div class="hero-stat-card">
+            <span class="stat-num">20+</span>
+            <span class="stat-label">critères analysés par annonce</span>
+          </div>
+          <div class="hero-stat-card">
+            <span class="stat-num">Top 5</span>
+            <span class="stat-label">profils les plus compatibles</span>
+          </div>
+          <div class="hero-stat-card">
+            <span class="stat-num">11 zones</span>
+            <span class="stat-label">d'état carrosserie qualifiées</span>
+          </div>
+          <div class="hero-stat-card">
+            <span class="stat-num">CarVertical</span>
+            <span class="stat-label">rapport d'historique intégré</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- ============ CE QUE FAIT LE SITE ============ -->
+    <section class="block" id="fonctionnement">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <div class="kicker">Ce que fait la plateforme</div>
+          <h2>Un agent IA entre l'acheteur et le vendeur, pas un catalogue.</h2>
+          <p class="lead">
+            Sur les plateformes classiques, l'acheteur fouille et le vendeur
+            attend. Ici, les deux côtés parlent au même agent : chacun décrit
+            son projet en langage naturel, l'IA structure les critères, crée le
+            profil (acheteur ou vendeur), puis calcule la compatibilité entre
+            chaque recherche et chaque annonce du marché.
+          </p>
+        </div>
+
+        <div class="grid grid-3">
+          <div class="card reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                />
+              </svg>
+            </span>
+            <h3>Conversation, pas formulaire</h3>
+            <p>
+              Vous écrivez « je cherche une citadine essence sous 10 000 € vers
+              Lyon ». L'IA relance, précise l'année, le kilométrage, la boîte,
+              et remplit le panneau de critères au fil de l'échange.
+            </p>
+            <span class="tag">Tunnel IA acheteur / vendeur</span>
+          </div>
+
+          <div class="card reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 19V5M5 12l7-7 7 7" />
+              </svg>
+            </span>
+            <h3>Publication d'annonce enrichie</h3>
+            <p>
+              Photos, état par zones, motorisation, prix, ville, rapport
+              CarVertical : l'annonce se construit par pop-ups guidés dans le
+              chat, puis se publie en un clic après récapitulatif.
+            </p>
+            <span class="tag">Annonces acheteur & vendeur</span>
+          </div>
+
+          <div class="card reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 17l6-6 4 4 8-8" />
+                <path d="M21 7v6h-6" />
+              </svg>
+            </span>
+            <h3>Scoring et mise en relation</h3>
+            <p>
+              Le moteur de matching note chaque profil de 0 à 100, écarte les
+              incompatibles, classe le Top 5 et déclenche le premier message à
+              votre place. Vous reprenez la main en messagerie.
+            </p>
+            <span class="tag">Top 5 · contact automatisé</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap"><div class="hr"></div></div>
+
+    <!-- ============ SPLITS ILLUSTRÉS ============ -->
+    <section class="block">
+      <div class="wrap">
+        <div class="split reveal">
+          <div class="split-text">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+            </span>
+            <h3>Des annonces visuelles, jusqu'à 6 photos</h3>
+            <p class="body">
+              L'agent ouvre un pop-up d'upload directement dans la conversation
+              : glissez jusqu'à six photos du véhicule (extérieur, intérieur,
+              compteur, défauts). Les fichiers sont envoyés au serveur, attachés
+              à l'annonce et affichés en galerie sur la fiche du véhicule.
+            </p>
+            <p class="body">
+              Ce n'est pas cosmétique : chaque photo augmente le score de
+              qualité de l'annonce dans le moteur de matching, et une annonce
+              illustrée remonte devant une annonce vide à critères égaux.
+            </p>
+          </div>
+          <div class="split-media">
+            <img
+              src="./images/annonce-photos.jpg"
+              alt="Prise de photo d'un véhicule d'occasion pour une annonce"
+              loading="lazy"
+              width="1200"
+              height="800"
+            />
+          </div>
+        </div>
+
+        <div class="split rev reveal">
+          <div class="split-text">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M5 17h14M3 17V9l2-5h10l4 5v8" />
+                <path d="M9 12h6" />
+              </svg>
+            </span>
+            <h3>L'état du véhicule, zone par zone</h3>
+            <p class="body">
+              Un schéma interactif de la voiture s'affiche dans le chat. Onze
+              zones sont qualifiables — avant, capot, toit, pare-brise,
+              portières et flancs, vitres, coffre, arrière, jantes et pneus,
+              intérieur, mécanique — chacune notée : parfait, bon état, usure
+              normale, rayures, choc / impact, ou à réparer.
+            </p>
+            <p class="body">
+              L'IA convertit ces déclarations en un score d'état moyen, affiché
+              sur l'annonce et intégré au calcul de compatibilité. Les dommages
+              sont annoncés d'entrée : moins de visites inutiles, moins de
+              négociation surprise sur le parking.
+            </p>
+          </div>
+          <div class="split-media">
+            <img
+              src="./images/etat-inspection.jpg"
+              alt="Inspection de la carrosserie d'un véhicule d'occasion"
+              loading="lazy"
+              width="1200"
+              height="800"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CRITÈRES ============ -->
+    <section class="block" id="criteres">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <div class="kicker">Critères de matching</div>
+          <h2>
+            Tout ce que l'IA prend en compte pour rapprocher deux profils.
+          </h2>
+          <p class="lead">
+            Chaque critère est extrait de la conversation ou des pop-ups, puis
+            comparé entre l'annonce vendeur et la recherche acheteur.
+          </p>
+        </div>
+
+        <div class="crit-grid">
+          <div class="crit reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M5 17h14M3 17V9l2-5h10l4 5v8" />
+              </svg>
+            </span>
+            <div>
+              <b>Marque, modèle, année</b
+              ><span>Correspondance floue tolérante aux fautes</span>
+            </div>
+          </div>
+          <div class="crit reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 12l4-2" />
+                <path d="M12 12V7" />
+              </svg>
+            </span>
+            <div>
+              <b>Kilométrage</b
+              ><span>Plafond acheteur avec tolérance de 15 %</span>
+            </div>
+          </div>
+          <div class="crit reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M14 9V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14h9M14 9h1.5a2 2 0 0 1 2 2v3.5a1.5 1.5 0 0 0 3 0V9a4 4 0 0 0-1.17-2.83L17 4"
+                />
+              </svg>
+            </span>
+            <div>
+              <b>Carburant</b
+              ><span>Essence, diesel, hybride, électrique, GPL</span>
+            </div>
+          </div>
+          <div class="crit reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="8" />
+                <path d="M12 4v16M6 8h12" />
+              </svg>
+            </span>
+            <div>
+              <b>Boîte de vitesses</b><span>Manuelle ou automatique</span>
+            </div>
+          </div>
+          <div class="crit reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 10c0 6-9 12-9 12S3 16 3 10a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+            </span>
+            <div>
+              <b>Zone de vente</b
+              ><span>Distance réelle et rayon de tolérance</span>
+            </div>
+          </div>
+          <div class="crit reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 1v22" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </span>
+            <div>
+              <b>Prix et budget</b
+              ><span>Marge de 8 %, rejet au-delà de 15 %</span>
+            </div>
+          </div>
+          <div class="crit reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.8 8.8 8.8-8.8a5.5 5.5 0 0 0 0-7.8z"
+                />
+              </svg>
+            </span>
+            <div>
+              <b>État par zones</b><span>11 zones, 6 niveaux de dommage</span>
+            </div>
+          </div>
+          <div class="crit reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+            </span>
+            <div>
+              <b>Photos du véhicule</b
+              ><span>Jusqu'à 6 images, bonus de score</span>
+            </div>
+          </div>
+          <div class="crit reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
+            </span>
+            <div>
+              <b>Rapport CarVertical</b
+              ><span>PDF d'historique + note sur 100</span>
+            </div>
+          </div>
+          <div class="crit reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                />
+                <polyline points="14 2 14 8 20 8" />
+                <path d="M9 15h6" />
+              </svg>
+            </span>
+            <div>
+              <b>Carte grise / contrôle technique</b
+              ><span>Pièces jointes à l'annonce</span>
+            </div>
+          </div>
+          <div class="crit reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M4 19V5M4 19h16" />
+                <rect x="7" y="11" width="3" height="8" />
+                <rect x="13" y="7" width="3" height="12" />
+              </svg>
+            </span>
+            <div>
+              <b>Historique kilométrique</b
+              ><span>Cohérence compteur vérifiée au rapport</span>
+            </div>
+          </div>
+          <div class="crit reveal">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v4l3 2" />
+              </svg>
+            </span>
+            <div>
+              <b>Urgence et disponibilité</b
+              ><span>Délai de vente, créneaux de visite</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MOTEUR IA ============ -->
+    <section class="block" id="moteur">
+      <div class="wrap">
+        <div class="split reveal">
+          <div class="split-text">
+            <div class="kicker">Le Cerveau IA</div>
+            <h3>Comment le score de compatibilité est calculé</h3>
+            <p class="body">
+              Le moteur compare une annonce vendeur à une recherche acheteur
+              critère par critère. Chaque critère produit une note de 0 à 100,
+              pondérée selon son importance réelle dans une décision d'achat
+              auto. Deux règles d'exclusion protègent votre temps : un véhicule
+              plus de 15 % au-dessus du budget, ou situé bien au-delà du rayon
+              accepté, n'apparaît jamais dans vos résultats.
+            </p>
+            <p class="body">
+              La note finale est ensuite bonifiée par la qualité de l'annonce :
+              photos jointes et rapport d'historique. Une annonce complète et
+              vérifiable passe mécaniquement devant une annonce approximative.
+            </p>
+          </div>
+          <div class="split-media">
+            <img
+              src="./images/matching-ia.jpg"
+              alt="Réseau de correspondances entre profils acheteurs et vendeurs"
+              loading="lazy"
+              width="1200"
+              height="800"
+            />
+          </div>
+        </div>
+
+        <div class="weights reveal" style="margin-top: 42px" id="weights">
+          <h3 style="margin-bottom: 18px">Pondération des critères</h3>
+          <div class="weight-row">
+            <span>Zone / distance</span>
+            <span class="weight-bar"><i data-w="28"></i></span>
+            <span class="weight-val">28 %</span>
+          </div>
+          <div class="weight-row">
+            <span>Budget / prix</span>
+            <span class="weight-bar"><i data-w="18"></i></span>
+            <span class="weight-val">18 %</span>
+          </div>
+          <div class="weight-row">
+            <span>Kilométrage</span>
+            <span class="weight-bar"><i data-w="14"></i></span>
+            <span class="weight-val">14 %</span>
+          </div>
+          <div class="weight-row">
+            <span>Année</span>
+            <span class="weight-bar"><i data-w="10"></i></span>
+            <span class="weight-val">10 %</span>
+          </div>
+          <div class="weight-row">
+            <span>Carburant</span>
+            <span class="weight-bar"><i data-w="10"></i></span>
+            <span class="weight-val">10 %</span>
+          </div>
+          <div class="weight-row">
+            <span>État du véhicule</span>
+            <span class="weight-bar"><i data-w="8"></i></span>
+            <span class="weight-val">8 %</span>
+          </div>
+          <div class="weight-row">
+            <span>Marque / modèle</span>
+            <span class="weight-bar"><i data-w="8"></i></span>
+            <span class="weight-val">8 %</span>
+          </div>
+          <div class="weight-row">
+            <span>Boîte de vitesses</span>
+            <span class="weight-bar"><i data-w="4"></i></span>
+            <span class="weight-val">4 %</span>
+          </div>
+          <div class="weights-foot">
+            <span class="bonus">Photos jointes <b>jusqu'à +8 pts</b></span>
+            <span class="bonus">Rapport CarVertical <b>+10 pts</b></span>
+            <span class="bonus">Note d'historique ≥ 80 <b>+5 pts</b></span>
+            <span class="bonus"
+              >Hors budget &gt; 15 %
+              <b style="color: var(--red)">exclu</b></span
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PARCOURS / TOP 5 ============ -->
+    <section class="block" id="parcours">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <div class="kicker">De l'annonce au rendez-vous</div>
+          <h2>Cinq étapes, et l'IA fait le premier pas à votre place.</h2>
+          <p class="lead">
+            Publier une annonce ne suffit pas : encore faut-il parler aux bonnes
+            personnes. Voici le parcours complet, côté acheteur comme côté
+            vendeur.
+          </p>
+        </div>
+
+        <div class="steps">
+          <div class="step reveal">
+            <span class="step-num">1</span>
+            <div>
+              <h3>Vous décrivez votre projet à l'agent</h3>
+              <p>
+                Acheteur ou vendeur, vous parlez normalement. L'IA extrait les
+                critères, ouvre les pop-ups nécessaires (motorisation, état par
+                zones, photos, CarVertical) et affiche en direct votre fiche de
+                critères dans le panneau « Cerveau IA ».
+              </p>
+              <div class="step-meta">
+                <span class="chip"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                    />
+                  </svg>
+                  Conversation guidée</span
+                >
+                <span class="chip"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                  Critères structurés</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="step reveal">
+            <span class="step-num">2</span>
+            <div>
+              <h3>L'annonce est publiée, ultra-détaillée</h3>
+              <p>
+                Récapitulatif avant publication : ville, motorisation et boîte,
+                kilométrage, prix, nombre de photos, présence du rapport
+                d'historique. Vous confirmez, l'annonce entre dans le marché et
+                devient scorable par le moteur.
+              </p>
+              <div class="step-meta">
+                <span class="chip"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M12 19V5M5 12l7-7 7 7" />
+                  </svg>
+                  Publication en un clic</span
+                >
+                <span class="chip"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="3" />
+                  </svg>
+                  Fiche véhicule complète</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="step reveal">
+            <span class="step-num">3</span>
+            <div>
+              <h3>Le Cerveau IA classe le Top 5 des profils</h3>
+              <p>
+                Le moteur parcourt tous les profils opposés, écarte les
+                incompatibles, calcule la compatibilité et ne retient que les
+                cinq meilleurs. Chaque résultat affiche son pourcentage, ses
+                points communs et ses écarts, avec la galerie photo et le
+                rapport joint.
+              </p>
+              <div class="step-meta">
+                <span class="chip"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M3 17l6-6 4 4 8-8" />
+                  </svg>
+                  Score 0–100</span
+                >
+                <span class="chip"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M4 6h16M4 12h16M4 18h10" />
+                  </svg>
+                  5 profils filtrés</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="step reveal">
+            <span class="step-num">4</span>
+            <div>
+              <h3>Vous demandez à l'IA de les contacter</h3>
+              <p>
+                Un bouton « Mettre en relation » sur chaque fiche, ou « Être mis
+                en relation » pour le lot. L'agent rédige et envoie le premier
+                message à votre place : véhicule concerné, critères communs,
+                intention claire. Aucun copier-coller, aucune annonce laissée
+                sans réponse.
+              </p>
+              <div class="step-meta">
+                <span class="chip"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />
+                  </svg>
+                  Premier contact automatisé</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="step reveal">
+            <span class="step-num">5</span>
+            <div>
+              <h3>Discussion en messagerie, puis rendez-vous</h3>
+              <p>
+                La conversation s'ouvre dans la messagerie interne : questions,
+                photos complémentaires, négociation. Quand le courant passe,
+                vous fixez le créneau d'essai et l'adresse. L'IA reste
+                disponible en support pour analyser le marché et situer le prix
+                avant la visite.
+              </p>
+              <div class="step-meta">
+                <span class="chip"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <rect x="3" y="4" width="18" height="17" rx="2" />
+                    <path d="M16 2v4M8 2v4M3 10h18" />
+                  </svg>
+                  Essai et rendez-vous</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="split reveal" style="margin-top: 56px">
+          <div class="split-text">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              </svg>
+            </span>
+            <h3>Un exemple de Top 5 renvoyé par l'agent</h3>
+            <p class="body">
+              Les profils sont triés par compatibilité décroissante. Un score
+              élevé signifie : bon rayon géographique, budget respecté,
+              kilométrage et motorisation alignés, état renseigné, et annonce
+              documentée par des photos et un rapport d'historique.
+            </p>
+            <div class="top5" style="margin-top: 22px">
+              <div class="top5-row">
+                <span class="rank">1</span>
+                <div>
+                  <div class="top5-name">Peugeot 208 · 2021 · Diesel</div>
+                  <div class="top5-meta">
+                    Lyon · 62 000 km · 12 400 € · 5 photos · CarVertical
+                  </div>
+                </div>
+                <span
+                  class="score"
+                  style="color: #10b981; border-color: #10b98155"
+                  >94 %</span
+                >
+              </div>
+              <div class="top5-row">
+                <span class="rank">2</span>
+                <div>
+                  <div class="top5-name">Renault Clio V · 2020 · Essence</div>
+                  <div class="top5-meta">
+                    Villeurbanne · 71 000 km · 11 900 € · 4 photos
+                  </div>
+                </div>
+                <span
+                  class="score"
+                  style="color: #10b981; border-color: #10b98155"
+                  >88 %</span
+                >
+              </div>
+              <div class="top5-row">
+                <span class="rank">3</span>
+                <div>
+                  <div class="top5-name">Citroën C3 · 2020 · Essence</div>
+                  <div class="top5-meta">
+                    Saint-Priest · 84 000 km · 10 200 € · 6 photos
+                  </div>
+                </div>
+                <span
+                  class="score"
+                  style="color: #f5b14c; border-color: #f5b14c55"
+                  >76 %</span
+                >
+              </div>
+              <div class="top5-row">
+                <span class="rank">4</span>
+                <div>
+                  <div class="top5-name">Toyota Yaris · 2019 · Hybride</div>
+                  <div class="top5-meta">
+                    Bron · 93 000 km · 12 900 € · 3 photos
+                  </div>
+                </div>
+                <span
+                  class="score"
+                  style="color: #f5b14c; border-color: #f5b14c55"
+                  >71 %</span
+                >
+              </div>
+              <div class="top5-row">
+                <span class="rank">5</span>
+                <div>
+                  <div class="top5-name">Opel Corsa · 2019 · Essence</div>
+                  <div class="top5-meta">
+                    Vienne · 88 000 km · 9 800 € · 2 photos
+                  </div>
+                </div>
+                <span
+                  class="score"
+                  style="color: #ff6a3d; border-color: #ff6a3d55"
+                  >64 %</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="split-media">
+            <img
+              src="./images/rendez-vous.jpg"
+              alt="Poignée de main entre acheteur et vendeur devant un véhicule"
+              loading="lazy"
+              width="1200"
+              height="800"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CRÉDIBILITÉ ============ -->
+    <section class="block" id="credibilite">
+      <div class="wrap">
+        <div class="cred">
+          <div class="reveal">
+            <div class="kicker">Crédibilité et confiance</div>
+            <h2>Une annonce prouvée vaut mieux qu'une annonce promise.</h2>
+            <p class="body" style="margin-top: 16px">
+              Le marché de l'occasion souffre d'un seul problème : le doute.
+              Compteur trafiqué, accident non déclaré, photos trop avantageuses.
+              Mon AiGENT Occasion attaque ce doute avec des preuves attachées à
+              l'annonce, et récompense les vendeurs transparents dans le
+              classement.
+            </p>
+            <p class="body">
+              Le rapport CarVertical se joint en PDF depuis le chat. Il est
+              consultable et téléchargeable par l'acheteur directement sur la
+              fiche, avec sa note sur 100 affichée en badge. Combiné aux photos
+              réelles et à l'état déclaré zone par zone, il transforme une
+              promesse en dossier vérifiable.
+            </p>
+
+            <div class="cred-list">
+              <div class="cred-item">
+                <span class="check"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M20 6L9 17l-5-5" /></svg
+                ></span>
+                <div>
+                  <b>Historique kilométrique</b> — cohérence du compteur
+                  vérifiée sur la durée de vie du véhicule.
+                </div>
+              </div>
+              <div class="cred-item">
+                <span class="check"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M20 6L9 17l-5-5" /></svg
+                ></span>
+                <div>
+                  <b>Accidents et sinistres déclarés</b> — l'acheteur sait ce
+                  qu'il vient voir avant de se déplacer.
+                </div>
+              </div>
+              <div class="cred-item">
+                <span class="check"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M20 6L9 17l-5-5" /></svg
+                ></span>
+                <div>
+                  <b>Photos authentiques</b> — six clichés maximum, affichés en
+                  galerie plein écran sur la fiche.
+                </div>
+              </div>
+              <div class="cred-item">
+                <span class="check"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M20 6L9 17l-5-5" /></svg
+                ></span>
+                <div>
+                  <b>Bonus de visibilité</b> — jusqu'à 15 points de
+                  compatibilité supplémentaires pour une annonce documentée.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="split-media reveal">
+            <img
+              src="./images/carvertical-report.jpg"
+              alt="Rapport d'historique véhicule imprimé posé à côté d'une clé de voiture"
+              loading="lazy"
+              width="1200"
+              height="800"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="block" style="padding-top: 0">
+      <div class="wrap">
+        <div class="cta-final reveal">
+          <h2>Votre prochaine voiture vous cherche déjà.</h2>
+          <p>
+            Créez votre profil acheteur ou vendeur, laissez l'agent construire
+            votre annonce et contacter les meilleurs profils pour vous.
+          </p>
+          <div class="hero-cta">
+            <a class="btn btn-primary btn-lg" href="./login-occas.html"
+              >Se connecter et lancer l'agent</a
+            >
+            <a class="btn btn-lg" href="#fonctionnement"
+              >Revoir le fonctionnement</a
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap foot-inner">
+        <div class="brand" style="font-size: 14px">
+          <span
+            class="brand-mark"
+            style="width: 26px; height: 26px; border-radius: 8px"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M5 17h14M3 17V9l2-5h10l4 5v8" />
+            </svg>
+          </span>
+          Mon <span class="accent">AiGENT</span> Occasion
+        </div>
+        <div>
+          © <span id="year"></span> Mon AiGENT Occasion — Tous droits réservés
+        </div>
+        <a
+          href="./login-occas.html"
+          style="color: var(--orange-bright); font-weight: 600"
+          >Se connecter</a
+        >
+      </div>
+    </footer>
+
+    <script>
+      // Nav shadow on scroll
+      const nav = document.getElementById("nav");
+      const onScroll = () =>
+        nav.classList.toggle("scrolled", window.scrollY > 12);
+      onScroll();
+      window.addEventListener("scroll", onScroll, { passive: true });
+
+      // Reveal on scroll
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add("in");
+              io.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.12 },
+      );
+      document.querySelectorAll(".reveal").forEach((el, i) => {
+        el.style.transitionDelay = `${Math.min(i % 4, 3) * 60}ms`;
+        io.observe(el);
+      });
+
+      // Animate weight bars when visible
+      const weights = document.getElementById("weights");
+      if (weights) {
+        const wo = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((e) => {
+              if (!e.isIntersecting) return;
+              weights.querySelectorAll(".weight-bar i").forEach((bar, idx) => {
+                const pct = Number(bar.dataset.w) || 0;
+                setTimeout(() => {
+                  bar.style.width = pct * 3.4 + "%";
+                }, idx * 90);
+              });
+              wo.disconnect();
+            });
+          },
+          { threshold: 0.3 },
+        );
+        wo.observe(weights);
+      }
+
+      document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>

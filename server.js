@@ -403,6 +403,8 @@ app.use(
 
         connectSrc: [
           "'self'",
+          "http://localhost:3100",
+          "http://127.0.0.1:3100",
           "https://*.supabase.co",
           "https://fonts.googleapis.com",
           "https://fonts.gstatic.com",

@@ -1700,41 +1700,231 @@
         border-color: var(--border3);
       }
 
-      /* Responsive */
+      /* ── OVERLAY (base, plus jamais forcé) ── */
+      .overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(3px);
+        z-index: 199;
+        opacity: 0;
+        transition: opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .overlay.active {
+        display: block;
+        opacity: 1;
+      }
+
+      /* ── DOCK FLOTTANT (mobile only) ── */
+      .fab-dock {
+        display: none;
+      }
+
+      /* ================= RESPONSIVE ================= */
       @media (max-width: 1024px) {
         .page {
           grid-template-columns: 1fr;
         }
-        .page-right {
-          display: none;
+        .page-left {
+          border-right: none;
         }
-        .lab-grid {
-          grid-template-columns: 1fr;
-        }
+        .lab-grid,
         .scenario-grid {
           grid-template-columns: 1fr;
         }
       }
+
       @media (max-width: 768px) {
+        html,
+        body {
+          overflow: hidden;
+          overscroll-behavior: none;
+        }
+        .app {
+          height: 100dvh;
+        }
+
+        /* --- SIDEBAR = drawer gauche --- */
         .sidebar {
           position: fixed;
-          left: 0;
           top: 0;
-          z-index: 200;
-          transform: translateX(-100%);
+          left: 0;
+          height: 100dvh;
+          width: 268px;
+          z-index: 220;
+          transform: translateX(-102%);
+          transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+          box-shadow: 0 0 70px -10px rgba(0, 0, 0, 0.85);
+          border-right: 1px solid var(--border2);
         }
         .sidebar.open {
           transform: translateX(0);
         }
-        .overlay {
-          display: block !important;
+        .sidebar.collapsed {
+          width: 268px;
+        } /* neutralise le collapse desktop */
+        .sidebar.collapsed .sb-item-label,
+        .sidebar.collapsed .sb-name,
+        .sidebar.collapsed .sb-section,
+        .sidebar.collapsed .sb-user-info {
+          display: block;
+          opacity: 1;
+        }
+        .sb-toggle {
+          display: none;
+        } /* inutile en mobile */
+
+        /* --- HEADER slim, rien ne dépasse --- */
+        .header {
+          height: 52px;
+          padding: 0 12px;
+          gap: 8px;
+        }
+        #mobileMenu {
+          display: flex !important;
+          flex: 0 0 auto;
+        }
+        .header-sep,
+        .header-sub {
+          display: none;
+        }
+        .header-title {
+          font-size: 14px;
+          flex: 1;
+          min-width: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .header-right {
+          margin-left: auto;
+          gap: 6px;
+          flex: 0 0 auto;
+        }
+        /* les actions descendent dans le dock flottant */
+        #btnTheme,
+        #btnExport,
+        #btnActions {
+          display: none;
+        }
+
+        /* --- PANEL DROIT = bottom sheet glissante --- */
+        .page-right {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 82dvh;
+          z-index: 210;
+          background: var(--bg1);
+          border-top: 1px solid var(--border2);
+          border-radius: 18px 18px 0 0;
+          box-shadow: 0 -20px 60px -20px rgba(0, 0, 0, 0.9);
+          transform: translateY(101%);
+          transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+        .page-right.open {
+          transform: translateY(0);
+        }
+        .sheet-grip {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 28px;
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          background: var(--bg1);
+          border-radius: 18px 18px 0 0;
+        }
+        .sheet-grip::before {
+          content: "";
+          width: 42px;
+          height: 4px;
+          border-radius: 99px;
+          background: var(--border3);
+        }
+
+        /* --- DOCK FLOTTANT bas-droite --- */
+        .fab-dock {
+          display: flex;
+          flex-direction: column-reverse;
+          align-items: flex-end;
+          gap: 10px;
+          position: fixed;
+          right: 14px;
+          bottom: calc(14px + env(safe-area-inset-bottom));
+          z-index: 190;
+        }
+        .fab {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          height: 42px;
+          padding: 0 14px;
+          border-radius: 99px;
+          background: var(--bg2);
+          border: 1px solid var(--border2);
+          color: var(--t1);
+          font-size: 12.5px;
+          font-weight: 600;
+          box-shadow: 0 14px 34px -12px rgba(0, 0, 0, 0.9);
+          backdrop-filter: blur(12px);
+        }
+        .fab-icon {
+          width: 42px;
+          padding: 0;
+          justify-content: center;
+        }
+        .fab-primary {
+          background: var(--vi);
+          border-color: var(--vi);
+          color: #fff;
+        }
+        .fab:active {
+          transform: scale(0.96);
+        }
+
+        /* --- CONTENU : zéro débordement --- */
+        .hero {
+          padding: 20px 16px 18px;
+        }
+        .hero-top {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 14px;
+        }
+        .hero-verdict {
+          font-size: 22px;
+          line-height: 1.15;
+        }
+        .hero-chips {
+          flex-wrap: wrap;
         }
         .hero-kpis {
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+        .tabs-bar {
+          overflow-x: auto;
+          scrollbar-width: none;
+          padding: 0 12px;
+          gap: 14px;
+          flex-wrap: nowrap;
+        }
+        .tabs-bar::-webkit-scrollbar {
+          display: none;
+        }
+        .tab {
+          white-space: nowrap;
+          flex: 0 0 auto;
+        }
+        .page-left {
+          padding-bottom: 88px;
+        } /* place pour le dock */
         .split-wrap {
           grid-template-columns: 1fr;
-          grid-template-rows: auto auto auto;
         }
         .split-center {
           border: none;
@@ -1744,16 +1934,21 @@
           border-right: none;
           border-bottom: 1px solid var(--border);
         }
+        .page-left * {
+          min-width: 0;
+        }
+        .mono,
+        pre,
+        code {
+          overflow-wrap: anywhere;
+        }
+        table {
+          display: block;
+          overflow-x: auto;
+          width: 100%;
+        }
       }
 
-      .overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 199;
-        backdrop-filter: blur(2px);
-      }
       .sep {
         height: 1px;
         background: var(--border);
@@ -2465,6 +2660,8 @@
 
           <!-- RIGHT PANEL -->
           <div class="page-right" id="pageRight">
+            <div class="sheet-grip" id="sheetGrip"></div>
+
             <div class="right-panel">
               <!-- Brief vocal -->
               <div class="right-section">
@@ -2581,6 +2778,68 @@
       <!-- /main -->
     </div>
     <!-- /app -->
+    <!-- DOCK FLOTTANT MOBILE -->
+    <div class="fab-dock" id="fabDock">
+      <button class="fab fab-primary" id="fabActions">
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+        >
+          <circle cx="12" cy="12" r="1" />
+          <circle cx="19" cy="12" r="1" />
+          <circle cx="5" cy="12" r="1" />
+        </svg>
+        Actions
+      </button>
+      <button class="fab" id="fabPanel">
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
+          <path d="M3 5h18M3 12h11M3 19h7" />
+          <circle cx="19" cy="17" r="3" />
+        </svg>
+        Brief &amp; plan
+      </button>
+      <button class="fab fab-icon" id="fabExport" aria-label="Exporter">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      </button>
+      <button class="fab fab-icon" id="fabTheme" aria-label="Thème">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+    </div>
 
     <!-- MODAL ACTIONS -->
     <div class="modal-bg" id="modalActions">
@@ -3838,36 +4097,114 @@
           toast("Erreur export CSV");
         }
       }
-      /* ─── SIDEBAR ────────────────────────────── */
+      /* ─── SIDEBAR (drawer mobile + collapse desktop) ─── */
+      const isMob = () => window.innerWidth <= 768;
+
       function initSidebar() {
         const sb = document.getElementById("sidebar");
         const tog = document.getElementById("sbToggle");
         const mm = document.getElementById("mobileMenu");
         const ovl = document.getElementById("overlay");
-        const isMob = () => window.innerWidth <= 768;
-        tog.addEventListener("click", () => {
+
+        const closeAll = () => {
+          sb.classList.remove("open");
+          document.getElementById("pageRight")?.classList.remove("open");
+          ovl.classList.remove("active");
+        };
+
+        tog?.addEventListener("click", () => {
           if (isMob()) {
-            sb.classList.toggle("open");
-            ovl.classList.toggle("active");
-          } else sb.classList.toggle("collapsed");
+            sb.classList.add("open");
+            ovl.classList.add("active");
+          } else {
+            sb.classList.toggle("collapsed");
+            localStorage.setItem(
+              "sb-col",
+              sb.classList.contains("collapsed") ? "1" : "0",
+            );
+          }
         });
         mm?.addEventListener("click", () => {
           sb.classList.add("open");
           ovl.classList.add("active");
         });
-        ovl.addEventListener("click", () => {
-          sb.classList.remove("open");
-          ovl.classList.remove("active");
+        ovl.addEventListener("click", closeAll);
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") closeAll();
         });
-        if (isMob()) mm.style.display = "flex";
+        sb.querySelectorAll(".sb-item").forEach((i) =>
+          i.addEventListener("click", () => {
+            if (isMob()) closeAll();
+          }),
+        );
+
         if (!isMob() && localStorage.getItem("sb-col") === "1")
           sb.classList.add("collapsed");
-        sb.addEventListener("transitionend", () => {
-          if (!isMob())
-            localStorage.setItem(
-              "sb-col",
-              sb.classList.contains("collapsed") ? "1" : "0",
-            );
+        window.addEventListener("resize", () => {
+          if (!isMob()) closeAll();
+        });
+      }
+
+      /* ─── DOCK FLOTTANT + BOTTOM SHEET ─── */
+      function initMobileShell() {
+        const ovl = document.getElementById("overlay");
+        const right = document.getElementById("pageRight");
+        const grip = document.getElementById("sheetGrip");
+
+        const openSheet = () => {
+          right.classList.add("open");
+          ovl.classList.add("active");
+        };
+        const closeSheet = () => {
+          right.classList.remove("open");
+          ovl.classList.remove("active");
+        };
+
+        document
+          .getElementById("fabPanel")
+          ?.addEventListener("click", openSheet);
+        grip?.addEventListener("click", closeSheet);
+
+        // proxy : mêmes fonctions que le header desktop
+        document
+          .getElementById("fabActions")
+          ?.addEventListener("click", () =>
+            document.getElementById("btnActions").click(),
+          );
+        document
+          .getElementById("fabExport")
+          ?.addEventListener("click", () =>
+            document.getElementById("btnExport").click(),
+          );
+        document
+          .getElementById("fabTheme")
+          ?.addEventListener("click", () =>
+            document.getElementById("btnTheme").click(),
+          );
+
+        // swipe-down pour fermer la sheet
+        let y0 = null;
+        right.addEventListener(
+          "touchstart",
+          (e) => {
+            if (right.scrollTop <= 0) y0 = e.touches[0].clientY;
+          },
+          { passive: true },
+        );
+        right.addEventListener(
+          "touchmove",
+          (e) => {
+            if (y0 === null) return;
+            const d = e.touches[0].clientY - y0;
+            if (d > 70) {
+              closeSheet();
+              y0 = null;
+            }
+          },
+          { passive: true },
+        );
+        right.addEventListener("touchend", () => {
+          y0 = null;
         });
       }
 
@@ -4116,6 +4453,8 @@
       async function init() {
         initTheme();
         initSidebar();
+        initMobileShell();
+
         initTabs();
         initModals();
         initMerge();
