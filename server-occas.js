@@ -1,11 +1,20 @@
-//================ MON AIGENT OCCASION — SERVEUR DÉDIÉ (v4) =====//
+//================ MON AIGENT OCCASION — ROUTER FUSIONNÉ (v4) =====//
 // Auth + Tunnel déterministe (extraction IA + flux en code + phrasing IA)
 // + Récapitulatif d'annonce + Matching voitures + Alertes réelles
 // + MESSAGERIE COMPLÈTE (messages 1-à-1, groupes, pièces jointes,
 //   mentions, archivage, blocage, notifications).
 //
-// v4 ajoute uniquement la messagerie par rapport à la v3 — tout le reste
-// (tunnel chat, agenda, coffre, préférences, alertes...) est inchangé.
+// ⚠️ CHANGEMENT (fusion avec server.js) :
+// Ce fichier n'est PLUS une application Express indépendante avec son
+// propre app.listen(). C'est maintenant un express.Router() exporté par
+// défaut, monté directement dans server.js via `app.use(occasRoutes)`.
+// Toutes les routes gardent leur chemin complet "/occas/..." donc rien
+// ne change côté front (à part l'URL de base, cf. front).
+//
+// Ce qui a été retiré ici (déjà géré par server.js une fois monté) :
+//   - création de l'app Express, app.listen, HOST/PORT
+//   - cors(), helmet(), compression(), morgan(), express.json(), static
+// Tout le reste (routes, DB, sessions, cron d'alertes...) est identique.
 //=========================================================================
 
 import express from "express";
@@ -13,14 +22,8 @@ import { db } from "./db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
-import cors from "cors";
-import helmet from "helmet";
-import compression from "compression";
-import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import nodemailer from "nodemailer";
@@ -50,49 +53,20 @@ if (!OCCAS_JWT_SECRET)
 // Secret court terme pour l'étape intermédiaire du login 2FA (avant délivrance du vrai token)
 const OCCAS_2FA_PENDING_SECRET = OCCAS_JWT_SECRET + "::2fa-pending";
 
-const isProd = process.env.NODE_ENV === "production";
-const app = express();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const PORT = process.env.OCCAS_PORT || 3100;
-const HOST = "0.0.0.0";
 const SUPPORT_EMAIL_TO = "supportmonaigentimmobilier@gmail.com";
 
-// ================== MIDDLEWARES ==================
-app.disable("x-powered-by");
-app.use(cors({ origin: true, credentials: true }));
-app.use(
-  helmet({
-    crossOriginResourcePolicy: false,
-    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-    contentSecurityPolicy: {
-      useDefaults: true,
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "blob:", "https:"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
-        objectSrc: ["'none'"],
-      },
-    },
-  }),
-);
-app.use(compression());
-app.use(morgan("dev"));
-app.use(express.json({ limit: "3mb" }));
-app.use(express.static(path.join(__dirname, "public")));
+// ── Router Occasion — sera monté dans server.js via app.use(occasRoutes) ──
+const router = express.Router();
 
 // ================== RATE LIMIT ==================
 const authLimiter = rateLimit({ windowMs: 60_000, max: 30 });
-app.use("/occas/signup", authLimiter);
-app.use("/occas/login", authLimiter);
-app.use("/occas/login/verify-2fa", authLimiter);
+router.use("/occas/signup", authLimiter);
+router.use("/occas/login", authLimiter);
+router.use("/occas/login/verify-2fa", authLimiter);
 const apiLimiter = rateLimit({ windowMs: 60_000, max: 120 });
-app.use("/occas/chat", apiLimiter);
+router.use("/occas/chat", apiLimiter);
 const msgLimiter = rateLimit({ windowMs: 60_000, max: 180 });
-app.use("/occas/api/messages", msgLimiter);
+router.use("/occas/api/messages", msgLimiter);
 
 // ================== DB — TABLES OCCASION ==================
 await db
@@ -449,7 +423,7 @@ const authenticateOccasToken = (req, res, next) => {
 };
 
 // ================== SIGNUP / LOGIN (2FA-aware) ==================
-app.post("/occas/signup", async (req, res) => {
+router.post("/occas/signup", async (req, res) => {
   try {
     const schema = z.object({
       username: z.string().min(3),
@@ -490,7 +464,7 @@ app.post("/occas/signup", async (req, res) => {
  *  - Identifiants corrects + 2FA active → renvoie need2fa:true + pendingToken
  *    (courte durée), le front doit rappeler /occas/login/verify-2fa.
  */
-app.post("/occas/login", async (req, res) => {
+router.post("/occas/login", async (req, res) => {
   try {
     const schema = z.object({ username: z.string(), password: z.string() });
     const { username, password } = schema.parse(req.body);
@@ -532,7 +506,7 @@ app.post("/occas/login", async (req, res) => {
 });
 
 /** Étape 2 : vérifie un des 3 codes de sécurité et délivre le vrai token. */
-app.post("/occas/login/verify-2fa", async (req, res) => {
+router.post("/occas/login/verify-2fa", async (req, res) => {
   try {
     const { pendingToken, code } = req.body || {};
     if (!pendingToken || !code)
@@ -582,7 +556,7 @@ app.post("/occas/login/verify-2fa", async (req, res) => {
   }
 });
 
-app.get("/occas/api/me", authenticateOccasToken, async (req, res) => {
+router.get("/occas/api/me", authenticateOccasToken, async (req, res) => {
   const user = await db
     .prepare(
       "SELECT username, role, contact, avatar FROM users_occas WHERE username = ?",
@@ -593,7 +567,7 @@ app.get("/occas/api/me", authenticateOccasToken, async (req, res) => {
 });
 
 // ================== UPLOADS (annonces) ==================
-app.post(
+router.post(
   "/occas/api/upload-images",
   authenticateOccasToken,
   upload.array("images", 6),
@@ -614,7 +588,7 @@ app.post(
   },
 );
 
-app.post(
+router.post(
   "/occas/api/upload-carvertical",
   authenticateOccasToken,
   upload.single("report"),
@@ -638,7 +612,7 @@ app.post(
 );
 
 // ================== UPLOADS (messagerie — images & fichiers) ==================
-app.post(
+router.post(
   "/occas/api/upload-chat-images",
   authenticateOccasToken,
   upload.array("images", 6),
@@ -657,7 +631,7 @@ app.post(
   },
 );
 
-app.post(
+router.post(
   "/occas/api/upload-chat-files",
   authenticateOccasToken,
   upload.array("files", 10),
@@ -877,7 +851,7 @@ async function handleCollectingPhase(session, sc, role) {
 }
 
 // ================== CHAT ROUTE — TUNNEL DÉTERMINISTE (agent IA) ==================
-app.post("/occas/chat", authenticateOccasToken, async (req, res) => {
+router.post("/occas/chat", authenticateOccasToken, async (req, res) => {
   try {
     const { message } = z
       .object({ message: z.string().min(1) })
@@ -1060,20 +1034,24 @@ app.post("/occas/chat", authenticateOccasToken, async (req, res) => {
 });
 
 // ================== FAVORIS ==================
-app.post("/occas/api/favorites", authenticateOccasToken, async (req, res) => {
-  const user = await db
-    .prepare(`SELECT id FROM users_occas WHERE username=$1`)
-    .get(req.user.username);
-  if (!user) return res.sendStatus(404);
-  const info = await db
-    .prepare(
-      `INSERT INTO favorites_occas (user_id, profile_data) VALUES ($1,$2) RETURNING id`,
-    )
-    .get(user.id, JSON.stringify(req.body));
-  res.json({ success: true, dbId: info?.id });
-});
+router.post(
+  "/occas/api/favorites",
+  authenticateOccasToken,
+  async (req, res) => {
+    const user = await db
+      .prepare(`SELECT id FROM users_occas WHERE username=$1`)
+      .get(req.user.username);
+    if (!user) return res.sendStatus(404);
+    const info = await db
+      .prepare(
+        `INSERT INTO favorites_occas (user_id, profile_data) VALUES ($1,$2) RETURNING id`,
+      )
+      .get(user.id, JSON.stringify(req.body));
+    res.json({ success: true, dbId: info?.id });
+  },
+);
 
-app.get("/occas/api/favorites", authenticateOccasToken, async (req, res) => {
+router.get("/occas/api/favorites", authenticateOccasToken, async (req, res) => {
   const user = await db
     .prepare(`SELECT id FROM users_occas WHERE username=$1`)
     .get(req.user.username);
@@ -1101,7 +1079,7 @@ async function occasUserRow(username) {
 }
 
 /** Envoi d'un message : accepte soit receiverId, soit pseudo+email. */
-app.post("/occas/api/messages", authenticateOccasToken, async (req, res) => {
+router.post("/occas/api/messages", authenticateOccasToken, async (req, res) => {
   try {
     const schema = z.object({
       pseudo: z.string().min(1).optional(),
@@ -1193,7 +1171,7 @@ app.post("/occas/api/messages", authenticateOccasToken, async (req, res) => {
 });
 
 /** Historique complet des messages de l'utilisateur connecté. */
-app.get("/occas/api/messages", authenticateOccasToken, async (req, res) => {
+router.get("/occas/api/messages", authenticateOccasToken, async (req, res) => {
   try {
     const user = await occasUserRow(req.user.username);
     if (!user)
@@ -1244,7 +1222,7 @@ app.get("/occas/api/messages", authenticateOccasToken, async (req, res) => {
 });
 
 /** Marque tous les messages reçus d'un interlocuteur comme lus. */
-app.post(
+router.post(
   "/occas/api/messages/mark-read",
   authenticateOccasToken,
   async (req, res) => {
@@ -1265,7 +1243,7 @@ app.post(
   },
 );
 
-app.delete(
+router.delete(
   "/occas/api/messages/:id",
   authenticateOccasToken,
   async (req, res) => {
@@ -1287,7 +1265,7 @@ app.delete(
   },
 );
 
-app.delete(
+router.delete(
   "/occas/api/conversations/:userId",
   authenticateOccasToken,
   async (req, res) => {
@@ -1310,7 +1288,7 @@ app.delete(
 );
 
 // ── Envoi groupé fiable : résolution des destinataires 100% côté serveur ──
-app.post(
+router.post(
   "/occas/api/messages/group",
   authenticateOccasToken,
   async (req, res) => {
@@ -1425,7 +1403,7 @@ app.post(
   },
 );
 // ── Archivage ────────────────────────────────────────────────────────────
-app.post(
+router.post(
   "/occas/api/conversations/archive",
   authenticateOccasToken,
   async (req, res) => {
@@ -1455,7 +1433,7 @@ app.post(
   },
 );
 
-app.delete(
+router.delete(
   "/occas/api/conversations/archive/:key",
   authenticateOccasToken,
   async (req, res) => {
@@ -1475,7 +1453,7 @@ app.delete(
   },
 );
 
-app.get(
+router.get(
   "/occas/api/conversations/archived",
   authenticateOccasToken,
   async (req, res) => {
@@ -1495,34 +1473,38 @@ app.get(
 );
 
 // ── Blocage ──────────────────────────────────────────────────────────────
-app.post("/occas/api/users/block", authenticateOccasToken, async (req, res) => {
-  try {
-    const user = await occasUserRow(req.user.username);
-    if (!user) return res.sendStatus(404);
-    const { targetUsername } = req.body || {};
-    if (!targetUsername)
-      return res.status(400).json({ error: "targetUsername requis" });
-    const targetNorm = targetUsername.trim().toLowerCase();
-    const existing = await db
-      .prepare(
-        `SELECT id FROM blocked_users_occas WHERE blocker_id=$1 AND blocked_username=$2`,
-      )
-      .get(user.id, targetNorm);
-    if (!existing) {
-      await db
+router.post(
+  "/occas/api/users/block",
+  authenticateOccasToken,
+  async (req, res) => {
+    try {
+      const user = await occasUserRow(req.user.username);
+      if (!user) return res.sendStatus(404);
+      const { targetUsername } = req.body || {};
+      if (!targetUsername)
+        return res.status(400).json({ error: "targetUsername requis" });
+      const targetNorm = targetUsername.trim().toLowerCase();
+      const existing = await db
         .prepare(
-          `INSERT INTO blocked_users_occas (blocker_id, blocked_username) VALUES ($1,$2)`,
+          `SELECT id FROM blocked_users_occas WHERE blocker_id=$1 AND blocked_username=$2`,
         )
-        .run(user.id, targetNorm);
+        .get(user.id, targetNorm);
+      if (!existing) {
+        await db
+          .prepare(
+            `INSERT INTO blocked_users_occas (blocker_id, blocked_username) VALUES ($1,$2)`,
+          )
+          .run(user.id, targetNorm);
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[OCCAS block POST]", err);
+      res.status(500).json({ error: "Erreur serveur" });
     }
-    res.json({ success: true });
-  } catch (err) {
-    console.error("[OCCAS block POST]", err);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
+  },
+);
 
-app.delete(
+router.delete(
   "/occas/api/users/block/:username",
   authenticateOccasToken,
   async (req, res) => {
@@ -1542,7 +1524,7 @@ app.delete(
   },
 );
 
-app.get(
+router.get(
   "/occas/api/users/blocked",
   authenticateOccasToken,
   async (req, res) => {
@@ -1565,7 +1547,7 @@ app.get(
 // ROUTES PROFIL
 // ══════════════════════════════════════════════════════════
 
-app.get("/occas/api/me/full", authenticateOccasToken, async (req, res) => {
+router.get("/occas/api/me/full", authenticateOccasToken, async (req, res) => {
   try {
     const user = await db
       .prepare(
@@ -1592,7 +1574,7 @@ app.get("/occas/api/me/full", authenticateOccasToken, async (req, res) => {
   }
 });
 
-app.patch("/occas/api/me", authenticateOccasToken, async (req, res) => {
+router.patch("/occas/api/me", authenticateOccasToken, async (req, res) => {
   try {
     const allowed = ["contact", "ville"];
     const updates = {};
@@ -1613,7 +1595,7 @@ app.patch("/occas/api/me", authenticateOccasToken, async (req, res) => {
   }
 });
 
-app.post(
+router.post(
   "/occas/api/change-avatar",
   authenticateOccasToken,
   async (req, res) => {
@@ -1630,7 +1612,7 @@ app.post(
   },
 );
 
-app.get("/occas/api/stats", authenticateOccasToken, async (req, res) => {
+router.get("/occas/api/stats", authenticateOccasToken, async (req, res) => {
   try {
     const user = await db
       .prepare(`SELECT id FROM users_occas WHERE username=$1`)
@@ -1661,7 +1643,7 @@ app.get("/occas/api/stats", authenticateOccasToken, async (req, res) => {
 });
 
 // ---- SÉCURITÉ ----
-app.post(
+router.post(
   "/occas/api/change-password",
   authenticateOccasToken,
   async (req, res) => {
@@ -1691,110 +1673,135 @@ app.post(
   },
 );
 
-app.get("/occas/api/2fa/status", authenticateOccasToken, async (req, res) => {
-  try {
-    const user = await db
-      .prepare(`SELECT id FROM users_occas WHERE username=$1`)
-      .get(req.user.username);
-    if (!user) return res.sendStatus(404);
-    const tfa = await db
-      .prepare(`SELECT enabled FROM user_2fa_occas WHERE user_id=$1`)
-      .get(user.id);
-    res.json({ enabled: tfa?.enabled || false });
-  } catch (err) {
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
-
-app.post("/occas/api/2fa/enable", authenticateOccasToken, async (req, res) => {
-  try {
-    const { secret, code } = req.body;
-    if (!secret || !/^\d{6}$/.test(code || ""))
-      return res.status(400).json({ error: "Code invalide" });
-    const user = await db
-      .prepare(`SELECT id FROM users_occas WHERE username=$1`)
-      .get(req.user.username);
-    if (!user) return res.sendStatus(404);
-
-    const backupCodes = Array.from(
-      { length: 3 },
-      () =>
-        `${Math.random().toString(36).slice(2, 7).toUpperCase()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
-    );
-    const existing = await db
-      .prepare(`SELECT id FROM user_2fa_occas WHERE user_id=$1`)
-      .get(user.id);
-    if (existing) {
-      await db
-        .prepare(
-          `UPDATE user_2fa_occas SET secret=$1, enabled=true, backup_codes=$2 WHERE user_id=$3`,
-        )
-        .run(secret, JSON.stringify(backupCodes), user.id);
-    } else {
-      await db
-        .prepare(
-          `INSERT INTO user_2fa_occas (user_id, secret, enabled, backup_codes) VALUES ($1,$2,true,$3)`,
-        )
-        .run(user.id, secret, JSON.stringify(backupCodes));
+router.get(
+  "/occas/api/2fa/status",
+  authenticateOccasToken,
+  async (req, res) => {
+    try {
+      const user = await db
+        .prepare(`SELECT id FROM users_occas WHERE username=$1`)
+        .get(req.user.username);
+      if (!user) return res.sendStatus(404);
+      const tfa = await db
+        .prepare(`SELECT enabled FROM user_2fa_occas WHERE user_id=$1`)
+        .get(user.id);
+      res.json({ enabled: tfa?.enabled || false });
+    } catch (err) {
+      res.status(500).json({ error: "Erreur serveur" });
     }
-    res.json({ success: true, backupCodes });
-  } catch (err) {
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
+  },
+);
 
-app.post("/occas/api/2fa/disable", authenticateOccasToken, async (req, res) => {
-  try {
-    const user = await db
-      .prepare(`SELECT id FROM users_occas WHERE username=$1`)
-      .get(req.user.username);
-    if (!user) return res.sendStatus(404);
-    await db
-      .prepare(`UPDATE user_2fa_occas SET enabled=false WHERE user_id=$1`)
-      .run(user.id);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
+router.post(
+  "/occas/api/2fa/enable",
+  authenticateOccasToken,
+  async (req, res) => {
+    try {
+      const { secret, code } = req.body;
+      if (!secret || !/^\d{6}$/.test(code || ""))
+        return res.status(400).json({ error: "Code invalide" });
+      const user = await db
+        .prepare(`SELECT id FROM users_occas WHERE username=$1`)
+        .get(req.user.username);
+      if (!user) return res.sendStatus(404);
 
-app.get("/occas/api/export-data", authenticateOccasToken, async (req, res) => {
-  try {
-    const user = await db
-      .prepare(`SELECT * FROM users_occas WHERE username=$1`)
-      .get(req.user.username);
-    if (!user) return res.sendStatus(404);
-    delete user.password;
-    const annonces = await db
-      .prepare(`SELECT * FROM annonces_occas WHERE user_id=$1`)
-      .all(user.id);
-    const favoris = await db
-      .prepare(`SELECT * FROM favorites_occas WHERE user_id=$1`)
-      .all(user.id);
-    res.json({ user, annonces, favoris, exportedAt: new Date().toISOString() });
-  } catch (err) {
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
+      const backupCodes = Array.from(
+        { length: 3 },
+        () =>
+          `${Math.random().toString(36).slice(2, 7).toUpperCase()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+      );
+      const existing = await db
+        .prepare(`SELECT id FROM user_2fa_occas WHERE user_id=$1`)
+        .get(user.id);
+      if (existing) {
+        await db
+          .prepare(
+            `UPDATE user_2fa_occas SET secret=$1, enabled=true, backup_codes=$2 WHERE user_id=$3`,
+          )
+          .run(secret, JSON.stringify(backupCodes), user.id);
+      } else {
+        await db
+          .prepare(
+            `INSERT INTO user_2fa_occas (user_id, secret, enabled, backup_codes) VALUES ($1,$2,true,$3)`,
+          )
+          .run(user.id, secret, JSON.stringify(backupCodes));
+      }
+      res.json({ success: true, backupCodes });
+    } catch (err) {
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  },
+);
+
+router.post(
+  "/occas/api/2fa/disable",
+  authenticateOccasToken,
+  async (req, res) => {
+    try {
+      const user = await db
+        .prepare(`SELECT id FROM users_occas WHERE username=$1`)
+        .get(req.user.username);
+      if (!user) return res.sendStatus(404);
+      await db
+        .prepare(`UPDATE user_2fa_occas SET enabled=false WHERE user_id=$1`)
+        .run(user.id);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  },
+);
+
+router.get(
+  "/occas/api/export-data",
+  authenticateOccasToken,
+  async (req, res) => {
+    try {
+      const user = await db
+        .prepare(`SELECT * FROM users_occas WHERE username=$1`)
+        .get(req.user.username);
+      if (!user) return res.sendStatus(404);
+      delete user.password;
+      const annonces = await db
+        .prepare(`SELECT * FROM annonces_occas WHERE user_id=$1`)
+        .all(user.id);
+      const favoris = await db
+        .prepare(`SELECT * FROM favorites_occas WHERE user_id=$1`)
+        .all(user.id);
+      res.json({
+        user,
+        annonces,
+        favoris,
+        exportedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  },
+);
 
 // ---- PRÉFÉRENCES ----
-app.get("/occas/api/preferences", authenticateOccasToken, async (req, res) => {
-  try {
-    const user = await db
-      .prepare(`SELECT preferences FROM users_occas WHERE username=$1`)
-      .get(req.user.username);
-    if (!user) return res.sendStatus(404);
-    let prefs = {};
+router.get(
+  "/occas/api/preferences",
+  authenticateOccasToken,
+  async (req, res) => {
     try {
-      prefs = JSON.parse(user.preferences || "{}");
-    } catch {}
-    res.json(withPrefDefaults(prefs));
-  } catch (err) {
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
+      const user = await db
+        .prepare(`SELECT preferences FROM users_occas WHERE username=$1`)
+        .get(req.user.username);
+      if (!user) return res.sendStatus(404);
+      let prefs = {};
+      try {
+        prefs = JSON.parse(user.preferences || "{}");
+      } catch {}
+      res.json(withPrefDefaults(prefs));
+    } catch (err) {
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  },
+);
 
-app.patch(
+router.patch(
   "/occas/api/preferences",
   authenticateOccasToken,
   async (req, res) => {
@@ -1818,31 +1825,35 @@ app.patch(
   },
 );
 // ---- MES ANNONCES ----
-app.get("/occas/api/my-annonces", authenticateOccasToken, async (req, res) => {
-  try {
-    const user = await db
-      .prepare(`SELECT id FROM users_occas WHERE username=$1`)
-      .get(req.user.username);
-    if (!user) return res.sendStatus(404);
-    const rows = await db
-      .prepare(
-        `SELECT * FROM annonces_occas WHERE user_id=$1 ORDER BY updated_at DESC`,
-      )
-      .all(user.id);
-    res.json(
-      rows.map((r) => ({
-        ...r,
-        etatzones: safeJson(r.etatzones),
-        imagesbien: safeJson(r.imagesbien),
-      })),
-    );
-  } catch (err) {
-    console.error("[my-annonces]", err);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
+router.get(
+  "/occas/api/my-annonces",
+  authenticateOccasToken,
+  async (req, res) => {
+    try {
+      const user = await db
+        .prepare(`SELECT id FROM users_occas WHERE username=$1`)
+        .get(req.user.username);
+      if (!user) return res.sendStatus(404);
+      const rows = await db
+        .prepare(
+          `SELECT * FROM annonces_occas WHERE user_id=$1 ORDER BY updated_at DESC`,
+        )
+        .all(user.id);
+      res.json(
+        rows.map((r) => ({
+          ...r,
+          etatzones: safeJson(r.etatzones),
+          imagesbien: safeJson(r.imagesbien),
+        })),
+      );
+    } catch (err) {
+      console.error("[my-annonces]", err);
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  },
+);
 
-app.delete(
+router.delete(
   "/occas/api/my-annonces/:id",
   authenticateOccasToken,
   async (req, res) => {
@@ -1870,7 +1881,7 @@ function safeJson(v) {
 }
 
 // ---- NOTIFICATIONS génériques ----
-app.get(
+router.get(
   "/occas/api/notifications",
   authenticateOccasToken,
   async (req, res) => {
@@ -1891,7 +1902,7 @@ app.get(
   },
 );
 
-app.post(
+router.post(
   "/occas/api/notifications/read",
   authenticateOccasToken,
   async (req, res) => {
@@ -1920,92 +1931,96 @@ app.post(
 );
 
 // ---- COTE & ESTIMATION (robuste : trim, repli sans modèle, insensible à la casse) ----
-app.post("/occas/api/estimation", authenticateOccasToken, async (req, res) => {
-  try {
-    const marque = String(req.body.marque || "").trim();
-    const modele = String(req.body.modele || "").trim();
-    const annee = req.body.annee ? Number(req.body.annee) : null;
-    const kilometrage = req.body.kilometrage
-      ? Number(req.body.kilometrage)
-      : null;
-    if (!marque) return res.status(400).json({ error: "Marque requise" });
+router.post(
+  "/occas/api/estimation",
+  authenticateOccasToken,
+  async (req, res) => {
+    try {
+      const marque = String(req.body.marque || "").trim();
+      const modele = String(req.body.modele || "").trim();
+      const annee = req.body.annee ? Number(req.body.annee) : null;
+      const kilometrage = req.body.kilometrage
+        ? Number(req.body.kilometrage)
+        : null;
+      if (!marque) return res.status(400).json({ error: "Marque requise" });
 
-    async function fetchRows(withModele) {
-      if (withModele && modele) {
-        return db
-          .prepare(
-            `SELECT prix, annee, kilometrage FROM annonces_occas
+      async function fetchRows(withModele) {
+        if (withModele && modele) {
+          return db
+            .prepare(
+              `SELECT prix, annee, kilometrage FROM annonces_occas
              WHERE role='seller' AND prix > 0
                AND LOWER(TRIM(marque)) = LOWER($1)
                AND LOWER(TRIM(modele)) = LOWER($2)`,
-          )
-          .all(marque, modele);
-      }
-      return db
-        .prepare(
-          `SELECT prix, annee, kilometrage FROM annonces_occas
+            )
+            .all(marque, modele);
+        }
+        return db
+          .prepare(
+            `SELECT prix, annee, kilometrage FROM annonces_occas
            WHERE role='seller' AND prix > 0
              AND LOWER(TRIM(marque)) = LOWER($1)`,
-        )
-        .all(marque);
-    }
+          )
+          .all(marque);
+      }
 
-    let rows = await fetchRows(true);
-    let usedFallback = false;
-    if (!rows.length && modele) {
-      rows = await fetchRows(false);
-      usedFallback = true;
-    }
+      let rows = await fetchRows(true);
+      let usedFallback = false;
+      if (!rows.length && modele) {
+        rows = await fetchRows(false);
+        usedFallback = true;
+      }
 
-    if (!rows.length) {
-      return res.json({
-        found: 0,
-        message:
-          "Aucune annonce vendeur comparable pour cette marque sur la plateforme pour le moment.",
+      if (!rows.length) {
+        return res.json({
+          found: 0,
+          message:
+            "Aucune annonce vendeur comparable pour cette marque sur la plateforme pour le moment.",
+        });
+      }
+
+      const prices = rows
+        .map((r) => Number(r.prix))
+        .filter((p) => p > 0)
+        .sort((a, b) => a - b);
+      const median = prices[Math.floor(prices.length / 2)];
+      const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+
+      let adj = 1;
+      const withAnnee = rows.filter((r) => r.annee);
+      const avgAnnee = withAnnee.length
+        ? withAnnee.reduce((s, r) => s + r.annee, 0) / withAnnee.length
+        : null;
+      if (annee && avgAnnee) adj += (annee - avgAnnee) * 0.015;
+
+      const withKm = rows.filter((r) => r.kilometrage);
+      const avgKm = withKm.length
+        ? withKm.reduce((s, r) => s + r.kilometrage, 0) / withKm.length
+        : null;
+      if (kilometrage && avgKm)
+        adj -= ((kilometrage - avgKm) / Math.max(avgKm, 1)) * 0.08;
+      adj = Math.max(0.6, Math.min(1.4, adj));
+
+      const estimated = Math.round(median * adj);
+
+      res.json({
+        found: rows.length,
+        median,
+        average: avg,
+        estimated,
+        rangeLow: Math.round(estimated * 0.92),
+        rangeHigh: Math.round(estimated * 1.08),
+        basedOn: usedFallback ? "marque" : "marque+modele",
       });
+    } catch (err) {
+      console.error("[estimation]", err);
+      res.status(500).json({ error: "Erreur serveur" });
     }
-
-    const prices = rows
-      .map((r) => Number(r.prix))
-      .filter((p) => p > 0)
-      .sort((a, b) => a - b);
-    const median = prices[Math.floor(prices.length / 2)];
-    const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
-
-    let adj = 1;
-    const withAnnee = rows.filter((r) => r.annee);
-    const avgAnnee = withAnnee.length
-      ? withAnnee.reduce((s, r) => s + r.annee, 0) / withAnnee.length
-      : null;
-    if (annee && avgAnnee) adj += (annee - avgAnnee) * 0.015;
-
-    const withKm = rows.filter((r) => r.kilometrage);
-    const avgKm = withKm.length
-      ? withKm.reduce((s, r) => s + r.kilometrage, 0) / withKm.length
-      : null;
-    if (kilometrage && avgKm)
-      adj -= ((kilometrage - avgKm) / Math.max(avgKm, 1)) * 0.08;
-    adj = Math.max(0.6, Math.min(1.4, adj));
-
-    const estimated = Math.round(median * adj);
-
-    res.json({
-      found: rows.length,
-      median,
-      average: avg,
-      estimated,
-      rangeLow: Math.round(estimated * 0.92),
-      rangeHigh: Math.round(estimated * 1.08),
-      basedOn: usedFallback ? "marque" : "marque+modele",
-    });
-  } catch (err) {
-    console.error("[estimation]", err);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
+  },
+);
 
 // ---- AGENDA (RDV visites, contrôle technique, révisions...) ----
-app.get("/occas/api/agenda", authenticateOccasToken, async (req, res) => {
+router.get("/occas/api/agenda", authenticateOccasToken, async (req, res) => {
   try {
     const user = await db
       .prepare(`SELECT id FROM users_occas WHERE username=$1`)
@@ -2022,7 +2037,7 @@ app.get("/occas/api/agenda", authenticateOccasToken, async (req, res) => {
   }
 });
 
-app.post("/occas/api/agenda", authenticateOccasToken, async (req, res) => {
+router.post("/occas/api/agenda", authenticateOccasToken, async (req, res) => {
   try {
     const { name, date, time, kind, description, color } = req.body;
     if (!name || !date)
@@ -2051,39 +2066,43 @@ app.post("/occas/api/agenda", authenticateOccasToken, async (req, res) => {
   }
 });
 
-app.patch("/occas/api/agenda/:id", authenticateOccasToken, async (req, res) => {
-  try {
-    const user = await db
-      .prepare(`SELECT id FROM users_occas WHERE username=$1`)
-      .get(req.user.username);
-    if (!user) return res.sendStatus(404);
-    const allowed = ["name", "date", "time", "kind", "description", "color"];
-    const updates = {};
-    for (const k of allowed) {
-      if (req.body?.[k] === undefined) continue;
-      updates[k] =
-        k === "date" ? String(req.body[k]).slice(0, 10) : req.body[k];
+router.patch(
+  "/occas/api/agenda/:id",
+  authenticateOccasToken,
+  async (req, res) => {
+    try {
+      const user = await db
+        .prepare(`SELECT id FROM users_occas WHERE username=$1`)
+        .get(req.user.username);
+      if (!user) return res.sendStatus(404);
+      const allowed = ["name", "date", "time", "kind", "description", "color"];
+      const updates = {};
+      for (const k of allowed) {
+        if (req.body?.[k] === undefined) continue;
+        updates[k] =
+          k === "date" ? String(req.body[k]).slice(0, 10) : req.body[k];
+      }
+      if (!Object.keys(updates).length)
+        return res.status(400).json({ error: "Aucun champ valide" });
+      updates.reminded = false;
+      const set = Object.keys(updates)
+        .map((k, i) => `${k}=$${i + 1}`)
+        .join(", ");
+      const vals = [...Object.values(updates), Number(req.params.id), user.id];
+      await db
+        .prepare(
+          `UPDATE agenda_occas SET ${set} WHERE id=$${vals.length - 1} AND user_id=$${vals.length}`,
+        )
+        .run(...vals);
+      res.json({ success: true, updated: updates });
+    } catch (err) {
+      console.error("[agenda:patch]", err);
+      res.status(500).json({ error: "Erreur serveur" });
     }
-    if (!Object.keys(updates).length)
-      return res.status(400).json({ error: "Aucun champ valide" });
-    updates.reminded = false;
-    const set = Object.keys(updates)
-      .map((k, i) => `${k}=$${i + 1}`)
-      .join(", ");
-    const vals = [...Object.values(updates), Number(req.params.id), user.id];
-    await db
-      .prepare(
-        `UPDATE agenda_occas SET ${set} WHERE id=$${vals.length - 1} AND user_id=$${vals.length}`,
-      )
-      .run(...vals);
-    res.json({ success: true, updated: updates });
-  } catch (err) {
-    console.error("[agenda:patch]", err);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
+  },
+);
 
-app.delete(
+router.delete(
   "/occas/api/agenda/:id",
   authenticateOccasToken,
   async (req, res) => {
@@ -2103,7 +2122,7 @@ app.delete(
 );
 
 // ---- ZONE CRITIQUE ----
-app.post(
+router.post(
   "/occas/api/reset-profile",
   authenticateOccasToken,
   async (req, res) => {
@@ -2123,7 +2142,7 @@ app.post(
   },
 );
 
-app.delete(
+router.delete(
   "/occas/api/delete-data",
   authenticateOccasToken,
   async (req, res) => {
@@ -2151,7 +2170,7 @@ app.delete(
   },
 );
 
-app.delete(
+router.delete(
   "/occas/api/delete-account",
   authenticateOccasToken,
   async (req, res) => {
@@ -2189,7 +2208,7 @@ const OCCAS_AVATARS = Array.from(
 );
 const OCCAS_AVATAR_DEFAULT = "/images/avatar-default.jpg";
 
-app.get("/occas/api/avatars", authenticateOccasToken, (req, res) => {
+router.get("/occas/api/avatars", authenticateOccasToken, (req, res) => {
   res.json({ avatars: OCCAS_AVATARS, default: OCCAS_AVATAR_DEFAULT });
 });
 
@@ -2203,7 +2222,7 @@ async function occasUserId(username) {
   return u?.id || null;
 }
 
-app.post(
+router.post(
   "/occas/api/activity/ping",
   authenticateOccasToken,
   async (req, res) => {
@@ -2233,7 +2252,7 @@ app.post(
   },
 );
 
-app.get("/occas/api/activity", authenticateOccasToken, async (req, res) => {
+router.get("/occas/api/activity", authenticateOccasToken, async (req, res) => {
   try {
     const uid = await occasUserId(req.user.username);
     if (!uid) return res.sendStatus(404);
@@ -2276,7 +2295,7 @@ app.get("/occas/api/activity", authenticateOccasToken, async (req, res) => {
 // ══════════════════════════════════════════════════════════
 // COFFRE CARVERTICAL
 // ══════════════════════════════════════════════════════════
-app.get("/occas/api/vault", authenticateOccasToken, async (req, res) => {
+router.get("/occas/api/vault", authenticateOccasToken, async (req, res) => {
   try {
     const uid = await occasUserId(req.user.username);
     if (!uid) return res.sendStatus(404);
@@ -2301,7 +2320,7 @@ app.get("/occas/api/vault", authenticateOccasToken, async (req, res) => {
   }
 });
 
-app.post(
+router.post(
   "/occas/api/vault",
   authenticateOccasToken,
   upload.single("file"),
@@ -2338,23 +2357,27 @@ app.post(
   },
 );
 
-app.delete("/occas/api/vault/:id", authenticateOccasToken, async (req, res) => {
-  try {
-    const uid = await occasUserId(req.user.username);
-    if (!uid) return res.sendStatus(404);
-    await db
-      .prepare(`DELETE FROM vault_occas WHERE id=$1 AND user_id=$2`)
-      .run(Number(req.params.id), uid);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
+router.delete(
+  "/occas/api/vault/:id",
+  authenticateOccasToken,
+  async (req, res) => {
+    try {
+      const uid = await occasUserId(req.user.username);
+      if (!uid) return res.sendStatus(404);
+      await db
+        .prepare(`DELETE FROM vault_occas WHERE id=$1 AND user_id=$2`)
+        .run(Number(req.params.id), uid);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  },
+);
 
 // ══════════════════════════════════════════════════════════
 // SUPPORT & CENTRE D'AIDE — ticket en base + e-mail Gmail réel
 // ══════════════════════════════════════════════════════════
-app.post("/occas/api/support", authenticateOccasToken, async (req, res) => {
+router.post("/occas/api/support", authenticateOccasToken, async (req, res) => {
   try {
     const uid = await occasUserId(req.user.username);
     if (!uid) return res.sendStatus(404);
@@ -2398,7 +2421,7 @@ app.post("/occas/api/support", authenticateOccasToken, async (req, res) => {
   }
 });
 // ── Vérification d'existence d'un compte (pseudo + email) ─────────────────
-app.post(
+router.post(
   "/occas/api/users/verify",
   authenticateOccasToken,
   async (req, res) => {
@@ -2439,7 +2462,7 @@ app.post(
   },
 );
 
-app.get("/occas/api/support", authenticateOccasToken, async (req, res) => {
+router.get("/occas/api/support", authenticateOccasToken, async (req, res) => {
   try {
     const uid = await occasUserId(req.user.username);
     if (!uid) return res.sendStatus(404);
@@ -2750,9 +2773,9 @@ setTimeout(() => {
   scanMarketNews();
 }, 15000);
 
-// ================== START ==================
-app.listen(PORT, HOST, () => {
-  console.log(
-    `🚗 Mon AiGENT Occasion v4 (+ messagerie) — serveur lancé sur http://${HOST}:${PORT}`,
-  );
-});
+console.log(
+  "🚗 Mon AiGENT Occasion — routes montées (fusion sur le port principal)",
+);
+
+// ================== EXPORT DU ROUTER (monté dans server.js) ==================
+export default router;

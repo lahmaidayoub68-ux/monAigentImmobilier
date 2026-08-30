@@ -10,7 +10,7 @@
 
 import { renderRecapCard, renderMatchResults } from "./vehicle-ad-cards.js";
 
-const API_BASE = "http://localhost:3100";
+const API_BASE = "";
 const ROLE_LABELS = { buyer: "Acheteur", seller: "Vendeur" };
 
 const state = {

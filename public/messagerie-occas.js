@@ -4,7 +4,7 @@
 // blocages, upload-chat-images, upload-chat-files...)
 // Pas d'enregistrement vocal (volontairement absent).
 // ============================================================
-const API = "http://localhost:3100/occas/api";
+const API = "/occas/api";
 const TOKEN_KEYS = ["occas_token", "agent_occas_token", "token"];
 const USER_KEYS = ["occas_user", "agent_occas_user", "agent_user"];
 

@@ -21,6 +21,7 @@ import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 import levenshtein from "fast-levenshtein";
 import { createHmac } from "crypto";
+import occasRoutes from "./server-occas.js";
 const HOST = "0.0.0.0";
 import {
   addBuyer,
@@ -437,7 +438,7 @@ app.use(
 );
 app.use(compression());
 app.use(morgan("dev"));
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "3mb" }));
 // Support sendBeacon (text/plain body)
 app.use(express.text({ type: "text/plain", limit: "100kb" }));
 
@@ -470,7 +471,7 @@ async function geocodeVille(ville) {
 // ================== SERVIR LES FICHIERS STATIQUES AVANT LE RATE LIMIT ==================
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/leaflet", express.static(path.join(__dirname, "public/leaflet")));
-
+app.use(occasRoutes);
 // ================== RATE LIMIT UNIQUEMENT POUR API ==================
 const apiLimiter = rateLimit({
   windowMs: 60_000,

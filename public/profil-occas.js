@@ -11,7 +11,7 @@
  *   - window.OccasPrefs.formatDistance(km)   → distance dans l'unité choisie
  */
 
-const API = "http://localhost:3100";
+const API = "";
 const TOKEN_KEYS = ["occas_token", "agent_occas_token", "token"];
 const USER_KEYS = ["occas_user", "agent_occas_user", "agent_user"];
 
