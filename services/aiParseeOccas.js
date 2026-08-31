@@ -1,46 +1,49 @@
-//================ AI PARSEE — MON AIGENT OCCASION (v2) ====================//
-// Cascade IA : Cerebras (primaire) → GitHub Models / GPT-4.1 (fallback 1)
-// → NVIDIA NIM / Llama-3.3-70b (fallback 2).
+//================ AI PARSEE — MON AIGENT OCCASION (v3) ====================//
+// Cascade IA : Groq (découverte dynamique + tri des modèles)
+//            → NVIDIA (Llama-3.3-70b)
+//            → Gemini (liste ordonnée de modèles, testés séquentiellement)
+//            → Mistral (fallback final)
 //
-// ─────────────────────────────────────────────────────────────────────────
-// PRINCIPE DE LA V2 (fix des bugs "l'IA se perd / oublie / boucle") :
-// On sépare STRICTEMENT trois responsabilités qui étaient mélangées dans
-// un seul prompt géant avant :
-//
-//   1) EXTRACTION  (extractCriteria)   — l'IA lit le message libre et sort
-//      UNIQUEMENT les champs qu'elle y trouve, sans réfléchir à "la suite".
-//      Peut extraire PLUSIEURS critères d'un coup.
-//
-//   2) FLUX / ORDRE (computeNextStep)  — 100% code déterministe. Ce n'est
-//      JAMAIS l'IA qui décide quelle est la prochaine question : c'est une
-//      checklist en dur (BUYER_STEPS / SELLER_STEPS) parcourue dans l'ordre.
-//      → l'IA ne peut plus "oublier" une question ou en reposer une déjà
-//        répondue, puisqu'elle ne gère plus cet état.
-//
-//   3) FORMULATION (generatePhrasing)  — l'IA transforme une instruction
-//      déterministe ("demande le kilométrage max, ton acheteur") en une
-//      phrase chaleureuse. Si l'IA plante, un fallback texte garanti prend
-//      le relais : le tunnel ne s'arrête donc JAMAIS.
+// Principe inchangé (extraction / flux déterministe / formulation),
+// seul le moteur callLLM() est réécrit pour être robuste : chaque provider
+// est testé jusqu'à ce qu'un texte non vide soit obtenu, avec logs clairs.
 // ─────────────────────────────────────────────────────────────────────────
 
 import "dotenv/config";
-import Cerebras from "@cerebras/cerebras_cloud_sdk";
-import ModelClient, { isUnexpected } from "@azure-rest/ai-inference";
-import { AzureKeyCredential } from "@azure/core-auth";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { GoogleGenAI } from "@google/genai";
 
-/* ─── CLIENTS ─────────────────────────────────────────────────────────────── */
-const cerebras = process.env.CEREBRAS_API_KEY
-  ? new Cerebras({ apiKey: process.env.CEREBRAS_API_KEY })
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/* ════════════════════════════════════════════════════════════════════════
+   CLIENTS
+   ════════════════════════════════════════════════════════════════════════ */
+
+const geminiApiKey = process.env.GEMINI_API_KEY;
+const geminiClient = geminiApiKey
+  ? new GoogleGenAI({ apiKey: geminiApiKey })
   : null;
 
-const CEREBRAS_MODELS = ["gpt-oss-120b"];
+const GEMINI_MODELS = [
+  "gemini-3.5-flash-lite",
+  "gemini-3.5-flash",
+  "gemini-3.6-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-3.1-pro-preview",
+  "gemini-2.5-flash",
+];
 
-// ── Circuit breaker : si Cerebras est down, on arrête de le retenter en boucle
-// pendant quelques minutes (évite d'ajouter 4 appels morts à chaque requête).
-let cerebrasDownUntil = 0;
-const CEREBRAS_COOLDOWN_MS = 5 * 60 * 1000;
+const GROQ_API_URL = "https://api.groq.com/openai/v1";
+let groqModelsCache = null;
+let groqModelsCacheAt = 0;
+const GROQ_MODELS_TTL = 10 * 60 * 1000; // 10 min
 
-/* ─── HELPERS NUMÉRIQUES / JSON ──────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════════
+   HELPERS NUMÉRIQUES / JSON
+   ════════════════════════════════════════════════════════════════════════ */
 export function normalizeNumber(value) {
   if (value === null || value === undefined) return null;
   if (typeof value === "number" && !isNaN(value)) return value;
@@ -72,134 +75,274 @@ function extractJSON(text) {
   return null;
 }
 
-/* ─── CASCADE LLM : CEREBRAS → GITHUB MODELS → NVIDIA ───────────────────── */
+/* ════════════════════════════════════════════════════════════════════════
+   PROVIDER 1 — GROQ (découverte dynamique + tri des modèles texte)
+   ════════════════════════════════════════════════════════════════════════ */
 
-async function callLLM(messages, maxTokens = 500) {
-  if (cerebras && Date.now() > cerebrasDownUntil) {
-    let anySuccess = false;
-    for (const model of CEREBRAS_MODELS) {
-      try {
-        const res = await cerebras.chat.completions.create({
-          model,
-          messages,
-          temperature: 0.25,
-          max_completion_tokens: maxTokens,
-        });
-        const text = res?.choices?.[0]?.message?.content || "";
-        if (text.trim()) {
-          anySuccess = true;
-          return text;
-        }
-      } catch (e) {
-        console.warn(
-          `⚠️ [OCCAS AI] Cerebras ${model} FAILED:`,
-          e?.message?.slice(0, 100),
-        );
-      }
-    }
-    if (!anySuccess) {
-      cerebrasDownUntil = Date.now() + CEREBRAS_COOLDOWN_MS;
-      console.warn(
-        `⚠️ [OCCAS AI] Cerebras mis en pause ${CEREBRAS_COOLDOWN_MS / 1000}s (tous modèles KO)`,
-      );
-    }
+function isGroqTextModel(model) {
+  const id = model.id.toLowerCase();
+  return (
+    !id.includes("whisper") &&
+    !id.includes("guard") &&
+    !id.includes("speech") &&
+    !id.includes("audio") &&
+    !id.includes("tts")
+  );
+}
+
+function getGroqModelPriority(model) {
+  const id = model.id.toLowerCase();
+  if (id.includes("gpt-oss-120b")) return 100;
+  if (id.includes("gpt-oss-20b")) return 90;
+  if (id.includes("qwen")) return 80;
+  if (id.includes("llama")) return 70;
+  if (id.includes("compound")) return 60;
+  return 10;
+}
+
+async function getGroqModels() {
+  if (groqModelsCache && Date.now() - groqModelsCacheAt < GROQ_MODELS_TTL) {
+    return groqModelsCache;
   }
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return [];
 
-  // ── Groq : fallback rapide et stable, déjà utilisé ailleurs dans l'écosystème ──
-  try {
-    const groqKey = process.env.GROQ_API_KEY;
-    if (groqKey) {
-      const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${groqKey}`,
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages,
-          temperature: 0.25,
-          max_tokens: maxTokens,
-        }),
-      });
-      if (r.ok) {
-        const d = await r.json();
-        const text = d?.choices?.[0]?.message?.content || "";
-        if (text.trim()) return text;
-      } else {
-        console.warn(`⚠️ [OCCAS AI] Groq FAILED: ${r.status}`);
-      }
-    }
-  } catch (e) {
-    console.warn("⚠️ [OCCAS AI] Groq FAILED:", e?.message?.slice(0, 100));
-  }
+  const response = await fetch(`${GROQ_API_URL}/models`, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
+  const data = await response.json();
+  const models = (data.data || [])
+    .filter(isGroqTextModel)
+    .sort((a, b) => getGroqModelPriority(b) - getGroqModelPriority(a))
+    .slice(0, 5);
+
+  groqModelsCache = models;
+  groqModelsCacheAt = Date.now();
+  return models;
+}
+
+async function callGroq(messages, maxTokens = 500) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return null;
+
+  let models;
   try {
-    const token = process.env.GITHUB_TOKEN;
-    if (token) {
-      const client = ModelClient(
-        "https://models.github.ai/inference",
-        new AzureKeyCredential(token),
-      );
-      const response = await client.path("/chat/completions").post({
-        body: {
-          messages,
-          model: "openai/gpt-4.1",
-          max_tokens: maxTokens,
-          temperature: 0.3,
-        },
-      });
-      if (!isUnexpected(response)) {
-        const text = response.body?.choices?.[0]?.message?.content || "";
-        if (text.trim()) return text;
-      }
-    }
+    models = await getGroqModels();
   } catch (e) {
     console.warn(
-      "⚠️ [OCCAS AI] GitHub Models FAILED:",
-      e?.message?.slice(0, 100),
+      "⚠️ [OCCAS AI] Groq — impossible de récupérer les modèles:",
+      e.message,
     );
+    return null;
+  }
+  if (!models.length) {
+    console.warn("⚠️ [OCCAS AI] Groq — aucun modèle texte disponible");
+    return null;
   }
 
-  try {
-    const key = process.env.NVIDIA_API_KEY;
-    if (key) {
-      const r = await fetch(
-        "https://integrate.api.nvidia.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${key}`,
-          },
-          body: JSON.stringify({
-            model: "meta/llama-3.3-70b-instruct",
-            messages,
-            max_tokens: maxTokens,
-            temperature: 0.3,
-            stream: false,
-          }),
+  for (const model of models) {
+    try {
+      const response = await fetch(`${GROQ_API_URL}/chat/completions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
         },
-      );
-      if (r.ok) {
-        const d = await r.json();
-        const text = d?.choices?.[0]?.message?.content || "";
-        if (text.trim()) return text;
-      }
-    }
-  } catch (e) {
-    console.warn("⚠️ [OCCAS AI] NVIDIA FAILED:", e?.message?.slice(0, 100));
-  }
+        body: JSON.stringify({
+          model: model.id,
+          messages,
+          max_tokens: maxTokens,
+          temperature: 0.25,
+          ...(model.id.includes("gpt-oss") ? { reasoning_effort: "low" } : {}),
+        }),
+      });
+      const data = await response.json().catch(() => null);
 
-  console.error("❌ [OCCAS AI] Tous les providers ont échoué");
+      if (!response.ok) {
+        console.warn(
+          `⚠️ [OCCAS AI] Groq ${model.id} FAILED: HTTP ${response.status} — ${data?.error?.message || ""}`,
+        );
+        continue;
+      }
+      const text = data?.choices?.[0]?.message?.content?.trim() || "";
+      if (text) {
+        console.log(`✅ [OCCAS AI] Groq OK (${model.id})`);
+        return text;
+      }
+      console.warn(`⚠️ [OCCAS AI] Groq ${model.id} — réponse vide`);
+    } catch (e) {
+      console.warn(
+        `⚠️ [OCCAS AI] Groq ${model.id} FAILED:`,
+        e.message?.slice(0, 100),
+      );
+    }
+  }
   return null;
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   1) CHECKLIST DÉTERMINISTE — LE CŒUR DU FIX
+   PROVIDER 2 — NVIDIA
    ════════════════════════════════════════════════════════════════════════ */
 
-// Acheteur : zone, budget, kilométrage, modèle (optionnel), carburant+boîte (popup)
+async function callNvidia(messages, maxTokens = 500) {
+  const key = process.env.NVIDIA_API_KEY;
+  if (!key) return null;
+  try {
+    const r = await fetch(
+      "https://integrate.api.nvidia.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model: "meta/llama-3.3-70b-instruct",
+          messages,
+          max_tokens: maxTokens,
+          temperature: 0.3,
+          stream: false,
+        }),
+      },
+    );
+    if (!r.ok) {
+      console.warn(`⚠️ [OCCAS AI] NVIDIA FAILED: HTTP ${r.status}`);
+      return null;
+    }
+    const d = await r.json();
+    const text = d?.choices?.[0]?.message?.content?.trim() || "";
+    if (text) {
+      console.log("✅ [OCCAS AI] NVIDIA OK");
+      return text;
+    }
+    console.warn("⚠️ [OCCAS AI] NVIDIA — réponse vide");
+    return null;
+  } catch (e) {
+    console.warn("⚠️ [OCCAS AI] NVIDIA FAILED:", e.message?.slice(0, 100));
+    return null;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PROVIDER 3 — GEMINI (liste ordonnée, testée séquentiellement)
+   ════════════════════════════════════════════════════════════════════════ */
+
+function messagesToGeminiContents(messages) {
+  return messages
+    .map((m) =>
+      m.role === "system" ? `[Instructions système]\n${m.content}` : m.content,
+    )
+    .join("\n\n");
+}
+
+function getGeminiStatus(error) {
+  return (
+    error?.status || error?.response?.status || error?.httpStatusCode || null
+  );
+}
+
+async function callGemini(messages, maxTokens = 500) {
+  if (!geminiClient) return null;
+  const contents = messagesToGeminiContents(messages);
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await geminiClient.models.generateContent({
+        model,
+        contents,
+        config: {
+          maxOutputTokens: maxTokens,
+          temperature: 0.3,
+        },
+      });
+      const text = response?.text?.trim() || "";
+      if (text) {
+        console.log(`✅ [OCCAS AI] Gemini OK (${model})`);
+        return text;
+      }
+      console.warn(`⚠️ [OCCAS AI] Gemini ${model} — réponse vide`);
+    } catch (e) {
+      const status = getGeminiStatus(e);
+      console.warn(
+        `⚠️ [OCCAS AI] Gemini ${model} FAILED:${status ? " HTTP " + status : ""}`,
+        e.message?.slice(0, 100),
+      );
+    }
+  }
+  return null;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   PROVIDER 4 — MISTRAL (fallback final)
+   ════════════════════════════════════════════════════════════════════════ */
+
+async function callMistral(messages, maxTokens = 500) {
+  const apiKey = process.env.MISTRAL;
+  if (!apiKey) return null;
+  try {
+    const r = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "mistral-small-latest",
+        messages,
+        temperature: 0.25,
+        max_tokens: maxTokens,
+      }),
+    });
+    if (!r.ok) {
+      console.warn(`⚠️ [OCCAS AI] Mistral FAILED: HTTP ${r.status}`);
+      return null;
+    }
+    const d = await r.json();
+    const text = d?.choices?.[0]?.message?.content?.trim() || "";
+    if (text) {
+      console.log("✅ [OCCAS AI] Mistral OK");
+      return text;
+    }
+    console.warn("⚠️ [OCCAS AI] Mistral — réponse vide");
+    return null;
+  } catch (e) {
+    console.warn("⚠️ [OCCAS AI] Mistral FAILED:", e.message?.slice(0, 100));
+    return null;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   CASCADE PRINCIPALE — Groq → NVIDIA → Gemini → Mistral
+   ════════════════════════════════════════════════════════════════════════ */
+
+async function callLLM(messages, maxTokens = 500) {
+  const groq = await callGroq(messages, maxTokens);
+  if (groq) return groq;
+
+  const nvidia = await callNvidia(messages, maxTokens);
+  if (nvidia) return nvidia;
+
+  const gemini = await callGemini(messages, maxTokens);
+  if (gemini) return gemini;
+
+  const mistral = await callMistral(messages, maxTokens);
+  if (mistral) return mistral;
+
+  console.error(
+    "❌ [OCCAS AI] Tous les providers ont échoué (Groq, NVIDIA, Gemini, Mistral)",
+  );
+  return null;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   1) CHECKLIST DÉTERMINISTE (inchangé)
+   ════════════════════════════════════════════════════════════════════════ */
+
 export const BUYER_STEPS = [
   { field: "ville", kind: "text" },
   { field: "budgetMax", kind: "text" },
@@ -208,8 +351,6 @@ export const BUYER_STEPS = [
   { field: "carburant", kind: "popup", popup: "carburant" },
 ];
 
-// Vendeur : zone, marque/modèle, année, carburant+boîte (popup), kilométrage,
-// prix de vente, puis état (popup), photos (popup), carvertical (popup)
 export const SELLER_STEPS = [
   { field: "ville", kind: "text" },
   { field: "marqueModele", kind: "text" },
@@ -226,17 +367,15 @@ function isFieldSet(field, sc, role) {
   switch (field) {
     case "ville":
       return !!sc.ville;
-    case "budgetMax": // acheteur = budget d'achat
+    case "budgetMax":
       return sc.budgetMax != null || sc.budgetMin != null;
-    case "budgetMin": // vendeur = prix de vente
+    case "budgetMin":
       return sc.budgetMin != null || sc.budgetMax != null;
     case "kilometrageMax":
       return sc.kilometrageMax != null;
     case "kilometrage":
       return sc.kilometrage != null;
     case "marqueModele":
-      // Vendeur : marque ET modèle exigés (c'est SON véhicule, précis).
-      // Acheteur : l'un ou l'autre suffit (préférence indicative, optionnelle).
       return role === "seller"
         ? !!(sc.marque && sc.modele)
         : !!(sc.marque || sc.modele);
@@ -255,10 +394,6 @@ function isFieldSet(field, sc, role) {
   }
 }
 
-/**
- * Détermine, en code pur (aucune IA), la prochaine étape du tunnel.
- * Retourne null si TOUT est renseigné → il est temps du récapitulatif.
- */
 export function computeNextStep(role, sc) {
   const steps = role === "seller" ? SELLER_STEPS : BUYER_STEPS;
   for (const step of steps) {
@@ -274,7 +409,7 @@ export function computeNextStep(role, sc) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   2) EXTRACTION — un seul job : lire le message, sortir ce qu'il contient
+   2) EXTRACTION
    ════════════════════════════════════════════════════════════════════════ */
 
 const EXTRACTION_SCHEMA = `{
@@ -353,7 +488,6 @@ function mergeExtractedCriteria(existing, incoming, role) {
     if (typeof val === "string" && val.trim()) merged[key] = val.trim();
   }
 
-  // Symétrie vendeur : prix unique → budgetMin = budgetMax = prix
   if (role === "seller") {
     if (merged.budgetMin != null && merged.budgetMax == null)
       merged.budgetMax = merged.budgetMin;
@@ -361,7 +495,6 @@ function mergeExtractedCriteria(existing, incoming, role) {
       merged.budgetMin = merged.budgetMax;
     if (merged.budgetMax != null) merged.prix = merged.budgetMax;
   }
-  // Symétrie acheteur inverse (au cas où le modèle sort budgetMin par erreur)
   if (role === "buyer") {
     if (merged.budgetMax == null && merged.budgetMin != null)
       merged.budgetMax = merged.budgetMin;
@@ -370,36 +503,60 @@ function mergeExtractedCriteria(existing, incoming, role) {
   return merged;
 }
 
-/**
- * Extrait les critères d'un message libre et les fusionne avec l'existant.
- * Ne gère JAMAIS la question suivante — uniquement l'extraction.
- */
-// ── Filet de secours regex : couvre les cas les plus fréquents quand tous
-// les providers IA sont indisponibles, pour que le tunnel avance quand même.
+/* ── Filet de secours : détection de ville + regex de base, si tous les
+   providers IA sont indisponibles. Évite que le tunnel boucle sur "ville". ── */
+const normalizeStr = (str) =>
+  typeof str === "string"
+    ? str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+    : "";
+
+let VILLES_NORM = [];
+try {
+  const villesRaw = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "villes-france.json"), "utf-8"),
+  );
+  VILLES_NORM = villesRaw
+    .map((v) => ({ original: v.ville, norm: normalizeStr(v.ville) }))
+    .filter((v) => v.norm && v.norm.length >= 3);
+} catch (e) {
+  console.warn("[OCCAS AI] villes-france.json introuvable:", e.message);
+}
+
+function detectVilleInMessage(msg) {
+  const norm = normalizeStr(msg || "");
+  if (!norm) return null;
+  for (const v of VILLES_NORM) {
+    const re = new RegExp(
+      `\\b${v.norm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+    );
+    if (re.test(norm)) return v.original;
+  }
+  return null;
+}
+
 function heuristicExtract(userMessage, role) {
   const msg = (userMessage || "").toLowerCase();
   const out = {};
 
-  // Prix / budget : "15000", "15 000€", "15k", "entre 10k et 18k"
+  const ville = detectVilleInMessage(userMessage);
+  if (ville) out.ville = ville;
+
   const priceMatches = [
     ...msg.matchAll(/(\d[\d\s]{2,7})\s?(k|000)?\s?(?:€|eur|euros?)?/g),
   ]
     .map((m) => normalizeNumber(m[0]))
     .filter((n) => n && n >= 500 && n <= 500000);
   if (priceMatches.length === 2) {
-    if (role === "seller") {
-      out.budgetMin = Math.min(...priceMatches);
-      out.budgetMax = Math.max(...priceMatches);
-    } else {
-      out.budgetMin = Math.min(...priceMatches);
-      out.budgetMax = Math.max(...priceMatches);
-    }
+    out.budgetMin = Math.min(...priceMatches);
+    out.budgetMax = Math.max(...priceMatches);
   } else if (priceMatches.length === 1) {
     if (role === "seller") out.budgetMin = priceMatches[0];
     else out.budgetMax = priceMatches[0];
   }
 
-  // Kilométrage : "80000 km", "80 000km", "80k km"
   const kmMatch = msg.match(/(\d[\d\s]{2,7})\s?(k)?\s?(?:km|kms|kilomètres?)/);
   if (kmMatch) {
     const n = normalizeNumber(kmMatch[1] + (kmMatch[2] || ""));
@@ -409,22 +566,18 @@ function heuristicExtract(userMessage, role) {
     }
   }
 
-  // Année : un nombre à 4 chiffres plausible (1990-2027)
   const yearMatch = msg.match(/\b(19[9]\d|20[0-2]\d)\b/);
   if (yearMatch) out.annee = parseInt(yearMatch[1], 10);
 
-  // Carburant
   if (/électr/.test(msg)) out.carburant = "electrique";
   else if (/hybrid/.test(msg)) out.carburant = "hybride";
   else if (/diesel|gasoil/.test(msg)) out.carburant = "diesel";
   else if (/\bgpl\b/.test(msg)) out.carburant = "gpl";
   else if (/essence/.test(msg)) out.carburant = "essence";
 
-  // Boîte
   if (/bo[iî]te\s*auto|automatique/.test(msg)) out.boite = "automatique";
   else if (/bo[iî]te\s*man|manuelle/.test(msg)) out.boite = "manuelle";
 
-  // Indifférence marque/modèle
   if (/peu importe|n'importe quel|pas de préférence|indifférent/.test(msg))
     out.marqueModeleIndifferent = true;
 
@@ -446,8 +599,6 @@ export async function extractCriteria(userMessage, role, existingCriteria) {
     if (raw) return mergeExtractedCriteria(existingCriteria, raw, role);
   }
 
-  // ── IA totalement indisponible : on ne bloque pas le tunnel, on extrait
-  // ce qu'on peut par heuristique plutôt que de perdre le message de l'utilisateur.
   console.warn(
     "⚠️ [OCCAS AI] Extraction IA indisponible, fallback heuristique utilisé",
   );
@@ -459,7 +610,7 @@ export async function extractCriteria(userMessage, role, existingCriteria) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   3) FORMULATION — habille une instruction déterministe en phrase naturelle
+   3) FORMULATION (inchangé)
    ════════════════════════════════════════════════════════════════════════ */
 
 const FIELD_LABELS = {
@@ -516,8 +667,13 @@ Ne pose aucune autre question. Ne répète pas les infos déjà connues sous for
         ? `Annonce avec enthousiasme que tu as trouvé des véhicules compatibles avec sa recherche.`
         : `Explique avec empathie qu'aucun véhicule ne correspond parfaitement aux critères actuels, et propose 2-3 pistes concrètes (élargir le budget, le rayon, le kilométrage ou l'année).`;
     }
+    // APRÈS
   } else if (event.type === "modify_prompt") {
     task = `Demande gentiment ce que la personne souhaite modifier dans les informations déjà données.`;
+  } else if (event.type === "criteria_updated") {
+    task = event.hasMatches
+      ? `Confirme en 1-2 phrases que les critères ont été mis à jour et que le matching a été relancé avec de nouveaux résultats à découvrir ci-dessus.`
+      : `Confirme en 1-2 phrases que les critères ont été mis à jour, mais qu'aucun profil ne correspond parfaitement pour l'instant ; propose d'ajuster encore.`;
   }
 
   const known = Object.entries(sc)
@@ -593,15 +749,17 @@ function fallbackPhrase(role, sc, event) {
       ? "Voici les véhicules les plus compatibles avec votre recherche."
       : "Aucun véhicule ne correspond parfaitement à vos critères actuels. Vous pouvez élargir le budget, le rayon ou le kilométrage.";
   }
+  // APRÈS
   if (event.type === "modify_prompt")
     return "Bien sûr, dites-moi ce que vous souhaitez modifier.";
+  if (event.type === "criteria_updated") {
+    return event.hasMatches
+      ? "Vos critères ont été mis à jour et le matching relancé — voici les nouveaux résultats."
+      : "Vos critères ont été mis à jour, mais aucun profil ne correspond parfaitement pour l'instant.";
+  }
   return "Je vous écoute.";
 }
 
-/**
- * Habille une étape déterministe en message naturel. Ne modifie JAMAIS
- * les critères. Garantie de ne jamais retourner de texte vide (fallback).
- */
 export async function generatePhrasing(role, sc, event) {
   try {
     const prompt = buildPhrasingPrompt(role, sc, event);
@@ -622,7 +780,7 @@ export async function generatePhrasing(role, sc, event) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   MISE EN RELATION — message de contact (inchangé, fonctionnait bien)
+   MISE EN RELATION (inchangé)
    ════════════════════════════════════════════════════════════════════════ */
 export async function generateContactMessage(
   senderRole,
@@ -664,9 +822,45 @@ Consignes : commence par "Bonjour,", mentionne le point commun clé, invite à �
   return aiText.trim();
 }
 
+// AJOUT (juste après generateContactMessage)
+export async function generateContactConfirmation(
+  role,
+  senderCriteria,
+  targetProfile,
+  contactInfo,
+  messageSent,
+) {
+  if (!messageSent) {
+    return "Le message n'a pas pu être envoyé — réessayez ou contactez le support si le problème persiste.";
+  }
+
+  const prompt = `Tu es un conseiller automobile expert. Un message de mise en relation vient d'être envoyé automatiquement par le système.
+
+Destinataire : ${contactInfo.name} (${contactInfo.email})
+Contexte : ${role === "buyer" ? "l'utilisateur a contacté un vendeur" : "l'utilisateur a contacté un acheteur"} pour le profil suivant :
+${targetProfile.marque || ""} ${targetProfile.modele || ""} — ${targetProfile.ville || "N/A"}
+
+Rédige un court message (2-3 phrases) qui :
+1. Confirme que le message a bien été envoyé à ${contactInfo.name} à l'adresse ${contactInfo.email}.
+2. Précise qu'il peut retrouver l'échange dans sa messagerie.
+3. Propose naturellement de continuer : analyser le marché ou modifier ses critères.
+
+Réponds UNIQUEMENT avec le texte du message, sans JSON, sans guillemets.`;
+
+  const aiText = await callLLM(
+    [
+      { role: "system", content: prompt },
+      { role: "user", content: "Génère la confirmation." },
+    ],
+    150,
+  );
+
+  if (aiText?.trim()) return aiText.trim().replace(/^"|"$/g, "");
+
+  return `Message envoyé à ${contactInfo.name} (${contactInfo.email}). Vous pouvez suivre l'échange dans votre messagerie. Souhaitez-vous analyser le marché ou ajuster vos critères ?`;
+}
 /* ════════════════════════════════════════════════════════════════════════
-   PHASE RÉSULTATS — comparaison / mise en relation / analyse marché
-   (inchangé dans l'esprit, toujours découplé du tunnel de collecte)
+   PHASE RÉSULTATS (inchangé)
    ════════════════════════════════════════════════════════════════════════ */
 export function detectResultsIntent(userMessage) {
   const msg = (userMessage || "").toLowerCase().trim();
@@ -709,7 +903,14 @@ export function detectResultsIntent(userMessage) {
   return "general";
 }
 
-function buildResultsPrompt(role, sc, matches, userMessage, intent) {
+function buildResultsPrompt(
+  role,
+  sc,
+  matches,
+  userMessage,
+  intent,
+  marketStats,
+) {
   const topMatches = (matches || []).slice(0, 5);
   const isBuyer = role === "buyer";
 
@@ -739,6 +940,14 @@ function buildResultsPrompt(role, sc, matches, userMessage, intent) {
     intentInstruction = `INTENTION : CONSEIL GÉNÉRAL. Réponds avec expertise en t'appuyant sur les données réelles.`;
   }
 
+  const marketBlock = marketStats
+    ? `\nDONNÉES MARCHÉ RÉELLES (base de données, ${marketStats.scope}) :
+  - ${marketStats.count} annonces vendeur comparables
+  - Prix moyen constaté : ${marketStats.avgPrix.toLocaleString("fr-FR")} €
+  - Kilométrage moyen : ${marketStats.avgKm != null ? marketStats.avgKm.toLocaleString("fr-FR") + " km" : "non disponible"}
+Utilise IMPÉRATIVEMENT ces chiffres réels dans ton analyse, ne les invente jamais.`
+    : "";
+
   return `Tu es un conseiller automobile expert de haut niveau. Un ${isBuyer ? "acheteur" : "vendeur"} vient de recevoir ses résultats de matching.
 
 PROFIL :
@@ -746,17 +955,20 @@ ${criteriaLines.map((l) => `  - ${l}`).join("\n") || "  (incomplet)"}
 
 RÉSULTATS (${topMatches.length}) :
 ${JSON.stringify(topMatches, null, 2)}
+${marketBlock}
 
 MESSAGE UTILISATEUR : "${userMessage}"
 
+
 ${intentInstruction}
 
-RÈGLES : maximum 4 phrases sauf comparaison détaillée, jamais de répétition, toujours factuel avec les vraies données.
+RÈGLES : maximum 4 phrases sauf comparaison détaillée, jamais de répétition, toujours factuel avec les vraies données. N'écris JAMAIS de texte parasite type "Voici votre analyse :" — va directement au contenu.
 
 Réponds UNIQUEMENT avec ce JSON :
 { "message": "ta réponse", "intent": "${intent}" }`.trim();
 }
 
+// APRÈS
 export async function aiResultsChat(
   userMessage,
   existingCriteria = {},
@@ -774,6 +986,7 @@ export async function aiResultsChat(
     matches,
     userMessage,
     intent,
+    context.marketStats || null,
   );
 
   const aiText = await callLLM(

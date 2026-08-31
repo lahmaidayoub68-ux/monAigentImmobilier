@@ -1,30 +1,32 @@
 import "dotenv/config";
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 
-/* ─── CLIENT GROQ (primaire) ─────────────────────────────────────────────── */
-const groqClient = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: "https://api.groq.com/openai/v1",
-  timeout: 10000,
-  maxRetries: 0,
-});
+/* ─── CLIENT GEMINI ───────────────────────────────────────────────────────── */
+const geminiApiKey = process.env.GEMINI_API_KEY;
+const geminiClient = geminiApiKey
+  ? new GoogleGenAI({ apiKey: geminiApiKey })
+  : null;
 
-/* ─── CLIENT FEATHERLESS (fallback 1) ───────────────────────────────────── */
-const featherlessClient = new OpenAI({
-  apiKey: process.env.FEATHERLESS_API_KEY,
-  baseURL: "https://api.featherless.ai/v1",
-  timeout: 12000,
-  maxRetries: 0,
-});
+const GEMINI_MODELS = [
+  "gemini-3.5-flash-lite",
+  "gemini-3.5-flash",
+  "gemini-3.6-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-3.1-pro-preview",
+  "gemini-2.5-flash",
+];
 
-/* ─── CLIENT MISTRAL (fallback 2) ────────────────────────────────────────── */
-const mistralClient = new OpenAI({
-  apiKey: process.env.MISTRAL,
-  baseURL: "https://api.mistral.ai/v1",
-  timeout: 12000,
-  maxRetries: 0,
-});
+/* ─── COHERE — découverte dynamique des modèles Chat actifs ─────────────── */
+const COHERE_API_URL = "https://api.cohere.com";
+let cohereModelsCache = null;
+let cohereModelsCacheAt = 0;
+const COHERE_MODELS_TTL = 30 * 60 * 1000; // 30 min
 
+/* ─── GROQ — découverte dynamique + tri des modèles texte ────────────────── */
+const GROQ_API_URL = "https://api.groq.com/openai/v1";
+let groqModelsCache = null;
+let groqModelsCacheAt = 0;
+const GROQ_MODELS_TTL = 10 * 60 * 1000; // 10 min
 /* ─── HELPERS ─────────────────────────────────────────────────────────────── */
 function normalizeNumber(value) {
   if (value === null || value === undefined) return null;
@@ -169,94 +171,357 @@ Réponds UNIQUEMENT avec le texte du message (pas de JSON, pas de balises).`;
   return aiText.trim();
 }
 
-/* ─── LLM CALL ────────────────────────────────────────────────────────────── */
-async function callLLM(messages, maxTokens = 500) {
-  // ── Groq (primaire) ──────────────────────────────────────────────────────
-  try {
-    const res = await groqClient.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages,
-      temperature: 0.2,
-      max_tokens: maxTokens,
+/* ─── LLM CALL — cascade Cohere → Groq → NVIDIA → Gemini → Mistral ───────── */
+
+// ---- COHERE ----
+function isCohereTextModel(model) {
+  return !model.is_deprecated && model.endpoints?.includes("chat");
+}
+
+async function getCohereModels() {
+  if (
+    cohereModelsCache &&
+    Date.now() - cohereModelsCacheAt < COHERE_MODELS_TTL
+  ) {
+    return cohereModelsCache;
+  }
+  const apiKey = process.env.COHERE_API_KEY;
+  if (!apiKey) return [];
+
+  const models = [];
+  let pageToken = null;
+  do {
+    const params = new URLSearchParams({ endpoint: "chat", page_size: "100" });
+    if (pageToken) params.set("page_token", pageToken);
+    const response = await fetch(`${COHERE_API_URL}/v1/models?${params}`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+      },
     });
-    const text = res?.choices?.[0]?.message?.content || "";
-    if (text.trim()) {
-      console.log("✅ Groq OK | RAW:", text.slice(0, 120));
-      return text;
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(
+        data?.message || data?.error || `HTTP ${response.status}`,
+      );
     }
-    console.warn("⚠️ Groq réponse vide");
+    models.push(...(data.models || []));
+    pageToken = data.next_page_token || null;
+  } while (pageToken);
+
+  const filtered = models.filter(isCohereTextModel);
+  cohereModelsCache = filtered;
+  cohereModelsCacheAt = Date.now();
+  return filtered;
+}
+
+async function callCohere(messages, maxTokens = 500) {
+  const apiKey = process.env.COHERE_API_KEY;
+  if (!apiKey) return null;
+
+  let models;
+  try {
+    models = await getCohereModels();
   } catch (e) {
-    console.warn("⚠️ Groq FAILED:", e?.code || e?.message?.slice(0, 80));
+    console.warn(
+      "⚠️ [AI] Cohere — impossible de récupérer les modèles:",
+      e.message,
+    );
+    return null;
+  }
+  if (!models.length) {
+    console.warn("⚠️ [AI] Cohere — aucun modèle Chat actif disponible");
+    return null;
   }
 
-  // ── Featherless (fallback 1) ─────────────────────────────────────────────
-  try {
-    const models = [
-      // 🥇 meilleur choix stable
-      "meta-llama/Llama-3.1-8B-Instruct",
-
-      // 🥈 bon raisonnement + structuré
-      "Qwen/Qwen2.5-7B-Instruct",
-
-      // 🥉 celui que tu as déjà validé (SAFE)
-      "mistralai/Mistral-7B-Instruct-v0.2",
-    ];
-
-    let lastError = null;
-
-    for (const model of models) {
-      try {
-        console.log(`🧪 Featherless test model: ${model}`);
-
-        const res = await featherlessClient.chat.completions.create({
-          model,
+  for (const model of models) {
+    try {
+      const response = await fetch(`${COHERE_API_URL}/v2/chat`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model.name,
           messages,
-          temperature: 0.2,
           max_tokens: maxTokens,
-        });
+          temperature: 0.2,
+        }),
+      });
+      const data = await response.json().catch(() => null);
 
-        const text = res?.choices?.[0]?.message?.content || "";
-
-        if (text.trim()) {
-          console.log(
-            `✅ Featherless OK (${model}) | RAW:`,
-            text.slice(0, 120),
-          );
-          return text;
-        } else {
-          console.warn(`⚠️ Réponse vide (${model})`);
-        }
-      } catch (err) {
-        lastError = err;
+      if (!response.ok) {
         console.warn(
-          `⚠️ Model FAILED (${model}):`,
-          err?.status || err?.code || err?.message?.slice(0, 80),
+          `⚠️ [AI] Cohere ${model.name} FAILED: HTTP ${response.status} — ${data?.message || data?.error || ""}`,
         );
+        continue;
       }
+      const content = data?.message?.content;
+      const text = Array.isArray(content)
+        ? content
+            .filter((i) => i?.type === "text")
+            .map((i) => i.text)
+            .join("\n")
+            .trim()
+        : "";
+      if (text) {
+        console.log(`✅ [AI] Cohere OK (${model.name})`);
+        return text;
+      }
+      console.warn(`⚠️ [AI] Cohere ${model.name} — réponse vide`);
+    } catch (e) {
+      console.warn(
+        `⚠️ [AI] Cohere ${model.name} FAILED:`,
+        e.message?.slice(0, 100),
+      );
     }
-
-    console.warn("❌ Tous les modèles Featherless ont échoué", lastError);
-  } catch (e) {
-    console.warn("⚠️ Featherless GLOBAL FAILED:", e?.message?.slice(0, 120));
   }
-  // ── Mistral (fallback 2) ─────────────────────────────────────────────────
+  return null;
+}
+
+// ---- GROQ ----
+function isGroqTextModel(model) {
+  const id = model.id.toLowerCase();
+  return (
+    !id.includes("whisper") &&
+    !id.includes("guard") &&
+    !id.includes("speech") &&
+    !id.includes("audio") &&
+    !id.includes("tts")
+  );
+}
+
+function getGroqModelPriority(model) {
+  const id = model.id.toLowerCase();
+  if (id.includes("gpt-oss-120b")) return 100;
+  if (id.includes("gpt-oss-20b")) return 90;
+  if (id.includes("qwen")) return 80;
+  if (id.includes("llama")) return 70;
+  if (id.includes("compound")) return 60;
+  return 10;
+}
+
+async function getGroqModels() {
+  if (groqModelsCache && Date.now() - groqModelsCacheAt < GROQ_MODELS_TTL) {
+    return groqModelsCache;
+  }
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return [];
+  const response = await fetch(`${GROQ_API_URL}/models`, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const data = await response.json();
+  const models = (data.data || [])
+    .filter(isGroqTextModel)
+    .sort((a, b) => getGroqModelPriority(b) - getGroqModelPriority(a))
+    .slice(0, 5);
+  groqModelsCache = models;
+  groqModelsCacheAt = Date.now();
+  return models;
+}
+
+async function callGroq(messages, maxTokens = 500) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return null;
+
+  let models;
   try {
-    const res = await mistralClient.chat.completions.create({
-      model: "mistral-small-latest",
-      messages,
-      temperature: 0.2,
-      max_tokens: maxTokens,
-    });
-    const text = res?.choices?.[0]?.message?.content || "";
-    if (text.trim()) {
-      console.log("✅ Mistral (fallback 2) OK | RAW:", text.slice(0, 120));
+    models = await getGroqModels();
+  } catch (e) {
+    console.warn(
+      "⚠️ [AI] Groq — impossible de récupérer les modèles:",
+      e.message,
+    );
+    return null;
+  }
+  if (!models.length) {
+    console.warn("⚠️ [AI] Groq — aucun modèle texte disponible");
+    return null;
+  }
+
+  for (const model of models) {
+    try {
+      const response = await fetch(`${GROQ_API_URL}/chat/completions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model.id,
+          messages,
+          max_tokens: maxTokens,
+          temperature: 0.2,
+          ...(model.id.includes("gpt-oss") ? { reasoning_effort: "low" } : {}),
+        }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        console.warn(
+          `⚠️ [AI] Groq ${model.id} FAILED: HTTP ${response.status} — ${data?.error?.message || ""}`,
+        );
+        continue;
+      }
+      const text = data?.choices?.[0]?.message?.content?.trim() || "";
+      if (text) {
+        console.log(`✅ [AI] Groq OK (${model.id})`);
+        return text;
+      }
+      console.warn(`⚠️ [AI] Groq ${model.id} — réponse vide`);
+    } catch (e) {
+      console.warn(
+        `⚠️ [AI] Groq ${model.id} FAILED:`,
+        e.message?.slice(0, 100),
+      );
+    }
+  }
+  return null;
+}
+
+// ---- NVIDIA ----
+async function callNvidia(messages, maxTokens = 500) {
+  const key = process.env.NVIDIA_API_KEY;
+  if (!key) return null;
+  try {
+    const r = await fetch(
+      "https://integrate.api.nvidia.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model: "meta/llama-3.3-70b-instruct",
+          messages,
+          max_tokens: maxTokens,
+          temperature: 0.3,
+          stream: false,
+        }),
+      },
+    );
+    if (!r.ok) {
+      console.warn(`⚠️ [AI] NVIDIA FAILED: HTTP ${r.status}`);
+      return null;
+    }
+    const d = await r.json();
+    const text = d?.choices?.[0]?.message?.content?.trim() || "";
+    if (text) {
+      console.log("✅ [AI] NVIDIA OK");
       return text;
     }
-    console.warn("⚠️ Mistral réponse vide");
+    console.warn("⚠️ [AI] NVIDIA — réponse vide");
+    return null;
   } catch (e) {
-    console.warn("⚠️ Mistral FAILED:", e?.code || e?.message?.slice(0, 80));
+    console.warn("⚠️ [AI] NVIDIA FAILED:", e.message?.slice(0, 100));
+    return null;
   }
+}
 
+// ---- GEMINI ----
+function messagesToGeminiContents(messages) {
+  return messages
+    .map((m) =>
+      m.role === "system" ? `[Instructions système]\n${m.content}` : m.content,
+    )
+    .join("\n\n");
+}
+
+function getGeminiStatus(error) {
+  return (
+    error?.status || error?.response?.status || error?.httpStatusCode || null
+  );
+}
+
+async function callGemini(messages, maxTokens = 500) {
+  if (!geminiClient) return null;
+  const contents = messagesToGeminiContents(messages);
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await geminiClient.models.generateContent({
+        model,
+        contents,
+        config: { maxOutputTokens: maxTokens, temperature: 0.3 },
+      });
+      const text = response?.text?.trim() || "";
+      if (text) {
+        console.log(`✅ [AI] Gemini OK (${model})`);
+        return text;
+      }
+      console.warn(`⚠️ [AI] Gemini ${model} — réponse vide`);
+    } catch (e) {
+      const status = getGeminiStatus(e);
+      console.warn(
+        `⚠️ [AI] Gemini ${model} FAILED:${status ? " HTTP " + status : ""}`,
+        e.message?.slice(0, 100),
+      );
+    }
+  }
+  return null;
+}
+
+// ---- MISTRAL ----
+async function callMistral(messages, maxTokens = 500) {
+  const apiKey = process.env.MISTRAL;
+  if (!apiKey) return null;
+  try {
+    const r = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "mistral-small-latest",
+        messages,
+        temperature: 0.2,
+        max_tokens: maxTokens,
+      }),
+    });
+    if (!r.ok) {
+      console.warn(`⚠️ [AI] Mistral FAILED: HTTP ${r.status}`);
+      return null;
+    }
+    const d = await r.json();
+    const text = d?.choices?.[0]?.message?.content?.trim() || "";
+    if (text) {
+      console.log("✅ [AI] Mistral OK");
+      return text;
+    }
+    console.warn("⚠️ [AI] Mistral — réponse vide");
+    return null;
+  } catch (e) {
+    console.warn("⚠️ [AI] Mistral FAILED:", e.message?.slice(0, 100));
+    return null;
+  }
+}
+
+// ---- CASCADE PRINCIPALE ----
+async function callLLM(messages, maxTokens = 500) {
+  const cohere = await callCohere(messages, maxTokens);
+  if (cohere) return cohere;
+
+  const groq = await callGroq(messages, maxTokens);
+  if (groq) return groq;
+
+  const nvidia = await callNvidia(messages, maxTokens);
+  if (nvidia) return nvidia;
+
+  const gemini = await callGemini(messages, maxTokens);
+  if (gemini) return gemini;
+
+  const mistral = await callMistral(messages, maxTokens);
+  if (mistral) return mistral;
+
+  console.error(
+    "❌ [IMMO AI] Tous les providers ont échoué (Cohere, Groq, NVIDIA, Gemini, Mistral)",
+  );
   return null;
 }
 

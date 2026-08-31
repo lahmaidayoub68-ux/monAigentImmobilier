@@ -8,7 +8,11 @@
  * ============================================================
  */
 
-import { renderRecapCard, renderMatchResults } from "./vehicle-ad-cards.js";
+import {
+  renderRecapCard,
+  renderMatchResults,
+  renderContactSuccessCard,
+} from "./vehicle-ad-cards.js";
 
 const API_BASE = "";
 const ROLE_LABELS = { buyer: "Acheteur", seller: "Vendeur" };
@@ -256,13 +260,25 @@ window.__vaAddBotMsg = (text, typing = false) =>
 window.__vaSendSpecialUpdate = (payload) => sendSpecialUpdate(payload);
 
 async function handleServerResponse(data) {
+  if (data.phase) {
+    state.phase = data.phase;
+    save("phase", data.phase);
+    if (data.phase === "results") unlockPanelActions();
+    else lockPanelActions();
+  }
+
   if (data.criteria) {
     state.criteria = { ...state.criteria, ...data.criteria };
     save("criteria", state.criteria);
     updateAIPanel();
   }
-
-  if (data.reply) addMessage({ text: data.reply, from: "bot", typing: true });
+  // Affichage initial des résultats (juste après confirmation du récap) :
+  // le texte sera affiché via renderMatchResults (cartes puis message),
+  // on ne le montre pas une deuxième fois ici.
+  const isInitialMatchDisplay =
+    data.matchingDone && data.actionType === undefined;
+  if (data.reply && !isInitialMatchDisplay)
+    addMessage({ text: data.reply, from: "bot", typing: true });
 
   if (data.triggerCarburantPopup && !state.ui.carburantPopupOpened) {
     state.ui.carburantPopupOpened = true;
@@ -291,15 +307,35 @@ async function handleServerResponse(data) {
     return;
   }
 
+  if (
+    data.actionType === "contact_done" &&
+    data.messageSent &&
+    data.contactInfo &&
+    typeof renderContactSuccessCard === "function"
+  ) {
+    renderContactSuccessCard(data.contactInfo.name, data.contactInfo.email);
+  }
+
   if (data.matchingDone) {
     state.phase = "results";
     save("phase", "results");
     unlockPanelActions();
-    if (Array.isArray(data.matches) && data.matches.length > 0) {
-      renderMatchResults(data.matches, data.postReply);
-    } else if (data.postReply) {
-      addMessage({ text: data.postReply, from: "bot", typing: true });
+
+    // En cas de mise à jour des critères, on réactualise les cartes sans doubler le texte
+    if (data.actionType === "criteria_updated" && Array.isArray(data.matches)) {
+      renderMatchResults(data.matches, null, state.role);
+    } else if (isInitialMatchDisplay) {
+      // Affichage initial des résultats : cartes PUIS message, une seule fois
+      if (Array.isArray(data.matches) && data.matches.length > 0) {
+        renderMatchResults(data.matches, data.postReply, state.role);
+      } else if (data.postReply) {
+        addMessage({ text: data.postReply, from: "bot", typing: true });
+      }
     }
+    // Pour "contact_done" ET pour toute réponse conversationnelle en phase
+    // résultats (analyse marché, comparaison, question libre, etc.), le texte
+    // a déjà été affiché plus haut via data.reply : on ne réaffiche rien de
+    // plus et on ne redouble pas les cartes déjà visibles à l'écran.
   }
 }
 
@@ -353,6 +389,7 @@ function updateAIPanel() {
   set("ai-zone", c.ville || null);
 }
 
+// APRÈS
 function unlockPanelActions() {
   ["btn-mise-relation", "btn-analyse-marche", "btn-modifier-criteres"].forEach(
     (id) => {
@@ -361,6 +398,19 @@ function unlockPanelActions() {
         btn.removeAttribute("disabled");
         btn.style.opacity = "1";
         btn.style.cursor = "pointer";
+      }
+    },
+  );
+}
+
+function lockPanelActions() {
+  ["btn-mise-relation", "btn-analyse-marche", "btn-modifier-criteres"].forEach(
+    (id) => {
+      const btn = $(id);
+      if (btn) {
+        btn.setAttribute("disabled", "true");
+        btn.style.opacity = "0.45";
+        btn.style.cursor = "not-allowed";
       }
     },
   );
@@ -535,12 +585,38 @@ function carSilhouetteSVG(extraDefs = "") {
   `;
 }
 
+// APRÈS
 function openEtatVoiturePopup() {
-  const row = document.createElement("div");
-  row.className = "msg bot structured";
-  const zones = state.criteria.etatZones ? { ...state.criteria.etatZones } : {};
+  buildEtatEditor({
+    initialZones: state.criteria.etatZones
+      ? { ...state.criteria.etatZones }
+      : {},
+    container: $("chat-box"),
+    asStructuredMessage: true,
+    onValidate: (zones) => {
+      state.criteria.etatZones = zones;
+      save("criteria", state.criteria);
+      const summary = Object.entries(zones)
+        .map(([k, v]) => {
+          const zd = CAR_ZONES.find((z) => z.id === k);
+          const st = ZONE_STATUS.find((s) => s.value === v.status);
+          return `${zd?.label}: ${st?.label}`;
+        })
+        .join(", ");
+      addMessage({ text: `État renseigné — ${summary}`, from: "user" });
+      sendSpecialUpdate({ etatZones: zones, message: "__ETAT_SELECTED__" });
+    },
+  });
+}
 
-  row.innerHTML = `
+/** Éditeur d'état réutilisable : tunnel initial (popup dans le chat) OU
+ *  édition ponctuelle depuis "Modifier mes critères" (popup flottant). */
+function buildEtatEditor({ initialZones, onValidate, asStructuredMessage }) {
+  const zones = { ...initialZones };
+  const wrap = document.createElement(asStructuredMessage ? "div" : "div");
+  if (asStructuredMessage) wrap.className = "msg bot structured";
+
+  wrap.innerHTML = `
     <div class="bubble saas-popup etat-voiture-popup" style="max-width:560px;width:100%">
       <div class="saas-popup-header">
         <div class="saas-popup-icon">
@@ -551,9 +627,8 @@ function openEtatVoiturePopup() {
           <p class="saas-popup-sub">Touchez une zone pour indiquer son état</p>
         </div>
       </div>
-
       <div class="car-diagram-wrap">
-        <svg viewBox="0 0 520 220" class="car-diagram-svg" id="car-svg">
+        <svg viewBox="0 0 520 220" class="car-diagram-svg">
           ${carSilhouetteSVG()}
           ${CAR_ZONES.map(
             (z) => `
@@ -566,9 +641,7 @@ function openEtatVoiturePopup() {
         </svg>
         <div class="car-diagram-legend" id="zone-legend"></div>
       </div>
-
       <div class="etat-progress" id="etat-progress"></div>
-
       <div class="saas-popup-actions">
         <button class="btn-saas-ghost" id="etat-reset">Réinitialiser</button>
         <button class="btn-saas-primary" id="etat-valider" ${Object.keys(zones).length ? "" : "disabled"}>
@@ -578,12 +651,26 @@ function openEtatVoiturePopup() {
       </div>
     </div>`;
 
-  $("chat-box").appendChild(row);
-  scrollBottom($("chat-box"));
+  if (!asStructuredMessage) {
+    wrap.classList.add("va-modal-overlay-inner"); // conteneur flottant, à styler si besoin
+  }
 
-  const legend = row.querySelector("#zone-legend");
-  const progress = row.querySelector("#etat-progress");
-  const validerBtn = row.querySelector("#etat-valider");
+  const target = asStructuredMessage ? $("chat-box") : document.body;
+  const overlay = asStructuredMessage
+    ? null
+    : (() => {
+        const ov = document.createElement("div");
+        ov.className = "va-modal-overlay";
+        ov.appendChild(wrap);
+        document.body.appendChild(ov);
+        return ov;
+      })();
+  if (asStructuredMessage) target.appendChild(wrap);
+  if (asStructuredMessage) scrollBottom($("chat-box"));
+
+  const legend = wrap.querySelector("#zone-legend");
+  const progress = wrap.querySelector("#etat-progress");
+  const validerBtn = wrap.querySelector("#etat-valider");
 
   function renderProgress() {
     const total = CAR_ZONES.length;
@@ -592,35 +679,6 @@ function openEtatVoiturePopup() {
     validerBtn.disabled = done === 0;
   }
   renderProgress();
-
-  function openZoneMiniPopup(zoneId) {
-    const zoneDef = CAR_ZONES.find((z) => z.id === zoneId);
-    document.querySelectorAll(".zone-mini-popup").forEach((p) => p.remove());
-
-    const mini = document.createElement("div");
-    mini.className = "zone-mini-popup";
-    mini.innerHTML = `
-      <div class="zmp-title">${zoneDef.label}</div>
-      <div class="zmp-options">
-        ${ZONE_STATUS.map((s) => `<button class="zmp-opt" data-status="${s.value}" style="--zc:${s.color}">${s.label}</button>`).join("")}
-      </div>`;
-    row.querySelector(".car-diagram-wrap").appendChild(mini);
-
-    mini.querySelectorAll(".zmp-opt").forEach((btn) => {
-      btn.onclick = () => {
-        zones[zoneId] = { status: btn.dataset.status };
-        const hit = row.querySelector(`.car-zone-hit[data-zone="${zoneId}"]`);
-        const colorMap = Object.fromEntries(
-          ZONE_STATUS.map((s) => [s.value, s.color]),
-        );
-        hit.setAttribute("fill", `${colorMap[btn.dataset.status]}2A`);
-        hit.setAttribute("stroke", colorMap[btn.dataset.status]);
-        mini.remove();
-        renderProgress();
-        renderLegend();
-      };
-    });
-  }
 
   function renderLegend() {
     legend.innerHTML = Object.entries(zones)
@@ -633,13 +691,41 @@ function openEtatVoiturePopup() {
   }
   renderLegend();
 
-  row.querySelectorAll(".car-zone-hit").forEach((hit) => {
+  function openZoneMiniPopup(zoneId) {
+    const zoneDef = CAR_ZONES.find((z) => z.id === zoneId);
+    document.querySelectorAll(".zone-mini-popup").forEach((p) => p.remove());
+    const mini = document.createElement("div");
+    mini.className = "zone-mini-popup";
+    mini.innerHTML = `
+      <div class="zmp-title">${zoneDef.label}</div>
+      <div class="zmp-options">
+        ${ZONE_STATUS.map((s) => `<button class="zmp-opt" data-status="${s.value}" style="--zc:${s.color}">${s.label}</button>`).join("")}
+      </div>`;
+    wrap.querySelector(".car-diagram-wrap").appendChild(mini);
+
+    mini.querySelectorAll(".zmp-opt").forEach((btn) => {
+      btn.onclick = () => {
+        zones[zoneId] = { status: btn.dataset.status };
+        const hit = wrap.querySelector(`.car-zone-hit[data-zone="${zoneId}"]`);
+        const colorMap = Object.fromEntries(
+          ZONE_STATUS.map((s) => [s.value, s.color]),
+        );
+        hit.setAttribute("fill", `${colorMap[btn.dataset.status]}2A`);
+        hit.setAttribute("stroke", colorMap[btn.dataset.status]);
+        mini.remove();
+        renderProgress();
+        renderLegend();
+      };
+    });
+  }
+
+  wrap.querySelectorAll(".car-zone-hit").forEach((hit) => {
     hit.addEventListener("click", () => openZoneMiniPopup(hit.dataset.zone));
   });
 
-  row.querySelector("#etat-reset").onclick = () => {
+  wrap.querySelector("#etat-reset").onclick = () => {
     Object.keys(zones).forEach((k) => delete zones[k]);
-    row.querySelectorAll(".car-zone-hit").forEach((h) => {
+    wrap.querySelectorAll(".car-zone-hit").forEach((h) => {
       h.setAttribute("fill", "rgba(255,255,255,0.02)");
       h.setAttribute("stroke", "rgba(255,255,255,0.15)");
     });
@@ -648,19 +734,19 @@ function openEtatVoiturePopup() {
   };
 
   validerBtn.onclick = () => {
-    state.criteria.etatZones = zones;
-    save("criteria", state.criteria);
-    const summary = Object.entries(zones)
-      .map(([k, v]) => {
-        const zd = CAR_ZONES.find((z) => z.id === k);
-        const st = ZONE_STATUS.find((s) => s.value === v.status);
-        return `${zd?.label}: ${st?.label}`;
-      })
-      .join(", ");
-    addMessage({ text: `État renseigné — ${summary}`, from: "user" });
-    row.remove();
-    sendSpecialUpdate({ etatZones: zones, message: "__ETAT_SELECTED__" });
+    if (asStructuredMessage) wrap.remove();
+    else overlay?.remove();
+    onValidate(zones);
   };
+}
+
+/** Version "édition ponctuelle" appelée depuis le popup Modifier mes critères. */
+function openEtatEditorInline(currentZones, onSave) {
+  buildEtatEditor({
+    initialZones: currentZones,
+    asStructuredMessage: false,
+    onValidate: onSave,
+  });
 }
 
 /** Visionneuse plein écran (lecture seule) du schéma d'état — utilisée
@@ -1169,20 +1255,290 @@ function openGalleryModal(images) {
 }
 
 // ================== PANEL ACTIONS ==================
+// chat-occas.js — APRÈS
 function initPanelActions() {
-  $("btn-mise-relation")?.addEventListener("click", () =>
-    sendMessage("Je souhaite être mis en relation avec un profil."),
-  );
+  $("btn-mise-relation")?.addEventListener("click", openContactPickerPopup);
   $("btn-analyse-marche")?.addEventListener("click", () =>
     sendMessage(
       "Peux-tu analyser le marché de l'occasion pour mes résultats actuels ?",
     ),
   );
-  $("btn-modifier-criteres")?.addEventListener("click", () =>
-    sendMessage("Je souhaite modifier mes critères de recherche."),
-  );
+  $("btn-modifier-criteres")?.addEventListener("click", openCriteriaEditPopup);
 }
 
+/** Popup de sélection d'un profil parmi les derniers résultats de matching,
+ *  pour la mise en relation lancée depuis le panel droit (pas depuis une carte). */
+function openContactPickerPopup() {
+  const matches = state.lastMatches || [];
+  if (!matches.length) {
+    addMessage({
+      text: "Aucun profil compatible pour l'instant — relancez d'abord une recherche.",
+      from: "bot",
+    });
+    return;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.className = "va-modal-overlay";
+  overlay.innerHTML = `
+    <div class="va-modal-sheet" style="max-width:440px">
+      <div class="va-modal-header">
+        <div>
+          <div class="va-modal-header-title">Choisir un profil à contacter</div>
+          <div class="va-modal-header-sub">${matches.length} profil(s) compatible(s)</div>
+        </div>
+        <button class="va-modal-close" id="cp-close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="va-modal-body" id="cp-list" style="display:flex;flex-direction:column;gap:8px;padding:16px">
+        ${matches
+          .map(
+            (m, i) => `
+          <button class="cp-row" data-idx="${i}">
+            <span class="cp-row-title">${(m.marque || "") + " " + (m.modele || "") || "Profil"} — ${m.ville || ""}</span>
+            <span class="cp-row-sub">${m.compatibility != null ? m.compatibility + "% compatible" : ""}</span>
+          </button>`,
+          )
+          .join("")}
+      </div>
+      <div class="saas-popup-actions" style="padding:0 16px 16px">
+        <button class="btn-saas-primary" id="cp-valider" disabled>Valider</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  let selectedIdx = null;
+  overlay.querySelectorAll(".cp-row").forEach((row) => {
+    row.onclick = () => {
+      overlay
+        .querySelectorAll(".cp-row")
+        .forEach((r) => r.classList.remove("selected"));
+      row.classList.add("selected");
+      selectedIdx = Number(row.dataset.idx);
+      overlay.querySelector("#cp-valider").disabled = false;
+    };
+  });
+
+  overlay.querySelector("#cp-close").onclick = () => overlay.remove();
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  overlay.querySelector("#cp-valider").onclick = () => {
+    if (selectedIdx === null) return;
+    const m = matches[selectedIdx];
+    overlay.remove();
+    addMessage({
+      text: `Mise en relation avec ${m.marque || ""} ${m.modele || ""} — ${m.ville || ""}`.trim(),
+      from: "user",
+    });
+    sendSpecialUpdate({ message: `__ACTION_CONTACT__:${selectedIdx}` });
+  };
+}
+
+// AJOUT
+const CRITERIA_FIELDS = {
+  buyer: [
+    { key: "ville", label: "Ville", type: "text" },
+    { key: "budgetMax", label: "Budget max", type: "number", suffix: " €" },
+    {
+      key: "kilometrageMax",
+      label: "Kilométrage max",
+      type: "number",
+      suffix: " km",
+    },
+    {
+      key: "carburant",
+      label: "Carburant",
+      type: "select",
+      options: FUEL_OPTIONS,
+    },
+    { key: "boite", label: "Boîte", type: "select", options: BOITE_OPTIONS },
+    { key: "marque", label: "Marque", type: "text" },
+    { key: "modele", label: "Modèle", type: "text" },
+  ],
+  seller: [
+    { key: "ville", label: "Ville", type: "text" },
+    { key: "marque", label: "Marque", type: "text" },
+    { key: "modele", label: "Modèle", type: "text" },
+    { key: "annee", label: "Année", type: "number" },
+    {
+      key: "carburant",
+      label: "Carburant",
+      type: "select",
+      options: FUEL_OPTIONS,
+    },
+    { key: "boite", label: "Boîte", type: "select", options: BOITE_OPTIONS },
+    { key: "kilometrage", label: "Kilométrage", type: "number", suffix: " km" },
+    { key: "budgetMin", label: "Prix de vente", type: "number", suffix: " €" },
+    { key: "etatZones", label: "État du véhicule", type: "etat" },
+  ],
+};
+
+function formatCriteriaValue(field, value) {
+  if (value === null || value === undefined || value === "") return "—";
+  if (field.type === "select") {
+    const found = field.options.find((o) => o.value === value);
+    return found?.label || value;
+  }
+  if (field.type === "number")
+    return `${Number(value).toLocaleString("fr-FR")}${field.suffix || ""}`;
+  if (field.type === "etat") {
+    return value && Object.keys(value).length
+      ? "Voir le schéma"
+      : "Non renseigné";
+  }
+  return value;
+}
+
+function openCriteriaEditPopup() {
+  const fields = CRITERIA_FIELDS[state.role] || CRITERIA_FIELDS.buyer;
+  const pendingEdits = {};
+
+  const overlay = document.createElement("div");
+  overlay.className = "va-modal-overlay";
+  overlay.innerHTML = `
+    <div class="va-modal-sheet" style="max-width:480px">
+      <div class="va-modal-header">
+        <div>
+          <div class="va-modal-header-title">Modifier mes critères</div>
+          <div class="va-modal-header-sub">Cliquez sur une ligne pour la modifier</div>
+        </div>
+        <button class="va-modal-close" id="ce-close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="va-modal-body" id="ce-table" style="padding:14px 16px;display:flex;flex-direction:column;gap:6px"></div>
+      <div class="saas-popup-actions" style="padding:0 16px 16px">
+        <button class="btn-saas-ghost" id="ce-cancel">Annuler</button>
+        <button class="btn-saas-primary" id="ce-valider" disabled>Valider et relancer la recherche</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const table = overlay.querySelector("#ce-table");
+  const validerBtn = overlay.querySelector("#ce-valider");
+
+  function renderRows() {
+    table.innerHTML = fields
+      .map((f) => {
+        const currentVal =
+          pendingEdits[f.key] !== undefined
+            ? pendingEdits[f.key]
+            : state.criteria[f.key];
+        const changed = pendingEdits[f.key] !== undefined;
+        return `
+        <button class="ce-row ${changed ? "changed" : ""}" data-key="${f.key}">
+          <span class="ce-row-label">${f.label}</span>
+          <span class="ce-row-val">${vaEscLocal(formatCriteriaValue(f, currentVal))}</span>
+        </button>`;
+      })
+      .join("");
+
+    table.querySelectorAll(".ce-row").forEach((row) => {
+      row.onclick = () => {
+        const key = row.dataset.key;
+        const field = fields.find((f) => f.key === key);
+        if (field.type === "etat") {
+          openEtatEditorInline(
+            pendingEdits.etatZones || state.criteria.etatZones || {},
+            (newZones) => {
+              pendingEdits.etatZones = newZones;
+              renderRows();
+              validerBtn.disabled = Object.keys(pendingEdits).length === 0;
+            },
+          );
+          return;
+        }
+        openInlineFieldEditor(
+          field,
+          pendingEdits[key] ?? state.criteria[key],
+          (newVal) => {
+            pendingEdits[key] = newVal;
+            renderRows();
+            validerBtn.disabled = Object.keys(pendingEdits).length === 0;
+          },
+        );
+      };
+    });
+  }
+  renderRows();
+
+  overlay.querySelector("#ce-close").onclick = () => overlay.remove();
+  overlay.querySelector("#ce-cancel").onclick = () => overlay.remove();
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  validerBtn.onclick = () => {
+    if (!Object.keys(pendingEdits).length) return;
+    overlay.remove();
+    addMessage({
+      text: "Je souhaite mettre à jour mes critères.",
+      from: "user",
+    });
+    sendSpecialUpdate({
+      updatedCriteria: pendingEdits,
+      message: "__CRITERIA_UPDATE__",
+    });
+  };
+}
+
+function vaEscLocal(s) {
+  return String(s ?? "").replace(/</g, "&lt;");
+}
+
+/** Petit éditeur inline générique (texte / nombre / select) affiché en mini-popup. */
+function openInlineFieldEditor(field, currentValue, onSave) {
+  document.querySelectorAll(".zone-mini-popup").forEach((p) => p.remove());
+  const mini = document.createElement("div");
+  mini.className = "zone-mini-popup";
+
+  if (field.type === "select") {
+    mini.innerHTML = `
+      <div class="zmp-title">${field.label}</div>
+      <div class="zmp-options">
+        ${field.options
+          .map(
+            (o) =>
+              `<button class="zmp-opt" data-value="${o.value}">${o.label}</button>`,
+          )
+          .join("")}
+      </div>`;
+    mini.querySelectorAll(".zmp-opt").forEach((btn) => {
+      btn.onclick = () => {
+        onSave(btn.dataset.value);
+        mini.remove();
+      };
+    });
+  } else {
+    mini.innerHTML = `
+      <div class="zmp-title">${field.label}</div>
+      <input type="${field.type === "number" ? "number" : "text"}" class="ce-inline-input" value="${currentValue ?? ""}"/>
+      <button class="btn-saas-primary" id="ce-inline-save" style="margin-top:8px;width:100%">OK</button>`;
+    const input = mini.querySelector("input");
+    setTimeout(() => input.focus(), 10);
+    mini.querySelector("#ce-inline-save").onclick = () => {
+      const v =
+        field.type === "number"
+          ? Number(input.value) || null
+          : input.value.trim();
+      onSave(v);
+      mini.remove();
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") mini.querySelector("#ce-inline-save").click();
+    });
+  }
+
+  document.body.appendChild(mini);
+  mini.style.position = "fixed";
+  mini.style.top = "50%";
+  mini.style.left = "50%";
+  mini.style.transform = "translate(-50%,-50%)";
+  mini.style.zIndex = "10000";
+}
 // ================== INIT ==================
 function render() {
   const box = $("chat-box");
@@ -1212,11 +1568,14 @@ export function initChatOccas() {
     state.phase = "results";
     state.lastMatches = load("lastMatches") || [];
     unlockPanelActions();
+  } else {
+    // Aucun résultat disponible (session neuve ou tunnel en cours) :
+    // on verrouille les actions dès l'init, avant même le premier message.
+    lockPanelActions();
   }
 
   render();
   initPanelActions();
-
   const input = $("user-input");
   const sendBtn = $("send-btn");
 

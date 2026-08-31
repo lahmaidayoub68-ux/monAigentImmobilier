@@ -241,31 +241,53 @@ export function openCarVerticalModal(url) {
  * Modale de détails "page verticale" avec sections I / II / III.
  * data : objet normalisé (voir vaNormalizeVehicle)
  */
+// APRÈS
 export function openDetailsModal(data) {
-  const hasGallery = Array.isArray(data.images) && data.images.length > 1;
-  const hasEtat = data.etatZones && Object.keys(data.etatZones).length > 0;
+  const isBuyer = data.role === "buyer";
+  const hasGallery =
+    !isBuyer && Array.isArray(data.images) && data.images.length > 1;
+  const hasEtat =
+    !isBuyer && data.etatZones && Object.keys(data.etatZones).length > 0;
 
   const overlay = document.createElement("div");
   overlay.className = "va-modal-overlay";
 
   const sections = [];
-  // Section I — infos de base
+
+  // Section I — toujours présente, contenu différent selon le rôle
   sections.push({
     title: "Informations générales",
     build: (el) => {
-      const cells = [
-        [
-          "Marque / Modèle",
-          [data.marque, data.modele].filter(Boolean).join(" ") || "—",
-        ],
-        ["Année", data.annee || "—"],
-        ["Prix", vaFmtEuro(data.prix), true],
-        ["Kilométrage", vaFmtKm(data.kilometrage)],
-        ["Carburant", data.carburant || "—"],
-        ["Boîte", data.boite ? cap1(data.boite) : "—"],
-        ["Ville", data.ville || "—"],
-        ["CarVertical", data.carverticalUrl ? "Rapport joint ✓" : "Non fourni"],
-      ];
+      const cells = isBuyer
+        ? [
+            [
+              "Marque / Modèle",
+              data.marqueModeleSkipped
+                ? "Peu importe"
+                : [data.marque, data.modele].filter(Boolean).join(" ") || "—",
+            ],
+            ["Budget max", vaFmtEuro(data.prix), true],
+            ["Kilométrage max", vaFmtKm(data.kilometrageMax)],
+            ["Carburant", data.carburant || "—"],
+            ["Boîte", data.boite ? cap1(data.boite) : "—"],
+            ["Ville", data.ville || "—"],
+          ]
+        : [
+            [
+              "Marque / Modèle",
+              [data.marque, data.modele].filter(Boolean).join(" ") || "—",
+            ],
+            ["Année", data.annee || "—"],
+            ["Prix", vaFmtEuro(data.prix), true],
+            ["Kilométrage", vaFmtKm(data.kilometrage)],
+            ["Carburant", data.carburant || "—"],
+            ["Boîte", data.boite ? cap1(data.boite) : "—"],
+            ["Ville", data.ville || "—"],
+            [
+              "CarVertical",
+              data.carverticalUrl ? "Rapport joint ✓" : "Non fourni",
+            ],
+          ];
       el.innerHTML = `<div class="va-info-grid">${cells
         .map(
           ([l, v, price]) => `
@@ -278,7 +300,7 @@ export function openDetailsModal(data) {
     },
   });
 
-  // Section II / III selon disponibilité de la galerie
+  // Section II — galerie (vendeur uniquement, et seulement s'il y a >1 photo)
   if (hasGallery) {
     sections.push({
       title: "Photos du véhicule",
@@ -298,16 +320,19 @@ export function openDetailsModal(data) {
     });
   }
 
-  sections.push({
-    title: "État du véhicule",
-    build: (el) => {
-      if (hasEtat) {
-        el.appendChild(vaBuildEtatDiagram(data.etatZones));
-      } else {
-        el.innerHTML = `<div class="va-empty-note">Aucun état détaillé renseigné pour ce véhicule.</div>`;
-      }
-    },
-  });
+  // Section III (ou II si pas de galerie) — état (vendeur uniquement)
+  if (!isBuyer) {
+    sections.push({
+      title: "État du véhicule",
+      build: (el) => {
+        if (hasEtat) {
+          el.appendChild(vaBuildEtatDiagram(data.etatZones));
+        } else {
+          el.innerHTML = `<div class="va-empty-note">Aucun état détaillé renseigné pour ce véhicule.</div>`;
+        }
+      },
+    });
+  }
 
   const romans = ["I", "II", "III", "IV"];
   overlay.innerHTML = `
@@ -350,13 +375,16 @@ function cap1(s) {
 }
 
 /** Normalise les champs quel que soit l'objet source (recapData ou match). */
+// APRÈS
 function vaNormalizeVehicle(raw) {
   return {
+    role: raw.role || null, // renseigné explicitement par l'appelant (recap ou match)
     marque: raw.marque || "",
     modele: raw.modele || "",
     annee: raw.annee ?? null,
     prix: raw.prix ?? raw.budgetMax ?? raw.budgetMin ?? null,
     kilometrage: raw.kilometrage ?? null,
+    kilometrageMax: raw.kilometrageMax ?? null,
     carburant: raw.carburant || "",
     boite: raw.boite || "",
     ville: raw.ville || "",
@@ -365,7 +393,9 @@ function vaNormalizeVehicle(raw) {
     carverticalUrl: raw.carverticalUrl || raw.carverticalurl || null,
     carverticalNote: raw.carverticalNote ?? raw.carverticalnote ?? null,
     contact: raw.contact || null,
+    username: raw.username || null,
     compatibility: raw.compatibility ?? null,
+    marqueModeleSkipped: !!raw.marqueModeleSkipped,
   };
 }
 
@@ -408,6 +438,7 @@ function vaBuildSellerCardHTML(v) {
 }
 
 /** Construit le HTML de la carte "recherche" acheteur (pas de photo réelle). */
+// APRÈS
 function vaBuildBuyerCardHTML(v, extra) {
   return `
     <div class="va-photo-wrap">
@@ -415,15 +446,19 @@ function vaBuildBuyerCardHTML(v, extra) {
     </div>
     <div class="va-body">
       <div class="va-title-row">
-        <div class="va-title">${vaEsc(extra?.marqueModeleSkipped ? "Recherche ouverte" : [v.marque, v.modele].filter(Boolean).join(" ") || "Recherche véhicule")}</div>
+        <div class="va-title">${vaEsc(extra?.marqueModeleSkipped || v.marqueModeleSkipped ? "Recherche ouverte" : [v.marque, v.modele].filter(Boolean).join(" ") || "Recherche véhicule")}</div>
         <div class="va-price">${v.prix != null ? "≤ " + vaFmtEuro(v.prix) : "—"}</div>
       </div>
       <div class="va-meta-row">
         <span>${vaEsc(v.ville || "—")}</span>
-        <span>${vaEsc(v.kilometrage != null ? vaFmtKm(v.kilometrage) + " max" : "—")}</span>
+        <span>${vaEsc(v.kilometrageMax != null ? vaFmtKm(v.kilometrageMax) + " max" : "—")}</span>
         <span>${vaEsc(v.carburant || "—")}</span>
         <span>${vaEsc(v.boite ? cap1(v.boite) : "—")}</span>
       </div>
+      <button class="va-more-link" data-act="details">
+        Voir plus de détails
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="9 6 15 12 9 18"/></svg>
+      </button>
     </div>`;
 }
 
@@ -457,6 +492,7 @@ function vaWireCardActions(cardEl, v) {
 export function renderRecapCard(rawData) {
   const isSeller = rawData.role === "seller";
   const v = vaNormalizeVehicle(rawData);
+  v.role = rawData.role || (isSeller ? "seller" : "buyer");
 
   const row = document.createElement("div");
   row.className = "msg bot structured";
@@ -506,13 +542,18 @@ export function renderRecapCard(rawData) {
  * RÉSULTATS DE MATCHING (annonces trouvées)
  * Remplace renderMatches(matches, postReply).
  */
-export function renderMatchResults(matches, postReply) {
+// APRÈS
+// myRole = TON rôle à toi (buyer/seller). Les matches sont TOUJOURS du rôle inverse.
+export function renderMatchResults(matches, postReply, myRole) {
+  const matchRole = myRole === "seller" ? "buyer" : "seller";
+
   window.__vaAddBotMsg?.(
     `<strong>${matches.length} annonce(s)</strong> identifiée(s) par le Cerveau IA :`,
   );
 
   matches.forEach((m, i) => {
     const v = vaNormalizeVehicle(m);
+    v.role = matchRole;
     const compatColor =
       v.compatibility >= 80
         ? "#10b981"
@@ -522,12 +563,17 @@ export function renderMatchResults(matches, postReply) {
             ? "#f59e0b"
             : "#ef4444";
 
+    const cardBodyHTML =
+      matchRole === "seller"
+        ? vaBuildSellerCardHTML(v)
+        : vaBuildBuyerCardHTML(v, v);
+
     const row = document.createElement("div");
     row.className = "msg bot structured";
     row.innerHTML = `
       <div class="va-card">
         <div style="position:relative">
-          ${vaBuildSellerCardHTML(v)}
+          ${cardBodyHTML}
           ${
             v.compatibility != null
               ? `<div style="position:absolute;top:10px;left:10px;background:rgba(10,7,6,.72);backdrop-filter:blur(6px);border:1px solid ${compatColor}66;color:${compatColor};font-size:12px;font-weight:800;padding:5px 11px;border-radius:20px">${v.compatibility}%</div>`
@@ -553,4 +599,21 @@ export function renderMatchResults(matches, postReply) {
 
   vaScrollBottom();
   if (postReply) window.__vaAddBotMsg?.(postReply, true);
+}
+
+// vehicle-ad-cards.js — AJOUT
+export function renderContactSuccessCard(name, email) {
+  const row = document.createElement("div");
+  row.className = "msg bot structured";
+  row.innerHTML = `
+    <div class="va-success-box">
+      <div class="va-success-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="va-success-text">
+        Message envoyé à <strong>${vaEsc(name)}</strong> — ${vaEsc(email)}
+      </div>
+    </div>`;
+  vaBox().appendChild(row);
+  vaScrollBottom();
 }

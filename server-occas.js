@@ -36,15 +36,17 @@ import {
   computeEtatScore,
 } from "./services/matchingEngineOccas.js";
 
+// APRÈS
 import {
   extractCriteria,
   computeNextStep,
   generatePhrasing,
   detectResultsIntent,
   generateContactMessage,
+  generateContactConfirmation,
   aiResultsChat,
+  normalizeNumber,
 } from "./services/aiParseeOccas.js";
-
 dotenv.config();
 
 const OCCAS_JWT_SECRET = process.env.OCCAS_JWT_SECRET || process.env.JWT_SECRET;
@@ -850,7 +852,47 @@ async function handleCollectingPhase(session, sc, role) {
   return { reply, criteria: sc };
 }
 
+// AJOUT — avant la route /occas/chat, avec les autres helpers
+async function fetchMarketStats(sc) {
+  try {
+    const rows = sc.marque
+      ? await db
+          .prepare(
+            `SELECT prix, kilometrage, annee FROM annonces_occas
+             WHERE role='seller' AND prix > 0 AND LOWER(TRIM(marque)) = LOWER($1)`,
+          )
+          .all(sc.marque)
+      : await db
+          .prepare(
+            `SELECT prix, kilometrage, annee FROM annonces_occas WHERE role='seller' AND prix > 0`,
+          )
+          .all();
+
+    if (!rows.length) return null;
+    const prices = rows.map((r) => Number(r.prix)).filter(Boolean);
+    const avgPrix = Math.round(
+      prices.reduce((a, b) => a + b, 0) / prices.length,
+    );
+    const withKm = rows.filter((r) => r.kilometrage);
+    const avgKm = withKm.length
+      ? Math.round(
+          withKm.reduce((s, r) => s + r.kilometrage, 0) / withKm.length,
+        )
+      : null;
+
+    return {
+      count: rows.length,
+      avgPrix,
+      avgKm,
+      scope: sc.marque || "tous véhicules",
+    };
+  } catch (e) {
+    console.warn("[fetchMarketStats]", e.message);
+    return null;
+  }
+}
 // ================== CHAT ROUTE — TUNNEL DÉTERMINISTE (agent IA) ==================
+// APRÈS
 router.post("/occas/chat", authenticateOccasToken, async (req, res) => {
   try {
     const { message } = z
@@ -869,6 +911,10 @@ router.post("/occas/chat", authenticateOccasToken, async (req, res) => {
       };
     }
     const session = sessions[username];
+
+    // Wrapper : injecte automatiquement `phase` dans chaque réponse JSON
+    const originalJson = res.json.bind(res);
+    res.json = (payload) => originalJson({ ...payload, phase: session.phase });
     session.role = role;
     const sc = session.criteria;
     sc.intent = role;
@@ -945,72 +991,172 @@ router.post("/occas/chat", authenticateOccasToken, async (req, res) => {
     if (session.phase === "results") {
       const intent = detectResultsIntent(message);
 
+      // APRÈS
       if (message.startsWith("__ACTION_CONTACT__:")) {
         const idx = parseInt(message.split(":")[1], 10);
         const target = (session.matches || [])[idx];
-        if (!target?.contact) {
+
+        if (!target) {
           return res.json({
-            reply: "Je n'ai pas identifié ce profil, précisez lequel.",
+            reply:
+              "Je n'ai pas identifié ce profil, précisez lequel dans la liste ci-dessus.",
             matches: session.matches,
             matchingDone: true,
             criteria: sc,
+            actionType: "contact_failed",
           });
         }
+
+        // Résolution robuste du destinataire : contact (email) en priorité, sinon username
+        let receiver = null;
+        if (target.contact) {
+          receiver = await db
+            .prepare(
+              `SELECT id, username, contact FROM users_occas WHERE LOWER(TRIM(contact))=$1`,
+            )
+            .get(String(target.contact).trim().toLowerCase());
+        }
+        if (!receiver && target.username) {
+          receiver = await db
+            .prepare(
+              `SELECT id, username, contact FROM users_occas WHERE LOWER(TRIM(username))=$1`,
+            )
+            .get(String(target.username).trim().toLowerCase());
+        }
+
+        if (!receiver) {
+          return res.json({
+            reply:
+              "Ce profil n'a pas pu être retrouvé en base — il a peut-être été supprimé entre temps.",
+            matches: session.matches,
+            matchingDone: true,
+            criteria: sc,
+            actionType: "contact_failed",
+          });
+        }
+
         let body;
         try {
           body = await generateContactMessage(role, sc, target);
         } catch {
           body = `Bonjour,\n\nVotre profil m'intéresse. Échangeons-nous ?\n\nCordialement.`;
         }
+
         const sender = await db
           .prepare(`SELECT id, username FROM users_occas WHERE username=$1`)
           .get(username);
-        const receiver = await db
-          .prepare(
-            `SELECT id, username FROM users_occas WHERE LOWER(TRIM(contact))=$1`,
-          )
-          .get((target.contact || "").trim().toLowerCase());
 
         let messageSent = false;
-        if (sender && receiver) {
-          try {
-            const subject =
-              role === "buyer"
-                ? `Intérêt pour votre ${target.marque || "véhicule"} — ${target.ville}`
-                : `Acheteur potentiel — ${target.ville}`;
-            await db
-              .prepare(
-                `INSERT INTO messages_occas (sender_id, receiver_id, subject, body) VALUES ($1,$2,$3,$4)`,
-              )
-              .run(sender.id, receiver.id, subject, body);
-            messageSent = true;
-            await maybeNotifyNewMessage(receiver.id, sender.username, subject);
-          } catch (e) {
-            console.error("[OCCAS CONTACT]", e.message);
-          }
+        try {
+          const subject =
+            role === "buyer"
+              ? `Intérêt pour votre ${target.marque || "véhicule"} — ${target.ville}`
+              : `Acheteur potentiel — ${target.ville}`;
+          await db
+            .prepare(
+              `INSERT INTO messages_occas (sender_id, receiver_id, subject, body) VALUES ($1,$2,$3,$4)`,
+            )
+            .run(sender.id, receiver.id, subject, body);
+          messageSent = true;
+          await maybeNotifyNewMessage(receiver.id, sender.username, subject);
+        } catch (e) {
+          console.error("[OCCAS CONTACT]", e.message);
         }
 
+        const confirmationPhrase = await generateContactConfirmation(
+          role,
+          sc,
+          target,
+          { name: receiver.username, email: receiver.contact },
+          messageSent,
+        );
+
         return res.json({
-          reply: messageSent
-            ? `Message envoyé à ${receiver?.username || target.contact}.`
-            : `Contact introuvable en base : ${target.contact}`,
+          reply: confirmationPhrase,
+          postReply: confirmationPhrase,
           matches: session.matches,
           matchingDone: true,
           criteria: sc,
           actionType: "contact_done",
           messageSent,
+          contactInfo: messageSent
+            ? { name: receiver.username, email: receiver.contact }
+            : null,
         });
       }
 
+      // AJOUT — dans le bloc "results", après le bloc ACTION_CONTACT
+      if (message === "__CRITERIA_UPDATE__") {
+        const updates = req.body.updatedCriteria || {};
+
+        // Les valeurs viennent d'une UI contrôlée (select/inputs typés côté front),
+        // pas besoin de repasser par extractCriteria — on merge directement,
+        // en normalisant juste les champs numériques par sécurité.
+        for (const [key, val] of Object.entries(updates)) {
+          if (val === undefined) continue;
+          if (
+            [
+              "budgetMin",
+              "budgetMax",
+              "kilometrageMax",
+              "kilometrage",
+              "annee",
+            ].includes(key)
+          ) {
+            const n = normalizeNumber(val);
+            sc[key] = n;
+          } else {
+            sc[key] = val;
+          }
+        }
+        if (role === "seller") {
+          if (sc.budgetMin != null && sc.budgetMax == null)
+            sc.budgetMax = sc.budgetMin;
+          if (sc.budgetMax != null && sc.budgetMin == null)
+            sc.budgetMin = sc.budgetMax;
+        }
+        sc.intent = role;
+
+        const matches = await runMatchingAndPersist(
+          username,
+          role,
+          contact,
+          sc,
+        );
+        session.matches = matches;
+
+        const reply = await generatePhrasing(role, sc, {
+          type: "criteria_updated",
+          hasMatches: matches.length > 0,
+        });
+
+        return res.json({
+          reply,
+          postReply: reply,
+          matches,
+          matchingDone: true,
+          criteria: sc,
+          actionType: "criteria_updated",
+        });
+      }
+
+      // APRÈS
       let resultsAI = {
         message: "Je suis à votre disposition.",
         intent: "general",
       };
       try {
+        const detectedIntent = detectResultsIntent(message);
+        const marketStats =
+          detectedIntent === "market_analysis"
+            ? await fetchMarketStats(sc)
+            : null;
+
         resultsAI = await aiResultsChat(message, sc, {
           phase: "results",
           matchingProfiles: session.matches,
           role,
+          marketStats,
         });
       } catch (e) {
         console.error("[OCCAS RESULTS AI]", e);
