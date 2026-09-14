@@ -13,7 +13,7 @@
       rel="stylesheet"
     />
   </head>
-  <body>
+  <body data-favicon="immo">
     <!-- ── SIDEBAR (desktop) ── -->
     <nav id="sidebar" class="sidebar" aria-label="Menu principal"></nav>
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
@@ -25,11 +25,13 @@
         <!-- Brand -->
         <div class="sidenav-brand">
           <div class="sidenav-brand-logo">
-            <svg viewBox="0 0 24 24">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
+            <img
+              src="images/aigent-immo.png"
+              alt="Aigent Immo"
+              class="sidenav-brand-logo-img"
+            />
           </div>
+
           <div>
             <div class="sidenav-brand-title">AiGENT</div>
             <div class="sidenav-brand-sub">Paramètres</div>
@@ -1605,5 +1607,6 @@
     <script src="/i18n.js"></script>
     <script src="fonctios-profil.js" type="module"></script>
     <script src="sw-agenda.js" type="module"></script>
+    <script src="./favicon.js"></script>
   </body>
 </html>

@@ -17,6 +17,26 @@ import {
 const API_BASE = "";
 const ROLE_LABELS = { buyer: "Acheteur", seller: "Vendeur" };
 
+/* ════════════════════════════════════════════════════════════════════════
+   LOGO AIGENT OCCASION (SVG pur haute fidélité — Poignée de main & Cadres)
+   ════════════════════════════════════════════════════════════════════════ */
+const AIGENT_OCCAS_LOGO_SVG = `
+  <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- Cadre acheteur gauche -->
+    <path class="lg-shape lg-left" d="M 94 72 L 78 56 A 14 14 0 0 0 58 56 L 38 76 A 14 14 0 0 0 38 96 L 76 134 A 14 14 0 0 0 96 134 L 110 120" />
+    
+    <!-- Cadre vendeur droit & tracé poignée de main centrale -->
+    <path class="lg-shape lg-right" d="M 116 126 L 124 134 A 14 14 0 0 0 144 134 L 168 110 A 14 14 0 0 0 168 90 L 144 66 A 14 14 0 0 0 124 66 L 78 112 A 7 7 0 0 0 84 122 C 92 115, 96 106, 103 103 C 109 100, 117 100, 122 104 C 128 108, 134 114, 140 114" />
+    
+    <!-- Faisceau lumineux d'activité cognitive (pulse) -->
+    <path class="lg-pulse" d="M 136 66 L 78 112 A 7 7 0 0 0 84 122 C 92 115, 96 106, 103 103 C 109 100, 117 100, 122 104 C 128 108, 134 114, 140 114" />
+  </svg>`;
+
+/** Fabrique un span.aigent-logo (mode: "idle" pour message bot ou "thinking" pendant l'analyse). */
+function renderAigentLogo(mode = "idle") {
+  return `<span class="aigent-logo is-${mode}" aria-hidden="true">${AIGENT_OCCAS_LOGO_SVG}</span>`;
+}
+
 const state = {
   user: null,
   role: null,
@@ -138,12 +158,15 @@ function addThinkingIndicator() {
   const box = $("chat-box");
   const el = document.createElement("div");
   el.className = "msg bot thinking-msg";
-  el.innerHTML = `<span class="thinking-shimmer">Analyse en cours</span>`;
+  el.innerHTML = `
+    <div class="bot-row">
+      ${renderAigentLogo("thinking")}
+      <span class="thinking-shimmer">Analyse en cours</span>
+    </div>`;
   box.appendChild(el);
   scrollBottom(box);
   return el;
 }
-
 function addMessage({
   text,
   from = "bot",
@@ -171,11 +194,7 @@ function addMessage({
   } else {
     row.innerHTML = `
       <div class="bot-row">
-        <div class="bot-avatar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2c-5.5 0-10 4.5-10 10s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/><path d="M12 6v6l4 2"/>
-          </svg>
-        </div>
+        ${renderAigentLogo("idle")}
         <div class="ai-text"></div>
       </div>`;
     box.appendChild(row);

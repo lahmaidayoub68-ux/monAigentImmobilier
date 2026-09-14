@@ -1,0 +1,2082 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mon AiGENT Voyage | L'IA qui vend vos places invendues</title>
+    <meta
+      name="description"
+      content="Mon AiGENT Voyage : l'agent IA qui transforme la capacité touristique invendue — places, chambres, créneaux — en transactions, en comprenant l'offre, la demande et le bon prix avant qu'il ne soit trop tard."
+    />
+    <meta property="og:title" content="Mon AiGENT Voyage" />
+    <meta
+      property="og:description"
+      content="L'agent IA qui comprend l'offre, comprend la demande, fixe le bon prix et déclenche la vente avant que la place ne disparaisse."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="./images/aigent-voyage.ico" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ============================================================
+         MON AIGENT VOYAGE — Landing / CTO
+         Direction : Linear — noir profond, bleu ciel néon -> cyan
+         ============================================================ */
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg-root: #05080d;
+        --bg-panel: #080d14;
+        --bg-surface: rgba(255, 255, 255, 0.026);
+        --bg-surface-2: rgba(255, 255, 255, 0.05);
+
+        --border: rgba(255, 255, 255, 0.08);
+        --border-strong: rgba(255, 255, 255, 0.15);
+        --border-sky: rgba(56, 189, 248, 0.32);
+
+        --text-1: #f2f7fb;
+        --text-2: #9aa9b8;
+        --text-3: #64717f;
+
+        --sky: #38bdf8;
+        --sky-bright: #7dd3fc;
+        --cyan: #22d3ee;
+        --azure: #0ea5e9;
+        --green: #34d399;
+        --amber: #fbbf24;
+        --red: #fb7185;
+
+        --grad-main: linear-gradient(
+          120deg,
+          #7dd3fc 0%,
+          #38bdf8 45%,
+          #0ea5e9 100%
+        );
+        --grad-neon: linear-gradient(
+          120deg,
+          #a5f3fc 0%,
+          #22d3ee 40%,
+          #0284c7 100%
+        );
+        --grad-text: linear-gradient(180deg, #ffffff 0%, #b9cede 130%);
+
+        --radius-sm: 12px;
+        --radius-md: 16px;
+        --radius-lg: 22px;
+        --radius-xl: 30px;
+
+        --shadow-card:
+          0 1px 0 rgba(255, 255, 255, 0.06) inset,
+          0 24px 60px -28px rgba(0, 0, 0, 0.9);
+        --glow: 0 0 90px -12px rgba(56, 189, 248, 0.4);
+
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+        --maxw: 1180px;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        background: var(--bg-root);
+        color: var(--text-1);
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+      ::selection {
+        background: rgba(56, 189, 248, 0.3);
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .wrap {
+        width: 100%;
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* ============ NAV ============ */
+      header.nav {
+        position: fixed;
+        inset: 0 0 auto 0;
+        z-index: 100;
+        backdrop-filter: blur(18px);
+        background: rgba(5, 8, 13, 0.7);
+        border-bottom: 1px solid transparent;
+        transition:
+          border-color 0.3s var(--ease),
+          background 0.3s var(--ease);
+      }
+      header.nav.scrolled {
+        border-bottom-color: var(--border);
+        background: rgba(5, 8, 13, 0.9);
+      }
+      .nav-inner {
+        height: 66px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        font-size: 16px;
+      }
+      .brand img {
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
+        display: block;
+        border: none;
+        box-shadow: none;
+      }
+      .brand span.accent {
+        background: var(--grad-main);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .nav-links {
+        display: flex;
+        gap: 26px;
+        font-size: 14px;
+        color: var(--text-2);
+      }
+      .nav-links a {
+        transition: color 0.16s var(--ease);
+      }
+      .nav-links a:hover {
+        color: var(--text-1);
+      }
+      .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        color: var(--text-1);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        padding: 9px 16px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.18s var(--ease);
+        white-space: nowrap;
+      }
+      .btn:hover {
+        background: var(--bg-surface-2);
+        border-color: var(--border-strong);
+        transform: translateY(-1px);
+      }
+      .btn-primary {
+        background: var(--grad-main);
+        border-color: transparent;
+        color: #04121c;
+        box-shadow: 0 10px 30px -12px rgba(56, 189, 248, 0.85);
+      }
+      .btn-primary:hover {
+        /* CORRECTION : On passe d'un filtre qui "lave" la couleur à un effet de profondeur */
+        background: var(
+          --grad-neon
+        ); /* On utilise un dégradé légèrement plus cyan au survol */
+        border-color: transparent;
+        color: #04121c;
+        /* On renforce l'ombre portée pour donner plus de solidité */
+        box-shadow: 0 12px 34px -10px rgba(56, 189, 248, 0.95);
+        transform: translateY(-1px);
+      }
+      .btn-lg {
+        padding: 13px 22px;
+        font-size: 15px;
+        border-radius: 12px;
+      }
+
+      /* ============ HERO ============ */
+      .hero {
+        position: relative;
+        min-height: 100vh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding-top: 100px;
+        padding-bottom: 48px;
+        overflow: hidden;
+      }
+      .hero-bg-wrapper {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+      }
+      .hero-bg-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: right 55%;
+        display: block;
+      }
+      .hero-bg-wrapper::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            90deg,
+            #05080d 0%,
+            #05080d 27%,
+            rgba(5, 8, 13, 0.76) 48%,
+            rgba(5, 8, 13, 0.18) 76%,
+            transparent 100%
+          ),
+          linear-gradient(
+            180deg,
+            rgba(5, 8, 13, 0.86) 0%,
+            transparent 20%,
+            transparent 72%,
+            #05080d 100%
+          );
+      }
+      .hero-content {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        max-width: 1380px;
+        margin: 0 auto;
+        padding: 0 clamp(20px, 4vw, 56px);
+        display: flex;
+        flex-direction: column;
+        gap: clamp(36px, 5vh, 64px);
+      }
+      .hero-text-zone {
+        max-width: 640px;
+      }
+      .eyebrow-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--sky-bright);
+        background: rgba(56, 189, 248, 0.1);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        padding: 6px 14px;
+        border-radius: 999px;
+        margin-bottom: 20px;
+      }
+      .eyebrow-pill .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--sky);
+        box-shadow: 0 0 10px var(--sky);
+        animation: pulse 2.2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.35;
+        }
+      }
+      .hero-title {
+        font-size: clamp(34px, 4.3vw, 58px);
+        font-weight: 800;
+        line-height: 1.07;
+        letter-spacing: -0.035em;
+        color: #fff;
+        margin-bottom: 18px;
+        text-shadow: 0 18px 60px rgba(0, 0, 0, 0.85);
+      }
+      .hero-title .accent-sky {
+        background: var(--grad-neon);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .hero-desc {
+        font-size: clamp(14.5px, 1.1vw, 15.8px);
+        line-height: 1.68;
+        color: #a8b6c4;
+        max-width: 545px;
+        margin-bottom: 28px;
+        text-shadow: 0 6px 30px rgba(0, 0, 0, 0.9);
+      }
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+      }
+      .hero-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+      }
+      .hero-stat-card {
+        background: rgba(9, 15, 23, 0.7);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 20px 22px;
+        transition:
+          border-color 0.2s ease,
+          transform 0.2s ease;
+      }
+      .hero-stat-card:hover {
+        border-color: var(--border-sky);
+        transform: translateY(-2px);
+      }
+      .hero-stat-card .stat-num {
+        display: block;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 5px;
+      }
+      .hero-stat-card .stat-label {
+        display: block;
+        font-size: 13px;
+        color: #8794a2;
+        line-height: 1.4;
+      }
+
+      /* ============ SECTIONS ============ */
+      section.block {
+        padding: clamp(64px, 9vw, 118px) 0;
+        position: relative;
+      }
+      .sec-head {
+        max-width: 740px;
+        margin-bottom: 46px;
+      }
+      .kicker {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--sky);
+        margin-bottom: 14px;
+      }
+      h2 {
+        font-size: clamp(27px, 3.5vw, 42px);
+        line-height: 1.12;
+        letter-spacing: -0.03em;
+        font-weight: 700;
+      }
+      h3 {
+        font-size: 19px;
+        letter-spacing: -0.02em;
+        font-weight: 650;
+      }
+      .lead {
+        margin-top: 16px;
+        color: var(--text-2);
+        font-size: 16.5px;
+      }
+      p.body {
+        color: var(--text-2);
+      }
+      p.body + p.body {
+        margin-top: 14px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 18px;
+      }
+      .grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .grid-4 {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .card {
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        border-radius: var(--radius-md);
+        padding: 24px;
+        transition: 0.22s var(--ease);
+      }
+      .card:hover {
+        border-color: var(--border-sky);
+        background: var(--bg-surface-2);
+        transform: translateY(-3px);
+      }
+      .card h3 {
+        margin: 16px 0 10px;
+      }
+      .card p {
+        font-size: 14.6px;
+        color: var(--text-2);
+      }
+      .tag {
+        display: inline-block;
+        margin-top: 14px;
+        font-size: 12px;
+        color: var(--sky-bright);
+        border: 1px solid var(--border-sky);
+        background: rgba(56, 189, 248, 0.08);
+        border-radius: 999px;
+        padding: 4px 11px;
+      }
+      .icon-badge {
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        color: var(--sky);
+        background: rgba(56, 189, 248, 0.11);
+        border: 1px solid var(--border-sky);
+      }
+      .icon-badge svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      /* Split */
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: clamp(28px, 5vw, 64px);
+        align-items: center;
+      }
+      .split + .split {
+        margin-top: clamp(48px, 7vw, 96px);
+      }
+      .split.rev .split-media {
+        order: -1;
+      }
+      .split-media {
+        position: relative;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-card);
+      }
+      .split-media img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        max-height: 420px;
+        object-fit: cover;
+      }
+      .split-media::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          160deg,
+          rgba(56, 189, 248, 0.14),
+          transparent 55%
+        );
+        pointer-events: none;
+      }
+      .split-text .icon-badge {
+        margin-bottom: 18px;
+      }
+      .split-text h3 {
+        font-size: clamp(21px, 2.4vw, 28px);
+        letter-spacing: -0.025em;
+        margin-bottom: 14px;
+      }
+
+      /* ============ SCHÉMA FLUX ============ */
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 18px;
+        align-items: stretch;
+      }
+      .flow-col {
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        border-radius: var(--radius-md);
+        padding: 22px;
+      }
+      .flow-col.center {
+        border-color: var(--border-sky);
+        background:
+          radial-gradient(
+            100% 120% at 50% 0%,
+            rgba(56, 189, 248, 0.14),
+            transparent 70%
+          ),
+          var(--bg-panel);
+        box-shadow: var(--glow);
+        min-width: 260px;
+        text-align: center;
+      }
+      .flow-title {
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: var(--text-3);
+        margin-bottom: 14px;
+      }
+      .flow-col.center .flow-title {
+        color: var(--sky);
+      }
+      .flow-line {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        font-size: 14.2px;
+        color: var(--text-2);
+        padding: 8px 0;
+        border-top: 1px dashed rgba(255, 255, 255, 0.06);
+      }
+      .flow-line:first-of-type {
+        border-top: none;
+      }
+      .flow-line svg {
+        width: 15px;
+        height: 15px;
+        flex: 0 0 15px;
+        margin-top: 4px;
+        color: var(--sky);
+      }
+      .flow-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--sky);
+      }
+      .flow-arrow svg {
+        width: 26px;
+        height: 26px;
+        animation: nudge 2.4s var(--ease) infinite;
+      }
+      @keyframes nudge {
+        0%,
+        100% {
+          transform: translateX(0);
+          opacity: 0.55;
+        }
+        50% {
+          transform: translateX(5px);
+          opacity: 1;
+        }
+      }
+      .flow-core {
+        display: grid;
+        gap: 8px;
+        margin-top: 6px;
+      }
+      .flow-chip {
+        font-size: 13.4px;
+        font-weight: 600;
+        border: 1px solid var(--border-sky);
+        background: rgba(56, 189, 248, 0.08);
+        color: var(--sky-bright);
+        border-radius: 10px;
+        padding: 8px 10px;
+      }
+      @media (max-width: 900px) {
+        .flow {
+          grid-template-columns: 1fr;
+        }
+        .flow-arrow svg {
+          transform: rotate(90deg);
+          animation: none;
+        }
+      }
+
+      /* ============ DÉMO INTERACTIVE ============ */
+      .demo {
+        border: 1px solid var(--border);
+        background: var(--bg-panel);
+        border-radius: var(--radius-lg);
+        padding: clamp(22px, 3.4vw, 34px);
+        box-shadow: var(--shadow-card);
+      }
+      .demo-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 26px;
+      }
+      .demo-label {
+        font-size: 12.4px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: var(--text-3);
+        margin-bottom: 12px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+      .chip-btn {
+        font: inherit;
+        font-size: 13.4px;
+        font-weight: 600;
+        color: var(--text-2);
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        border-radius: 999px;
+        padding: 7px 14px;
+        cursor: pointer;
+        transition: 0.18s var(--ease);
+      }
+      .chip-btn:hover {
+        color: var(--text-1);
+        border-color: var(--border-strong);
+      }
+      .chip-btn.on {
+        color: #04121c;
+        background: var(--grad-main);
+        border-color: transparent;
+      }
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--sky);
+      }
+      .range-val {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        color: var(--sky-bright);
+      }
+      .offer {
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        border-radius: var(--radius-md);
+        padding: 16px 18px;
+        display: grid;
+        gap: 6px;
+        margin-bottom: 10px;
+        transition: 0.25s var(--ease);
+      }
+      .offer.match {
+        border-color: var(--border-sky);
+        background: rgba(56, 189, 248, 0.07);
+      }
+      .offer.dim {
+        opacity: 0.34;
+        filter: grayscale(0.5);
+      }
+      .offer-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .offer-name {
+        font-size: 14.8px;
+        font-weight: 650;
+      }
+      .offer-meta {
+        font-size: 12.8px;
+        color: var(--text-3);
+      }
+      .offer-score {
+        font-size: 13px;
+        font-weight: 700;
+        padding: 4px 11px;
+        border-radius: 999px;
+        border: 1px solid var(--border-sky);
+        color: var(--sky-bright);
+        background: rgba(56, 189, 248, 0.1);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .price-old {
+        color: var(--text-3);
+        text-decoration: line-through;
+        font-size: 13px;
+      }
+      .price-new {
+        color: var(--sky-bright);
+        font-weight: 700;
+      }
+      .demo-out {
+        border-top: 1px dashed rgba(255, 255, 255, 0.08);
+        margin-top: 14px;
+        padding-top: 14px;
+        font-size: 14.2px;
+        color: var(--text-2);
+      }
+      .demo-out b {
+        color: var(--text-1);
+      }
+
+      /* Pondérations */
+      .weights {
+        border: 1px solid var(--border);
+        background: var(--bg-panel);
+        border-radius: var(--radius-lg);
+        padding: clamp(22px, 3vw, 32px);
+      }
+      .weight-row {
+        display: grid;
+        grid-template-columns: 190px 1fr 58px;
+        gap: 16px;
+        align-items: center;
+        font-size: 14.2px;
+        color: var(--text-2);
+        padding: 7px 0;
+      }
+      .weight-bar {
+        display: block;
+        height: 7px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        overflow: hidden;
+      }
+      .weight-bar i {
+        display: block;
+        height: 100%;
+        width: 0;
+        border-radius: 999px;
+        background: var(--grad-neon);
+        transition: width 1s var(--ease);
+      }
+      .weight-val {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-1);
+        font-weight: 650;
+      }
+      .weights-foot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+        border-top: 1px solid var(--border);
+        padding-top: 18px;
+      }
+      .bonus {
+        font-size: 12.8px;
+        color: var(--text-2);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 5px 12px;
+      }
+      .bonus b {
+        color: var(--sky-bright);
+      }
+
+      /* Steps */
+      .steps {
+        display: grid;
+        gap: 16px;
+      }
+      .step {
+        display: grid;
+        grid-template-columns: 46px 1fr;
+        gap: 18px;
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        border-radius: var(--radius-md);
+        padding: 22px 24px;
+        transition: 0.22s var(--ease);
+      }
+      .step:hover {
+        border-color: var(--border-sky);
+      }
+      .step-num {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 15px;
+        color: #04121c;
+        background: var(--grad-main);
+      }
+      .step h3 {
+        margin-bottom: 8px;
+      }
+      .step p {
+        color: var(--text-2);
+        font-size: 14.6px;
+      }
+      .step-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.4px;
+        color: var(--text-2);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 4px 11px;
+      }
+      .chip svg {
+        width: 13px;
+        height: 13px;
+        color: var(--sky);
+      }
+
+      /* Transaction timeline */
+      .tl {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 14px;
+        counter-reset: tl;
+      }
+      .tl-card {
+        border: 1px solid var(--border);
+        background: var(--bg-surface);
+        border-radius: var(--radius-md);
+        padding: 18px;
+        position: relative;
+      }
+      .tl-card::before {
+        content: "";
+        position: absolute;
+        top: -1px;
+        left: 18px;
+        right: 18px;
+        height: 2px;
+        background: var(--grad-neon);
+        opacity: 0.55;
+        border-radius: 999px;
+      }
+      .tl-step {
+        font-size: 11.6px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: var(--sky);
+        margin-bottom: 8px;
+      }
+      .tl-card p {
+        font-size: 13.6px;
+        color: var(--text-2);
+      }
+      .tl-card b {
+        color: var(--text-1);
+      }
+      @media (max-width: 1024px) {
+        .tl {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      /* Comparaison */
+      .versus {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .vs-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 26px;
+        background: var(--bg-surface);
+      }
+      .vs-card.good {
+        border-color: var(--border-sky);
+        background:
+          radial-gradient(
+            90% 120% at 0% 0%,
+            rgba(56, 189, 248, 0.12),
+            transparent 65%
+          ),
+          var(--bg-panel);
+      }
+      .vs-list {
+        margin-top: 16px;
+        display: grid;
+        gap: 11px;
+      }
+      .vs-item {
+        display: flex;
+        gap: 11px;
+        font-size: 14.4px;
+        color: var(--text-2);
+        align-items: flex-start;
+      }
+      .mark {
+        width: 21px;
+        height: 21px;
+        flex: 0 0 21px;
+        border-radius: 7px;
+        display: grid;
+        place-items: center;
+      }
+      .mark svg {
+        width: 12px;
+        height: 12px;
+      }
+      .mark.ok {
+        background: rgba(52, 211, 153, 0.14);
+        border: 1px solid rgba(52, 211, 153, 0.3);
+        color: var(--green);
+      }
+      .mark.no {
+        background: rgba(251, 113, 133, 0.12);
+        border: 1px solid rgba(251, 113, 133, 0.28);
+        color: var(--red);
+      }
+
+      /* CTA */
+      .cta-final {
+        position: relative;
+        border: 1px solid var(--border-sky);
+        border-radius: var(--radius-xl);
+        background:
+          radial-gradient(
+            80% 120% at 50% 0%,
+            rgba(56, 189, 248, 0.18),
+            transparent 70%
+          ),
+          var(--bg-panel);
+        padding: clamp(38px, 6vw, 72px) 28px;
+        text-align: center;
+        box-shadow: var(--glow);
+      }
+      .cta-final h2 {
+        max-width: 20ch;
+        margin: 0 auto;
+      }
+      .cta-final p {
+        margin: 16px auto 0;
+        max-width: 58ch;
+        color: var(--text-2);
+      }
+      .cta-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        justify-content: center;
+        margin-top: 26px;
+      }
+
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 34px 0 44px;
+        color: var(--text-3);
+        font-size: 13.4px;
+      }
+      .foot-inner {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: space-between;
+        align-items: center;
+      }
+      footer .brand img {
+        width: 26px;
+        height: 26px;
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(18px);
+        transition:
+          opacity 0.7s var(--ease),
+          transform 0.7s var(--ease);
+      }
+      .reveal.in {
+        opacity: 1;
+        transform: none;
+      }
+
+      @media (max-width: 1024px) {
+        .hero-stats-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 980px) {
+        .grid-4 {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .grid-3,
+        .split,
+        .versus,
+        .demo-grid {
+          grid-template-columns: 1fr;
+        }
+        .split.rev .split-media {
+          order: 0;
+        }
+        .nav-links {
+          display: none;
+        }
+        .weight-row {
+          grid-template-columns: 130px 1fr 48px;
+          font-size: 13px;
+        }
+      }
+      @media (max-width: 600px) {
+        .hero {
+          padding-top: 84px;
+        }
+        .hero-stats-grid,
+        .grid-4,
+        .tl {
+          grid-template-columns: 1fr;
+        }
+        .step {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+      }
+    </style>
+  </head>
+
+  <body data-favicon="voyage">
+    <!-- ============ NAV ============ -->
+    <header class="nav" id="nav">
+      <div class="wrap nav-inner">
+        <div class="brand">
+          <img
+            src="./images/aigent-voyage.png"
+            alt="Logo Mon AiGENT Voyage"
+            width="32"
+            height="32"
+          />
+          Mon <span class="accent">AiGENT</span> Voyage
+        </div>
+
+        <nav class="nav-links">
+          <a href="#probleme">Le problème</a>
+          <a href="#produit">Le produit</a>
+          <a href="#moteur">Moteur IA</a>
+          <a href="#demo">Démo</a>
+          <a href="#transaction">Transaction</a>
+          <a href="#modele">Modèle</a>
+        </nav>
+
+        <div class="nav-actions">
+          <a class="btn" href="./login-voyage.html">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
+            Se connecter
+          </a>
+          <a class="btn btn-primary" href="./login-voyage.html">Commencer</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="hero-bg-wrapper">
+        <img
+          src="./images/hero-voyage.jpg"
+          alt="Bateau d'excursion sur une mer turquoise au coucher du soleil"
+          width="1920"
+          height="1080"
+        />
+      </div>
+
+      <div class="hero-content">
+        <div class="hero-text-zone">
+          <div class="eyebrow-pill">
+            <span class="dot"></span> Agent IA · capacité touristique invendue →
+            transaction
+          </div>
+
+          <h1 class="hero-title">
+            Une place vide,<br />
+            c'est du chiffre d'affaires
+            <span class="accent-sky">qui s'évapore.</span>
+          </h1>
+
+          <p class="hero-desc">
+            Mon AiGENT Voyage est l'agent qui comprend ce que le professionnel a
+            à vendre, comprend ce que le voyageur cherche vraiment, recommande
+            le bon prix au bon moment et déclenche la vente avant que le créneau
+            ne perde toute sa valeur.
+          </p>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary btn-lg" href="./login-voyage.html"
+              >Commencer avec l'agent</a
+            >
+            <a class="btn btn-lg" href="#produit">Comprendre le produit</a>
+          </div>
+        </div>
+
+        <div class="hero-stats-grid">
+          <div class="hero-stat-card">
+            <span class="stat-num">Périssable</span>
+            <span class="stat-label"
+              >une place non vendue est perdue définitivement</span
+            >
+          </div>
+          <div class="hero-stat-card">
+            <span class="stat-num">2 côtés</span>
+            <span class="stat-label"
+              >l'agent comprend l'offre <em>et</em> la demande</span
+            >
+          </div>
+          <div class="hero-stat-card">
+            <span class="stat-num">Pricing IA</span>
+            <span class="stat-label"
+              >prix recommandé selon le temps restant</span
+            >
+          </div>
+          <div class="hero-stat-card">
+            <span class="stat-num">Commission</span>
+            <span class="stat-label"
+              >le pro ne paie que sur une vente réalisée</span
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LE PROBLÈME ============ -->
+    <section class="block" id="probleme">
+      <div class="wrap">
+        <div class="split reveal">
+          <div class="split-text">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+            </span>
+            <div class="kicker">Le problème</div>
+            <h3>Le tourisme vend un stock qui fond chaque heure.</h3>
+            <p class="body">
+              Une chambre vide ce soir ne se stocke pas pour demain. Une place
+              libre sur l'excursion de 14h disparaît à 14h01. Chaque jour, des
+              hôtels, bateaux, guides, activités, attractions et transferts
+              laissent partir de la capacité qu'ils ne revendront jamais — non
+              pas parce que la demande n'existe pas, mais parce que personne ne
+              met les deux réalités en contact au bon moment.
+            </p>
+            <p class="body">
+              En face, il y a des voyageurs qui sont déjà sur place, qui
+              cherchent quoi faire cet après-midi, avec un budget précis et deux
+              heures devant eux. Le marché existe des deux côtés. Ce qui manque,
+              c'est l'agent qui les rapproche avant l'échéance.
+            </p>
+          </div>
+          <div class="split-media">
+            <img
+              src="./images/capacite-perdue.jpg"
+              alt="Sièges vides sur le pont d'un bateau d'excursion au crépuscule"
+              loading="lazy"
+              width="1200"
+              height="800"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LE PRODUIT + SCHÉMA ============ -->
+    <section class="block" id="produit">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <div class="kicker">Le produit</div>
+          <h2>
+            Ni Booking, ni catalogue : un agent de marché entre l'offre et la
+            demande.
+          </h2>
+          <p class="lead">
+            Une marketplace classique se contente d'afficher des annonces et
+            d'attendre. Mon AiGENT Voyage travaille des deux côtés en même temps
+            : il structure la capacité disponible du professionnel, interprète
+            la demande du voyageur exprimée en langage naturel, puis calcule la
+            meilleure rencontre possible et l'amène jusqu'au paiement.
+          </p>
+        </div>
+
+        <div class="flow reveal">
+          <div class="flow-col">
+            <div class="flow-title">Vendeur — Offre</div>
+            <div class="flow-line">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5" />
+              </svg>
+              Hôtel, bateau, guide, activité, transfert
+            </div>
+            <div class="flow-line">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="5" width="18" height="16" rx="3" />
+                <path d="M3 10h18M8 3v4M16 3v4" />
+              </svg>
+              Disponibilités, créneaux, capacité
+            </div>
+            <div class="flow-line">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                />
+              </svg>
+              Prix habituel, conditions, contraintes
+            </div>
+          </div>
+
+          <div class="flow-arrow">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </div>
+
+          <div class="flow-col center">
+            <div class="flow-title">AiGENT</div>
+            <div class="flow-core">
+              <span class="flow-chip">Compréhension de l'offre</span>
+              <span class="flow-chip">Compréhension de la demande</span>
+              <span class="flow-chip">Matching contextuel</span>
+              <span class="flow-chip">Pricing dynamique</span>
+              <span class="flow-chip">Recommandation &amp; négociation</span>
+              <span class="flow-chip">Réservation &amp; transaction</span>
+            </div>
+          </div>
+
+          <div class="flow-arrow">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </div>
+
+          <div class="flow-col">
+            <div class="flow-title">Acheteur — Demande</div>
+            <div class="flow-line">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              Destination, zone, mobilité
+            </div>
+            <div class="flow-line">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              </svg>
+              Date, heure, nombre de personnes
+            </div>
+            <div class="flow-line">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"
+                />
+                <path d="M16 10h5V5" />
+              </svg>
+              Budget, envie, contraintes
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-3 reveal" style="margin-top: 42px">
+          <div class="card">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                />
+              </svg>
+            </span>
+            <h3>Le pro parle, l'offre se structure</h3>
+            <p>
+              « Demain 18h, il me reste 5 places sur le bateau, normalement 55 €
+              » devient une offre complète : activité, ville, date, heure,
+              capacité, prix, conditions, disponibilité restante.
+            </p>
+            <span class="tag">Texte, formulaire, e-mail ou fichier</span>
+          </div>
+          <div class="card">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
+            </span>
+            <h3>Le voyageur parle normalement</h3>
+            <p>
+              « Je suis à Marseille demain avec ma copine, on a 80 € et on veut
+              faire un truc sympa l'après-midi. » L'agent en extrait zone, date,
+              créneau, budget, nombre de personnes et type d'expérience.
+            </p>
+            <span class="tag">Langage naturel → critères</span>
+          </div>
+          <div class="card">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M4 17l6-6 4 4 6-8" />
+                <path d="M4 21h16" />
+              </svg>
+            </span>
+            <h3>L'agent conclut, pas seulement affiche</h3>
+            <p>
+              Il recommande le prix qui vend, propose l'offre au bon voyageur,
+              explique les écarts, gère la réservation et confirme auprès du
+              prestataire. L'intelligence est dans le moteur, pas dans
+              l'interface.
+            </p>
+            <span class="tag">Jusqu'à la transaction</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MOTEUR IA ============ -->
+    <section class="block" id="moteur">
+      <div class="wrap">
+        <div class="split reveal">
+          <div class="split-text">
+            <div class="kicker">Le moteur</div>
+            <h3>Un matching qui comprend le contexte, pas des mots-clés.</h3>
+            <p class="body">
+              Le moteur confronte une capacité disponible à une demande
+              exprimée, critère par critère : zone et temps de trajet réel,
+              créneau horaire compatible, budget total pour le groupe, nombre de
+              places, type d'expérience et préférences. Chaque critère produit
+              une note, pondérée selon son poids réel dans une décision de
+              voyageur.
+            </p>
+            <p class="body">
+              Deux règles d'exclusion protègent le voyageur comme le
+              professionnel : une offre qui dépasse le budget total du groupe,
+              ou dont le créneau est déjà hors d'atteinte, ne remonte jamais. Ce
+              qui reste est ensuite trié par urgence : plus l'échéance approche,
+              plus l'offre est mise en avant auprès des profils compatibles.
+            </p>
+          </div>
+          <div class="split-media">
+            <img
+              src="./images/matching-voyage.jpg"
+              alt="Réseau lumineux de correspondances entre offres et demandes sur une carte"
+              loading="lazy"
+              width="1200"
+              height="800"
+            />
+          </div>
+        </div>
+
+        <div class="weights reveal" style="margin-top: 42px" id="weights">
+          <h3 style="margin-bottom: 18px">
+            Pondération du score de compatibilité
+          </h3>
+          <div class="weight-row">
+            <span>Zone / distance</span>
+            <span class="weight-bar"><i data-w="24"></i></span>
+            <span class="weight-val">24 %</span>
+          </div>
+          <div class="weight-row">
+            <span>Créneau horaire</span>
+            <span class="weight-bar"><i data-w="20"></i></span>
+            <span class="weight-val">20 %</span>
+          </div>
+          <div class="weight-row">
+            <span>Budget total du groupe</span>
+            <span class="weight-bar"><i data-w="18"></i></span>
+            <span class="weight-val">18 %</span>
+          </div>
+          <div class="weight-row">
+            <span>Nombre de personnes</span>
+            <span class="weight-bar"><i data-w="12"></i></span>
+            <span class="weight-val">12 %</span>
+          </div>
+          <div class="weight-row">
+            <span>Type d'expérience</span>
+            <span class="weight-bar"><i data-w="12"></i></span>
+            <span class="weight-val">12 %</span>
+          </div>
+          <div class="weight-row">
+            <span>Préférences déclarées</span>
+            <span class="weight-bar"><i data-w="8"></i></span>
+            <span class="weight-val">8 %</span>
+          </div>
+          <div class="weight-row">
+            <span>Qualité de l'offre</span>
+            <span class="weight-bar"><i data-w="6"></i></span>
+            <span class="weight-val">6 %</span>
+          </div>
+          <div class="weights-foot">
+            <span class="bonus">Départ dans moins de 24 h <b>+10 pts</b></span>
+            <span class="bonus">Offre complète et vérifiée <b>+6 pts</b></span>
+            <span class="bonus">Annulation flexible <b>+4 pts</b></span>
+            <span class="bonus"
+              >Hors budget du groupe
+              <b style="color: var(--red)">exclu</b></span
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DÉMO INTERACTIVE ============ -->
+    <section class="block" id="demo">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <div class="kicker">Démonstration</div>
+          <h2>Dites votre besoin, regardez le moteur trancher.</h2>
+          <p class="lead">
+            Réglez la demande d'un voyageur à Marseille pour demain après-midi.
+            Le moteur recalcule en direct la compatibilité de chaque capacité
+            invendue disponible et écarte ce qui ne tient pas.
+          </p>
+        </div>
+
+        <div class="demo reveal">
+          <div class="demo-grid">
+            <div>
+              <div class="demo-label">Demande du voyageur</div>
+              <div class="chips" id="chips-type">
+                <button class="chip-btn on" data-type="mer">En mer</button>
+                <button class="chip-btn" data-type="culture">Culture</button>
+                <button class="chip-btn" data-type="detente">Détente</button>
+              </div>
+              <div class="demo-label">Nombre de personnes</div>
+              <div class="chips" id="chips-pax">
+                <button class="chip-btn" data-pax="1">1</button>
+                <button class="chip-btn on" data-pax="2">2</button>
+                <button class="chip-btn" data-pax="4">4</button>
+              </div>
+              <div class="demo-label">
+                Budget total —
+                <span class="range-val" id="budget-val">100 €</span>
+              </div>
+              <input
+                id="budget"
+                type="range"
+                min="40"
+                max="260"
+                step="10"
+                value="100"
+                aria-label="Budget total"
+              />
+              <div class="demo-label" style="margin-top: 20px">
+                Créneau souhaité —
+                <span class="range-val" id="hour-val">15h</span>
+              </div>
+              <input
+                id="hour"
+                type="range"
+                min="9"
+                max="21"
+                step="1"
+                value="15"
+                aria-label="Heure souhaitée"
+              />
+            </div>
+
+            <div>
+              <div class="demo-label">Capacités invendues à Marseille</div>
+              <div id="offers"></div>
+              <div class="demo-out" id="demo-out"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TRANSACTION ============ -->
+    <section class="block" id="transaction">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <div class="kicker">Une transaction complète</div>
+          <h2>De la place invendue au voyageur qui embarque.</h2>
+          <p class="lead">
+            Un prestataire a 8 places demain à 15h, normalement vendues 50 €.
+            Voici ce que fait l'agent, étape par étape.
+          </p>
+        </div>
+
+        <div class="tl reveal">
+          <div class="tl-card">
+            <div class="tl-step">01 · Offre</div>
+            <p>
+              Le prestataire transmet ses restes : <b>8 places, demain 15h</b>,
+              prix habituel 50 € par personne.
+            </p>
+          </div>
+          <div class="tl-card">
+            <div class="tl-step">02 · Pricing</div>
+            <p>
+              L'agent estime la probabilité de vente à ce prix et recommande
+              <b>39 €</b>. Le professionnel valide.
+            </p>
+          </div>
+          <div class="tl-card">
+            <div class="tl-step">03 · Matching</div>
+            <p>
+              L'offre entre dans le moteur, qui cherche les voyageurs dont la
+              demande est <b>réellement compatible</b>.
+            </p>
+          </div>
+          <div class="tl-card">
+            <div class="tl-step">04 · Proposition</div>
+            <p>
+              « Deux personnes, Marseille, 15h, max 100 € » → l'agent propose
+              <b>39 € × 2 = 78 €</b> avec l'explication.
+            </p>
+          </div>
+          <div class="tl-card">
+            <div class="tl-step">05 · Transaction</div>
+            <p>
+              Paiement, confirmation au prestataire, réservation envoyée au
+              voyageur, <b>commission prélevée</b>.
+            </p>
+          </div>
+        </div>
+
+        <div class="split reveal" style="margin-top: clamp(48px, 7vw, 90px)">
+          <div class="split-media">
+            <img
+              src="./images/voyageur-demande.jpg"
+              alt="Deux voyageurs consultent leur téléphone face au littoral marseillais"
+              loading="lazy"
+              width="1200"
+              height="800"
+            />
+          </div>
+          <div class="split-text">
+            <span class="icon-badge">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />
+              </svg>
+            </span>
+            <div class="kicker">Côté voyageur</div>
+            <h3>Plus de comparateur à éplucher. Une phrase suffit.</h3>
+            <p class="body">
+              Le voyageur n'a pas besoin de connaître le produit exact qu'il
+              veut acheter. Il décrit sa situation — où il est, avec qui, quand,
+              combien il veut mettre — et l'agent fait le travail : il cherche,
+              compare, explique les différences, recommande la meilleure
+              opportunité du moment et l'accompagne jusqu'à la réservation.
+            </p>
+            <p class="body">
+              Et parce que les offres proposées sont des capacités qui
+              risquaient de partir à la poubelle, le prix est souvent le
+              meilleur du marché à cet instant précis.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MODÈLE + CE QUE CE N'EST PAS ============ -->
+    <section class="block" id="modele">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <div class="kicker">Positionnement &amp; modèle</div>
+          <h2>Payé uniquement quand une vente est générée.</h2>
+          <p class="lead">
+            Le modèle initial est une commission sur les transactions réussies :
+            une activité vendue 50 € rapporte 40 € au prestataire et 10 € à
+            l'agent. Le professionnel ne paie jamais pour de la visibilité — il
+            paie pour un client réel.
+          </p>
+        </div>
+
+        <div class="versus reveal">
+          <div class="vs-card">
+            <div class="kicker" style="color: var(--text-3)">
+              Ce que ce n'est pas
+            </div>
+            <h3>Une marketplace de plus</h3>
+            <div class="vs-list">
+              <div class="vs-item">
+                <span class="mark no"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  >
+                    <path d="M18 6L6 18M6 6l12 12" /></svg
+                ></span>
+                Un clone de Booking ou de GetYourGuide.
+              </div>
+              <div class="vs-item">
+                <span class="mark no"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  >
+                    <path d="M18 6L6 18M6 6l12 12" /></svg
+                ></span>
+                Un catalogue d'activités que l'utilisateur doit fouiller.
+              </div>
+              <div class="vs-item">
+                <span class="mark no"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  >
+                    <path d="M18 6L6 18M6 6l12 12" /></svg
+                ></span>
+                Un simple comparateur de prix.
+              </div>
+              <div class="vs-item">
+                <span class="mark no"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  >
+                    <path d="M18 6L6 18M6 6l12 12" /></svg
+                ></span>
+                Un chatbot touristique posé sur une base d'annonces.
+              </div>
+            </div>
+          </div>
+
+          <div class="vs-card good">
+            <div class="kicker">Ce que c'est</div>
+            <h3>Un agent de marché touristique</h3>
+            <div class="vs-list">
+              <div class="vs-item">
+                <span class="mark ok"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M20 6L9 17l-5-5" /></svg
+                ></span>
+                <div>
+                  <b>Un lancement concentré</b> — une ville, une catégorie, 20 à
+                  50 professionnels, pour que le matching fonctionne vraiment.
+                </div>
+              </div>
+              <div class="vs-item">
+                <span class="mark ok"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M20 6L9 17l-5-5" /></svg
+                ></span>
+                <div>
+                  <b>Excursions, bateaux, visites guidées</b> d'abord ; hôtels,
+                  transferts et attractions ensuite.
+                </div>
+              </div>
+              <div class="vs-item">
+                <span class="mark ok"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M20 6L9 17l-5-5" /></svg
+                ></span>
+                <div>
+                  <b>Des données vérifiées</b> — l'IA détecte incohérences,
+                  doublons et disponibilités impossibles, mais les informations
+                  critiques restent contrôlées par des règles métier.
+                </div>
+              </div>
+              <div class="vs-item">
+                <span class="mark ok"
+                  ><svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M20 6L9 17l-5-5" /></svg
+                ></span>
+                <div>
+                  <b>Revenue management à terme</b> — abonnement pro, mise en
+                  avant, analytics, automatisation commerciale.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-4 reveal" style="margin-top: 32px">
+          <div class="card">
+            <h3 style="margin-top: 0">50 €</h3>
+            <p>Prix de vente d'une activité via l'agent.</p>
+          </div>
+          <div class="card">
+            <h3 style="margin-top: 0">40 €</h3>
+            <p>Reversés au prestataire, sur une place qui aurait été perdue.</p>
+          </div>
+          <div class="card">
+            <h3 style="margin-top: 0">10 €</h3>
+            <p>Commission AiGENT, uniquement en cas de vente réussie.</p>
+          </div>
+          <div class="card">
+            <h3 style="margin-top: 0">0 €</h3>
+            <p>
+              Coût pour le professionnel tant qu'aucun client n'est apporté.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="block" style="padding-top: 0">
+      <div class="wrap">
+        <div class="cta-final reveal">
+          <h2>Vos places de demain se vendent aujourd'hui.</h2>
+          <p>
+            « Voilà ce que j'ai à vendre, trouve-moi des clients. » « Voilà ce
+            que je veux faire, trouve-moi la meilleure opportunité. » AiGENT
+            Voyage fait le lien entre les deux, et prend sa part seulement quand
+            la transaction a lieu.
+          </p>
+          <div class="cta-actions">
+            <a class="btn btn-primary btn-lg" href="./login-voyage.html"
+              >Commencer</a
+            >
+            <a class="btn btn-lg" href="./login-voyage.html">Se connecter</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap foot-inner">
+        <div class="brand" style="font-size: 14px">
+          <img
+            src="./images/aigent-voyage.png"
+            alt="Logo Mon AiGENT Voyage"
+            width="26"
+            height="26"
+          />
+          Mon <span class="accent">AiGENT</span> Voyage
+        </div>
+        <div>
+          © <span id="year"></span> Mon AiGENT Voyage — Tous droits réservés
+        </div>
+        <a
+          href="./login-voyage.html"
+          style="color: var(--sky-bright); font-weight: 600"
+          >Se connecter</a
+        >
+      </div>
+    </footer>
+
+    <script>
+      // Nav
+      const nav = document.getElementById("nav");
+      const onScroll = () =>
+        nav.classList.toggle("scrolled", window.scrollY > 12);
+      onScroll();
+      window.addEventListener("scroll", onScroll, { passive: true });
+
+      // Reveal
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add("in");
+              io.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.12 },
+      );
+      document.querySelectorAll(".reveal").forEach((el, i) => {
+        el.style.transitionDelay = `${Math.min(i % 4, 3) * 60}ms`;
+        io.observe(el);
+      });
+
+      // Barres de pondération
+      const weights = document.getElementById("weights");
+      if (weights) {
+        const wo = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((e) => {
+              if (!e.isIntersecting) return;
+              weights.querySelectorAll(".weight-bar i").forEach((bar, idx) => {
+                const pct = Number(bar.dataset.w) || 0;
+                setTimeout(() => {
+                  bar.style.width = pct * 4 + "%";
+                }, idx * 90);
+              });
+              wo.disconnect();
+            });
+          },
+          { threshold: 0.3 },
+        );
+        wo.observe(weights);
+      }
+
+      // ===== Démo de matching =====
+      const OFFERS = [
+        {
+          name: "Excursion bateau — Calanques",
+          type: "mer",
+          hour: 14,
+          base: 60,
+          price: 39,
+          seats: 6,
+        },
+        {
+          name: "Sortie voilier au coucher du soleil",
+          type: "mer",
+          hour: 19,
+          base: 75,
+          price: 49,
+          seats: 4,
+        },
+        {
+          name: "Visite guidée du Panier",
+          type: "culture",
+          hour: 11,
+          base: 28,
+          price: 19,
+          seats: 8,
+        },
+        {
+          name: "Atelier savon & dégustation",
+          type: "culture",
+          hour: 16,
+          base: 45,
+          price: 32,
+          seats: 5,
+        },
+        {
+          name: "Spa & hammam, créneau libre",
+          type: "detente",
+          hour: 17,
+          base: 80,
+          price: 55,
+          seats: 3,
+        },
+      ];
+
+      const state = { type: "mer", pax: 2, budget: 100, hour: 15 };
+      const offersEl = document.getElementById("offers");
+      const outEl = document.getElementById("demo-out");
+      const budgetEl = document.getElementById("budget");
+      const hourEl = document.getElementById("hour");
+
+      function score(o) {
+        const total = o.price * state.pax;
+        if (total > state.budget) return { s: 0, why: "hors budget du groupe" };
+        if (o.seats < state.pax) return { s: 0, why: "pas assez de places" };
+        const gap = Math.abs(o.hour - state.hour);
+        const sHour = Math.max(0, 100 - gap * 18);
+        const sBudget = Math.round(
+          (1 - (state.budget - total) / state.budget / 2) * 100,
+        );
+        const sType = o.type === state.type ? 100 : 45;
+        const s = Math.round(sHour * 0.4 + sBudget * 0.3 + sType * 0.3);
+        return { s: Math.max(12, Math.min(99, s)), why: "" };
+      }
+
+      function render() {
+        const scored = OFFERS.map((o) => ({ ...o, ...score(o) })).sort(
+          (a, b) => b.s - a.s,
+        );
+        offersEl.innerHTML = scored
+          .map((o) => {
+            const total = o.price * state.pax;
+            const dead = o.s === 0;
+            return `<div class="offer ${dead ? "dim" : o.s >= 70 ? "match" : ""}">
+              <div class="offer-top">
+                <span class="offer-name">${o.name}</span>
+                <span class="offer-score">${dead ? "exclu" : o.s + " %"}</span>
+              </div>
+              <div class="offer-top">
+                <span class="offer-meta">${o.hour}h · ${o.seats} places restantes${
+                  o.why ? " · " + o.why : ""
+                }</span>
+                <span><span class="price-old">${o.base} €</span>
+                <span class="price-new">${o.price} € × ${state.pax} = ${total} €</span></span>
+              </div>
+            </div>`;
+          })
+          .join("");
+
+        const best = scored.find((o) => o.s > 0);
+        outEl.innerHTML = best
+          ? `L'agent recommande <b>${best.name}</b> à <b>${
+              best.price * state.pax
+            } €</b> pour ${state.pax} personne${state.pax > 1 ? "s" : ""} — soit <b>${
+              (best.base - best.price) * state.pax
+            } €</b> d'économie sur une capacité qui allait être perdue. Commission AiGENT : <b>${Math.round(
+              best.price * state.pax * 0.2,
+            )} €</b>.`
+          : `Aucune capacité compatible : l'agent élargit la recherche et notifiera le voyageur dès qu'un prestataire libère un créneau dans ce budget.`;
+      }
+
+      document.querySelectorAll("#chips-type .chip-btn").forEach((b) => {
+        b.addEventListener("click", () => {
+          document
+            .querySelectorAll("#chips-type .chip-btn")
+            .forEach((x) => x.classList.remove("on"));
+          b.classList.add("on");
+          state.type = b.dataset.type;
+          render();
+        });
+      });
+      document.querySelectorAll("#chips-pax .chip-btn").forEach((b) => {
+        b.addEventListener("click", () => {
+          document
+            .querySelectorAll("#chips-pax .chip-btn")
+            .forEach((x) => x.classList.remove("on"));
+          b.classList.add("on");
+          state.pax = Number(b.dataset.pax);
+          render();
+        });
+      });
+      budgetEl.addEventListener("input", () => {
+        state.budget = Number(budgetEl.value);
+        document.getElementById("budget-val").textContent = state.budget + " €";
+        render();
+      });
+      hourEl.addEventListener("input", () => {
+        state.hour = Number(hourEl.value);
+        document.getElementById("hour-val").textContent = state.hour + "h";
+        render();
+      });
+
+      render();
+      document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>

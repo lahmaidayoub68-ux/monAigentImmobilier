@@ -164,11 +164,36 @@
         flex-shrink: 0;
       }
 
-      .sidebar-brand-logo img {
-        width: 18px;
-        height: 18px;
-        object-fit: contain;
+      .sidebar-logo {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        overflow: visible;
+      }
+
+      .sidebar-logo img {
         display: block;
+        width: 46px;
+        height: 46px;
+        max-width: none;
+        object-fit: contain;
+        object-position: center;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18))
+          drop-shadow(0 5px 10px rgba(0, 0, 0, 0.08));
+      }
+
+      /* En mode nuit : logo net, sans ombre visible */
+      [data-theme="dark"] .sidebar-logo img {
+        filter: none;
       }
       .sidebar-brand-name {
         font-family: "Plus Jakarta Sans", sans-serif;
@@ -1902,7 +1927,7 @@
       /* Cache tout sauf le bouton toggle */
       .sidebar.collapsed .sidebar-brand-name,
       .sidebar.collapsed .sidebar-brand-sub,
-      .sidebar.collapsed .sidebar-brand-logo {
+      .sidebar.collapsed .sidebar-logo {
         display: none !important;
       }
 
@@ -2507,13 +2532,13 @@
       }
     </style>
   </head>
-  <body>
+  <body data-favicon="immo">
     <div class="app-shell">
       <!-- ═══════ SIDEBAR ═══════ -->
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
-          <div class="sidebar-brand-logo">
-            <img src="./images/logo.png" alt="Logo" />
+          <div class="sidebar-logo">
+            <img src="./images/aigent-immo.png" alt="AiGENT Immobilier" />
           </div>
           <div>
             <div class="sidebar-brand-name">Mon AiGENT</div>
@@ -3262,7 +3287,8 @@
     <!-- ============================================================
    PATCH 3b — FAVORIS.HTML : FAB HTML + JS MOBILE
    
-   ÉTAPE 1 : Insérer ce HTML juste avant </body>
+   ÉTAPE 1 : Insérer ce HTML juste avant   <script src="./favicon.js"></script>
+</body>
 ============================================================ -->
 
     <!-- FAB Overlay (ferme le menu) -->

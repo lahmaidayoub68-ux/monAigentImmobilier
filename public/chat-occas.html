@@ -693,21 +693,142 @@
         gap: 10px;
         align-items: flex-start;
       }
-      .bot-avatar {
-        width: 30px;
-        height: 30px;
-        border-radius: 8px;
-        background: linear-gradient(
-          135deg,
-          rgba(255, 138, 61, 0.18),
-          rgba(255, 61, 61, 0.15)
-        );
-        border: 1px solid rgba(255, 138, 61, 0.22);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    /* Image logo panneau IA */
+      .ai-panel-brand-img {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+        display: block;
         flex-shrink: 0;
-        color: #ff9c5c;
+        border: none;
+        outline: none;
+        background: transparent;
+        transition: filter 0.3s ease;
+      }
+      [data-theme="light"] .ai-panel-brand-img {
+        filter: brightness(0.85) contrast(1.15);
+      }
+
+      /* ============ LOGO AIGENT OCCASION — VECTORIEL PUR ANIMÉ ============ */
+      .aigent-logo {
+        display: inline-block;
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+        margin-top: 2px;
+        color: var(--orange);
+        transform-origin: 50% 50%;
+      }
+      .aigent-logo svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        display: block;
+      }
+
+      .aigent-logo .lg-shape {
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 11;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .aigent-logo .lg-left {
+        transform-origin: 68px 98px;
+      }
+      .aigent-logo .lg-right {
+        transform-origin: 132px 98px;
+      }
+      .aigent-logo .lg-pulse {
+        stroke: #ffb066;
+        fill: none;
+        stroke-width: 11;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 22 220;
+        stroke-dashoffset: 22;
+        opacity: 0;
+      }
+
+      /* ── Animation Idle (respiration magnétique du deal + circulation fluide) ── */
+      .aigent-logo.is-idle svg {
+        animation: lgGlowOccas 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-idle .lg-left {
+        animation: lgClaspLeft 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-idle .lg-right {
+        animation: lgClaspRight 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-idle .lg-pulse {
+        animation: lgStreamTravel 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+
+      /* ── Animation Thinking (activation IA et pulsation du verrouillage de l'accord) ── */
+      .aigent-logo.is-thinking svg {
+        animation: lgGlowOccas 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-thinking .lg-left {
+        animation: lgClaspLeft 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-thinking .lg-right {
+        animation: lgClaspRight 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-thinking .lg-pulse {
+        animation: lgStreamTravelFast 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+
+      /* Micro-mouvement synchronisé de la poignée de main */
+      @keyframes lgClaspLeft {
+        0%, 100% { transform: translate(0, 0); }
+        45% { transform: translate(0.9px, -0.9px); }
+        70% { transform: translate(0.2px, -0.2px); }
+      }
+      @keyframes lgClaspRight {
+        0%, 100% { transform: translate(0, 0); }
+        45% { transform: translate(-0.9px, 0.9px); }
+        70% { transform: translate(-0.2px, 0.2px); }
+      }
+      /* Halo chaud de contact */
+      @keyframes lgGlowOccas {
+        0%, 100% { filter: drop-shadow(0 0 0px rgba(255, 106, 61, 0)); }
+        40% { filter: drop-shadow(0 0 2px rgba(255, 106, 61, 0.35)); }
+        55% { filter: drop-shadow(0 0 6px rgba(255, 138, 61, 0.8)); }
+        75% { filter: drop-shadow(0 0 2px rgba(255, 106, 61, 0.4)); }
+      }
+      /* Flux de données à travers la poignée de main */
+      @keyframes lgStreamTravel {
+        0%, 35% {
+          stroke-dashoffset: 22;
+          opacity: 0;
+        }
+        45% {
+          stroke-dashoffset: 22;
+          opacity: 1;
+        }
+        68% {
+          stroke-dashoffset: -75;
+          opacity: 0.9;
+        }
+        82%, 100% {
+          stroke-dashoffset: -100;
+          opacity: 0;
+        }
+      }
+      @keyframes lgStreamTravelFast {
+        0% { stroke-dashoffset: 22; opacity: 0; }
+        25% { stroke-dashoffset: 22; opacity: 1; }
+        70% { stroke-dashoffset: -85; opacity: 0.9; }
+        100% { stroke-dashoffset: -100; opacity: 0; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .aigent-logo svg,
+        .aigent-logo .lg-left,
+        .aigent-logo .lg-right,
+        .aigent-logo .lg-pulse {
+          animation: none !important;
+        }
       }
       .ai-text {
         font-size: 14px;
@@ -2028,25 +2149,26 @@
       }
     </style>
   </head>
-  <body>
+  <body data-favicon="occas">
     <!-- HEADER -->
+    
+       <!-- HEADER -->
     <header class="top-banner">
       <div class="logo-container">
-        <span class="logo-mark">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path
-              d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM3 17V9l2-5h10l4 5v8"
-            />
-            <path d="M3 12h18" />
-          </svg>
-        </span>
+        <img
+          src="./images/aigent-occas.png"
+          alt="Logo Mon AiGENT Occasion"
+          width="32"
+          height="32"
+          style="
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            display: block;
+            border: none;
+            box-shadow: none;
+          "
+        />
         <span class="logo-text">Mon <span>AiGENT</span> Occasion</span>
       </div>
       <div class="header-actions">
@@ -2111,165 +2233,131 @@
       </div>
     </header>
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar" id="sidebar">
-      <button class="btn-new-listing" id="btn-new-listing">
-        <svg
-          width="15"
-          height="15"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-          stroke-linecap="round"
-        >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-        Nouvelle annonce
-      </button>
 
-      <nav class="nav-section">
-        <a href="#" class="nav-item active">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
-          Accueil
-        </a>
-        <a href="./profil-occas.html" class="nav-item">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path
-              d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM3 17V9l2-5h10l4 5v8"
-            />
-          </svg>
-          Mes annonces
-        </a>
-        <a href="./messagerie-occas.html" class="nav-item">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path
-              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-            />
-          </svg>
-          Messagerie
-        </a>
-        <a href="./favoris-occas.html" class="nav-item">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <polygon
-              points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-            />
-          </svg>
-          Favoris
-        </a>
-        <a href="#" class="nav-item">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-          >
-            <line x1="18" y1="20" x2="18" y2="10" />
-            <line x1="12" y1="20" x2="12" y2="4" />
-            <line x1="6" y1="20" x2="6" y2="14" />
-          </svg>
-          Statistiques
-        </a>
-        <a href="#" class="nav-item">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-            <polyline points="16 7 22 7 22 13" />
-          </svg>
-          Marché occasion
-        </a>
-        <a href="#" class="nav-item">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-          >
-            <circle cx="12" cy="12" r="3" />
-            <path
-              d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
-            />
-          </svg>
-          Deal Radar
-        </a>
-      </nav>
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <button class="btn-new-listing" id="btn-new-listing">
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="round"
+    >
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+    Nouvelle annonce
+  </button>
 
-      <div class="sidebar-bottom">
-        <a href="./profil-occas.html" class="profile-row" id="profile-row">
-          <div class="profile-avatar" id="profile-avatar">?</div>
-          <div class="profile-info">
-            <div class="profile-name" id="profile-name">—</div>
-            <div class="profile-role" id="profile-role">—</div>
-          </div>
-          <svg
-            class="profile-chevron"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </a>
+  <nav class="nav-section">
+
+    <!-- Accueil -->
+    <a href="#" class="nav-item active">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M3 10.5L12 3l9 7.5" />
+        <path d="M5 9.5V21h14V9.5" />
+        <path d="M9 21v-6h6v6" />
+      </svg>
+      Accueil
+    </a>
+
+    <!-- Mes Annonces -->
+    <a href="./profil-occas.html#mes-annonces" class="nav-item">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="3" y="4" width="18" height="17" rx="2" />
+        <path d="M8 4V2h8v2" />
+        <path d="M8 10h8" />
+        <path d="M8 14h5" />
+        <path d="M8 18h3" />
+      </svg>
+      Mes Annonces
+    </a>
+
+    <!-- Messagerie -->
+    <a href="./messagerie-occas.html" class="nav-item">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z" />
+        <path d="m3 6 9 7 9-7" />
+      </svg>
+      Messagerie
+    </a>
+
+    <!-- Côte et Estimation -->
+    <a href="./profil-occas.html#cote-estimation" class="nav-item">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M3 21V10l9-7 9 7v11" />
+        <path d="M7 21v-6h10v6" />
+        <path d="M9 11h6" />
+        <path d="M12 8v6" />
+      </svg>
+      Côte et Estimation
+    </a>
+
+  </nav>
+
+  <div class="sidebar-bottom">
+    <a href="./profil-occas.html" class="profile-row" id="profile-row">
+      <div class="profile-avatar" id="profile-avatar">?</div>
+
+      <div class="profile-info">
+        <div class="profile-name" id="profile-name">—</div>
+        <div class="profile-role" id="profile-role">—</div>
       </div>
-    </aside>
+
+      <svg
+        class="profile-chevron"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </a>
+  </div>
+</aside>
 
     <!-- APP LAYOUT -->
     <div class="app-layout">
@@ -2491,23 +2579,13 @@
           <div class="ai-panel-header">
             <div>
               <div class="ai-panel-title-row">
-                <div class="ai-panel-icon">
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path
-                      d="M12 2c-5.5 0-10 4.5-10 10s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"
-                    />
-                    <path d="M12 6v6l4 2" />
-                  </svg>
-                </div>
+                <img
+                  src="./images/aigent-occas.png"
+                  alt="Logo Cerveau IA"
+                  class="ai-panel-brand-img"
+                  width="28"
+                  height="28"
+                />
                 <div class="ai-panel-title">Cerveau IA</div>
               </div>
               <div class="ai-panel-sub">Analyse cognitive en temps réel</div>
@@ -2718,23 +2796,14 @@
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <div class="mobile-drawer-logo">
-          <span class="logo-mark">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              width="16"
-              height="16"
-            >
-              <path
-                d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM3 17V9l2-5h10l4 5v8"
-              />
-            </svg>
-          </span>
+       <div class="mobile-drawer-logo">
+          <img
+            src="./images/aigent-occas.png"
+            alt="Logo Mon AiGENT"
+            width="28"
+            height="28"
+            style="width: 28px; height: 28px; object-fit: contain; display: block; border: none;"
+          />
           <span class="logo-text">Mon <span>AiGENT</span></span>
         </div>
         <nav class="mobile-drawer-nav">
@@ -2848,5 +2917,6 @@
      <script src="./i18n-occas.js"></script>
     <script type="module" src="chat-occas.js"></script>
     <link rel="stylesheet" href="vehicle-ad-cards.css">
-  </body>
+    <script src="./favicon.js"></script>
+</body>
 </html>

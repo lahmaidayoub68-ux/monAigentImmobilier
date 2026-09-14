@@ -1,29 +1,64 @@
-import { db } from "./db.js";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-async function debugUser(username) {
-  try {
-    const user = await db
-      .prepare(`SELECT * FROM users WHERE username = ?`)
-      .get(username);
+// ============================================================
+// AiGENT — Injection automatique de favicon.js
+// Parcourt tous les fichiers HTML directement dans /public
+// ============================================================
 
-    if (!user) {
-      console.log("❌ Utilisateur introuvable :", username);
-      return;
-    }
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-    console.log("🧨 PROFIL COMPLET :", username);
-    console.log(user);
+const PUBLIC_DIR = path.join(__dirname, "public");
+const SCRIPT_TAG = '<script src="./favicon.js"></script>';
 
-    console.log("📌 DÉTAIL PAR CHAMP :");
-    for (const key in user) {
-      console.log(`${key} =>`, user[key]);
-    }
+let modified = 0;
+let skipped = 0;
 
-    console.log("📞 CONTACT CHECK :", user.contact);
-  } catch (err) {
-    console.error("❌ Erreur debug user :", err);
+const files = fs
+  .readdirSync(PUBLIC_DIR)
+  .filter((file) => file.toLowerCase().endsWith(".html"));
+
+for (const file of files) {
+  const filePath = path.join(PUBLIC_DIR, file);
+  let html = fs.readFileSync(filePath, "utf8");
+
+  // ----------------------------------------------------------
+  // Évite les doublons
+  // ----------------------------------------------------------
+
+  if (
+    html.includes('src="./favicon.js"') ||
+    html.includes("src='./favicon.js'")
+  ) {
+    console.log(`✓ Déjà présent : ${file}`);
+    skipped++;
+    continue;
   }
+
+  // ----------------------------------------------------------
+  // Injection juste avant </body>
+  // ----------------------------------------------------------
+
+  if (html.includes("</body>")) {
+    html = html.replace("</body>", `  ${SCRIPT_TAG}\n</body>`);
+  } else {
+    console.warn(`⚠️ Pas de </body> : ${file}`);
+    html += `\n${SCRIPT_TAG}\n`;
+  }
+
+  fs.writeFileSync(filePath, html, "utf8");
+
+  console.log(`✓ Ajouté : ${file}`);
+  modified++;
 }
 
-// 👉 ton utilisateur
-debugUser("labelsvend");
+// ============================================================
+// Résumé
+// ============================================================
+
+console.log("\n--------------------------------");
+console.log(`HTML modifiés   : ${modified}`);
+console.log(`Déjà configurés : ${skipped}`);
+console.log("--------------------------------");

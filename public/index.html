@@ -5,21 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Mon AiGENT — l'intelligence artificielle qui connecte automatiquement l'offre et la demande dans l'immobilier, l'occasion, l'emploi et bien plus. Zéro recherche manuelle."
+      content="Mon AiGENT : une IA qui relie automatiquement l'offre et la demande. Un compte, plusieurs univers — Immobilier, Occasion, Emploi."
     />
-    <title>Mon AiGENT | L'IA qui vous met en relation</title>
+    <title>Mon AiGENT | Une IA qui vous met en relation</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Inter+Tight:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Inter+Tight:wght@600;700&display=swap"
       rel="stylesheet"
     />
     <style>
-      /* ============================================================
-         MON AIGENT — Page mère de l'écosystème
-         Direction: identique au site Immobilier (Linear / Vercel)
-         Pure HTML / CSS / JS — no framework
-         ============================================================ */
+      /* ================================================================
+         MON AIGENT — page mère
+         Direction : noir profond / blanc, esthétique Linear. Monochrome.
+         Aucun accent coloré : la hiérarchie se fait par contraste.
+         ================================================================ */
 
       *,
       *::before,
@@ -30,2262 +30,1446 @@
       }
 
       :root {
-        --bg-base: #08080b;
-        --bg-elevated: #0c0c10;
-        --bg-surface: rgba(255, 255, 255, 0.024);
-        --bg-surface-2: rgba(255, 255, 255, 0.04);
-        --bg-glass: rgba(20, 20, 26, 0.55);
+        --bg: #000000;
+        --bg-1: #060607;
+        --bg-2: #0b0b0d;
+        --surface: rgba(255, 255, 255, 0.028);
+        --surface-2: rgba(255, 255, 255, 0.055);
+        --glass: rgba(10, 10, 12, 0.72);
 
-        --border: rgba(255, 255, 255, 0.08);
-        --border-strong: rgba(255, 255, 255, 0.13);
-        --border-violet: rgba(139, 124, 255, 0.32);
+        --line: rgba(255, 255, 255, 0.08);
+        --line-strong: rgba(255, 255, 255, 0.16);
 
-        --text-1: #f6f6f8;
-        --text-2: #a7a7b3;
-        --text-3: #6c6c78;
-        --text-ink: #08080b;
+        --t1: #f7f7f8;
+        --t2: #a1a1a8;
+        --t3: #64646c;
+        --ink: #000000;
 
-        --violet: #8b7cff;
-        --violet-bright: #a594ff;
-        --violet-deep: #6d5cf0;
-        --green: #3ecf8e;
-        --amber: #f5b14c;
-        --red: #f06d6d;
-        --blue: #5b9dff;
+        --r-xs: 8px;
+        --r-sm: 12px;
+        --r-md: 16px;
+        --r-lg: 22px;
+        --r-full: 999px;
 
-        /* Accents dédiés aux univers */
-        --orange: #ff6a3d;
-        --orange-bright: #ff9166;
-        --lime: #b7e34e;
-        --lime-bright: #d3f27a;
-
-        --grad-violet: linear-gradient(135deg, #9d8cff 0%, #6d5cf0 100%);
-        --grad-text: linear-gradient(180deg, #ffffff 0%, #b9b6c8 120%);
-
-        --radius-xs: 8px;
-        --radius-sm: 12px;
-        --radius-md: 16px;
-        --radius-lg: 22px;
-        --radius-xl: 30px;
-
-        --shadow-soft:
-          0 1px 0 rgba(255, 255, 255, 0.05) inset,
-          0 10px 40px -16px rgba(0, 0, 0, 0.7);
-        --shadow-card:
+        --shadow:
           0 1px 0 rgba(255, 255, 255, 0.06) inset,
-          0 24px 60px -28px rgba(0, 0, 0, 0.85);
-        --glow-violet: 0 0 80px -10px rgba(139, 124, 255, 0.35);
+          0 24px 60px -30px rgba(0, 0, 0, 0.9);
 
+        --maxw: 1140px;
         --ease: cubic-bezier(0.22, 1, 0.36, 1);
-        --fast: 160ms var(--ease);
-        --base: 300ms var(--ease);
-        --slow: 600ms var(--ease);
-
-        --container: 1180px;
-        --gap-section: clamp(88px, 12vw, 160px);
-
-        --font:
-          "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-        --font-display: "Inter Tight", var(--font);
       }
 
       html {
-        font-size: 16px;
         scroll-behavior: smooth;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
+        -webkit-text-size-adjust: 100%;
       }
 
       body {
-        font-family: var(--font);
-        background: var(--bg-base);
-        color: var(--text-1);
-        line-height: 1.55;
+        background: var(--bg);
+        color: var(--t1);
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.65;
+        letter-spacing: -0.011em;
+        -webkit-font-smoothing: antialiased;
         overflow-x: hidden;
-        position: relative;
-        width: 100%;
       }
 
+      /* Halo blanc très diffus : donne de la profondeur au noir */
       body::before {
         content: "";
         position: fixed;
-        inset: 0;
+        inset: -30% -10% auto -10%;
+        height: 70vh;
+        background: radial-gradient(
+          60% 60% at 50% 0%,
+          rgba(255, 255, 255, 0.09) 0%,
+          rgba(255, 255, 255, 0.02) 45%,
+          transparent 72%
+        );
         pointer-events: none;
         z-index: 0;
-        background:
-          radial-gradient(
-            900px 600px at 78% -8%,
-            rgba(139, 124, 255, 0.14),
-            transparent 60%
-          ),
-          radial-gradient(
-            700px 500px at 0% 12%,
-            rgba(109, 92, 240, 0.08),
-            transparent 55%
-          );
       }
 
-      ::selection {
-        background: rgba(139, 124, 255, 0.32);
-        color: #fff;
+      /* Grille technique subtile */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0.028) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.028) 1px,
+            transparent 1px
+          );
+        background-size: 72px 72px;
+        mask-image: radial-gradient(
+          80% 60% at 50% 20%,
+          #000 0%,
+          transparent 80%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      main,
+      header,
+      footer {
+        position: relative;
+        z-index: 1;
       }
 
       a {
         color: inherit;
         text-decoration: none;
       }
-      img,
-      svg {
-        display: block;
-        max-width: 100%;
-      }
-      button {
-        font-family: inherit;
-        cursor: pointer;
-        border: none;
-        background: none;
-        color: inherit;
+
+      ::selection {
+        background: #fff;
+        color: #000;
       }
 
-      .container {
+      .wrap {
         width: 100%;
-        max-width: var(--container);
+        max-width: var(--maxw);
         margin: 0 auto;
-        padding: 0 28px;
-        position: relative;
-        z-index: 1;
+        padding: 0 24px;
       }
 
-      /* ============ Buttons ============ */
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 9px;
-        font-weight: 550;
-        font-size: 0.92rem;
-        letter-spacing: -0.01em;
-        border-radius: 11px;
-        padding: 11px 18px;
-        transition:
-          transform var(--fast),
-          background var(--fast),
-          box-shadow var(--fast),
-          border-color var(--fast);
-        white-space: nowrap;
-      }
-      .btn svg {
-        width: 16px;
-        height: 16px;
-      }
-      .btn-primary {
-        background: #f4f3f7;
-        color: var(--text-ink);
-        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
-      }
-      .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 12px 30px -12px rgba(255, 255, 255, 0.4);
-      }
-      .btn-violet {
-        background: var(--grad-violet);
-        color: #fff;
-        box-shadow: var(--glow-violet);
-      }
-      .btn-violet:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 0 90px -6px rgba(139, 124, 255, 0.55);
-      }
-      .btn-ghost {
-        background: var(--bg-surface);
-        color: var(--text-1);
-        border: 1px solid var(--border);
-        backdrop-filter: blur(10px);
-      }
-      .btn-ghost:hover {
-        background: var(--bg-surface-2);
-        border-color: var(--border-strong);
-        transform: translateY(-1px);
-      }
-      .btn-lg {
-        padding: 14px 24px;
-        font-size: 1rem;
-        border-radius: 13px;
-      }
-      .btn-accent {
-        color: #08080b;
-        background: linear-gradient(
-          135deg,
-          var(--accent-bright, var(--violet-bright)),
-          var(--accent, var(--violet))
-        );
-        box-shadow: 0 10px 28px -12px var(--accent, var(--violet));
-      }
-      .btn-accent:hover {
-        transform: translateY(-1px);
-      }
-      .btn-block {
-        width: 100%;
-      }
-      .btn-disabled {
-        opacity: 0.5;
-        pointer-events: none;
-      }
-
-      /* ============ Header ============ */
-      .header {
+      /* ============ HEADER & NAVIGATION ============ */
+      #header {
         position: fixed;
-        top: 14px;
+        top: 0;
         left: 0;
         right: 0;
         z-index: 100;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border-bottom: 1px solid transparent;
+        transition:
+          border-color 0.3s var(--ease),
+          background 0.3s var(--ease);
       }
-      .header-inner {
+      #header.scrolled {
+        border-bottom-color: var(--line);
+        background: rgba(0, 0, 0, 0.88);
+      }
+      .nav {
+        height: 68px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        height: 58px;
-        padding: 0 14px 0 18px;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        background: rgba(12, 12, 16, 0.6);
-        backdrop-filter: blur(20px) saturate(150%);
-        box-shadow: 0 8px 30px -16px rgba(0, 0, 0, 0.8);
-        transition:
-          background var(--base),
-          border-color var(--base);
+        gap: 24px;
       }
-      .header.scrolled .header-inner {
-        background: rgba(10, 10, 14, 0.82);
-        border-color: var(--border-strong);
-      }
-      .logo {
+      .nav-links {
         display: flex;
         align-items: center;
-        gap: 10px;
-        font-family: var(--font-display);
-        font-weight: 600;
-        font-size: 1.05rem;
-        letter-spacing: -0.02em;
-        flex-shrink: 0;
+        gap: 28px;
+        font-size: 14px;
+        color: var(--t2);
       }
-      .logo-mark {
-        width: 30px;
-        height: 30px;
-        border-radius: 9px;
-        background: var(--grad-violet);
-        display: grid;
-        place-items: center;
-        box-shadow: 0 6px 18px -8px rgba(139, 124, 255, 0.7);
-        flex-shrink: 0;
+      .nav-links a {
+        transition: color 0.16s var(--ease);
       }
-      .logo-mark svg {
-        width: 17px;
-        height: 17px;
-        color: #fff;
+      .nav-links a:hover {
+        color: var(--t1);
       }
-      .logo b {
-        color: var(--violet-bright);
-        font-weight: 600;
-      }
-      .nav {
+      .nav-cta {
         display: flex;
         align-items: center;
-        gap: 4px;
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
+        gap: 12px;
       }
-      .nav a {
-        font-size: 0.88rem;
-        color: var(--text-2);
-        padding: 8px 13px;
-        border-radius: 9px;
-        font-weight: 480;
-        transition:
-          color var(--fast),
-          background var(--fast);
-      }
-      .nav a:hover {
-        color: var(--text-1);
-        background: var(--bg-surface);
-      }
-      .header-actions {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .header-actions .link {
-        font-size: 0.88rem;
-        color: var(--text-2);
-        padding: 8px 12px;
-        border-radius: 9px;
-        transition:
-          color var(--fast),
-          background var(--fast);
-      }
-      .header-actions .link:hover {
-        color: var(--text-1);
-      }
-      .mobile-toggle {
+      .burger {
         display: none;
         width: 38px;
         height: 38px;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        color: var(--text-1);
-        flex-shrink: 0;
+        border-radius: var(--r-xs);
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--t1);
+        cursor: pointer;
+        place-items: center;
+        transition: 0.18s var(--ease);
       }
-      .mobile-toggle svg {
-        width: 18px;
-        height: 18px;
-        margin: auto;
+      .burger:hover {
+        background: var(--surface-2);
+        border-color: var(--line-strong);
       }
 
-      .mobile-menu {
-        display: flex;
-        position: fixed;
-        inset: 84px 14px auto 14px;
-        z-index: 99;
+      /* Menu Mobile (masqué par défaut) */
+      .mobile {
+        display: none;
         flex-direction: column;
-        gap: 4px;
-        padding: 12px;
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        background: rgba(10, 10, 14, 0.95);
-        backdrop-filter: blur(24px);
-        opacity: 0;
-        transform: translateY(-8px);
-        transition:
-          opacity var(--base),
-          transform var(--base);
-        pointer-events: none;
+        gap: 14px;
+        padding: 20px 24px 24px;
+        background: rgba(8, 8, 10, 0.96);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--line);
       }
-      .mobile-menu.open {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
+      .mobile.open {
+        display: flex;
       }
-      .mobile-menu a {
-        padding: 13px 14px;
-        border-radius: 11px;
-        color: var(--text-2);
-        font-weight: 500;
+      .mobile a:not(.btn) {
+        font-size: 15px;
+        color: var(--t2);
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
       }
-      .mobile-menu a:hover {
-        background: var(--bg-surface);
-        color: var(--text-1);
+      .mobile a:not(.btn):hover {
+        color: var(--t1);
       }
-      .mobile-menu .btn {
+      .mobile .btn {
         margin-top: 6px;
+        width: 100%;
       }
 
-      /* ============ Section heading ============ */
+      /* ---------------- Typographie ---------------- */
+
+      /* ---------------- Typographie ---------------- */
+      h1,
+      h2,
+      h3 {
+        font-family: "Inter Tight", "Inter", sans-serif;
+        letter-spacing: -0.035em;
+        line-height: 1.08;
+        font-weight: 600;
+      }
+
       .eyebrow {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        font-size: 0.78rem;
-        font-weight: 550;
-        letter-spacing: 0.02em;
-        color: var(--violet-bright);
-        padding: 6px 12px 6px 10px;
-        border: 1px solid var(--border-violet);
-        border-radius: 100px;
-        background: rgba(139, 124, 255, 0.06);
-      }
-      .eyebrow svg {
-        width: 13px;
-        height: 13px;
-      }
-      .section-head {
-        max-width: 640px;
-      }
-      .section-head.center {
-        margin: 0 auto;
-        text-align: center;
-      }
-      .section-title {
-        font-family: var(--font-display);
-        font-weight: 600;
-        font-size: clamp(1.85rem, 4vw, 2.9rem);
-        line-height: 1.08;
-        letter-spacing: -0.035em;
-        margin: 20px 0 16px;
-        background: var(--grad-text);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-      }
-      .section-title em {
-        font-style: normal;
-        background: linear-gradient(
-          120deg,
-          var(--violet-bright),
-          var(--violet-deep)
-        );
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-      }
-      .section-desc {
-        font-size: 1.04rem;
-        color: var(--text-2);
-        line-height: 1.65;
-        letter-spacing: -0.01em;
-      }
-      .section {
-        padding: var(--gap-section) 0;
-        position: relative;
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--t3);
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: var(--r-full);
+        padding: 6px 14px;
       }
 
-      /* ============ HERO ============ */
-      .hero {
-        position: relative;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        padding: 150px 0 80px;
-        overflow: hidden;
-      }
-      .hero-glow {
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-        background:
-          radial-gradient(
-            760px 560px at 82% 18%,
-            rgba(139, 124, 255, 0.22),
-            transparent 62%
-          ),
-          radial-gradient(
-            520px 420px at 10% 82%,
-            rgba(109, 92, 240, 0.14),
-            transparent 60%
-          );
-      }
-      .hero-grid {
-        position: relative;
-        z-index: 1;
-        display: grid;
-        grid-template-columns: 1.05fr 0.95fr;
-        gap: 40px;
-        align-items: center;
-      }
-      .hero-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 9px;
-        padding: 7px 14px 7px 11px;
-        border: 1px solid var(--border);
-        border-radius: 100px;
-        background: var(--bg-glass);
-        backdrop-filter: blur(12px);
-        font-size: 0.82rem;
-        color: var(--text-2);
-        font-weight: 480;
-      }
-      .pulse-dot {
-        width: 7px;
-        height: 7px;
+      .eyebrow i {
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
-        background: var(--green);
-        position: relative;
-        box-shadow: 0 0 0 0 rgba(62, 207, 142, 0.6);
-        animation: pulse 2.2s infinite;
-        flex-shrink: 0;
+        background: #fff;
+        box-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
+        animation: pulse 2.6s var(--ease) infinite;
       }
+
       @keyframes pulse {
-        70% {
-          box-shadow: 0 0 0 8px rgba(62, 207, 142, 0);
-        }
-        100% {
-          box-shadow: 0 0 0 0 rgba(62, 207, 142, 0);
-        }
-      }
-      .hero-title {
-        font-family: var(--font-display);
-        font-weight: 600;
-        font-size: clamp(2.5rem, 5.6vw, 4.3rem);
-        line-height: 1;
-        letter-spacing: -0.045em;
-        margin: 24px 0 22px;
-      }
-      .hero-title .grad {
-        background: var(--grad-text);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-      }
-      .hero-title .violet {
-        background: linear-gradient(
-          120deg,
-          var(--violet-bright) 10%,
-          var(--violet-deep) 90%
-        );
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-      }
-      .hero-subtitle {
-        font-size: clamp(1.02rem, 1.8vw, 1.16rem);
-        color: var(--text-2);
-        line-height: 1.62;
-        max-width: 520px;
-        letter-spacing: -0.01em;
-      }
-      .hero-cta {
-        display: flex;
-        gap: 12px;
-        margin: 32px 0 40px;
-        flex-wrap: wrap;
-      }
-      .hero-proof {
-        display: flex;
-        align-items: center;
-        gap: 18px;
-        flex-wrap: wrap;
-      }
-      .proof-avatars {
-        display: flex;
-        flex-shrink: 0;
-      }
-      .proof-avatars span {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        border: 2px solid var(--bg-base);
-        margin-left: -10px;
-        background: var(--grad-violet);
-        font-size: 0.68rem;
-        font-weight: 600;
-        display: grid;
-        place-items: center;
-        color: #fff;
-      }
-      .proof-avatars span:first-child {
-        margin-left: 0;
-      }
-      .proof-text {
-        font-size: 0.85rem;
-        color: var(--text-2);
-      }
-      .proof-text b {
-        color: var(--text-1);
-        font-weight: 600;
-      }
-
-      /* Visuel signature : constellation de matching */
-      .hero-visual {
-        position: relative;
-        aspect-ratio: 1 / 1;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-xl);
-        background: linear-gradient(
-          180deg,
-          rgba(18, 18, 24, 0.6),
-          rgba(11, 11, 15, 0.55)
-        );
-        backdrop-filter: blur(14px);
-        box-shadow: var(--shadow-card);
-        overflow: hidden;
-        min-width: 0;
-      }
-      .hero-visual svg {
-        width: 100%;
-        height: 100%;
-      }
-      .node-core {
-        filter: drop-shadow(0 0 18px rgba(139, 124, 255, 0.65));
-      }
-      .node-ring {
-        transform-origin: 300px 300px;
-        animation: spin 34s linear infinite;
-      }
-      .node-ring.rev {
-        animation-direction: reverse;
-        animation-duration: 46s;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-      .link-line {
-        stroke-dasharray: 6 7;
-        animation: dashFlow 3.4s linear infinite;
-        opacity: 0.85;
-      }
-      @keyframes dashFlow {
-        to {
-          stroke-dashoffset: -130;
-        }
-      }
-      .node-pulse {
-        animation: nodePulse 2.6s var(--ease) infinite;
-      }
-      @keyframes nodePulse {
         0%,
         100% {
-          r: 7;
           opacity: 1;
         }
         50% {
-          r: 9.5;
-          opacity: 0.75;
+          opacity: 0.25;
         }
       }
-      .hero-visual-tag {
-        position: absolute;
-        left: 18px;
-        bottom: 18px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.78rem;
-        color: var(--text-2);
-        padding: 7px 12px;
-        border: 1px solid var(--border);
-        border-radius: 100px;
-        background: var(--bg-glass);
-        backdrop-filter: blur(10px);
+
+      .sec-title {
+        font-size: clamp(30px, 4.4vw, 48px);
+        max-width: 20ch;
       }
 
-      .hero-stats {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1px;
-        margin-top: 60px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        overflow: hidden;
-        background: var(--border);
-        position: relative;
-        z-index: 1;
-      }
-      .hero-stat {
-        background: var(--bg-elevated);
-        padding: 20px 22px;
-        min-width: 0;
-      }
-      .stat-value {
-        font-family: var(--font-display);
-        font-size: 1.7rem;
-        font-weight: 600;
-        letter-spacing: -0.03em;
-      }
-      .stat-value span {
-        color: var(--violet-bright);
-      }
-      .stat-label {
-        font-size: 0.8rem;
-        color: var(--text-3);
-        margin-top: 3px;
+      .sec-lead {
+        color: var(--t2);
+        font-size: 17px;
+        max-width: 62ch;
+        margin-top: 18px;
       }
 
-      /* ============ Concept — lignes alternées ============ */
-      .concept-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 56px;
-        align-items: center;
-      }
-      .concept-row + .concept-row {
-        margin-top: 96px;
-      }
-      .concept-row.reverse .concept-text {
-        order: 2;
-      }
-      .concept-row.reverse .concept-visual {
-        order: 1;
-      }
-      .concept-index {
-        font-family: var(--font-display);
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: var(--violet-bright);
-        letter-spacing: 0.04em;
-        margin-bottom: 14px;
-      }
-      .concept-text h3 {
-        font-family: var(--font-display);
-        font-size: clamp(1.4rem, 2.6vw, 1.85rem);
-        font-weight: 600;
-        letter-spacing: -0.025em;
-        line-height: 1.2;
-        margin-bottom: 14px;
-      }
-      .concept-text p {
-        color: var(--text-2);
-        font-size: 1rem;
-        line-height: 1.7;
-      }
-      .concept-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 20px;
-      }
-      .concept-tag {
-        font-size: 0.78rem;
-        font-weight: 550;
-        color: var(--text-2);
-        border: 1px solid var(--border);
-        background: var(--bg-surface);
-        padding: 6px 12px;
-        border-radius: 100px;
-      }
-      .concept-visual {
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        background: linear-gradient(
-          180deg,
-          rgba(18, 18, 24, 0.55),
-          rgba(11, 11, 15, 0.5)
-        );
-        backdrop-filter: blur(14px);
-        box-shadow: var(--shadow-card);
-        padding: 40px;
-        display: grid;
-        place-items: center;
-        min-height: 300px;
-        position: relative;
-        overflow: hidden;
-        min-width: 0;
-      }
-      .concept-visual::after {
-        content: "";
-        position: absolute;
-        top: -40%;
-        right: -20%;
-        width: 65%;
-        height: 80%;
-        background: radial-gradient(
-          circle,
-          rgba(139, 124, 255, 0.14),
-          transparent 70%
-        );
-        pointer-events: none;
-      }
-      .concept-visual svg {
-        width: 100%;
-        max-width: 260px;
-        height: auto;
-        color: var(--violet-bright);
-        position: relative;
-        z-index: 1;
-      }
-
-      /* ============ Comment ça marche — étapes ============ */
-      .steps-grid {
-        margin-top: 52px;
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 18px;
-      }
-      .step-card {
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 26px 24px;
-        background: linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.03),
-          rgba(255, 255, 255, 0.008)
-        );
-        backdrop-filter: blur(12px);
-        position: relative;
-        transition: var(--base);
-      }
-      .step-card:hover {
-        transform: translateY(-4px);
-        border-color: var(--border-violet);
-      }
-      .step-num {
-        font-family: var(--font-display);
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: var(--text-3);
-        letter-spacing: 0.04em;
-        margin-bottom: 18px;
-      }
-      .step-ic {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
-        display: grid;
-        place-items: center;
-        border: 1px solid var(--border);
-        background: var(--bg-surface);
-        margin-bottom: 18px;
-        color: var(--violet-bright);
-      }
-      .step-ic svg {
-        width: 20px;
-        height: 20px;
-      }
-      .step-card h4 {
-        font-size: 1rem;
-        font-weight: 560;
-        letter-spacing: -0.015em;
-        margin-bottom: 8px;
-      }
-      .step-card p {
-        font-size: 0.87rem;
-        color: var(--text-3);
-        line-height: 1.55;
-      }
-      .step-arrow {
-        position: absolute;
-        top: 50%;
-        right: -27px;
-        transform: translateY(-50%);
-        color: var(--border-strong);
-        z-index: 2;
-      }
-      .step-arrow svg {
-        width: 18px;
-        height: 18px;
-      }
-
-      /* ============ Univers ============ */
-      .worlds-grid {
-        margin-top: 56px;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-      }
-      .world-card {
-        --accent: var(--violet);
-        --accent-bright: var(--violet-bright);
-        position: relative;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 32px;
-        background: linear-gradient(
-          180deg,
-          color-mix(in srgb, var(--accent) 8%, transparent),
-          rgba(255, 255, 255, 0.008)
-        );
-        backdrop-filter: blur(14px);
-        box-shadow: var(--shadow-card);
-        overflow: hidden;
-        transition: var(--base);
+      .sec-head {
         display: flex;
         flex-direction: column;
-        min-width: 0;
-      }
-      .world-card::after {
-        content: "";
-        position: absolute;
-        top: -50%;
-        right: -25%;
-        width: 70%;
-        height: 90%;
-        background: radial-gradient(
-          circle,
-          color-mix(in srgb, var(--accent) 30%, transparent),
-          transparent 70%
-        );
-        pointer-events: none;
-      }
-      .world-card:hover {
-        transform: translateY(-4px);
-        border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-      }
-      .world-top {
-        display: flex;
+        gap: 18px;
         align-items: flex-start;
-        justify-content: space-between;
-        gap: 14px;
-        position: relative;
-        z-index: 1;
+        margin-bottom: 56px;
       }
-      .world-ic {
-        width: 52px;
-        height: 52px;
-        border-radius: 14px;
-        display: grid;
-        place-items: center;
-        background: linear-gradient(
-          135deg,
-          var(--accent-bright),
-          var(--accent)
-        );
-        color: #08080b;
-        box-shadow: 0 10px 26px -10px var(--accent);
-        flex-shrink: 0;
+
+      section {
+        padding: 108px 0;
+        border-top: 1px solid var(--line);
       }
-      .world-ic svg {
-        width: 24px;
-        height: 24px;
-      }
-      .world-status {
+
+      /* ---------------- Boutons ---------------- */
+      .btn {
         display: inline-flex;
         align-items: center;
-        gap: 7px;
-        font-size: 0.76rem;
-        font-weight: 550;
-        padding: 5px 11px;
-        border-radius: 100px;
-        border: 1px solid var(--border);
-        color: var(--text-3);
+        justify-content: center;
+        gap: 8px;
+        height: 42px;
+        padding: 0 18px;
+        border-radius: var(--r-xs);
+        font-size: 14px;
+        font-weight: 500;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition:
+          transform 0.18s var(--ease),
+          background 0.18s var(--ease),
+          border-color 0.18s var(--ease),
+          opacity 0.18s var(--ease);
         white-space: nowrap;
-        flex-shrink: 0;
       }
-      .world-status.live {
-        color: var(--green);
-        border-color: rgba(62, 207, 142, 0.28);
-        background: rgba(62, 207, 142, 0.07);
+
+      .btn-lg {
+        height: 50px;
+        padding: 0 24px;
+        font-size: 15px;
       }
-      .world-status .dot {
+
+      .btn-primary {
+        background: #fff;
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        background: #e9e9ec;
+      }
+
+      .btn-ghost {
+        background: var(--surface);
+        border-color: var(--line-strong);
+        color: var(--t1);
+      }
+      .btn-ghost:hover {
+        background: var(--surface-2);
+        transform: translateY(-1px);
+      }
+
+      .btn svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      /* ---------------- Logos & Marques ---------------- */
+      .logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-family: "Inter Tight", sans-serif;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        font-size: 16px;
+      }
+
+      .mark-img {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        object-fit: cover;
+        display: block;
+      }
+
+      /* ---------------- Hero Pleine Largeur (Style CTO Occas / Linear) ---------------- */
+      .hero {
+        position: relative;
+        min-height: 100vh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding-top: 110px;
+        padding-bottom: 52px;
+        border-top: none;
+        overflow: hidden;
+      }
+
+      .hero-bg-wrapper {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      .hero-bg-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: right 45%;
+        display: block;
+      }
+
+      /* Fondu noir profond à gauche pour intégrer le texte */
+      .hero-bg-wrapper::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            90deg,
+            #000000 0%,
+            #000000 32%,
+            rgba(0, 0, 0, 0.82) 50%,
+            rgba(0, 0, 0, 0.22) 78%,
+            transparent 100%
+          ),
+          linear-gradient(
+            180deg,
+            rgba(0, 0, 0, 0.75) 0%,
+            transparent 18%,
+            transparent 75%,
+            #000000 100%
+          );
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        max-width: 1380px;
+        margin: 0 auto;
+        padding: 0 clamp(20px, 4vw, 56px);
+        display: flex;
+        flex-direction: column;
+        gap: clamp(34px, 5vh, 60px);
+      }
+
+      .hero-text-zone {
+        max-width: 630px;
+      }
+
+      .eyebrow-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #f7f7f8;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--line-strong);
+        padding: 6px 14px;
+        border-radius: 999px;
+        margin-bottom: 22px;
+      }
+
+      .eyebrow-pill .dot {
         width: 6px;
         height: 6px;
         border-radius: 50%;
-        background: currentColor;
-        flex-shrink: 0;
+        background: #ffffff;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
       }
-      .world-card h3 {
-        font-family: var(--font-display);
-        font-size: 1.35rem;
-        font-weight: 600;
-        letter-spacing: -0.025em;
-        margin: 20px 0 10px;
-        position: relative;
-        z-index: 1;
+
+      .hero-title {
+        font-size: clamp(34px, 4.4vw, 62px);
+        font-weight: 800;
+        line-height: 1.06;
+        letter-spacing: -0.038em;
+        color: #ffffff;
+        margin-bottom: 20px;
       }
-      .world-card p {
-        color: var(--text-2);
-        font-size: 0.92rem;
+
+      .hero-title em {
+        font-style: normal;
+        color: var(--t3);
+      }
+
+      .hero-desc {
+        font-size: clamp(15px, 1.15vw, 16.5px);
         line-height: 1.65;
-        position: relative;
-        z-index: 1;
-        flex: 1;
-      }
-      .world-chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 7px;
-        margin: 18px 0 22px;
-        position: relative;
-        z-index: 1;
-      }
-      .world-chip {
-        font-size: 0.74rem;
-        font-weight: 550;
-        color: var(--text-2);
-        border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.03);
-        padding: 5px 10px;
-        border-radius: 100px;
-      }
-      .world-card .btn {
-        position: relative;
-        z-index: 1;
-        align-self: flex-start;
-      }
-      .world-soon {
-        --accent: var(--text-3);
-        --accent-bright: var(--text-2);
-        border-style: dashed;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-      }
-      .world-soon::after {
-        display: none;
-      }
-      .world-soon .world-ic {
-        background: var(--bg-surface);
-        color: var(--text-2);
-        box-shadow: none;
-      }
-      .world-soon h3 {
-        font-size: 1.15rem;
-      }
-      .world-soon p {
-        flex: none;
+        color: var(--t2);
+        max-width: 540px;
+        margin-bottom: 30px;
       }
 
-      /* ============ Confiance / stats bar ============ */
-      .trust-bar {
-        margin-top: 56px;
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1px;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        overflow: hidden;
-        background: var(--border);
-      }
-      .trust-item {
-        background: var(--bg-elevated);
-        padding: 26px 24px;
-        min-width: 0;
-      }
-      .trust-item .v {
-        font-family: var(--font-display);
-        font-size: 1.6rem;
-        font-weight: 600;
-        letter-spacing: -0.03em;
-      }
-      .trust-item .l {
-        font-size: 0.82rem;
-        color: var(--text-3);
-        margin-top: 4px;
-      }
-
-      /* ============ CTA ============ */
-      .cta {
-        position: relative;
-        margin: 0 auto;
-        max-width: var(--container);
-        border: 1px solid var(--border-violet);
-        border-radius: var(--radius-xl);
-        padding: clamp(44px, 8vw, 84px) 28px;
-        text-align: center;
-        overflow: hidden;
-        background: linear-gradient(
-          180deg,
-          rgba(139, 124, 255, 0.1),
-          rgba(139, 124, 255, 0.02)
-        );
-      }
-      .cta::before {
-        content: "";
-        position: absolute;
-        top: -60%;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 700px;
-        height: 700px;
-        background: radial-gradient(
-          circle,
-          rgba(139, 124, 255, 0.25),
-          transparent 60%
-        );
-        pointer-events: none;
-      }
-      .cta h2 {
-        font-family: var(--font-display);
-        font-size: clamp(1.9rem, 4.6vw, 3rem);
-        font-weight: 600;
-        letter-spacing: -0.04em;
-        line-height: 1.08;
-        background: var(--grad-text);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        position: relative;
-      }
-      .cta p {
-        color: var(--text-2);
-        font-size: 1.06rem;
-        max-width: 460px;
-        margin: 16px auto 30px;
-        position: relative;
-      }
-      .cta-actions {
+      .hero-actions {
         display: flex;
-        gap: 12px;
-        justify-content: center;
-        flex-wrap: wrap;
-        position: relative;
-      }
-
-      /* ============ Footer ============ */
-      .footer {
-        border-top: 1px solid var(--border);
-        margin-top: var(--gap-section);
-        padding: 60px 0 36px;
-      }
-      .footer-grid {
-        display: grid;
-        grid-template-columns: 1.6fr repeat(3, 1fr);
-        gap: 40px;
-      }
-      .footer-brand p {
-        color: var(--text-3);
-        font-size: 0.9rem;
-        margin: 16px 0 20px;
-        max-width: 280px;
-        line-height: 1.6;
-      }
-      .footer-col h5 {
-        font-size: 0.8rem;
-        color: var(--text-3);
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        margin-bottom: 16px;
-        font-weight: 600;
-      }
-      .footer-col a {
-        display: block;
-        color: var(--text-2);
-        font-size: 0.9rem;
-        padding: 6px 0;
-        transition: color var(--fast);
-      }
-      .footer-col a:hover {
-        color: var(--text-1);
-      }
-      .footer-bottom {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 52px;
-        padding-top: 26px;
-        border-top: 1px solid var(--border);
-        color: var(--text-3);
-        font-size: 0.84rem;
         flex-wrap: wrap;
         gap: 14px;
       }
-      .footer-social {
-        display: flex;
-        gap: 8px;
-      }
-      .footer-social a {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        border: 1px solid var(--border);
+
+      /* 4 Cartes stats en bas du Hero */
+      .hero-stats-grid {
         display: grid;
-        place-items: center;
-        color: var(--text-2);
-        transition: var(--fast);
-      }
-      .footer-social a:hover {
-        color: var(--text-1);
-        border-color: var(--border-strong);
-        background: var(--bg-surface);
-      }
-      .footer-social svg {
-        width: 16px;
-        height: 16px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        width: 100%;
       }
 
-      /* ============ Reveal ============ */
+      .hero-stat-card {
+        background: rgba(12, 12, 14, 0.72);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        padding: 20px 22px;
+        transition:
+          border-color 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .hero-stat-card:hover {
+        border-color: var(--line-strong);
+        transform: translateY(-2px);
+      }
+
+      .hero-stat-card .stat-num {
+        display: block;
+        font-size: 20px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.02em;
+        margin-bottom: 5px;
+      }
+
+      .hero-stat-card .stat-label {
+        display: block;
+        font-size: 13px;
+        color: var(--t2);
+        line-height: 1.4;
+      }
+
+      /* ---------------- Univers Image Icons ---------------- */
+      .uni-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--line-strong);
+        background: var(--surface-2);
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+      }
+
+      .uni-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      @media (max-width: 1024px) {
+        .hero-stats-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 600px) {
+        .hero {
+          padding-top: 86px;
+        }
+        .hero-stats-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      /* ---------------- Concept : 3 principes ---------------- */
+      .cards-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: var(--r-md);
+        padding: 26px;
+        transition: 0.22s var(--ease);
+      }
+      .card:hover {
+        border-color: var(--line-strong);
+        background: var(--surface-2);
+        transform: translateY(-3px);
+      }
+      .card .idx {
+        font-size: 12px;
+        color: var(--t3);
+        font-variant-numeric: tabular-nums;
+      }
+      .card h3 {
+        font-size: 19px;
+        margin: 14px 0 10px;
+      }
+      .card p {
+        color: var(--t2);
+        font-size: 14.5px;
+      }
+
+      /* ---------------- Étapes ---------------- */
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0;
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        overflow: hidden;
+        background: var(--bg-1);
+      }
+      .step {
+        padding: 28px 24px 32px;
+        border-right: 1px solid var(--line);
+        position: relative;
+      }
+      .step:last-child {
+        border-right: none;
+      }
+      .step .n {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 1px solid var(--line-strong);
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        color: var(--t1);
+        font-variant-numeric: tabular-nums;
+        margin-bottom: 16px;
+      }
+      .step h3 {
+        font-size: 17px;
+        margin-bottom: 8px;
+      }
+      .step p {
+        font-size: 14px;
+        color: var(--t2);
+      }
+      .step::after {
+        content: "";
+        position: absolute;
+        left: 24px;
+        right: 0;
+        top: 40px;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.18),
+          transparent
+        );
+      }
+
+      /* ---------------- Univers ---------------- */
+      .universes {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+
+      .uni {
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        background: linear-gradient(180deg, var(--bg-2), var(--bg));
+        padding: 28px;
+        box-shadow: var(--shadow);
+        transition: 0.24s var(--ease);
+      }
+      .uni:hover {
+        border-color: var(--line-strong);
+        transform: translateY(-4px);
+      }
+
+      .uni-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .uni-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--line-strong);
+        background: var(--surface-2);
+        display: grid;
+        place-items: center;
+      }
+      .uni-icon svg {
+        width: 19px;
+        height: 19px;
+        stroke: #fff;
+        fill: none;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .status {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--t3);
+        border: 1px solid var(--line);
+        border-radius: var(--r-full);
+        padding: 3px 10px;
+      }
+      .status.live {
+        color: #000;
+        background: #fff;
+        border-color: #fff;
+      }
+
+      .uni h3 {
+        font-size: 21px;
+      }
+      .uni > p {
+        color: var(--t2);
+        font-size: 14.5px;
+        margin-top: 10px;
+      }
+      .uni ul {
+        list-style: none;
+        margin: 20px 0 26px;
+        display: grid;
+        gap: 9px;
+      }
+      .uni li {
+        display: flex;
+        gap: 10px;
+        font-size: 14px;
+        color: var(--t2);
+      }
+      .uni li svg {
+        width: 15px;
+        height: 15px;
+        flex: none;
+        margin-top: 4px;
+        stroke: var(--t1);
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .uni .btn {
+        margin-top: auto;
+        width: 100%;
+      }
+
+      .soon {
+        margin-top: 16px;
+        border: 1px dashed var(--line-strong);
+        border-radius: var(--r-md);
+        padding: 22px 26px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        color: var(--t2);
+        font-size: 14.5px;
+      }
+      .soon strong {
+        color: var(--t1);
+        font-weight: 600;
+      }
+
+      /* ---------------- Socle commun (schéma 2) ---------------- */
+      .stack {
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        overflow: hidden;
+        background: var(--bg-1);
+      }
+      .stack-row {
+        display: grid;
+        grid-template-columns: 210px 1fr;
+        border-bottom: 1px solid var(--line);
+      }
+      .stack-row:last-child {
+        border-bottom: none;
+      }
+      .stack-key {
+        padding: 22px 24px;
+        border-right: 1px solid var(--line);
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--t3);
+        background: var(--surface);
+      }
+      .stack-val {
+        padding: 22px 24px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .tag {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: var(--r-xs);
+        padding: 6px 12px;
+        font-size: 13.5px;
+        color: var(--t2);
+      }
+      .tag.solid {
+        background: #fff;
+        color: #000;
+        border-color: #fff;
+        font-weight: 500;
+      }
+
+      /* ---------------- CTA ---------------- */
+      .cta {
+        text-align: center;
+      }
+      .cta h2 {
+        font-size: clamp(30px, 4.6vw, 52px);
+        max-width: 18ch;
+        margin: 0 auto;
+      }
+      .cta p {
+        color: var(--t2);
+        margin: 18px auto 0;
+        max-width: 54ch;
+      }
+      .cta .hero-actions {
+        margin-top: 32px;
+      }
+
+      /* ---------------- Footer ---------------- */
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 56px 0 40px;
+        background: var(--bg-1);
+      }
+      .foot {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr 1fr 1fr;
+        gap: 32px;
+      }
+      .foot p {
+        color: var(--t3);
+        font-size: 14px;
+        margin-top: 14px;
+        max-width: 34ch;
+      }
+      .foot h5 {
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--t3);
+        font-weight: 500;
+        margin-bottom: 14px;
+      }
+      .foot-col a {
+        display: block;
+        font-size: 14px;
+        color: var(--t2);
+        padding: 5px 0;
+        transition: 0.16s var(--ease);
+      }
+      .foot-col a:hover {
+        color: var(--t1);
+      }
+      .foot-bottom {
+        margin-top: 44px;
+        padding-top: 22px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        font-size: 13px;
+        color: var(--t3);
+      }
+
+      /* ---------------- Reveal ---------------- */
       .reveal {
         opacity: 0;
-        transform: translateY(24px);
+        transform: translateY(16px);
         transition:
-          opacity 0.8s var(--ease),
-          transform 0.8s var(--ease);
+          opacity 0.7s var(--ease),
+          transform 0.7s var(--ease);
       }
       .reveal.in {
         opacity: 1;
         transform: none;
       }
 
-      /* ============ Responsive ============ */
-      @media (max-width: 1024px) {
-        .hero-grid {
-          grid-template-columns: 1fr;
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
         }
-        .hero-visual {
-          max-width: 420px;
-          margin: 0 auto;
-          aspect-ratio: 4 / 3;
-        }
-        .steps-grid {
-          grid-template-columns: 1fr 1fr;
-        }
-        .step-arrow {
-          display: none;
+        .reveal {
+          opacity: 1;
+          transform: none;
         }
       }
-      @media (max-width: 860px) {
-        .nav {
+
+      /* ---------------- Responsive ---------------- */
+      @media (max-width: 980px) {
+        .cards-3,
+        .universes {
+          grid-template-columns: 1fr;
+        }
+        .steps {
+          grid-template-columns: 1fr 1fr;
+        }
+        .step:nth-child(2) {
+          border-right: none;
+        }
+        .step:nth-child(-n + 2) {
+          border-bottom: 1px solid var(--line);
+        }
+        .flow-grid {
+          grid-template-columns: 1fr;
+        }
+        .stack-row {
+          grid-template-columns: 1fr;
+        }
+        .stack-key {
+          border-right: none;
+          border-bottom: 1px solid var(--line);
+        }
+        .foot {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .nav-links,
+        .nav-cta .btn {
           display: none;
         }
-        .header-actions .link,
-        .header-actions .btn:not(.mobile-toggle) {
-          display: none;
-        }
-        .mobile-toggle {
+        .burger {
           display: grid;
-          place-items: center;
         }
-        .hero-stats {
-          grid-template-columns: 1fr 1fr;
-        }
-        .concept-row {
-          grid-template-columns: 1fr;
-          gap: 26px;
-        }
-        .concept-row.reverse .concept-text {
-          order: 1;
-        }
-        .concept-row.reverse .concept-visual {
-          order: 2;
-        }
-        .concept-row + .concept-row {
-          margin-top: 64px;
-        }
-        .worlds-grid {
-          grid-template-columns: 1fr;
-        }
-        .trust-bar {
-          grid-template-columns: 1fr 1fr;
-        }
-        .footer-grid {
-          grid-template-columns: 1fr 1fr;
-        }
-        .footer-brand {
-          grid-column: 1 / -1;
-        }
-      }
-      @media (max-width: 560px) {
-        .container {
-          padding: 0 16px;
+        section {
+          padding: 76px 0;
         }
         .hero {
-          padding: 128px 0 60px;
+          padding: 92px 0 72px;
         }
-        .hero-cta {
-          flex-direction: column;
-          align-items: stretch;
-        }
-        .hero-cta .btn {
-          width: 100%;
-        }
-        .hero-stats {
-          grid-template-columns: 1fr 1fr;
-          margin-top: 44px;
-        }
-        .hero-stat {
-          padding: 16px 16px;
-        }
-        .steps-grid {
+        .steps {
           grid-template-columns: 1fr;
         }
-        .concept-visual {
-          padding: 26px;
-          min-height: 220px;
+        .step {
+          border-right: none;
+          border-bottom: 1px solid var(--line);
         }
-        .cta-actions {
-          flex-direction: column;
-          align-items: stretch;
+        .step:last-child {
+          border-bottom: none;
         }
-        .cta-actions .btn {
-          width: 100%;
-        }
-        .trust-bar {
-          grid-template-columns: 1fr 1fr;
-        }
-        .footer-bottom {
+        .soon {
           flex-direction: column;
           align-items: flex-start;
         }
       }
-      @media (prefers-reduced-motion: reduce) {
-        * {
-          animation-duration: 0.001ms !important;
-          transition-duration: 0.001ms !important;
-        }
-      }
     </style>
   </head>
-  <body>
-    <!-- ============ HEADER ============ -->
-    <header class="header" id="header">
-      <div class="container">
-        <div class="header-inner">
-          <a href="./index.html" class="logo">
-            <span class="logo-mark">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="3" />
-                <path
-                  d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
-                />
-              </svg>
-            </span>
-            Mon&nbsp;<b>AiGENT</b>
-          </a>
-          <nav class="nav">
-            <a href="#concept">Concept</a>
-            <a href="#comment">Comment ça marche</a>
-            <a href="#univers">Univers</a>
-          </nav>
 
-          <div class="header-actions">
-            <a href="./cto-immo.html" class="link">Mon AiGENT Immo</a>
-            <a href="#univers" class="btn btn-violet">Choisir mon univers</a>
-            <button class="mobile-toggle" id="mobileToggle" aria-label="Menu">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              >
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-          </div>
+  <body data-favicon="aigent">
+    <!-- ============ HEADER ============ -->
+    <header id="header">
+      <div class="wrap nav">
+        <a href="./index.html" class="logo">
+          <img src="./images/aigent.png" alt="Mon AiGENT" class="mark-img" />
+          Mon AiGENT
+        </a>
+
+        <nav class="nav-links">
+          <a href="#concept">Le concept</a>
+          <a href="#methode">Méthode</a>
+          <a href="#univers">Univers</a>
+          <a href="#socle">Socle commun</a>
+        </nav>
+
+        <div class="nav-cta">
+          <a href="#univers" class="btn btn-primary">Ouvrir mon univers</a>
+          <button class="burger" id="burger" aria-label="Menu">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+            >
+              <path d="M3 6h18M3 12h18M3 18h18" />
+            </svg>
+          </button>
         </div>
+      </div>
+
+      <div class="mobile" id="mobile">
+        <a href="#concept">Le concept</a>
+        <a href="#methode">Méthode</a>
+        <a href="#univers">Univers</a>
+        <a href="#socle">Socle commun</a>
+        <a href="#univers" class="btn btn-primary">Ouvrir mon univers</a>
       </div>
     </header>
 
-    <nav class="mobile-menu" id="mobileMenu">
-      <a href="#concept">Concept</a>
-      <a href="#comment">Comment ça marche</a>
-      <a href="#univers">Univers</a>
-      <a href="./cto-immo.html">Mon AiGENT Immo</a>
-      <a href="#univers" class="btn btn-violet">Choisir mon univers</a>
-    </nav>
+    <main>
+      <!-- ============ HERO PLEINE LARGEUR ============ -->
+      <section class="hero">
+        <!-- Arrière-plan pleine largeur avec dégradé d'ombre gauche -->
+        <div class="hero-bg-wrapper">
+          <img
+            src="./images/aigent-hero.png"
+            alt="Mon AiGENT - Moteur IA de mise en relation"
+            width="1920"
+            height="1080"
+          />
+        </div>
 
-    <!-- ============ HERO ============ -->
-    <section class="hero">
-      <div class="hero-glow"></div>
-      <div class="container">
-        <div class="hero-grid">
-          <div class="hero-content reveal in">
-            <div class="hero-badge">
-              <span class="pulse-dot"></span>
-              Une IA, plusieurs univers, une seule mission
+        <div class="hero-content">
+          <div class="hero-text-zone">
+            <div class="eyebrow-pill">
+              <span class="dot"></span> Cerveau IA · Connexion offre & demande
+              en temps réel
             </div>
 
             <h1 class="hero-title">
-              <span class="grad">L'IA qui vous met</span><br />
-              <span class="violet">en relation.</span>
+              Vous décrivez votre projet.<br />
+              <em>L'IA connecte le marché.</em>
             </h1>
 
-            <p class="hero-subtitle">
-              Mon AiGENT connecte automatiquement l'offre et la demande selon
-              des critères précis — immobilier, occasion, emploi, et bientôt
-              d'autres univers. Postez, l'IA analyse, elle vous met en relation.
-              Sans recherche. Sans message à froid.
+            <p class="hero-desc">
+              Mon AiGENT remplace la recherche manuelle par un moteur
+              d'appariement intelligent. Exprimez votre besoin en langage
+              naturel : l'IA structure vos critères, filtre les incompatibilités
+              et vous connecte directement avec les meilleurs profils.
             </p>
 
-            <div class="hero-cta">
-              <a href="#univers" class="btn btn-violet btn-lg">
+            <div class="hero-actions">
+              <a href="#univers" class="btn btn-primary btn-lg">
                 Choisir mon univers
                 <svg
                   viewBox="0 0 24 24"
-                  fill="none"
                   stroke="currentColor"
                   stroke-width="2"
+                  fill="none"
                   stroke-linecap="round"
-                  stroke-linejoin="round"
                 >
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
+                  <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
               </a>
               <a href="#concept" class="btn btn-ghost btn-lg"
-                >Comprendre le concept</a
+                >Comprendre le moteur</a
               >
             </div>
-
-            <div class="hero-proof">
-              <div class="proof-avatars">
-                <span>SL</span><span>AM</span><span>KP</span><span>+</span>
-              </div>
-              <div class="proof-text">
-                Déjà utilisé pour lier <b>des milliers</b> d'acheteurs et de
-                vendeurs
-              </div>
-            </div>
           </div>
 
-          <div class="hero-visual reveal in" aria-hidden="true">
-            <svg viewBox="0 0 600 600">
-              <defs>
-                <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stop-color="#a594ff" />
-                  <stop offset="100%" stop-color="#6d5cf0" />
-                </linearGradient>
-                <radialGradient id="coreGrad">
-                  <stop offset="0%" stop-color="#a594ff" />
-                  <stop offset="100%" stop-color="#6d5cf0" />
-                </radialGradient>
-              </defs>
-
-              <!-- Cercles de repère -->
-              <circle
-                cx="300"
-                cy="300"
-                r="230"
-                fill="none"
-                stroke="rgba(255,255,255,0.045)"
-              />
-              <circle
-                cx="300"
-                cy="300"
-                r="160"
-                fill="none"
-                stroke="rgba(255,255,255,0.06)"
-              />
-
-              <!-- Anneau 1 : Immobilier (violet) + Occasion (orange) -->
-              <g class="node-ring">
-                <line
-                  class="link-line"
-                  x1="300"
-                  y1="300"
-                  x2="300"
-                  y2="70"
-                  stroke="url(#lineGrad)"
-                  stroke-width="1.6"
-                />
-                <circle
-                  class="node-pulse"
-                  cx="300"
-                  cy="70"
-                  r="7"
-                  fill="#8b7cff"
-                />
-
-                <line
-                  class="link-line"
-                  x1="300"
-                  y1="300"
-                  x2="509"
-                  y2="415"
-                  stroke="#ff6a3d"
-                  stroke-width="1.6"
-                  style="animation-delay: -1s"
-                />
-                <circle
-                  class="node-pulse"
-                  cx="509"
-                  cy="415"
-                  r="7"
-                  fill="#ff6a3d"
-                  style="animation-delay: -0.6s"
-                />
-
-                <line
-                  class="link-line"
-                  x1="300"
-                  y1="300"
-                  x2="91"
-                  y2="415"
-                  stroke="#b7e34e"
-                  stroke-width="1.6"
-                  style="animation-delay: -2s"
-                />
-                <circle
-                  class="node-pulse"
-                  cx="91"
-                  cy="415"
-                  r="7"
-                  fill="#b7e34e"
-                  style="animation-delay: -1.3s"
-                />
-              </g>
-
-              <!-- Anneau inverse : paires acheteur/vendeur -->
-              <g class="node-ring rev">
-                <circle cx="300" cy="140" r="4" fill="rgba(255,255,255,0.5)" />
-                <circle cx="446" cy="380" r="4" fill="rgba(255,255,255,0.5)" />
-                <circle cx="154" cy="380" r="4" fill="rgba(255,255,255,0.5)" />
-              </g>
-
-              <!-- Noyau central Mon AiGENT -->
-              <circle
-                class="node-core"
-                cx="300"
-                cy="300"
-                r="46"
-                fill="url(#coreGrad)"
-              />
-              <path
-                d="M285 316 L285 288 L300 275 L315 288 L315 316"
-                fill="none"
-                stroke="#0c0c14"
-                stroke-width="4"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-            <div class="hero-visual-tag">
-              <span class="pulse-dot"></span>
-              Matching en cours entre univers
+          <!-- 4 Cartes d'indicateurs / Socle -->
+          <div class="hero-stats-grid">
+            <div class="hero-stat-card">
+              <span class="stat-num">1 compte</span>
+              <span class="stat-label">pour accéder à tous vos univers</span>
+            </div>
+            <div class="hero-stat-card">
+              <span class="stat-num">Double sens</span>
+              <span class="stat-label">scoring simultané offre & demande</span>
+            </div>
+            <div class="hero-stat-card">
+              <span class="stat-num">Top 5</span>
+              <span class="stat-label">profils ultra-qualifiés par projet</span>
+            </div>
+            <div class="hero-stat-card">
+              <span class="stat-num">0 recherche</span>
+              <span class="stat-label"
+                >veille continue & prise de contact IA</span
+              >
             </div>
           </div>
         </div>
+      </section>
 
-        <div class="hero-stats reveal">
-          <div class="hero-stat">
-            <div class="stat-value">3<span>+</span></div>
-            <div class="stat-label">Univers connectés</div>
+      <!-- ============ CONCEPT ============ -->
+      <section id="concept">
+        <div class="wrap">
+          <div class="sec-head reveal">
+            <span class="eyebrow">Le concept</span>
+            <h2 class="sec-title">
+              Un marché ne manque pas d'annonces. Il manque de connexions.
+            </h2>
+            <p class="sec-lead">
+              Partout, l'offre et la demande existent en même temps — elles ne
+              se croisent jamais. Mon AiGENT supprime l'étape de recherche :
+              vous exprimez un besoin une fois, le moteur travaille en continu
+              et ne vous présente que les correspondances réelles.
+            </p>
           </div>
-          <div class="hero-stat">
-            <div class="stat-value">100<span>%</span></div>
-            <div class="stat-label">Matching automatisé</div>
-          </div>
-          <div class="hero-stat">
-            <div class="stat-value">0<span> recherche</span></div>
-            <div class="stat-label">Aucune recherche manuelle</div>
-          </div>
-          <div class="hero-stat">
-            <div class="stat-value">24<span>/7</span></div>
-            <div class="stat-label">IA active en continu</div>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- ============ CONCEPT ============ -->
-    <section class="section" id="concept">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8" />
-            </svg>
-            Le concept
-          </span>
-          <h2 class="section-title">
-            Une IA qui <em>connecte</em>, pas qui liste
-          </h2>
-          <p class="section-desc">
-            La plupart des plateformes vous laissent chercher. Mon AiGENT fait
-            l'inverse&nbsp;: vous décrivez votre projet, l'IA trouve la personne
-            en face et vous met directement en relation.
-          </p>
-        </div>
-
-        <div style="margin-top: 64px">
-          <div class="concept-row reveal">
-            <div class="concept-text">
-              <div class="concept-index">01 — Les critères</div>
-              <h3>Une seule IA, tous les critères qui comptent</h3>
+          <div class="cards-3">
+            <article class="card reveal">
+              <div class="idx">01</div>
+              <h3>Une intention, pas des mots-clés</h3>
               <p>
-                Chaque univers parle son propre langage. Dans l'immobilier, l'IA
-                croise budget, localisation, surface et nombre de pièces. Dans
-                l'occasion automobile, elle croise modèle, kilométrage, état et
-                budget. Même moteur, critères adaptés à chaque monde.
+                Vous écrivez en langage naturel. L'IA en extrait des critères
+                structurés : budget, zone, contraintes, priorités, tolérances.
               </p>
-              <div class="concept-tags">
-                <span class="concept-tag">Budget</span>
-                <span class="concept-tag">Localisation</span>
-                <span class="concept-tag">Surface / Modèle</span>
-                <span class="concept-tag">Critères précis</span>
-              </div>
-            </div>
-            <div class="concept-visual">
-              <svg viewBox="0 0 200 200" fill="none">
-                <rect
-                  x="30"
-                  y="24"
-                  width="140"
-                  height="152"
-                  rx="14"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  opacity="0.35"
-                />
-                <line
-                  x1="50"
-                  y1="56"
-                  x2="150"
-                  y2="56"
-                  stroke="currentColor"
-                  stroke-width="2"
-                />
-                <circle cx="150" cy="56" r="6" fill="currentColor" />
-                <line
-                  x1="50"
-                  y1="84"
-                  x2="120"
-                  y2="84"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  opacity="0.6"
-                />
-                <circle
-                  cx="120"
-                  cy="84"
-                  r="6"
-                  fill="currentColor"
-                  opacity="0.6"
-                />
-                <line
-                  x1="50"
-                  y1="112"
-                  x2="140"
-                  y2="112"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  opacity="0.85"
-                />
-                <circle
-                  cx="140"
-                  cy="112"
-                  r="6"
-                  fill="currentColor"
-                  opacity="0.85"
-                />
-                <line
-                  x1="50"
-                  y1="140"
-                  x2="95"
-                  y2="140"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  opacity="0.4"
-                />
-                <circle
-                  cx="95"
-                  cy="140"
-                  r="6"
-                  fill="currentColor"
-                  opacity="0.4"
-                />
-              </svg>
-            </div>
-          </div>
-
-          <div class="concept-row reverse reveal">
-            <div class="concept-text">
-              <div class="concept-index">02 — Le matching</div>
-              <h3>Postez. L'IA matche. Vous êtes mis en relation.</h3>
+            </article>
+            <article class="card reveal">
+              <div class="idx">02</div>
+              <h3>Un appariement dans les deux sens</h3>
               <p>
-                Un acheteur décrit ce qu'il cherche, un vendeur poste son
-                annonce. Dès que les critères se recoupent, Mon AiGENT déclenche
-                automatiquement la mise en relation — les deux parties sont
-                notifiées, prêtes à échanger directement.
+                Chaque demande cherche une offre, et chaque offre cherche une
+                demande. La correspondance est évaluée des deux côtés avant
+                d'être proposée.
               </p>
-              <div class="concept-tags">
-                <span class="concept-tag">Annonce postée</span>
-                <span class="concept-tag">Analyse IA</span>
-                <span class="concept-tag">Mise en relation</span>
-              </div>
-            </div>
-            <div class="concept-visual">
-              <svg viewBox="0 0 200 200" fill="none">
-                <circle
-                  cx="48"
-                  cy="100"
-                  r="26"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  opacity="0.7"
-                />
-                <circle
-                  cx="152"
-                  cy="100"
-                  r="26"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  opacity="0.7"
-                />
-                <circle cx="100" cy="100" r="16" fill="currentColor" />
-                <line
-                  x1="74"
-                  y1="100"
-                  x2="84"
-                  y2="100"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-dasharray="4 4"
-                />
-                <line
-                  x1="116"
-                  y1="100"
-                  x2="126"
-                  y2="100"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-dasharray="4 4"
-                />
-                <text
-                  x="48"
-                  y="150"
-                  fill="currentColor"
-                  font-size="11"
-                  text-anchor="middle"
-                  opacity="0.65"
-                  font-family="Inter, sans-serif"
-                >
-                  Acheteur
-                </text>
-                <text
-                  x="152"
-                  y="150"
-                  fill="currentColor"
-                  font-size="11"
-                  text-anchor="middle"
-                  opacity="0.65"
-                  font-family="Inter, sans-serif"
-                >
-                  Vendeur
-                </text>
-              </svg>
-            </div>
-          </div>
-
-          <div class="concept-row reveal">
-            <div class="concept-text">
-              <div class="concept-index">03 — La différence</div>
-              <h3>Zéro recherche manuelle, zéro message à froid</h3>
+            </article>
+            <article class="card reveal">
+              <div class="idx">03</div>
+              <h3>Une mise en relation, pas un flux</h3>
               <p>
-                Fini de scroller des centaines d'annonces ou d'envoyer des
-                messages sans réponse. Quand un profil correspond vraiment, Mon
-                AiGENT vous le dit — et connecte les deux parties au bon moment,
-                avec les bons critères déjà validés.
+                Pas de liste infinie à trier. Vous recevez un contact qualifié
+                quand la correspondance est suffisamment forte — sinon rien.
               </p>
-              <div class="concept-tags">
-                <span class="concept-tag">Sans recherche</span>
-                <span class="concept-tag">Sans message à froid</span>
-                <span class="concept-tag">Direct et précis</span>
-              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ MÉTHODE ============ -->
+      <section id="methode">
+        <div class="wrap">
+          <div class="sec-head reveal">
+            <span class="eyebrow">Méthode</span>
+            <h2 class="sec-title">Quatre étapes, aucune friction</h2>
+            <p class="sec-lead">
+              Le parcours est identique dans tous les univers. Seul le
+              vocabulaire métier change.
+            </p>
+          </div>
+
+          <div class="steps reveal">
+            <div class="step">
+              <div class="n">1</div>
+              <h3>Déposez</h3>
+              <p>
+                Une demande ou une offre, décrite librement. Deux minutes
+                suffisent.
+              </p>
             </div>
-            <div class="concept-visual">
-              <svg viewBox="0 0 200 200" fill="none">
-                <path
-                  d="M40 140 L40 60 L110 60 L110 40 L160 75 L110 110 L110 90 L40 90"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linejoin="round"
-                  stroke-linecap="round"
-                  opacity="0.85"
-                />
-                <circle
-                  cx="40"
-                  cy="150"
-                  r="4"
-                  fill="currentColor"
-                  opacity="0.5"
-                />
-                <circle
-                  cx="60"
-                  cy="150"
-                  r="4"
-                  fill="currentColor"
-                  opacity="0.5"
-                />
-                <circle
-                  cx="80"
-                  cy="150"
-                  r="4"
-                  fill="currentColor"
-                  opacity="0.5"
-                />
-              </svg>
+            <div class="step">
+              <div class="n">2</div>
+              <h3>Structurez</h3>
+              <p>
+                L'IA reformule votre besoin en critères clairs, que vous validez
+                ou ajustez.
+              </p>
+            </div>
+            <div class="step">
+              <div class="n">3</div>
+              <h3>Laissez tourner</h3>
+              <p>
+                Le moteur compare en continu avec tout ce qui entre dans votre
+                univers.
+              </p>
+            </div>
+            <div class="step">
+              <div class="n">4</div>
+              <h3>Entrez en contact</h3>
+              <p>
+                À la bonne correspondance, les deux parties sont mises en
+                relation directement.
+              </p>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ============ COMMENT ÇA MARCHE ============ -->
-    <section class="section" id="comment">
-      <div class="container">
-        <div class="section-head center reveal">
-          <span class="eyebrow">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
-            Comment ça marche
-          </span>
-          <h2 class="section-title">Quatre étapes, <em>zéro friction</em></h2>
-          <p class="section-desc">
-            Le même parcours, quel que soit l'univers choisi.
+      <!-- ============ UNIVERS ============ -->
+      <section id="univers">
+        <div class="wrap">
+          <div class="sec-head reveal">
+            <span class="eyebrow">Les univers</span>
+            <h2 class="sec-title">Le même moteur, trois terrains</h2>
+            <p class="sec-lead">
+              Mon AiGENT se décline en sites spécialisés. Chacun a son
+              vocabulaire, ses critères et ses règles ; tous partagent le même
+              cœur de mise en relation.
+            </p>
+          </div>
+
+          <div class="universes">
+            <!-- IMMO -->
+            <article class="uni reveal">
+              <div class="uni-top">
+                <div class="uni-icon">
+                  <img src="./images/aigent-immo.png" alt="AiGENT Immo" />
+                </div>
+                <span class="status live">En ligne</span>
+              </div>
+              <h3>AiGENT Immo</h3>
+              <p>
+                Location et achat immobilier, entre particuliers comme avec des
+                professionnels qualifiés.
+              </p>
+              <ul>
+                <li>
+                  <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+                  Recherche décrite en langage naturel
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+                  Biens hors marché & opportunités directes
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+                  Mise en relation qualifiée sans spam
+                </li>
+              </ul>
+              <a href="./cto-immo.html" class="btn btn-primary"
+                >Ouvrir AiGENT Immo</a
+              >
+            </article>
+
+            <!-- OCCASION (VOITURES D'OCCASION) -->
+            <article class="uni reveal">
+              <div class="uni-top">
+                <div class="uni-icon">
+                  <img src="./images/aigent-occas.png" alt="AiGENT Occasion" />
+                </div>
+                <span class="status live">En ligne</span>
+              </div>
+              <h3>AiGENT Occasion</h3>
+              <p>
+                Achat et vente de voitures d'occasion : matching poussé entre
+                acheteurs et vendeurs auto.
+              </p>
+              <ul>
+                <li>
+                  <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+                  Modèle, km, carburant, boîte & budget filtrés
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+                  11 zones de carrosserie & jusqu'à 6 photos
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+                  Rapports CarVertical & historique vérifié
+                </li>
+              </ul>
+              <a href="./cto-occas.html" class="btn btn-primary"
+                >Ouvrir AiGENT Occasion</a
+              >
+            </article>
+
+            <!-- EMPLOI -->
+            <article class="uni reveal">
+              <div class="uni-top">
+                <div class="uni-icon">
+                  <img src="./images/aigent-emploi.png" alt="AiGENT Emploi" />
+                </div>
+                <span class="status live">En ligne</span>
+              </div>
+              <h3>AiGENT Emploi</h3>
+              <p>
+                Candidats et recruteurs appariés sur le fond du poste et les
+                compétences réelles.
+              </p>
+              <ul>
+                <li>
+                  <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+                  Profil décrit une fois, réutilisé partout
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+                  Rythme, salaire, télétravail & mobilité
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+                  Mise en relation directe sur affinités réelles
+                </li>
+              </ul>
+              <a href="./cto-emploi.html" class="btn btn-primary"
+                >Ouvrir AiGENT Emploi</a
+              >
+            </article>
+            <!-- VOYAGE -->
+            <article class="uni uni-voyage reveal">
+              <div class="uni-top">
+                <div class="uni-icon">
+                  <img src="./images/aigent-voyage.png" alt="AiGENT Voyage" />
+                </div>
+                <span class="status live live-voyage">En ligne</span>
+              </div>
+              <h3>AiGENT Voyage</h3>
+              <p>
+                Séjours et expériences sur-mesure : appariement direct entre
+                voyageurs et hébergeurs d'exception.
+              </p>
+              <ul>
+                <li>
+                  <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+                  Envies, style, budget & dates en langage naturel
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+                  Offres directes, pépites locales & zéro intermédiaire
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+                  Connexion instantanée hôte-voyageur sans commissions
+                </li>
+              </ul>
+              <a href="./cto-voyage.html" class="btn btn-primary"
+                >Ouvrir AiGENT Voyage</a
+              >
+            </article>
+          </div>
+          <div class="soon reveal">
+            <div>
+              <strong>D'autres univers arrivent.</strong> Services, véhicules,
+              formation : tout marché où une offre et une demande se cherchent
+              peut fonctionner sur ce moteur.
+            </div>
+            <a href="#contact" class="btn btn-ghost">Proposer un univers</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SOCLE COMMUN ============ -->
+      <section id="socle">
+        <div class="wrap">
+          <div class="sec-head reveal">
+            <span class="eyebrow">Socle commun</span>
+            <h2 class="sec-title">Ce que tous les univers partagent</h2>
+            <p class="sec-lead">
+              Un seul compte, un seul moteur, une seule logique. Passer d'un
+              univers à l'autre ne demande rien de plus.
+            </p>
+          </div>
+
+          <div class="stack reveal">
+            <div class="stack-row">
+              <div class="stack-key">Compte</div>
+              <div class="stack-val">
+                <span class="tag solid">Identité unique</span>
+                <span class="tag">Historique centralisé</span>
+                <span class="tag">Préférences réutilisées</span>
+              </div>
+            </div>
+            <div class="stack-row">
+              <div class="stack-key">Moteur</div>
+              <div class="stack-val">
+                <span class="tag solid">Lecture d'intention</span>
+                <span class="tag">Critères structurés</span>
+                <span class="tag">Score de correspondance</span>
+                <span class="tag">Veille continue</span>
+              </div>
+            </div>
+            <div class="stack-row">
+              <div class="stack-key">Mise en relation</div>
+              <div class="stack-val">
+                <span class="tag solid">Double consentement</span>
+                <span class="tag">Contact direct</span>
+                <span class="tag">Aucune diffusion publique</span>
+              </div>
+            </div>
+            <div class="stack-row">
+              <div class="stack-key">Univers</div>
+              <div class="stack-val">
+                <span class="tag">AiGENT Immo</span>
+                <span class="tag">AiGENT Occas</span>
+                <span class="tag">AiGENT Emploi</span>
+                <span class="tag">AiGENT Voyage</span>
+                <span class="tag">à venir…</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CTA ============ -->
+      <section class="cta" id="contact">
+        <div class="wrap">
+          <h2 class="reveal">Arrêtez de chercher. Laissez l'IA relier.</h2>
+          <p class="reveal">
+            Choisissez l'univers qui correspond à votre besoin : le compte, lui,
+            reste le même.
           </p>
-        </div>
-
-        <div class="steps-grid reveal">
-          <div class="step-card">
-            <div class="step-num">Étape 01</div>
-            <div class="step-ic">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-            </div>
-            <h4>Postez votre projet</h4>
-            <p>Achat, vente, recherche — décrivez-le en langage naturel.</p>
-            <span class="step-arrow">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </span>
-          </div>
-          <div class="step-card">
-            <div class="step-num">Étape 02</div>
-            <div class="step-ic">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="4" y1="21" x2="4" y2="14" />
-                <line x1="4" y1="10" x2="4" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12" y2="3" />
-                <line x1="20" y1="21" x2="20" y2="16" />
-                <line x1="20" y1="12" x2="20" y2="3" />
-                <line x1="1" y1="14" x2="7" y2="14" />
-                <line x1="9" y1="8" x2="15" y2="8" />
-                <line x1="17" y1="16" x2="23" y2="16" />
-              </svg>
-            </div>
-            <h4>Définissez vos critères</h4>
-            <p>Budget, localisation, état — l'IA les affine avec vous.</p>
-            <span class="step-arrow">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </span>
-          </div>
-          <div class="step-card">
-            <div class="step-num">Étape 03</div>
-            <div class="step-ic">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <path d="M21 21l-4.3-4.3" />
-                <path d="M11 8v6M8 11h6" />
-              </svg>
-            </div>
-            <h4>L'IA analyse & matche</h4>
-            <p>Recoupement en continu avec tous les profils compatibles.</p>
-            <span class="step-arrow">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </span>
-          </div>
-          <div class="step-card">
-            <div class="step-num">Étape 04</div>
-            <div class="step-ic">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </div>
-            <h4>Mise en relation automatique</h4>
-            <p>Les deux parties sont notifiées et connectées directement.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ UNIVERS ============ -->
-    <section class="section" id="univers">
-      <div class="container">
-        <div class="section-head reveal">
-          <span class="eyebrow">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+          <div class="hero-actions reveal">
+            <a href="#univers" class="btn btn-primary btn-lg"
+              >Choisir mon univers</a
             >
-              <rect x="3" y="3" width="7" height="7" rx="1.5" />
-              <rect x="14" y="3" width="7" height="7" rx="1.5" />
-              <rect x="3" y="14" width="7" height="7" rx="1.5" />
-              <rect x="14" y="14" width="7" height="7" rx="1.5" />
-            </svg>
-            Les univers Mon AiGENT
-          </span>
-          <h2 class="section-title">
-            Une IA, <em>plusieurs mondes</em> à explorer
-          </h2>
-          <p class="section-desc">
-            Chaque univers a sa propre identité et ses propres critères, mais
-            partage le même moteur de mise en relation.
-          </p>
-        </div>
-
-        <div class="worlds-grid reveal">
-          <!-- Immobilier -->
-          <div
-            class="world-card"
-            style="--accent: #8b7cff; --accent-bright: #a594ff"
-          >
-            <div class="world-top">
-              <div class="world-ic">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-              </div>
-              <span class="world-status live"
-                ><span class="dot"></span>Actif</span
-              >
-            </div>
-            <h3>Mon AiGENT Immobilier</h3>
-            <p>
-              Achat, vente, location. L'IA estime les biens et connecte
-              acheteurs et vendeurs selon budget, localisation, surface et
-              nombre de pièces.
-            </p>
-            <div class="world-chips">
-              <span class="world-chip">Budget</span>
-              <span class="world-chip">Localisation</span>
-              <span class="world-chip">Surface</span>
-              <span class="world-chip">Pièces</span>
-            </div>
-            <a href="./cto-immo.html" class="btn btn-accent">
-              Découvrir l'univers Immo
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </a>
-          </div>
-
-          <!-- Occasion / Auto -->
-          <div
-            class="world-card"
-            style="--accent: #ff6a3d; --accent-bright: #ff9166"
-          >
-            <div class="world-top">
-              <div class="world-ic">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path
-                    d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM3 17V9l2-5h10l4 5v8"
-                  />
-                  <path d="M3 12h18" />
-                </svg>
-              </div>
-              <span class="world-status">Bientôt</span>
-            </div>
-            <h3>Mon AiGENT Occasion</h3>
-            <p>
-              Véhicules, pièces détachées et objets d'occasion. L'IA connecte
-              acheteurs et vendeurs selon modèle, kilométrage, état et budget.
-            </p>
-            <div class="world-chips">
-              <span class="world-chip">Modèle</span>
-              <span class="world-chip">Kilométrage</span>
-              <span class="world-chip">État</span>
-              <span class="world-chip">Budget</span>
-            </div>
-            <a href="./cto-occas.html" class="btn btn-accent">
-              Découvrir l'univers Occasion
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </a>
-          </div>
-
-          <!-- Emploi / Recrutement -->
-          <div
-            class="world-card"
-            style="--accent: #b7e34e; --accent-bright: #d3f27a"
-          >
-            <div class="world-top">
-              <div class="world-ic">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-                  <path d="M6 12v5c0 2 3 3 6 3s6-1 6-3v-5" />
-                </svg>
-              </div>
-              <span class="world-status">Bientôt</span>
-            </div>
-            <h3>Mon AiGENT Emploi</h3>
-            <p>
-              Recrutement, carrières et opportunités. L'IA connecte candidats et
-              recruteurs selon le métier, les compétences clés, la rémunération
-              visée et le mode de travail.
-            </p>
-            <div class="world-chips">
-              <span class="world-chip">Poste / Métier</span>
-              <span class="world-chip">Compétences</span>
-              <span class="world-chip">Rémunération</span>
-              <span class="world-chip">Contrat & Remote</span>
-            </div>
-            <a href="./cto-emploi.html" class="btn btn-accent">
-              Découvrir l'univers Emploi
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </a>
-          </div>
-
-          <!-- Teaser -->
-          <div class="world-card world-soon">
-            <div class="world-ic">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </div>
-            <h3>D'autres univers arrivent</h3>
-            <p>
-              Le moteur Mon AiGENT est fait pour s'étendre. De nouveaux domaines
-              de mise en relation seront ajoutés prochainement.
-            </p>
-          </div>
-        </div>
-
-        <div class="trust-bar reveal">
-          <div class="trust-item">
-            <div class="v">1 IA</div>
-            <div class="l">Un seul moteur de matching</div>
-          </div>
-          <div class="trust-item">
-            <div class="v">3 univers</div>
-            <div class="l">Immo · Occasion · Emploi</div>
-          </div>
-          <div class="trust-item">
-            <div class="v">0 €</div>
-            <div class="l">Pour commencer</div>
-          </div>
-          <div class="trust-item">
-            <div class="v">24/7</div>
-            <div class="l">Analyse continue</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ CTA ============ -->
-    <section class="section" style="padding-bottom: 0">
-      <div class="cta reveal">
-        <h2>
-          Un projet à concrétiser&nbsp;?<br />Laissez l'IA trouver la bonne
-          personne.
-        </h2>
-        <p>
-          Choisissez votre univers et laissez Mon AiGENT s'occuper de la mise en
-          relation.
-        </p>
-        <div class="cta-actions">
-          <a href="./cto-immo.html" class="btn btn-violet btn-lg">
-            Commencer avec l'Immobilier
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+            <a href="./cto-immo.html" class="btn btn-ghost btn-lg"
+              >Commencer par l'immobilier</a
             >
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </a>
-          <a href="#univers" class="btn btn-ghost btn-lg"
-            >Voir tous les univers</a
-          >
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </main>
 
     <!-- ============ FOOTER ============ -->
-    <footer class="footer">
-      <div class="container">
-        <div class="footer-grid">
-          <div class="footer-brand">
+    <footer>
+      <div class="wrap">
+        <div class="foot">
+          <div>
             <a href="./index.html" class="logo">
-              <span class="logo-mark">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <circle cx="12" cy="12" r="3" />
-                  <path
-                    d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"
-                  />
-                </svg>
-              </span>
-              Mon&nbsp;<b>AiGENT</b>
+              <img
+                src="./images/aigent.png"
+                alt="Mon AiGENT"
+                class="mark-img"
+              />
+              Mon AiGENT
             </a>
             <p>
-              L'intelligence artificielle qui connecte automatiquement acheteurs
-              et vendeurs, univers après univers.
+              Le moteur d'intelligence artificielle qui connecte automatiquement
+              l'offre et la demande.
             </p>
-            <div class="footer-social">
-              <a href="#" aria-label="X"
-                ><svg viewBox="0 0 24 24" fill="currentColor">
-                  <path
-                    d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
-                  /></svg
-              ></a>
-              <a href="#" aria-label="LinkedIn"
-                ><svg viewBox="0 0 24 24" fill="currentColor">
-                  <path
-                    d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45z"
-                  /></svg
-              ></a>
-              <a href="#" aria-label="GitHub"
-                ><svg viewBox="0 0 24 24" fill="currentColor">
-                  <path
-                    d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.38-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.26 10.26 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"
-                  /></svg
-              ></a>
-            </div>
           </div>
-          <div class="footer-col">
+          <div class="foot-col">
             <h5>Univers</h5>
-            <a href="./cto-immo.html">Mon AiGENT Immobilier</a>
-            <a href="./cto-occas.html">Mon AiGENT Occasion</a>
-            <a href="./cto-emploi.html">Mon AiGENT Emploi</a>
+            <a href="./cto-immo.html">AiGENT Immo</a>
+            <a href="./cto-occas.html">AiGENT Occasion</a>
+            <a href="./cto-emploi.html">AiGENT Emploi</a>
+            <a href="./cto-voyage.html">AiGENT Voyage</a>
           </div>
-          <div class="footer-col">
-            <h5>Produit</h5>
+          <div class="foot-col">
+            <h5>Comprendre</h5>
             <a href="#concept">Le concept</a>
-            <a href="#comment">Comment ça marche</a>
-            <a href="#univers">Tous les univers</a>
+            <a href="#methode">Méthode</a>
+            <a href="#socle">Socle commun</a>
           </div>
-          <div class="footer-col">
-            <h5>Entreprise</h5>
+          <div class="foot-col">
+            <h5>Société</h5>
             <a href="#">À propos</a>
             <a href="#">Contact</a>
             <a href="#">Mentions légales</a>
             <a href="#">Confidentialité</a>
           </div>
         </div>
-        <div class="footer-bottom">
-          <span>© 2026 Mon AiGENT. Tous droits réservés.</span>
-          <span>Une IA, plusieurs univers, une seule mission.</span>
+        <div class="foot-bottom">
+          <span
+            >© <span id="year"></span> Mon AiGENT. Tous droits réservés.</span
+          >
+          <span>Fait en France</span>
         </div>
       </div>
     </footer>
 
     <script>
-      /* Header scroll state */
+      // Année
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      // Header : bordure au scroll
       const header = document.getElementById("header");
-      addEventListener("scroll", () => {
-        header.classList.toggle("scrolled", scrollY > 20);
-      });
+      const onScroll = () =>
+        header.classList.toggle("scrolled", window.scrollY > 8);
+      onScroll();
+      window.addEventListener("scroll", onScroll, { passive: true });
 
-      /* Mobile menu */
-      const mt = document.getElementById("mobileToggle");
-      const mm = document.getElementById("mobileMenu");
-      mt.addEventListener("click", () => mm.classList.toggle("open"));
-      mm.querySelectorAll("a").forEach((a) =>
-        a.addEventListener("click", () => mm.classList.remove("open")),
-      );
+      // Menu mobile
+      const burger = document.getElementById("burger");
+      const mobile = document.getElementById("mobile");
+      burger.addEventListener("click", () => mobile.classList.toggle("open"));
+      mobile
+        .querySelectorAll("a")
+        .forEach((a) =>
+          a.addEventListener("click", () => mobile.classList.remove("open")),
+        );
 
-      /* Scroll reveal */
+      // Apparition au scroll
       const io = new IntersectionObserver(
         (entries) => {
           entries.forEach((e) => {
@@ -2297,7 +1481,23 @@
         },
         { threshold: 0.14 },
       );
-      document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+      document.querySelectorAll(".reveal").forEach((el, i) => {
+        el.style.transitionDelay = `${Math.min(i % 4, 3) * 70}ms`;
+        io.observe(el);
+      });
+
+      // Schéma hero : appariement séquentiel gauche/droite
+      const left = document.querySelectorAll(".flow-col:first-child .chip");
+      const right = document.querySelectorAll(".flow-col:last-child .chip");
+      let k = 0;
+      setInterval(() => {
+        left.forEach((c) => c.classList.remove("on"));
+        right.forEach((c) => c.classList.remove("on"));
+        left[k]?.classList.add("on");
+        right[k]?.classList.add("on");
+        k = (k + 1) % left.length;
+      }, 2200);
     </script>
+    <script src="./favicon.js"></script>
   </body>
 </html>

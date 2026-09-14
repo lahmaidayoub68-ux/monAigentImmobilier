@@ -871,27 +871,25 @@
     </style>
   </head>
 
-  <body>
+  <body data-favicon="occas">
     <!-- ============ NAV ============ -->
     <header class="nav" id="nav">
       <div class="wrap nav-inner">
         <div class="brand">
-          <span class="brand-mark">
-            <svg
-              width="17"
-              height="17"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.9"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M5 17h14M3 17V9l2-5h10l4 5v8" />
-              <circle cx="7.5" cy="17" r="1.8" />
-              <circle cx="16.5" cy="17" r="1.8" />
-            </svg>
-          </span>
+          <img
+            src="./images/aigent-occas.png"
+            alt="Logo Mon AiGENT Occasion"
+            width="32"
+            height="32"
+            style="
+              width: 32px;
+              height: 32px;
+              object-fit: contain;
+              display: block;
+              border: none;
+              box-shadow: none;
+            "
+          />
           Mon <span class="accent">AiGENT</span> Occasion
         </div>
 
@@ -1927,23 +1925,20 @@
     <footer>
       <div class="wrap foot-inner">
         <div class="brand" style="font-size: 14px">
-          <span
-            class="brand-mark"
-            style="width: 26px; height: 26px; border-radius: 8px"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M5 17h14M3 17V9l2-5h10l4 5v8" />
-            </svg>
-          </span>
+          <img
+            src="./images/aigent-occas.png"
+            alt="Logo Mon AiGENT Occasion"
+            width="26"
+            height="26"
+            style="
+              width: 26px;
+              height: 26px;
+              object-fit: contain;
+              display: block;
+              border: none;
+              box-shadow: none;
+            "
+          />
           Mon <span class="accent">AiGENT</span> Occasion
         </div>
         <div>
@@ -2005,5 +2000,6 @@
 
       document.getElementById("year").textContent = new Date().getFullYear();
     </script>
-  </body>
+    <script src="./favicon.js"></script>
+</body>
 </html>

@@ -257,21 +257,35 @@
         stroke: var(--violet) !important;
       }
       .sidebar-logo {
-        width: 36px;
-        height: 36px;
-        background: linear-gradient(135deg, var(--violet), var(--violet-2));
-        border-radius: 10px;
+        width: 48px;
+        height: 48px;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        overflow: visible;
       }
-      .sidebar-logo svg {
-        width: 20px;
-        height: 20px;
-        stroke: #fff;
-        fill: none;
-        stroke-width: 2;
+
+      .sidebar-logo img {
+        display: block;
+        width: 46px;
+        height: 46px;
+        max-width: none;
+        object-fit: contain;
+        object-position: center;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18))
+          drop-shadow(0 5px 10px rgba(0, 0, 0, 0.08));
+      }
+
+      /* En mode nuit : logo net, sans ombre visible */
+      [data-theme="dark"] .sidebar-logo img {
+        filter: none;
       }
       .sidebar-brand {
         flex: 1;
@@ -837,7 +851,7 @@
       }
     </style>
   </head>
-  <body>
+  <body data-favicon="immo">
     <!-- MOBILE BURGER -->
     <button class="mobile-burger" id="openSidebarMobile" aria-label="Menu">
       <svg viewBox="0 0 24 24">
@@ -854,11 +868,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <svg viewBox="0 0 24 24">
-            <polygon points="12 2 2 7 12 12 22 7 12 2" />
-            <polyline points="2 17 12 22 22 17" />
-            <polyline points="2 12 12 17 22 12" />
-          </svg>
+          <img src="./images/aigent-immo.png" alt="AiGENT Immobilier" />
         </div>
         <div class="sidebar-brand">
           <div class="sidebar-brand-name">Mon AiGENT</div>
@@ -1287,5 +1297,6 @@
         updateCount();
       }
     </script>
+    <script src="./favicon.js"></script>
   </body>
 </html>

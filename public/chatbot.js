@@ -21,6 +21,31 @@ const API_BASE = window.location.origin;
 const MAX_HISTORY = 50;
 const ROLE_LABELS = { buyer: "Acheteur", seller: "Vendeur" };
 
+/* ════════════════════════════════════════════════════════════════════════
+   LOGO AIGENT IMMOBILIER (SVG vectoriel pur haute fidélité)
+   Représente les deux losanges interconnectés formant la silhouette
+   complète d'une maison (murs, toit et montant de porte central).
+   ════════════════════════════════════════════════════════════════════════ */
+const AIGENT_IMMO_LOGO_SVG = `
+  <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- Demi-losange gauche + montant de porte + pente de toit droite + mur droit -->
+    <path class="lg-shape lg-immo-left" d="M 100 96 L 100 112 L 73 139 A 12 12 0 0 1 57 139 L 31 113 A 12 12 0 0 1 31 95 L 57 69 A 12 12 0 0 1 73 69 L 125 121 A 8 8 0 0 1 128 127 L 128 135" />
+    
+    <!-- Mur gauche + pente de toit gauche + demi-losange droit -->
+    <path class="lg-shape lg-immo-right" d="M 72 135 L 72 127 A 8 8 0 0 1 75 121 L 127 69 A 12 12 0 0 1 143 69 L 169 95 A 12 12 0 0 1 169 113 L 143 139 A 12 12 0 0 1 127 139 L 114 126" />
+    
+    <!-- Ligne de pulse d'énergie le long du faîtage de la maison -->
+    <path class="lg-pulse" d="M 72 135 L 72 127 A 8 8 0 0 1 75 121 L 100 96 L 125 121 A 8 8 0 0 1 128 127 L 128 135" />
+    
+    <!-- Étoile d'énergie au sommet du toit -->
+    <circle class="lg-spark" cx="100" cy="96" r="3.5" />
+  </svg>`;
+
+/** Fabrique un span.aigent-logo (mode: "idle" pour message ou "thinking" pendant l'analyse). */
+function renderAigentLogo(mode = "idle") {
+  return `<span class="aigent-logo is-${mode}" aria-hidden="true">${AIGENT_IMMO_LOGO_SVG}</span>`;
+}
+
 const state = {
   user: null,
   role: null,
@@ -147,11 +172,16 @@ function lockPanelActions() {
 }
 
 // ================== THINKING INDICATOR ==================
+// ================== THINKING INDICATOR ==================
 function addThinkingIndicator() {
   const box = $("chat-box");
   const el = document.createElement("div");
   el.className = "msg bot thinking-msg";
-  el.innerHTML = `<span class="thinking-shimmer">Analyse en cours</span>`;
+  el.innerHTML = `
+    <div class="bot-row">
+      ${renderAigentLogo("thinking")}
+      <span class="thinking-shimmer">Analyse en cours</span>
+    </div>`;
   box.appendChild(el);
   scrollBottom(box);
   return el;
@@ -185,7 +215,11 @@ function addMessage({
     row.appendChild(c);
     box.appendChild(row);
   } else {
-    // Wrap the text and actions
+    // Ligne complète avec Logo officiel à gauche et texte à droite
+    const botRow = document.createElement("div");
+    botRow.className = "bot-row";
+    botRow.innerHTML = renderAigentLogo("idle");
+
     const contentWrap = document.createElement("div");
     contentWrap.style.flex = "1";
     contentWrap.style.minWidth = "0";
@@ -195,7 +229,6 @@ function addMessage({
     contentWrap.appendChild(aiText);
 
     // Barre d'actions (Copier)
-    // REMPLACER le bloc actionsBar dans addMessage (branche bot non-structuré)
     const actionsBar = document.createElement("div");
     actionsBar.className = "msg-actions";
     actionsBar.innerHTML = `
@@ -217,12 +250,9 @@ function addMessage({
     };
 
     contentWrap.appendChild(actionsBar);
-    row.appendChild(contentWrap);
+    botRow.appendChild(contentWrap);
+    row.appendChild(botRow);
     box.appendChild(row);
-
-    // Activer l'effet glow sur l'avatar du bot
-    const avatarEl = row.querySelector(".bot-avatar");
-    if (avatarEl) avatarEl.classList.add("generating");
 
     if (typing) {
       let i = 0;
@@ -1333,9 +1363,7 @@ function renderEmptyState() {
   emptyEl.innerHTML = `
     <div class="ces-inner">
       <div class="ces-badge"><span class="ces-badge-dot"></span>Cerveau IA actif</div>
-      <div class="ces-sparkle">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-      </div>
+     
       <h2 class="ces-title">${isVendeur ? "Valorisez votre bien, l'IA fait le reste." : "Votre futur bien vous attend ici."}</h2>
       <p class="ces-sub">${isVendeur ? "Décrivez votre propriété à l'IA — elle analyse, valorise et identifie les acheteurs idéaux en temps réel." : "Parlez à l'IA de vos critères et laissez-la dénicher les biens<br>qui vous correspondent vraiment."}</p>
       ${cardsHTML}

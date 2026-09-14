@@ -580,25 +580,269 @@
         gap: 10px;
         align-items: flex-start;
       }
-      .bot-avatar {
-        width: 30px;
-        height: 30px;
-        border-radius: 8px;
-        background: linear-gradient(
-          135deg,
-          rgba(129, 140, 248, 0.15),
-          rgba(244, 114, 182, 0.15)
-        );
-        border: 1px solid rgba(129, 140, 248, 0.2);
+      /* Image logo panneau IA */
+      .ai-panel-brand-img {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+        display: block;
+        flex-shrink: 0;
+        border: none;
+        outline: none;
+        background: transparent;
+        transition: filter 0.3s ease;
+      }
+      [data-theme="light"] .ai-panel-brand-img {
+        filter: brightness(0.88) contrast(1.15);
+      }
+
+      /* ============ LOGO AIGENT IMMOBILIER (SVG PUR ANIMÉ) ============ */
+      .aigent-logo {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        margin-top: 2px;
+        color: var(--violet, #8b5cf6);
+        transform-origin: 50% 50%;
+      }
+      .aigent-logo svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        display: block;
+      }
+
+      .aigent-logo .lg-shape {
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 11;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .aigent-logo .lg-immo-left {
+        transform-origin: 65px 104px;
+      }
+      .aigent-logo .lg-immo-right {
+        transform-origin: 135px 104px;
+      }
+
+      /* Faisceau d'énergie le long du toit de la maison */
+      .aigent-logo .lg-pulse {
+        fill: none;
+        stroke-width: 12;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 28 260;
+        stroke-dashoffset: 28;
+        opacity: 0;
+      }
+
+      /* Point de scintillement au faîte du toit */
+      .aigent-logo .lg-spark {
+        fill: currentColor;
+        transform-origin: 100px 96px;
+        opacity: 0;
+      }
+
+      /* ── COULEURS DYNAMIQUES JOUR / NUIT (100% VISIBLE) ── */
+      [data-theme="dark"] .aigent-logo {
+        color: #9d68ff;
+      }
+      [data-theme="dark"] .aigent-logo .lg-pulse {
+        stroke: #f0abfc; /* Éclair lavande / fuchsia néon éclatant */
+      }
+
+      [data-theme="light"] .aigent-logo {
+        color: #6d28d9; /* Violet profond très contrasté sur fond blanc */
+      }
+      [data-theme="light"] .aigent-logo .lg-pulse {
+        stroke: #c026d3; /* Magenta électrique vif visible sur fond clair */
+      }
+
+      /* ── ANIMATION MODE REPOS (IDLE) : Respiration architecturale + flux toit ── */
+      .aigent-logo.is-idle svg {
+        animation: lgAuraImmo 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-idle .lg-immo-left {
+        animation: lgHouseLockLeft 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-idle .lg-immo-right {
+        animation: lgHouseLockRight 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-idle .lg-pulse {
+        animation: lgRoofEnergy 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-idle .lg-spark {
+        animation: lgSparkApex 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+
+      /* ── ANIMATION MODE RÉFLEXION (THINKING) : Balayage scanner IA & pulse actif ── */
+      .aigent-logo.is-thinking svg {
+        animation: lgAuraImmo 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-thinking .lg-immo-left {
+        animation: lgHouseLockLeft 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-thinking .lg-immo-right {
+        animation: lgHouseLockRight 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-thinking .lg-pulse {
+        animation: lgRoofEnergyFast 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .aigent-logo.is-thinking .lg-spark {
+        animation: lgSparkApexFast 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+
+      /* Serrage architectural des 2 losanges formant la maison */
+      @keyframes lgHouseLockLeft {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        45% {
+          transform: translate(0.8px, -0.6px) scale(1.02);
+        }
+        70% {
+          transform: translate(0.2px, -0.1px) scale(1.005);
+        }
+      }
+      @keyframes lgHouseLockRight {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        45% {
+          transform: translate(-0.8px, 0.6px) scale(1.02);
+        }
+        70% {
+          transform: translate(-0.2px, 0.1px) scale(1.005);
+        }
+      }
+
+      /* Halo violet lumineux (mode sombre = lueur néon, mode jour = ombre portée nette) */
+      @keyframes lgAuraImmo {
+        0%,
+        100% {
+          filter: drop-shadow(0 0 0px rgba(139, 92, 246, 0));
+        }
+        45% {
+          filter: drop-shadow(0 0 7px rgba(168, 85, 247, 0.85));
+        }
+        75% {
+          filter: drop-shadow(0 0 2px rgba(139, 92, 246, 0.4));
+        }
+      }
+      [data-theme="light"] .aigent-logo svg {
+        animation-name: lgAuraImmoLight !important;
+      }
+      @keyframes lgAuraImmoLight {
+        0%,
+        100% {
+          filter: drop-shadow(0 1px 2px rgba(109, 40, 217, 0.15));
+        }
+        45% {
+          filter: drop-shadow(0 2px 9px rgba(109, 40, 217, 0.55));
+        }
+        75% {
+          filter: drop-shadow(0 1px 3px rgba(109, 40, 217, 0.25));
+        }
+      }
+
+      /* Trajet du rayon le long du toit */
+      @keyframes lgRoofEnergy {
+        0%,
+        30% {
+          stroke-dashoffset: 28;
+          opacity: 0;
+        }
+        40% {
+          stroke-dashoffset: 28;
+          opacity: 1;
+        }
+        68% {
+          stroke-dashoffset: -110;
+          opacity: 0.95;
+        }
+        85%,
+        100% {
+          stroke-dashoffset: -140;
+          opacity: 0;
+        }
+      }
+      @keyframes lgRoofEnergyFast {
+        0% {
+          stroke-dashoffset: 28;
+          opacity: 0;
+        }
+        25% {
+          stroke-dashoffset: 28;
+          opacity: 1;
+        }
+        70% {
+          stroke-dashoffset: -115;
+          opacity: 1;
+        }
+        100% {
+          stroke-dashoffset: -140;
+          opacity: 0;
+        }
+      }
+
+      /* Flash au sommet du toit */
+      @keyframes lgSparkApex {
+        0%,
+        46% {
+          opacity: 0;
+          transform: scale(0.4);
+        }
+        54% {
+          opacity: 1;
+          transform: scale(1.35);
+        }
+        64% {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lgSparkApexFast {
+        0%,
+        38% {
+          opacity: 0;
+          transform: scale(0.4);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.4);
+        }
+        62% {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      /* Alignement impeccable bulle thinking */
+      .thinking-msg .bot-row {
         display: flex;
         align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
+        gap: 10px;
       }
-      .bot-avatar img {
-        width: 22px;
-        height: 22px;
-        object-fit: contain;
+
+      @media (prefers-reduced-motion: reduce) {
+        .aigent-logo svg,
+        .aigent-logo .lg-immo-left,
+        .aigent-logo .lg-immo-right,
+        .aigent-logo .lg-pulse,
+        .aigent-logo .lg-spark {
+          animation: none !important;
+        }
       }
       .ai-text {
         font-size: 14px;
@@ -4349,12 +4593,17 @@
       }
     </style>
   </head>
-  <body>
+
+  <body data-favicon="immo">
     <!-- HEADER -->
     <!-- HEADER -->
     <header class="top-banner">
       <div class="logo-container">
-        <img src="./images/logo.png" alt="Logo AiGENT" class="logo-img" />
+        <img
+          src="./images/aigent-immo.png"
+          alt="Logo AiGENT"
+          class="logo-img"
+        />
         <span class="logo-text">Mon <span>AiGENT</span> Immobilier</span>
       </div>
       <div class="header-actions">
@@ -4880,23 +5129,13 @@
           <div class="ai-panel-header">
             <div>
               <div class="ai-panel-title-row">
-                <div class="ai-panel-icon">
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path
-                      d="M12 2c-5.5 0-10 4.5-10 10s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"
-                    />
-                    <path d="M12 6v6l4 2" />
-                  </svg>
-                </div>
+                <img
+                  src="./images/aigent-immo.png"
+                  alt="Logo Cerveau IA"
+                  class="ai-panel-brand-img"
+                  width="28"
+                  height="28"
+                />
                 <div>
                   <div class="ai-panel-title">Cerveau IA</div>
                 </div>
@@ -5331,5 +5570,6 @@
     <script type="module" src="chatbot-init.js"></script>
     <!-- jsPDF pour le rapport PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="./favicon.js"></script>
   </body>
 </html>

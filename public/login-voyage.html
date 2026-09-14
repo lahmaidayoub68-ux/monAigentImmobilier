@@ -1,0 +1,1810 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mon AiGENT Voyage – Connexion & création de compte</title>
+    <meta
+      name="description"
+      content="Connectez-vous à Mon AiGENT Voyage : l'agent IA qui vend vos places invendues et trouve la meilleure opportunité du moment aux voyageurs."
+    />
+    <meta property="og:title" content="Mon AiGENT Voyage" />
+    <meta
+      property="og:description"
+      content="Prestataires et voyageurs, connectés par l'IA."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ============================================================
+         MON AiGENT VOYAGE — Login / Signup
+         Structure : identique à login-emploi.html (image gauche,
+         séparation diagonale néon, formulaire droite)
+         Direction artistique : Linear — bleu ciel néon sur noir profond
+         (même palette que le CTO / la landing page voyage)
+         ============================================================ */
+      :root {
+        --split-left-width: 42%;
+        --split-right-width: 58%;
+        --split-depth: 140px;
+        --border-w: 1.5px;
+
+        --sky: #38bdf8;
+        --sky-bright: #7dd3fc;
+        --cyan: #22d3ee;
+        --azure: #0ea5e9;
+        --sky-soft: rgba(56, 189, 248, 0.14);
+        --sky-line: rgba(56, 189, 248, 0.35);
+
+        --bg: #05080d;
+        --bg-2: #080d14;
+        --panel-bg: #080b10;
+        --surface: rgba(255, 255, 255, 0.024);
+        --surface-hover: rgba(255, 255, 255, 0.045);
+        --border: rgba(255, 255, 255, 0.08);
+        --border-strong: rgba(255, 255, 255, 0.14);
+
+        --text-main: #f2f7fb;
+        --text-muted: rgba(216, 231, 242, 0.55);
+        --text-dim: rgba(216, 231, 242, 0.35);
+        --danger: #fb7185;
+
+        --btn-grad: linear-gradient(
+          90deg,
+          #7dd3fc 0%,
+          #38bdf8 45%,
+          #0ea5e9 100%
+        );
+        --btn-grad-hover: linear-gradient(
+          90deg,
+          #a5f3fc 0%,
+          #5fc9fb 45%,
+          #22a5e6 100%
+        );
+        --text-grad: linear-gradient(
+          120deg,
+          #a5f3fc 0%,
+          #38bdf8 60%,
+          #0ea5e9 100%
+        );
+
+        --r-sm: 8px;
+        --r-md: 11px;
+        --r-lg: 16px;
+        --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+        --shadow-soft:
+          0 1px 0 rgba(255, 255, 255, 0.04) inset,
+          0 18px 50px -24px rgba(0, 0, 0, 0.9);
+      }
+
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        overflow-x: hidden;
+      }
+
+      body {
+        font-family: "Inter", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text-main);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        -webkit-font-smoothing: antialiased;
+        letter-spacing: -0.01em;
+      }
+
+      /* ── BACKGROUND ── */
+      .bg-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+      }
+      .bg-layer::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            900px 500px at 78% 18%,
+            rgba(56, 189, 248, 0.1),
+            transparent 70%
+          ),
+          radial-gradient(
+            700px 600px at 8% 92%,
+            rgba(34, 211, 238, 0.06),
+            transparent 72%
+          ),
+          linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 60%);
+      }
+      .bg-layer::after {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        background-image:
+          linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0.028) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.028) 1px,
+            transparent 1px
+          );
+        background-size: 64px 64px;
+        mask-image: radial-gradient(
+          circle at 60% 30%,
+          rgba(0, 0, 0, 0.9),
+          transparent 78%
+        );
+      }
+      .grain {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        opacity: 0.035;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+
+      .page-wrapper {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 100vh;
+      }
+
+      /* ── LOGO & BRANDING ── */
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin-bottom: 32px;
+      }
+      .logo-icon {
+        width: 50px;
+        height: 50px;
+        flex: 0 0 50px;
+        border-radius: 50%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #06090d;
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.06),
+          0 0 20px rgba(56, 189, 248, 0.28);
+        padding: 0;
+      }
+      .logo-icon img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+      }
+      .logo-text {
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .grad-text {
+        background: var(--text-grad);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+      }
+
+      /* ── LAYOUT ── */
+      .main-layout {
+        display: flex;
+        flex: 1;
+        width: 100%;
+        position: relative;
+      }
+
+      /* ── PANNEAU GAUCHE ── */
+      .left-panel {
+        flex: 0 0 var(--split-left-width);
+        position: relative;
+        z-index: 1;
+        display: flex;
+        overflow: hidden;
+        background: #000;
+      }
+      .left-panel .visual {
+        position: absolute;
+        inset: 0;
+        background-image: url("./images/aigent-hero-voyage.png");
+        background-size: cover;
+        background-position: center;
+        transform: scale(1.04);
+        transition: transform 1.4s var(--ease);
+        filter: saturate(1.02) contrast(1.05);
+      }
+      .left-panel:hover .visual {
+        transform: scale(1.075);
+      }
+      .left-panel .overlay {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            180deg,
+            rgba(5, 8, 13, 0.5) 0%,
+            rgba(5, 8, 13, 0.28) 40%,
+            rgba(5, 8, 13, 0.92) 100%
+          ),
+          radial-gradient(
+            60% 55% at 20% 85%,
+            rgba(56, 189, 248, 0.16),
+            transparent 70%
+          );
+      }
+      .left-content {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 13px;
+        padding: 40px 60px;
+        padding-right: calc(var(--split-depth) + 35px);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        font-size: 11.5px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--sky-bright);
+        border: var(--border-w) solid var(--sky-line);
+        background: rgba(56, 189, 248, 0.07);
+        border-radius: 999px;
+        padding: 6px 12px;
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--sky);
+        box-shadow: 0 0 10px var(--sky);
+        animation: pulse 2.8s var(--ease) infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.35;
+        }
+      }
+      .left-title {
+        font-size: clamp(24px, 2.3vw, 34px);
+        font-weight: 800;
+        line-height: 1.12;
+        letter-spacing: -0.03em;
+        max-width: 16ch;
+        text-shadow: 0 18px 60px rgba(0, 0, 0, 0.7);
+      }
+      .left-sub {
+        color: var(--text-muted);
+        font-size: 13.5px;
+        line-height: 1.5;
+        max-width: 44ch;
+        font-weight: 300;
+        text-shadow: 0 6px 30px rgba(0, 0, 0, 0.8);
+      }
+
+      /* ── FEATURES GAUCHE ── */
+      .left-features {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin: 6px 0 10px;
+      }
+      .feat-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        transition: transform 0.24s var(--ease);
+      }
+      .feat-card:hover {
+        transform: translateX(4px);
+      }
+      .feat-ico {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        background: rgba(56, 189, 248, 0.13);
+        border: 1px solid var(--sky-line);
+        color: var(--sky-bright);
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+      .feat-ico svg {
+        width: 14px;
+        height: 14px;
+      }
+      .feat-info h4 {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text-main);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+      }
+      .feat-info p {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.35;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+      }
+
+      /* ── KPIS GAUCHE ── */
+      .left-kpis {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        padding-top: 10px;
+        border-top: var(--border-w) solid rgba(255, 255, 255, 0.08);
+      }
+      .kpi-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: var(--border-w) solid rgba(255, 255, 255, 0.05);
+        border-radius: var(--r-sm);
+        padding: 8px 10px;
+      }
+      .kpi-val {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+      .kpi-val span {
+        color: var(--sky-bright);
+      }
+      .kpi-lbl {
+        font-size: 10.5px;
+        color: var(--text-dim);
+        margin-top: 2px;
+        line-height: 1.25;
+      }
+
+      /* ── SELECTEUR CUSTOM DU RÔLE ── */
+      .custom-select-wrap {
+        position: relative;
+        width: 100%;
+      }
+      .custom-select-trigger {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-main);
+        background: var(--surface);
+        border: var(--border-w) solid var(--border);
+        border-radius: var(--r-md);
+        padding: 12px 14px;
+        cursor: pointer;
+        transition:
+          border-color 0.22s var(--ease),
+          box-shadow 0.22s var(--ease),
+          background 0.22s var(--ease);
+      }
+      .custom-select-trigger:hover {
+        background: var(--surface-hover);
+        border-color: var(--border-strong);
+      }
+      .custom-select-wrap.open .custom-select-trigger,
+      .custom-select-trigger:focus {
+        outline: none;
+        border-color: var(--sky-line);
+        background: rgba(56, 189, 248, 0.04);
+        box-shadow:
+          0 0 0 3px rgba(56, 189, 248, 0.12),
+          0 0 16px -4px rgba(56, 189, 248, 0.35);
+      }
+      .select-chevron {
+        color: var(--sky-bright);
+        transition: transform 0.24s var(--ease);
+      }
+      .custom-select-wrap.open .select-chevron {
+        transform: rotate(180deg);
+      }
+      .custom-options-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        z-index: 50;
+        background: #080b10;
+        border: var(--border-w) solid var(--sky-line);
+        border-radius: var(--r-md);
+        padding: 5px;
+        box-shadow:
+          0 16px 44px rgba(0, 0, 0, 0.95),
+          0 0 20px -6px rgba(56, 189, 248, 0.4);
+        display: none;
+        flex-direction: column;
+        gap: 3px;
+        animation: paneIn 0.2s var(--ease);
+      }
+      .custom-select-wrap.open .custom-options-menu {
+        display: flex;
+      }
+      .custom-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        border: var(--border-w) solid transparent;
+        transition:
+          background 0.18s var(--ease),
+          border-color 0.18s var(--ease);
+      }
+      .custom-option:hover {
+        background: rgba(56, 189, 248, 0.09);
+        border-color: rgba(56, 189, 248, 0.2);
+      }
+      .custom-option.selected {
+        background: rgba(56, 189, 248, 0.13);
+        border-color: var(--sky-line);
+      }
+      .opt-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .opt-title {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--text-main);
+      }
+      .opt-sub {
+        font-size: 11.5px;
+        color: var(--text-dim);
+      }
+      .opt-tick {
+        color: var(--sky-bright);
+        font-size: 14px;
+        font-weight: bold;
+        opacity: 0;
+        transform: scale(0.5);
+        transition: all 0.2s var(--ease);
+      }
+      .custom-option.selected .opt-tick {
+        opacity: 1;
+        transform: none;
+      }
+
+      /* ── PANNEAU DROIT & DÉCOUPE EN FLÈCHE (calque identique aux autres AiGENT) ── */
+      .right-panel {
+        flex: 0 0 calc(var(--split-right-width) + var(--split-depth));
+        max-width: calc(var(--split-right-width) + var(--split-depth));
+        margin-left: calc(-1 * var(--split-depth));
+        position: relative;
+        z-index: 2;
+        display: flex;
+      }
+      .right-shape-wrapper {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        filter: drop-shadow(-10px 0px 25px rgba(56, 189, 248, 0.45));
+        pointer-events: none;
+      }
+      .right-shape-glow {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(56, 189, 248, 0.1) 0%,
+          rgba(125, 211, 252, 0.95) 35%,
+          #ffffff 50%,
+          rgba(56, 189, 248, 0.95) 65%,
+          rgba(14, 165, 233, 0.1) 100%
+        );
+        background-size: 100% 200%;
+        animation: neonScan 5s ease-in-out infinite;
+        clip-path: polygon(
+          var(--split-depth) 0%,
+          100% 0%,
+          100% 100%,
+          var(--split-depth) 100%,
+          0% 50%
+        );
+      }
+      @keyframes neonScan {
+        0%,
+        100% {
+          background-position: 0% 0%;
+        }
+        50% {
+          background-position: 0% 100%;
+        }
+      }
+      .right-shape-dark {
+        position: absolute;
+        inset: 0;
+        background: var(--panel-bg);
+        background-image: radial-gradient(
+          ellipse 60% 80% at 85% 50%,
+          rgba(56, 189, 248, 0.08) 0%,
+          transparent 100%
+        );
+        clip-path: polygon(
+          calc(var(--split-depth) + var(--border-w)) 0%,
+          100% 0%,
+          100% 100%,
+          calc(var(--split-depth) + var(--border-w)) 100%,
+          var(--border-w) 50%
+        );
+      }
+      .sky-edge-glow {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 320px;
+        background: radial-gradient(
+          ellipse at 100% 50%,
+          rgba(56, 189, 248, 0.13) 0%,
+          transparent 65%
+        );
+        pointer-events: none;
+        z-index: 1;
+      }
+      .right-content {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        padding-left: calc(var(--split-depth) + 50px);
+        padding-right: 50px;
+        padding-top: 50px;
+        padding-bottom: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .auth-card {
+        width: 100%;
+        max-width: 452px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.035),
+          rgba(255, 255, 255, 0.012)
+        );
+        border: var(--border-w) solid var(--border);
+        border-radius: var(--r-lg);
+        padding: 32px 30px 26px;
+        box-shadow: var(--shadow-soft);
+        position: relative;
+      }
+      .auth-card::before {
+        content: "";
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        padding: 1px;
+        background: linear-gradient(
+          160deg,
+          rgba(56, 189, 248, 0.24),
+          transparent 42%
+        );
+        -webkit-mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0) border-box;
+        -webkit-mask-composite: xor;
+        mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0) border-box;
+        mask-composite: exclude;
+        pointer-events: none;
+      }
+
+      .auth-head {
+        margin-bottom: 22px;
+      }
+      .auth-title {
+        font-size: 23px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .auth-desc {
+        margin-top: 6px;
+        font-size: 13.5px;
+        color: var(--text-muted);
+        font-weight: 300;
+      }
+
+      /* Switch onglets */
+      .tabs {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        background: rgba(255, 255, 255, 0.03);
+        border: var(--border-w) solid var(--border);
+        border-radius: var(--r-md);
+        padding: 3px;
+        margin-bottom: 24px;
+      }
+      .tabs .thumb {
+        position: absolute;
+        top: 3px;
+        bottom: 3px;
+        left: 3px;
+        width: calc(50% - 3px);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.07);
+        border: var(--border-w) solid var(--sky-line);
+        box-shadow: 0 0 18px -6px rgba(56, 189, 248, 0.5);
+        transition: transform 0.32s var(--ease);
+      }
+      .tabs[data-mode="signup"] .thumb {
+        transform: translateX(100%);
+      }
+      .tab-btn {
+        position: relative;
+        z-index: 2;
+        background: none;
+        border: 0;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--text-muted);
+        padding: 9px 8px;
+        border-radius: 8px;
+        transition: color 0.25s var(--ease);
+      }
+      .tab-btn[aria-selected="true"] {
+        color: var(--text-main);
+      }
+
+      /* Panneaux animés */
+      .pane {
+        display: none;
+        animation: paneIn 0.34s var(--ease);
+      }
+      .pane.active {
+        display: block;
+      }
+      @keyframes paneIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* Champs */
+      .field {
+        margin-bottom: 14px;
+      }
+      .field label {
+        display: block;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--text-muted);
+        margin-bottom: 7px;
+        letter-spacing: 0.01em;
+      }
+      .control {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      input[type="text"],
+      input[type="email"],
+      input[type="password"] {
+        width: 100%;
+        font-family: inherit;
+        font-size: 14.5px;
+        color: var(--text-main);
+        background: var(--surface);
+        border: var(--border-w) solid var(--border);
+        border-radius: var(--r-md);
+        padding: 12px 13px;
+        transition:
+          border-color 0.22s var(--ease),
+          box-shadow 0.22s var(--ease),
+          background 0.22s var(--ease);
+      }
+      input::placeholder {
+        color: var(--text-dim);
+      }
+      input:hover:not(:focus) {
+        background: var(--surface-hover);
+        border-color: var(--border-strong);
+      }
+      input:focus {
+        outline: none;
+        border-color: var(--sky-line);
+        background: rgba(56, 189, 248, 0.035);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+      }
+      .control.has-toggle input {
+        padding-right: 44px;
+      }
+      .pwd-toggle {
+        position: absolute;
+        right: 6px;
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        background: none;
+        border: 0;
+        border-radius: 7px;
+        cursor: pointer;
+        color: var(--text-dim);
+        transition:
+          color 0.2s var(--ease),
+          background 0.2s var(--ease);
+      }
+      .pwd-toggle:hover {
+        color: var(--sky-bright);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .field-error {
+        display: none;
+        margin-top: 6px;
+        font-size: 12px;
+        color: var(--danger);
+      }
+      .field.invalid input {
+        border-color: rgba(251, 113, 133, 0.55);
+      }
+      .field.invalid .field-error {
+        display: block;
+      }
+      .hint {
+        margin-top: 6px;
+        font-size: 11.5px;
+        color: var(--text-dim);
+      }
+
+      /* Bouton principal */
+      .btn-primary {
+        width: 100%;
+        font-family: inherit;
+        font-size: 14.5px;
+        font-weight: 600;
+        color: #04121c;
+        background: var(--btn-grad);
+        border: 0;
+        border-radius: var(--r-md);
+        padding: 12.5px 16px;
+        cursor: pointer;
+        margin-top: 6px;
+        transition:
+          filter 0.22s var(--ease),
+          transform 0.16s var(--ease),
+          box-shadow 0.24s var(--ease),
+          opacity 0.2s var(--ease);
+        box-shadow: 0 10px 30px -14px rgba(56, 189, 248, 0.85);
+      }
+      .btn-primary:hover:not(:disabled) {
+        background: var(--btn-grad-hover);
+        box-shadow: 0 14px 34px -14px rgba(56, 189, 248, 0.95);
+      }
+      .btn-primary:active:not(:disabled) {
+        transform: translateY(1px);
+      }
+      .btn-primary:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      .btn-primary.loading {
+        color: rgba(4, 18, 28, 0.75);
+      }
+      .spinner {
+        display: inline-block;
+        width: 13px;
+        height: 13px;
+        margin-right: 8px;
+        vertical-align: -2px;
+        border: 2px solid rgba(4, 18, 28, 0.28);
+        border-top-color: #04121c;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Alertes */
+      .form-alert {
+        display: none;
+        font-size: 13px;
+        line-height: 1.45;
+        border-radius: var(--r-sm);
+        padding: 10px 12px;
+        margin-bottom: 14px;
+        border: var(--border-w) solid transparent;
+        animation: paneIn 0.26s var(--ease);
+      }
+      .form-alert.error {
+        display: block;
+        color: #ffc2c9;
+        background: rgba(251, 113, 133, 0.09);
+        border-color: rgba(251, 113, 133, 0.32);
+      }
+      .form-alert.success {
+        display: block;
+        color: var(--sky-bright);
+        background: rgba(56, 189, 248, 0.09);
+        border-color: var(--sky-line);
+      }
+
+      .card-foot {
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: var(--border-w) solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 12.5px;
+        color: var(--text-dim);
+      }
+      .link-btn {
+        background: none;
+        border: 0;
+        padding: 0;
+        font-family: inherit;
+        font-size: 12.5px;
+        color: var(--sky-bright);
+        cursor: pointer;
+        transition: opacity 0.2s var(--ease);
+      }
+      .link-btn:hover {
+        opacity: 0.75;
+      }
+      .back-link {
+        color: var(--text-dim);
+        text-decoration: none;
+        transition: color 0.2s var(--ease);
+      }
+      .back-link:hover {
+        color: var(--text-main);
+      }
+
+      .page-footer {
+        border-top: var(--border-w) solid var(--border);
+        padding: 16px 26px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+
+      /* ── RESPONSIVE MOBILE IDENTIQUE AUX AUTRES AIGENT ── */
+      @media (max-width: 900px) {
+        .main-layout {
+          display: flex;
+          flex-direction: column;
+          min-height: auto;
+          overflow: visible;
+        }
+        .left-panel {
+          position: relative;
+          width: 100%;
+          min-height: 480px;
+          flex: none;
+          overflow: hidden;
+        }
+        .left-panel .visual {
+          transform: scale(1);
+          filter: brightness(1.15) contrast(1.05) saturate(1.05);
+        }
+        .left-panel .overlay {
+          background:
+            linear-gradient(
+              180deg,
+              rgba(5, 8, 13, 0.45) 0%,
+              rgba(5, 8, 13, 0.85) 100%
+            ),
+            linear-gradient(
+              90deg,
+              rgba(5, 8, 13, 0.2) 0%,
+              rgba(5, 8, 13, 0.5) 100%
+            ) !important;
+        }
+        .left-content {
+          padding: 36px 24px 42px;
+          justify-content: flex-end;
+        }
+        .left-title {
+          font-size: 32px;
+          line-height: 1.1;
+          max-width: 100%;
+        }
+        .left-sub {
+          display: block;
+          max-width: 100%;
+          font-size: 14px;
+        }
+        .left-kpis {
+          grid-template-columns: repeat(3, 1fr);
+          padding-top: 14px;
+        }
+        .right-panel {
+          position: relative;
+          width: 100%;
+          flex: none;
+          margin-left: 0;
+          max-width: 100%;
+          overflow: hidden;
+          background: var(--panel-bg);
+        }
+        .right-shape-wrapper {
+          inset: 0;
+          filter: none;
+        }
+        .right-shape-glow,
+        .right-shape-dark {
+          clip-path: none;
+          border-radius: 0;
+        }
+        .right-shape-glow {
+          display: none;
+        }
+        .right-shape-dark {
+          background:
+            radial-gradient(
+              ellipse at top right,
+              rgba(56, 189, 248, 0.08),
+              transparent 60%
+            ),
+            var(--panel-bg);
+        }
+        .sky-edge-glow {
+          display: none;
+        }
+        .right-content {
+          padding: 36px 20px 50px;
+        }
+        .auth-card {
+          padding: 24px 20px;
+          border-radius: 18px;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .left-panel {
+          min-height: 440px;
+        }
+        .left-content {
+          padding: 28px 18px 36px;
+        }
+        .right-content {
+          padding: 30px 16px 42px;
+        }
+        .left-title {
+          font-size: 28px;
+        }
+        .kpi-val {
+          font-size: 18px;
+        }
+        .auth-card {
+          padding: 20px 16px;
+        }
+      }
+    </style>
+  </head>
+  <body data-favicon="voyage">
+    <div class="bg-layer"></div>
+    <div class="grain"></div>
+
+    <div class="page-wrapper">
+      <div class="main-layout">
+        <!-- ============ GAUCHE : IMAGE ============ -->
+        <section class="left-panel">
+          <div class="visual" role="img" aria-label="Mon AiGENT Voyage"></div>
+          <div class="overlay"></div>
+
+          <div class="left-content">
+            <a
+              href="./index.html"
+              class="logo"
+              style="text-decoration: none; color: inherit"
+            >
+              <div class="logo-icon">
+                <img
+                  src="./images/aigent-voyage.png"
+                  alt="Logo Mon AiGENT Voyage"
+                />
+              </div>
+              <div class="logo-text">
+                Mon <span class="grad-text">AiGENT</span> Voyage
+              </div>
+            </a>
+
+            <div class="eyebrow">
+              <span class="dot"></span> Capacité invendue → transaction
+            </div>
+
+            <h1 class="left-title">
+              L'agent qui vend vos places
+              <span class="grad-text">avant qu'il ne soit trop tard</span>
+            </h1>
+            <p class="left-sub">
+              Connectez prestataires et voyageurs grâce à un agent intelligent
+              qui comprend l'offre, comprend la demande, fixe le bon prix et
+              déclenche la vente au bon moment.
+            </p>
+
+            <div class="left-features">
+              <div class="feat-card">
+                <div class="feat-ico">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M21 21l-4.3-4.3" />
+                  </svg>
+                </div>
+                <div class="feat-info">
+                  <h4>Matching intelligent</h4>
+                  <p>Zone, créneau, budget et envie analysés en direct</p>
+                </div>
+              </div>
+
+              <div class="feat-card">
+                <div class="feat-ico">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" />
+                  </svg>
+                </div>
+                <div class="feat-info">
+                  <h4>Pricing dynamique</h4>
+                  <p>
+                    Le bon prix, calculé selon le temps restant avant l'échéance
+                  </p>
+                </div>
+              </div>
+
+              <div class="feat-card">
+                <div class="feat-ico">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M20 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1Z"
+                    />
+                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                  </svg>
+                </div>
+                <div class="feat-info">
+                  <h4>Transaction complète</h4>
+                  <p>De la proposition jusqu'à la réservation confirmée</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="left-kpis">
+              <div class="kpi-card">
+                <div class="kpi-val">100<span>%</span></div>
+                <div class="kpi-lbl">Matching automatisé</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-val">0<span>€</span></div>
+                <div class="kpi-lbl">Pour commencer</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-val">24<span>/7</span></div>
+                <div class="kpi-lbl">IA à votre service</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ DROITE : AUTH & DÉCOUPE NÉON ============ -->
+        <section class="right-panel">
+          <div class="right-shape-wrapper">
+            <div class="right-shape-glow"></div>
+            <div class="right-shape-dark"></div>
+            <div class="sky-edge-glow"></div>
+          </div>
+
+          <div class="right-content">
+            <div class="auth-card">
+              <div class="auth-head">
+                <div class="auth-title" id="authTitle">Connexion</div>
+                <p class="auth-desc" id="authDesc">
+                  Accédez à votre espace AiGENT Voyage.
+                </p>
+              </div>
+
+              <div class="tabs" data-mode="login" id="tabs" role="tablist">
+                <span class="thumb"></span>
+                <button
+                  class="tab-btn"
+                  id="tab-login"
+                  role="tab"
+                  aria-selected="true"
+                  type="button"
+                >
+                  Se connecter
+                </button>
+                <button
+                  class="tab-btn"
+                  id="tab-signup"
+                  role="tab"
+                  aria-selected="false"
+                  type="button"
+                >
+                  Créer un compte
+                </button>
+              </div>
+
+              <!-- ---------- LOGIN ---------- -->
+              <div class="pane active" id="pane-login">
+                <div class="form-alert" id="login-alert"></div>
+                <form id="loginForm" novalidate>
+                  <div class="field" id="f-login-username">
+                    <label for="login-username">Pseudo</label>
+                    <div class="control">
+                      <input
+                        type="text"
+                        id="login-username"
+                        autocomplete="username"
+                        placeholder="votre pseudo"
+                      />
+                    </div>
+                    <div class="field-error">Pseudo requis</div>
+                  </div>
+
+                  <div class="field" id="f-login-password">
+                    <label for="login-password">Mot de passe</label>
+                    <div class="control has-toggle">
+                      <input
+                        type="password"
+                        id="login-password"
+                        autocomplete="current-password"
+                        placeholder="••••••••"
+                      />
+                      <button
+                        class="pwd-toggle"
+                        type="button"
+                        data-target="login-password"
+                        aria-label="Afficher le mot de passe"
+                      >
+                        <svg
+                          width="17"
+                          height="17"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                        >
+                          <path
+                            d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z"
+                          />
+                          <circle cx="12" cy="12" r="2.7" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="field-error">Mot de passe requis</div>
+                  </div>
+
+                  <div class="field" id="f-login-2fa" style="display: none">
+                    <label for="login-2fa-code">Code de sécurité (2FA)</label>
+                    <div class="control">
+                      <input
+                        type="text"
+                        id="login-2fa-code"
+                        autocomplete="one-time-code"
+                        maxlength="20"
+                        placeholder="Code de secours"
+                      />
+                    </div>
+                  </div>
+
+                  <button class="btn-primary" id="login-submit" type="submit">
+                    Se connecter
+                  </button>
+                </form>
+                <div class="card-foot">
+                  <span>Pas encore de compte ?</span>
+                  <button class="link-btn" type="button" data-goto="signup">
+                    Créer un compte →
+                  </button>
+                </div>
+              </div>
+
+              <!-- ---------- SIGNUP ---------- -->
+              <div class="pane" id="pane-signup">
+                <div class="form-alert" id="signup-alert"></div>
+                <form id="signupForm" novalidate>
+                  <div class="field" id="f-signup-username">
+                    <label for="signup-username">Pseudo</label>
+                    <div class="control">
+                      <input
+                        type="text"
+                        id="signup-username"
+                        autocomplete="username"
+                        placeholder="3 à 30 caractères"
+                      />
+                    </div>
+                    <div class="field-error"></div>
+                    <div class="hint">Lettres, chiffres, _ . - uniquement.</div>
+                  </div>
+
+                  <div class="field" id="f-signup-email">
+                    <label for="signup-email">Email</label>
+                    <div class="control">
+                      <input
+                        type="email"
+                        id="signup-email"
+                        autocomplete="email"
+                        placeholder="vous@exemple.com"
+                      />
+                    </div>
+                    <div class="field-error"></div>
+                  </div>
+
+                  <div class="field" id="f-signup-password">
+                    <label for="signup-password">Mot de passe</label>
+                    <div class="control has-toggle">
+                      <input
+                        type="password"
+                        id="signup-password"
+                        autocomplete="new-password"
+                        placeholder="6 caractères minimum"
+                      />
+                      <button
+                        class="pwd-toggle"
+                        type="button"
+                        data-target="signup-password"
+                        aria-label="Afficher le mot de passe"
+                      >
+                        <svg
+                          width="17"
+                          height="17"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                        >
+                          <path
+                            d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z"
+                          />
+                          <circle cx="12" cy="12" r="2.7" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="field-error"></div>
+                  </div>
+
+                  <div class="field" id="f-signup-role">
+                    <label>Vous êtes</label>
+                    <div class="custom-select-wrap" id="role-select-wrap">
+                      <button
+                        class="custom-select-trigger"
+                        id="role-trigger"
+                        type="button"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                      >
+                        <span id="role-trigger-label">Voyageur</span>
+                        <svg
+                          class="select-chevron"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </button>
+                      <div
+                        class="custom-options-menu"
+                        id="role-options-menu"
+                        role="listbox"
+                      >
+                        <div
+                          class="custom-option selected"
+                          data-value="voyageur"
+                          role="option"
+                          aria-selected="true"
+                        >
+                          <div class="opt-text">
+                            <span class="opt-title">Voyageur</span>
+                            <span class="opt-sub"
+                              >Vous cherchez une activité, un séjour ou une
+                              place de dernière minute</span
+                            >
+                          </div>
+                          <span class="opt-tick">✓</span>
+                        </div>
+                        <div
+                          class="custom-option"
+                          data-value="prestataire"
+                          role="option"
+                          aria-selected="false"
+                        >
+                          <div class="opt-text">
+                            <span class="opt-title">Prestataire</span>
+                            <span class="opt-sub"
+                              >Hôtel, bateau, guide, activité — vous avez de la
+                              capacité à vendre</span
+                            >
+                          </div>
+                          <span class="opt-tick">✓</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <button class="btn-primary" id="signup-submit" type="submit">
+                    Créer mon compte
+                  </button>
+                </form>
+                <div class="card-foot">
+                  <span>Déjà inscrit ?</span>
+                  <button class="link-btn" type="button" data-goto="login">
+                    Se connecter →
+                  </button>
+                </div>
+              </div>
+
+              <div class="card-foot" style="border-top: 0; padding-top: 6px">
+                <a class="back-link" href="./index.html"
+                  >← Retour à Mon AiGENT</a
+                >
+                <span id="session-state"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="page-footer">
+        © Mon <span class="grad-text">AiGENT</span> Voyage — Tous droits
+        réservés
+      </footer>
+    </div>
+
+    <script>
+      /* ============================================================
+         CONNEXION AU SERVEUR (server-voyage.js)
+         Routes utilisées, telles que définies côté serveur :
+           POST /api/voyage/register    { username, email, password, role }
+           POST /api/voyage/login       { username, password }
+           POST /api/voyage/login/verify-2fa  { pendingToken, code }
+           GET  /api/voyage/me          Authorization: Bearer <token>
+         Réponses : { success, token, user } | { success:false, error }
+         Le router est monté dans server.js (même origine) → base vide.
+         ============================================================ */
+      const API_BASE_VOYAGE = "";
+      const STORAGE_KEY = "agent_voyage_user";
+      const NEXT_PAGE = "./chat-voyage.html";
+
+      const $ = (id) => document.getElementById(id);
+
+      /* ---------- helpers UI ---------- */
+      function showAlert(el, type, message) {
+        el.textContent = message;
+        el.className = "form-alert " + type;
+      }
+      function hideAlert(el) {
+        el.className = "form-alert";
+        el.textContent = "";
+      }
+      function fieldError(fieldId, message) {
+        const f = $(fieldId);
+        f.classList.add("invalid");
+        const e = f.querySelector(".field-error");
+        if (e && message) e.textContent = message;
+      }
+      function clearFieldErrors(form) {
+        form
+          .querySelectorAll(".field.invalid")
+          .forEach((f) => f.classList.remove("invalid"));
+      }
+      function setLoading(btn, loading, label) {
+        btn.disabled = loading;
+        btn.classList.toggle("loading", loading);
+        btn.innerHTML = loading
+          ? '<span class="spinner"></span>Patientez…'
+          : label;
+      }
+
+      /* ---------- toggle mot de passe ---------- */
+      document.querySelectorAll(".pwd-toggle").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const input = $(btn.dataset.target);
+          const show = input.type === "password";
+          input.type = show ? "text" : "password";
+          btn.style.color = show ? "var(--sky-bright)" : "";
+          btn.setAttribute(
+            "aria-label",
+            show ? "Masquer le mot de passe" : "Afficher le mot de passe",
+          );
+        });
+      });
+
+      /* ---------- bascule login / signup ---------- */
+      const tabs = $("tabs");
+      function setMode(mode) {
+        tabs.dataset.mode = mode;
+        $("tab-login").setAttribute("aria-selected", mode === "login");
+        $("tab-signup").setAttribute("aria-selected", mode === "signup");
+        $("pane-login").classList.toggle("active", mode === "login");
+        $("pane-signup").classList.toggle("active", mode === "signup");
+        $("authTitle").textContent =
+          mode === "login" ? "Connexion" : "Créer un compte";
+        $("authDesc").textContent =
+          mode === "login"
+            ? "Accédez à votre espace AiGENT Voyage."
+            : "Quelques secondes suffisent pour rejoindre AiGENT Voyage.";
+        setTimeout(
+          () =>
+            $(mode === "login" ? "login-username" : "signup-username").focus(),
+          120,
+        );
+      }
+      $("tab-login").addEventListener("click", () => setMode("login"));
+      $("tab-signup").addEventListener("click", () => setMode("signup"));
+      document
+        .querySelectorAll("[data-goto]")
+        .forEach((b) =>
+          b.addEventListener("click", () => setMode(b.dataset.goto)),
+        );
+
+      /* ---------- SÉLECTEUR CUSTOMISÉ DU RÔLE ---------- */
+      const roleWrap = $("role-select-wrap");
+      const roleTrigger = $("role-trigger");
+      const roleTriggerLabel = $("role-trigger-label");
+      const roleOptions = document.querySelectorAll(".custom-option");
+      let selectedRole = "voyageur";
+
+      roleTrigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = roleWrap.classList.toggle("open");
+        roleTrigger.setAttribute("aria-expanded", String(isOpen));
+      });
+
+      roleOptions.forEach((opt) => {
+        opt.addEventListener("click", () => {
+          roleOptions.forEach((o) => {
+            o.classList.remove("selected");
+            o.setAttribute("aria-selected", "false");
+          });
+          opt.classList.add("selected");
+          opt.setAttribute("aria-selected", "true");
+          selectedRole = opt.dataset.value;
+          roleTriggerLabel.textContent =
+            opt.querySelector(".opt-title").textContent;
+          roleWrap.classList.remove("open");
+          roleTrigger.setAttribute("aria-expanded", "false");
+        });
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!roleWrap.contains(e.target)) {
+          roleWrap.classList.remove("open");
+          roleTrigger.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      /* ---------- effacement d'erreur à la saisie ---------- */
+      document.querySelectorAll("input").forEach((input) => {
+        input.addEventListener("input", () => {
+          input.closest(".field")?.classList.remove("invalid");
+        });
+      });
+
+      /* ---------- session existante (JWT du serveur) ---------- */
+      function saveSession(data) {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ token: data.token, user: data.user }),
+        );
+      }
+      (async function checkSession() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (!saved) return;
+        let session;
+        try {
+          session = JSON.parse(saved);
+        } catch {
+          localStorage.removeItem(STORAGE_KEY);
+          return;
+        }
+        if (!session?.token) {
+          localStorage.removeItem(STORAGE_KEY);
+          return;
+        }
+        try {
+          const res = await fetch(`${API_BASE_VOYAGE}/api/voyage/me`, {
+            headers: { Authorization: `Bearer ${session.token}` },
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.success) {
+            $("session-state").textContent =
+              `Session active · ${data.user.username}`;
+            window.location.href = NEXT_PAGE;
+            return;
+          }
+        } catch {
+          /* serveur injoignable : on laisse l'utilisateur se connecter */
+        }
+        localStorage.removeItem(STORAGE_KEY);
+      })();
+
+      /* ---------- LOGIN (1 ou 2 étapes selon la 2FA) ---------- */
+      const loginForm = $("loginForm");
+      const loginAlert = $("login-alert");
+      const loginBtn = $("login-submit");
+      const login2faField = $("f-login-2fa");
+      const login2faInput = $("login-2fa-code");
+      let pending2faToken = null;
+
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideAlert(loginAlert);
+        clearFieldErrors(loginForm);
+
+        // Étape 2 : vérification du code 2FA
+        if (pending2faToken) {
+          const code = login2faInput.value.trim();
+          if (!code) {
+            return showAlert(
+              loginAlert,
+              "error",
+              "Renseignez un code de sécurité.",
+            );
+          }
+          setLoading(loginBtn, true, "Vérifier");
+          try {
+            const res = await fetch(
+              `${API_BASE_VOYAGE}/api/voyage/login/verify-2fa`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pendingToken: pending2faToken, code }),
+              },
+            );
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success || !data.token) {
+              showAlert(
+                loginAlert,
+                "error",
+                data.error || "Code de sécurité incorrect.",
+              );
+              setLoading(loginBtn, false, "Vérifier");
+              return;
+            }
+            saveSession(data);
+            showAlert(
+              loginAlert,
+              "success",
+              "Connexion validée — redirection…",
+            );
+            setLoading(loginBtn, true);
+            setTimeout(() => (window.location.href = NEXT_PAGE), 600);
+          } catch {
+            showAlert(
+              loginAlert,
+              "error",
+              "Serveur injoignable — vérifiez votre connexion.",
+            );
+            setLoading(loginBtn, false, "Vérifier");
+          }
+          return;
+        }
+
+        // Étape 1 : identifiants classiques
+        const username = $("login-username").value.trim();
+        const password = $("login-password").value;
+        let ok = true;
+        if (!username) {
+          fieldError("f-login-username", "Pseudo requis");
+          ok = false;
+        }
+        if (!password) {
+          fieldError("f-login-password", "Mot de passe requis");
+          ok = false;
+        }
+        if (!ok) return;
+
+        setLoading(loginBtn, true);
+        try {
+          const res = await fetch(`${API_BASE_VOYAGE}/api/voyage/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok) {
+            showAlert(
+              loginAlert,
+              "error",
+              data.error || `Identifiants incorrects (${res.status}).`,
+            );
+            setLoading(loginBtn, false, "Se connecter");
+            return;
+          }
+
+          if (data.need2fa && data.pendingToken) {
+            pending2faToken = data.pendingToken;
+            login2faField.style.display = "block";
+            $("login-username").disabled = true;
+            $("login-password").disabled = true;
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = "Vérifier";
+            login2faInput.focus();
+            return;
+          }
+
+          if (!data.success || !data.token) {
+            showAlert(loginAlert, "error", "Réponse serveur invalide.");
+            setLoading(loginBtn, false, "Se connecter");
+            return;
+          }
+
+          saveSession(data);
+          showAlert(
+            loginAlert,
+            "success",
+            `Bienvenue ${data.user?.username || ""} — redirection…`,
+          );
+          setLoading(loginBtn, true);
+          setTimeout(() => (window.location.href = NEXT_PAGE), 700);
+        } catch (err) {
+          showAlert(
+            loginAlert,
+            "error",
+            "Serveur injoignable — vérifiez votre connexion.",
+          );
+          setLoading(loginBtn, false, "Se connecter");
+        }
+      });
+
+      /* ---------- SIGNUP ---------- */
+      const signupForm = $("signupForm");
+      const signupAlert = $("signup-alert");
+      const signupBtn = $("signup-submit");
+      const USERNAME_RE = /^[a-zA-Z0-9_.\-]+$/;
+      const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      signupForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideAlert(signupAlert);
+        clearFieldErrors(signupForm);
+
+        const username = $("signup-username").value.trim();
+        const email = $("signup-email").value.trim().toLowerCase();
+        const password = $("signup-password").value;
+
+        let ok = true;
+        if (username.length < 3 || username.length > 30) {
+          fieldError("f-signup-username", "Entre 3 et 30 caractères");
+          ok = false;
+        } else if (!USERNAME_RE.test(username)) {
+          fieldError(
+            "f-signup-username",
+            "Lettres, chiffres, _ . - uniquement",
+          );
+          ok = false;
+        }
+        if (!EMAIL_RE.test(email)) {
+          fieldError("f-signup-email", "Adresse email invalide");
+          ok = false;
+        }
+        if (password.length < 6) {
+          fieldError("f-signup-password", "6 caractères minimum");
+          ok = false;
+        }
+        if (!["voyageur", "prestataire"].includes(selectedRole)) {
+          showAlert(signupAlert, "error", "Choisissez un rôle");
+          ok = false;
+        }
+        if (!ok) return;
+
+        setLoading(signupBtn, true);
+        try {
+          const res = await fetch(`${API_BASE_VOYAGE}/api/voyage/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username,
+              email,
+              password,
+              confirmPassword: password,
+              role: selectedRole,
+            }),
+          });
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok || !data.success || !data.token) {
+            showAlert(
+              signupAlert,
+              "error",
+              data.error || "Inscription impossible — réessayez.",
+            );
+            setLoading(signupBtn, false, "Créer mon compte");
+            return;
+          }
+
+          saveSession(data);
+          showAlert(
+            signupAlert,
+            "success",
+            "Compte créé — redirection en cours…",
+          );
+          setLoading(signupBtn, true);
+          setTimeout(() => (window.location.href = NEXT_PAGE), 800);
+        } catch (err) {
+          showAlert(
+            signupAlert,
+            "error",
+            "Serveur injoignable — vérifiez votre connexion.",
+          );
+          setLoading(signupBtn, false, "Créer mon compte");
+        }
+      });
+    </script>
+    <script src="./favicon.js"></script>
+  </body>
+</html>

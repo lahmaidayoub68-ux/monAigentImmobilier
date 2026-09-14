@@ -1,0 +1,3209 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/images/favicon.ico" />
+    <title>Messagerie — Mon AiGENT Emploi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ============================================================
+         MESSAGERIE EMPLOI — Linear-grade, vert NVIDIA (nuit) /
+         vert émeraude concret (jour). Zéro emoji dans l'UI : SVG only.
+         ============================================================ */
+
+      :root,
+      [data-theme="dark"] {
+        --bg: #050705;
+        --rail: #080b08;
+        --conv: #0a0e0a;
+        --chat: #070a07;
+        --chat-head: #080b08;
+        --details: #0a0e0a;
+        --surface: #0c100d;
+        --surface-2: #101510;
+        --surface-3: #151b16;
+
+        --line: rgba(150, 255, 70, 0.075);
+        --line-2: rgba(150, 255, 70, 0.15);
+
+        --txt: #f3f7f1;
+        --txt-2: #9ca79d;
+        --txt-3: #626d63;
+
+        --green: #76b900;
+        --green-soft: #9cff00;
+        --green-deep: #4f7f00;
+        --accent: #76b900;
+        --accent-hover: #8ed000;
+        --accent-line: rgba(118, 185, 0, 0.34);
+        --accent-soft: rgba(118, 185, 0, 0.1);
+        --on-accent: #050705;
+
+        --grad: linear-gradient(135deg, #b7ff32 0%, #76b900 48%, #4f7f00 100%);
+        --glow-sm: 0 0 18px -6px rgba(118, 185, 0, 0.55);
+
+        --amber: #ffb84d;
+        --red: #ff5656;
+        --blue: #4b8cff;
+        --online: #76b900;
+
+        --item-hover: #0f1410;
+        --item-active: #141a13;
+        --input-bg: #0e120e;
+        --search-bg: #0d110d;
+        --bubble-them: #12170f;
+        --bubble-them-txt: #eef3ea;
+        --bubble-me: #1b2a0c;
+        --bubble-me-txt: #eaf7d6;
+        --bubble-me-line: rgba(150, 255, 70, 0.22);
+        --avatar-txt: #050705;
+        --shadow: 0 24px 60px -22px rgba(0, 0, 0, 0.85);
+        --radius: 12px;
+      }
+
+      [data-theme="light"] {
+        --bg: #f2f4f1;
+        --rail: #ffffff;
+        --conv: #fbfcfa;
+        --chat: #ffffff;
+        --chat-head: #ffffff;
+        --details: #fbfcfa;
+        --surface: #ffffff;
+        --surface-2: #f5f7f3;
+        --surface-3: #eef1ec;
+
+        --line: rgba(15, 23, 15, 0.08);
+        --line-2: rgba(15, 23, 15, 0.16);
+
+        --txt: #12160f;
+        --txt-2: #545e50;
+        --txt-3: #8b948a;
+
+        --green: #1c9a53;
+        --green-soft: #189a53;
+        --green-deep: #0f7a40;
+        --accent: #1c9a53;
+        --accent-hover: #17853f;
+        --accent-line: rgba(28, 154, 83, 0.34);
+        --accent-soft: rgba(28, 154, 83, 0.09);
+        --on-accent: #ffffff;
+
+        --grad: linear-gradient(135deg, #35c274 0%, #1c9a53 55%, #0f7a40 100%);
+        --glow-sm: 0 0 0 1px rgba(28, 154, 83, 0.18);
+
+        --amber: #b96f00;
+        --red: #d33a3a;
+        --blue: #2a6ce0;
+        --online: #1c9a53;
+
+        --item-hover: #f1f4ef;
+        --item-active: #e9efe6;
+        --input-bg: #f4f6f2;
+        --search-bg: #eef1ec;
+        --bubble-them: #f1f4ef;
+        --bubble-them-txt: #12160f;
+        --bubble-me: #e4f5e6;
+        --bubble-me-txt: #0d3d22;
+        --bubble-me-line: rgba(28, 154, 83, 0.28);
+        --avatar-txt: #ffffff;
+        --shadow: 0 18px 44px -26px rgba(10, 20, 10, 0.35);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: var(--bg);
+        color: var(--txt);
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+        font-size: 14px;
+      }
+      button {
+        font-family: inherit;
+        border: 0;
+        background: none;
+        color: inherit;
+        cursor: pointer;
+      }
+      input,
+      textarea {
+        font-family: inherit;
+        border: 0;
+        outline: none;
+        background: none;
+        color: inherit;
+      }
+      svg {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        display: block;
+      }
+      html {
+        scrollbar-width: thin;
+        scrollbar-color: var(--line-2) transparent;
+      }
+      ::-webkit-scrollbar {
+        width: 7px;
+        height: 7px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--line-2);
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+        transition: background 0.15s;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-line);
+      }
+
+      /* Réserve la place de la scrollbar pour éviter que le contenu ne "saute"
+   quand elle apparaît (liste de conversations, fil de discussion, panels). */
+      .conv-list,
+      .chat-messages,
+      .details-panel,
+      .modal-body {
+        scrollbar-gutter: stable;
+      }
+      .hidden {
+        display: none !important;
+      }
+
+      /* ============ SHELL ============ */
+      .shell {
+        display: grid;
+        grid-template-columns: 64px 340px 1fr 0px;
+        height: 100vh;
+        transition: grid-template-columns 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .shell.rail-open {
+        grid-template-columns: 232px 340px 1fr 0px;
+      }
+      .shell.details-open {
+        grid-template-columns: 64px 340px 1fr 328px;
+      }
+      .shell.rail-open.details-open {
+        grid-template-columns: 232px 340px 1fr 328px;
+      }
+
+      /* ============ RAIL ============ */
+      .rail {
+        background: var(--rail);
+        border-right: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        padding: 14px 10px;
+        gap: 4px;
+        overflow: hidden;
+      }
+      .rail-brandrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 4px 14px;
+        min-height: 44px;
+      }
+      .rail-logo {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .rail-logo img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: center;
+        border: 0;
+        box-shadow: none;
+      }
+
+      .rail-brand {
+        display: none;
+        line-height: 1.15;
+        white-space: nowrap;
+      }
+      .rail-open .rail-brand {
+        display: block;
+      }
+      .rail-brand b {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: -0.2px;
+      }
+      .rail-brand span {
+        display: block;
+        font-size: 10.5px;
+        color: var(--accent);
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+
+      .rail-newmsg {
+        position: relative;
+        display: flex;
+        margin-bottom: 12px;
+        border-radius: 10px;
+        overflow: visible;
+      }
+      .rail-newmsg-main {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        height: 36px;
+        padding: 0 10px;
+        border-radius: 10px; /* carré complet tant que la flèche est cachée */
+        background: var(--accent-soft);
+        border: 1px solid var(--accent-line);
+        color: var(--accent);
+        font-size: 12.5px;
+        font-weight: 600;
+        transition: 0.15s;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      .rail-open .rail-newmsg-main {
+        justify-content: flex-start;
+        border-radius: 10px 0 0 10px; /* redevient la moitié gauche du duo une fois ouvert */
+        border-right: 0;
+      }
+      .rail:not(.x) .rail-newmsg-main span {
+        display: none;
+      }
+      .rail-open .rail-newmsg-main span {
+        display: inline;
+      }
+      .rail-newmsg-main svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+      }
+      .rail-newmsg-main:hover {
+        background: var(--accent);
+        color: var(--on-accent);
+      }
+      .rail-newmsg-arrow {
+        display: none; /* inutile en réduit : le bouton "+" seul suffit */
+        width: 28px;
+        place-items: center;
+        border-radius: 0 10px 10px 0;
+        background: var(--accent-soft);
+        border: 1px solid var(--accent-line);
+        color: var(--accent);
+        transition: 0.15s;
+      }
+      .rail-open .rail-newmsg-arrow {
+        display: grid;
+      }
+      .rail-newmsg-arrow:hover {
+        background: var(--accent);
+        color: var(--on-accent);
+      }
+      .rail-newmsg-arrow svg {
+        width: 13px;
+        height: 13px;
+      }
+
+      .rail-dropdown {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        min-width: 208px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-2);
+        border-radius: 12px;
+        padding: 6px;
+        box-shadow: var(--shadow);
+        z-index: 400;
+      }
+      .rail-dropdown button,
+      .menu button {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        color: var(--txt-2);
+        transition: 0.12s;
+        text-align: left;
+      }
+      .rail-dropdown button:hover,
+      .menu button:hover {
+        background: var(--item-hover);
+        color: var(--txt);
+      }
+      .rail-dropdown svg,
+      .menu svg {
+        width: 15px;
+        height: 15px;
+        flex: none;
+      }
+      .menu button.danger {
+        color: var(--red);
+      }
+      .menu .sep {
+        height: 1px;
+        background: var(--line);
+        margin: 5px 2px;
+      }
+      .menu .label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        color: var(--txt-3);
+        padding: 7px 10px 4px;
+        font-weight: 700;
+      }
+
+      .rail-item {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        height: 38px;
+        padding: 0 11px;
+        border-radius: 9px;
+        color: var(--txt-2);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+        transition: 0.14s;
+        white-space: nowrap;
+        position: relative;
+      }
+      .rail-item svg {
+        width: 17px;
+        height: 17px;
+        flex: none;
+      }
+      .rail-item span {
+        display: none;
+      }
+      .rail-open .rail-item span {
+        display: inline;
+      }
+      .rail-item:hover {
+        background: var(--item-hover);
+        color: var(--txt);
+      }
+      .rail-item.active {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .rail-item.active::before {
+        content: "";
+        position: absolute;
+        left: -10px;
+        top: 9px;
+        bottom: 9px;
+        width: 2px;
+        border-radius: 2px;
+        background: var(--accent);
+      }
+      .rail-spacer {
+        flex: 1;
+      }
+      .rail-toggle {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        height: 36px;
+        padding: 0 11px;
+        border-radius: 9px;
+        color: var(--txt-3);
+        font-size: 12.5px;
+        transition: 0.14s;
+        white-space: nowrap;
+      }
+      .rail-toggle:hover {
+        background: var(--item-hover);
+        color: var(--txt);
+      }
+      .rail-toggle svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        transition: transform 0.24s;
+      }
+      .rail-open .rail-toggle svg {
+        transform: rotate(180deg);
+      }
+      .rail-toggle span {
+        display: none;
+      }
+      .rail-open .rail-toggle span {
+        display: inline;
+      }
+
+      /* ============ PANEL CONVERSATIONS ============ */
+      .conv-panel {
+        background: var(--conv);
+        border-right: 1px solid var(--line);
+        min-height: 0; /* même principe, un niveau plus bas (flex column) */
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .conv-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 16px 12px;
+        position: relative;
+      }
+      .conv-head-txt h2 {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+      }
+      .conv-head-txt p {
+        font-size: 11.5px;
+        color: var(--txt-3);
+        margin-top: 2px;
+      }
+      .conv-head-add {
+        margin-left: auto;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        color: var(--txt-2);
+        transition: 0.14s;
+      }
+      .conv-head-add:hover {
+        color: var(--accent);
+        border-color: var(--accent-line);
+        background: var(--accent-soft);
+      }
+      .conv-head-add svg {
+        width: 15px;
+        height: 15px;
+      }
+      .conv-head .menu {
+        position: absolute;
+        top: 52px;
+        right: 16px;
+        min-width: 214px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-2);
+        border-radius: 12px;
+        padding: 6px;
+        box-shadow: var(--shadow);
+        z-index: 300;
+      }
+
+      .conv-search-row {
+        display: flex;
+        gap: 8px;
+        padding: 0 16px 12px;
+        position: relative;
+      }
+      .conv-search {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 34px;
+        padding: 0 11px;
+        border-radius: 9px;
+        background: var(--search-bg);
+        border: 1px solid transparent;
+        transition: 0.15s;
+      }
+      .conv-search:focus-within {
+        border-color: var(--accent-line);
+        background: var(--input-bg);
+      }
+      .conv-search svg {
+        width: 14px;
+        height: 14px;
+        color: var(--txt-3);
+        flex: none;
+      }
+      .conv-search input {
+        flex: 1;
+        font-size: 12.5px;
+        min-width: 0;
+      }
+      .conv-search input::placeholder {
+        color: var(--txt-3);
+      }
+      .conv-settings-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        background: var(--search-bg);
+        color: var(--txt-2);
+        transition: 0.14s;
+      }
+      .conv-settings-btn:hover {
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .conv-settings-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+      .conv-search-row .menu {
+        position: absolute;
+        top: 40px;
+        right: 16px;
+        min-width: 210px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-2);
+        border-radius: 12px;
+        padding: 6px;
+        box-shadow: var(--shadow);
+        z-index: 300;
+      }
+      .menu button.active {
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      .conv-tabs {
+        display: flex;
+        gap: 4px;
+        padding: 0 14px 10px;
+      }
+      .conv-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: 27px;
+        padding: 0 10px;
+        border-radius: 7px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--txt-3);
+        transition: 0.14s;
+      }
+      .conv-tab:hover {
+        color: var(--txt);
+        background: var(--item-hover);
+      }
+      .conv-tab.active {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .conv-tab-badge {
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        border-radius: 5px;
+        background: var(--accent);
+        color: var(--on-accent);
+        font-size: 9.5px;
+        font-weight: 800;
+        display: grid;
+        place-items: center;
+      }
+
+      .conv-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 8px 8px;
+      }
+      .conv-section-label {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.9px;
+        text-transform: uppercase;
+        color: var(--txt-3);
+        padding: 12px 8px 6px;
+      }
+      .conv-item {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 9px 8px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition:
+          background 0.12s,
+          transform 0.12s;
+        position: relative;
+      }
+      .conv-item:hover {
+        background: var(--item-hover);
+      }
+      .conv-item.active {
+        background: var(--item-active);
+      }
+      .conv-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 12px;
+        bottom: 12px;
+        width: 2px;
+        border-radius: 2px;
+        background: var(--accent);
+      }
+      .conv-list.compact .conv-item {
+        padding: 6px 8px;
+      }
+      .conv-list.compact .conv-preview {
+        display: none;
+      }
+
+      .conv-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        flex: none;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--avatar-txt);
+        background-size: cover;
+        background-position: center;
+        position: relative;
+      }
+      .conv-list.compact .conv-avatar,
+      .conv-list.compact .conv-avatar-group {
+        width: 30px;
+        height: 30px;
+        font-size: 11px;
+      }
+      .presence-dot {
+        position: absolute;
+        right: -2px;
+        bottom: -2px;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        border: 2px solid var(--conv);
+        background: var(--txt-3);
+      }
+      .presence-dot.online {
+        background: var(--online);
+        box-shadow: 0 0 0 3px rgba(118, 185, 0, 0.16);
+      }
+      .presence-dot.away {
+        background: var(--amber);
+      }
+      .conv-avatar-group {
+        width: 38px;
+        height: 38px;
+        flex: none;
+        position: relative;
+      }
+      .conv-avatar-group .sub {
+        position: absolute;
+        width: 25px;
+        height: 25px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--avatar-txt);
+        border: 2px solid var(--conv);
+      }
+      .conv-avatar-group .sub:nth-child(1) {
+        top: 0;
+        left: 0;
+      }
+      .conv-avatar-group .sub:nth-child(2) {
+        bottom: 0;
+        right: 0;
+      }
+      .conv-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .conv-top {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .conv-name {
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .conv-item.has-unread .conv-name {
+        font-weight: 700;
+      }
+      .conv-time {
+        font-size: 10.5px;
+        color: var(--txt-3);
+        flex: none;
+      }
+      .conv-preview {
+        font-size: 11.5px;
+        color: var(--txt-3);
+        margin-top: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .conv-item.has-unread .conv-preview {
+        color: var(--txt-2);
+      }
+      .group-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        padding: 2px 5px;
+        border-radius: 5px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        flex: none;
+      }
+      .conv-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: none;
+      }
+      .unread-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: var(--glow-sm);
+      }
+      .conv-delete {
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
+        display: grid;
+        place-items: center;
+        color: var(--txt-3);
+        opacity: 0;
+        transition: 0.14s;
+      }
+      .conv-item:hover .conv-delete {
+        opacity: 1;
+      }
+      .conv-delete:hover {
+        color: var(--red);
+        background: rgba(255, 86, 86, 0.1);
+      }
+      .conv-empty {
+        text-align: center;
+        color: var(--txt-3);
+        font-size: 12px;
+        padding: 40px 20px;
+        line-height: 1.6;
+      }
+
+      .conv-userrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 14px;
+        border-top: 1px solid var(--line);
+      }
+      .conv-userrow .av {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--avatar-txt);
+        background: var(--grad);
+        flex: none;
+      }
+      .conv-userrow-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .conv-userrow-name {
+        font-size: 12.5px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .conv-userrow-status {
+        font-size: 10.5px;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .conv-userrow-status i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--online);
+      }
+      .icon-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        color: var(--txt-3);
+        transition: 0.14s;
+      }
+      .icon-btn:hover {
+        color: var(--txt);
+        background: var(--item-hover);
+      }
+      .icon-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+      .icon-btn.is-on {
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      /* ============ CHAT ============ */
+      .chat-panel {
+        background: var(--chat);
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0; /* essentiel : sans ça, un enfant de grid grandit avec son contenu
+                       et pousse le composer hors de l'écran au lieu de scroller */
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+      }
+      .chat-header {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 11px 16px;
+        border-bottom: 1px solid var(--line);
+        background: var(--chat-head);
+        min-height: 58px;
+      }
+      .chat-back {
+        display: none;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        place-items: center;
+        color: var(--txt-2);
+      }
+      .chat-av {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--avatar-txt);
+        position: relative;
+        background-size: cover;
+      }
+      .chat-av .presence-dot {
+        border-color: var(--chat-head);
+      }
+      .chat-av-group {
+        width: 34px;
+        height: 34px;
+        position: relative;
+      }
+      .chat-av-group .sub {
+        position: absolute;
+        width: 23px;
+        height: 23px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--avatar-txt);
+        border: 2px solid var(--chat-head);
+      }
+      .chat-av-group .sub:nth-child(1) {
+        top: 0;
+        left: 0;
+      }
+      .chat-av-group .sub:nth-child(2) {
+        bottom: 0;
+        right: 0;
+      }
+      .chat-head-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .chat-title {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .chat-subtitle {
+        font-size: 11.5px;
+        color: var(--txt-3);
+        margin-top: 1px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .chat-subtitle.online {
+        color: var(--accent);
+      }
+      .chat-head-actions {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        position: relative;
+      }
+      .chat-head-actions .menu {
+        position: absolute;
+        top: 38px;
+        right: 0;
+        min-width: 210px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-2);
+        border-radius: 12px;
+        padding: 6px;
+        box-shadow: var(--shadow);
+        z-index: 300;
+      }
+
+      .chat-messages {
+        flex: 1;
+        min-height: 0; /* même principe, un niveau plus bas (flex column) */
+        overflow-y: auto;
+        padding: 20px 26px 8px;
+        scroll-behavior: smooth;
+      }
+
+      .scroll-bottom-btn {
+        position: absolute;
+        right: 26px;
+        bottom: 92px;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: none;
+        place-items: center;
+        background: var(--surface-2);
+        border: 1px solid var(--line-2);
+        color: var(--accent);
+        box-shadow: var(--shadow);
+        cursor: pointer;
+        transition: 0.15s;
+        z-index: 20;
+      }
+      .scroll-bottom-btn.visible {
+        display: grid;
+      }
+      .scroll-bottom-btn:hover {
+        background: var(--accent-soft);
+        transform: translateY(-3px);
+      }
+      .scroll-bottom-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+      .scroll-bottom-btn .count {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        border-radius: 8px;
+        background: var(--accent);
+        color: var(--on-accent);
+        font-size: 9.5px;
+        font-weight: 800;
+        display: grid;
+        place-items: center;
+      }
+      .scroll-bottom-btn .count.hidden {
+        display: none;
+      }
+      .chat-empty {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        text-align: center;
+        color: var(--txt-3);
+      }
+      .chat-empty .ic {
+        width: 62px;
+        height: 62px;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        background: var(--accent-soft);
+        border: 1px solid var(--accent-line);
+        color: var(--accent);
+        margin-bottom: 4px;
+      }
+      .chat-empty .ic svg {
+        width: 26px;
+        height: 26px;
+      }
+      .chat-empty b {
+        font-size: 15px;
+        color: var(--txt);
+        font-weight: 700;
+      }
+      .chat-empty p {
+        font-size: 12.5px;
+        max-width: 320px;
+        line-height: 1.65;
+      }
+
+      .day-sep {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 18px 0 14px;
+      }
+      .day-sep::before,
+      .day-sep::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--line);
+      }
+      .day-sep span {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--txt-3);
+      }
+
+      .msg-row {
+        display: flex;
+        gap: 9px;
+        margin-bottom: 12px;
+        align-items: flex-end;
+      }
+      .msg-wrap {
+        animation: msgin 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      @keyframes msgin {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .msg-row.me {
+        flex-direction: row-reverse;
+      }
+      .msg-av {
+        width: 27px;
+        height: 27px;
+        border-radius: 9px;
+        flex: none;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--avatar-txt);
+        background-size: cover;
+      }
+      .msg-body {
+        max-width: min(
+          78%,
+          640px
+        ); /* on privilégie l'étalement horizontal plutôt qu'un bloc haut */
+        min-width: 0;
+      }
+      .msg-row.me .msg-body {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+      .msg-sender {
+        font-size: 10.5px;
+        font-weight: 700;
+        margin-bottom: 3px;
+        padding-left: 3px;
+      }
+      .msg-content-wrap {
+        display: flex;
+        flex-direction: column; /* bulle au-dessus, actions dessous — plus "bloc" à côté */
+        align-items: flex-end; /* actions alignées sur le bord droit de la bulle, quel que soit l'expéditeur */
+        gap: 4px;
+      }
+      .msg-actions {
+        display: flex;
+        gap: 2px;
+        opacity: 0;
+        transition: 0.14s;
+      }
+      .bubble {
+        padding: 9px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        line-height: 1.48;
+        word-break: break-word;
+        white-space: normal; /* sauts de ligne gérés en <br> côté JS, plus de blanc brut préservé */
+        border: 1px solid transparent;
+        position: relative;
+      }
+      .bubble br + br {
+        display: none; /* filet de sécurité anti double-saut résiduel */
+      }
+      .bubble.them {
+        background: var(--bubble-them);
+        color: var(--bubble-them-txt);
+        border-color: var(--line);
+        border-bottom-left-radius: 5px;
+      }
+      .bubble.me {
+        background: var(--bubble-me);
+        color: var(--bubble-me-txt);
+        border-color: var(--bubble-me-line);
+        border-bottom-right-radius: 5px;
+      }
+      .bubble-subject {
+        display: block;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 4px;
+      }
+      .bubble .mention {
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .bubble .edited {
+        font-size: 10px;
+        color: var(--txt-3);
+        margin-left: 6px;
+      }
+      .bubble .reply-quote {
+        display: block;
+        border-left: 2px solid var(--accent);
+        padding: 4px 8px;
+        margin-bottom: 6px;
+        border-radius: 4px;
+        background: rgba(127, 127, 127, 0.09);
+        font-size: 11.5px;
+        color: var(--txt-2);
+      }
+      .bubble .reply-quote b {
+        display: block;
+        color: var(--accent);
+        font-size: 10.5px;
+        margin-bottom: 1px;
+      }
+      .bubble-img {
+        display: block;
+        max-width: 260px;
+        width: 100%;
+        border-radius: 10px;
+        margin-top: 6px;
+        cursor: zoom-in;
+        border: 1px solid var(--line);
+      }
+      .bubble-file {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 6px;
+        padding: 9px 11px;
+        border-radius: 10px;
+        background: rgba(127, 127, 127, 0.1);
+        border: 1px solid var(--line-2);
+        text-decoration: none;
+        color: inherit;
+        transition: 0.14s;
+        min-width: 210px;
+      }
+      .bubble-file:hover {
+        border-color: var(--accent-line);
+        background: var(--accent-soft);
+      }
+      .bubble-file .fi {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        background: var(--accent-soft);
+        color: var(--accent);
+        flex: none;
+      }
+      .bubble-file .fn {
+        font-size: 12px;
+        font-weight: 600;
+        word-break: break-all;
+      }
+      .bubble-file .fs {
+        font-size: 10.5px;
+        color: var(--txt-3);
+        margin-top: 1px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .msg-time {
+        font-size: 10px;
+        color: var(--txt-3);
+        margin-top: 4px;
+        padding: 0 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .msg-row.me .msg-time {
+        justify-content: flex-end;
+      }
+      .msg-time svg {
+        width: 12px;
+        height: 12px;
+      }
+      .msg-time .read-ok {
+        color: var(--accent);
+      }
+      .msg-actions {
+        display: flex;
+        gap: 2px;
+        opacity: 0;
+        transition: 0.14s;
+      }
+      .msg-row:hover .msg-actions {
+        opacity: 1;
+      }
+      .msg-act {
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
+        display: grid;
+        place-items: center;
+        color: var(--txt-3);
+        transition: 0.12s;
+      }
+      .msg-act:hover {
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .msg-act svg {
+        width: 13px;
+        height: 13px;
+      }
+      .reactions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 5px;
+      }
+      .reaction {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 22px;
+        padding: 0 7px;
+        border-radius: 20px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-2);
+        font-size: 12px;
+        transition: 0.12s;
+      }
+      .reaction:hover {
+        border-color: var(--accent-line);
+      }
+      .reaction.mine {
+        background: var(--accent-soft);
+        border-color: var(--accent-line);
+      }
+      .reaction b {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--txt-2);
+      }
+
+      .typing-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 2px 4px 10px;
+        color: var(--txt-3);
+        font-size: 11.5px;
+      }
+      .typing-dots {
+        display: inline-flex;
+        gap: 3px;
+      }
+      .typing-dots i {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: bounce 1.1s infinite;
+      }
+      .typing-dots i:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .typing-dots i:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      @keyframes bounce {
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+          opacity: 0.45;
+        }
+        30% {
+          transform: translateY(-4px);
+          opacity: 1;
+        }
+      }
+
+      /* ============ COMPOSER ============ */
+      .attachments-preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 0 24px;
+      }
+      .attachments-preview:not(:empty) {
+        padding-bottom: 10px;
+      }
+      .att-chip {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        height: 34px;
+        padding: 0 9px;
+        border-radius: 9px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-2);
+        font-size: 11.5px;
+        max-width: 210px;
+      }
+      .att-chip img {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        object-fit: cover;
+      }
+      .att-chip .name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--txt-2);
+      }
+      .att-chip .rm {
+        cursor: pointer;
+        color: var(--txt-3);
+        font-size: 15px;
+        line-height: 1;
+      }
+      .att-chip .rm:hover {
+        color: var(--red);
+      }
+
+      .reply-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 24px 8px;
+        padding: 8px 11px;
+        border-radius: 10px;
+        background: var(--surface-2);
+        border-left: 2px solid var(--accent);
+        font-size: 12px;
+      }
+      .reply-bar .t {
+        flex: 1;
+        min-width: 0;
+      }
+      .reply-bar b {
+        display: block;
+        font-size: 10.5px;
+        color: var(--accent);
+      }
+      .reply-bar p {
+        color: var(--txt-3);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .quick-replies-wrap {
+        position: relative;
+        padding: 0 24px 10px;
+      }
+      .quick-replies {
+        display: flex;
+        gap: 7px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .quick-replies::-webkit-scrollbar {
+        display: none;
+      }
+      .quick-reply-chip {
+        white-space: nowrap;
+        font-size: 11.5px;
+        padding: 6px 11px;
+        border-radius: 20px;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        color: var(--txt-2);
+        transition: 0.14s;
+      }
+      .quick-reply-chip:hover {
+        border-color: var(--accent-line);
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .qr-nav {
+        position: absolute;
+        top: 0;
+        width: 26px;
+        height: 30px;
+        display: none;
+        place-items: center;
+        background: var(--chat);
+        color: var(--txt-3);
+      }
+      .qr-nav.visible {
+        display: grid;
+      }
+      .qr-nav.left {
+        left: 12px;
+      }
+      .qr-nav.right {
+        right: 12px;
+      }
+      .qr-nav svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .composer-zone {
+        position: relative;
+        padding: 0 24px 18px;
+      }
+      .composer-inner {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        padding: 8px 9px;
+        border-radius: 14px;
+        background: var(--input-bg);
+        border: 1px solid var(--line);
+        transition: 0.16s;
+      }
+      .composer-inner:focus-within {
+        border-color: var(--accent-line);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      .comp-actions {
+        display: flex;
+        gap: 2px;
+      }
+      #messageInput {
+        flex: 1;
+        resize: none;
+        max-height: 120px;
+        font-size: 13px;
+        line-height: 1.5;
+        padding: 7px 4px;
+        min-width: 0;
+      }
+      #messageInput::placeholder {
+        color: var(--txt-3);
+      }
+      .send-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        background: transparent; /* fait vraiment partie de l'input, plus de gros bloc dégradé */
+        color: var(--accent);
+        flex: none;
+        transition: 0.15s;
+      }
+      .send-btn:hover {
+        background: var(--accent-soft);
+      }
+      .send-btn:active {
+        transform: scale(0.92);
+      }
+      .send-btn:disabled {
+        opacity: 0.4;
+        pointer-events: none;
+      }
+      .send-btn svg {
+        width: 17px;
+        height: 17px;
+        stroke-width: 2.2;
+      }
+      .composer-hint {
+        font-size: 10.5px;
+        color: var(--txt-3);
+        padding: 7px 4px 0;
+        display: flex;
+        gap: 12px;
+      }
+      .composer-hint kbd {
+        font-family: inherit;
+        font-size: 9.5px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: var(--surface-3);
+        border: 1px solid var(--line);
+      }
+      #inputImages,
+      #inputFiles {
+        display: none;
+      }
+
+      .emoji-pop {
+        position: absolute;
+        bottom: 74px;
+        left: 24px;
+        width: 266px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-2);
+        border-radius: 14px;
+        padding: 10px;
+        box-shadow: var(--shadow);
+        z-index: 500;
+      }
+      .emoji-pop .label {
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        color: var(--txt-3);
+        font-weight: 800;
+        margin: 4px 2px 6px;
+      }
+      .emoji-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 2px;
+      }
+      .emoji-grid button {
+        height: 28px;
+        border-radius: 7px;
+        font-size: 17px;
+        line-height: 1;
+        transition: 0.1s;
+      }
+      .emoji-grid button:hover {
+        background: var(--accent-soft);
+        transform: scale(1.15);
+      }
+
+      .react-pop {
+        position: fixed;
+        display: flex;
+        gap: 3px;
+        padding: 5px;
+        border-radius: 999px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-2);
+        box-shadow: var(--shadow);
+        z-index: 900;
+      }
+      .react-pop button {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        font-size: 17px;
+        line-height: 1;
+        transition: 0.12s;
+      }
+      .react-pop button:hover {
+        background: var(--accent-soft);
+        transform: scale(1.2) translateY(-2px);
+      }
+
+      .ctx-menu {
+        position: fixed;
+        min-width: 186px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-2);
+        border-radius: 12px;
+        padding: 6px;
+        box-shadow: var(--shadow);
+        z-index: 950;
+      }
+      .ctx-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 12.5px;
+        color: var(--txt-2);
+        transition: 0.12s;
+      }
+      .ctx-item:hover {
+        background: var(--item-hover);
+        color: var(--txt);
+      }
+      .ctx-item.danger {
+        color: var(--red);
+      }
+      .ctx-item svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      /* ============ DÉTAILS ============ */
+      .details-panel {
+        background: var(--details);
+        border-left: 1px solid var(--line);
+        min-height: 0; /* même principe, un niveau plus bas (flex column) */
+        overflow: hidden auto;
+        min-width: 0;
+      }
+      .details-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px;
+        border-bottom: 1px solid var(--line);
+        position: sticky;
+        top: 0;
+        background: var(--details);
+        z-index: 5;
+      }
+      .details-head h3 {
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .details-body {
+        padding: 20px 16px 30px;
+      }
+      .details-avatar-wrap {
+        text-align: center;
+      }
+      .details-avatar {
+        width: 62px;
+        height: 62px;
+        border-radius: 19px;
+        margin: 0 auto 11px;
+        display: grid;
+        place-items: center;
+        font-size: 23px;
+        font-weight: 800;
+        color: var(--avatar-txt);
+        background: var(--grad);
+      }
+      .details-avatar.empty {
+        background: var(--surface-2);
+        border: 1px dashed var(--line-2);
+        color: var(--txt-3);
+      }
+      .details-avatar.empty svg {
+        width: 24px;
+        height: 24px;
+      }
+      .details-name {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .details-status {
+        font-size: 11.5px;
+        color: var(--txt-3);
+        margin-top: 3px;
+      }
+      .details-actions {
+        display: flex;
+        gap: 7px;
+        justify-content: center;
+        margin: 16px 0 6px;
+        position: relative;
+      }
+      .dbtn {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 9px;
+        font-size: 12px;
+        font-weight: 600;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        color: var(--txt-2);
+        transition: 0.14s;
+      }
+      .dbtn:hover {
+        color: var(--txt);
+        border-color: var(--line-2);
+      }
+      .dbtn.primary {
+        background: var(--accent-soft);
+        border-color: var(--accent-line);
+        color: var(--accent);
+      }
+      .dbtn.primary:hover {
+        background: var(--accent);
+        color: var(--on-accent);
+      }
+      .dbtn svg {
+        width: 14px;
+        height: 14px;
+      }
+      .dbtn-menu {
+        position: relative;
+      }
+      .dbtn-menu .menu {
+        position: absolute;
+        top: 38px;
+        right: 0;
+        min-width: 200px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-2);
+        border-radius: 12px;
+        padding: 6px;
+        box-shadow: var(--shadow);
+        z-index: 300;
+      }
+      .details-section-label {
+        font-size: 9.5px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.9px;
+        color: var(--txt-3);
+        margin: 22px 0 9px;
+      }
+      .member-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 8px;
+        border-radius: 9px;
+        font-size: 12.5px;
+        transition: 0.12s;
+      }
+      .member-row:hover {
+        background: var(--item-hover);
+      }
+      .member-row .av {
+        width: 27px;
+        height: 27px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--avatar-txt);
+        position: relative;
+        flex: none;
+      }
+      .member-row .av .presence-dot {
+        border-color: var(--details);
+        width: 9px;
+        height: 9px;
+      }
+      .member-row .role {
+        margin-left: auto;
+        font-size: 10px;
+        color: var(--txt-3);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .mute-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 9px 10px;
+        border-radius: 10px;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        font-size: 12.5px;
+        color: var(--txt-2);
+      }
+      .mute-row svg {
+        width: 15px;
+        height: 15px;
+      }
+      .mute-toggle {
+        margin-left: auto;
+        width: 32px;
+        height: 18px;
+        border-radius: 20px;
+        background: var(--surface-3);
+        border: 1px solid var(--line-2);
+        position: relative;
+        transition: 0.16s;
+        flex: none;
+      }
+      .mute-toggle::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--txt-3);
+        transition: 0.16s;
+      }
+      .mute-toggle.on {
+        background: var(--accent-soft);
+        border-color: var(--accent-line);
+      }
+      .mute-toggle.on::after {
+        left: 16px;
+        background: var(--accent);
+      }
+      .shared-media-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+      }
+      .media-tile {
+        aspect-ratio: 1;
+        border-radius: 9px;
+        overflow: hidden;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        display: grid;
+        place-items: center;
+        color: var(--txt-3);
+        transition: 0.14s;
+      }
+      .media-tile:hover {
+        border-color: var(--accent-line);
+        color: var(--accent);
+      }
+      .media-tile img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .media-empty {
+        grid-column: 1/-1;
+        font-size: 11.5px;
+        color: var(--txt-3);
+        padding: 14px 0;
+        line-height: 1.6;
+      }
+      .details-about {
+        font-size: 12px;
+        color: var(--txt-3);
+        line-height: 1.7;
+      }
+
+      /* ============ MODALES ============ */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.62);
+        backdrop-filter: blur(6px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+      }
+      .overlay.active {
+        display: flex;
+        animation: fade 0.16s ease;
+      }
+      @keyframes fade {
+        from {
+          opacity: 0;
+        }
+      }
+      .modal {
+        width: 100%;
+        max-width: 460px;
+        background: var(--surface);
+        border: 1px solid var(--line-2);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        max-height: 88vh;
+        display: flex;
+        flex-direction: column;
+        animation: pop 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+      }
+      @keyframes pop {
+        from {
+          transform: translateY(10px) scale(0.98);
+          opacity: 0;
+        }
+      }
+      .modal-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .modal-ic {
+        width: 34px;
+        height: 34px;
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        background: var(--accent-soft);
+        border: 1px solid var(--accent-line);
+        color: var(--accent);
+        flex: none;
+      }
+      .modal-ic svg {
+        width: 16px;
+        height: 16px;
+      }
+      .modal-head h3 {
+        font-size: 14.5px;
+        font-weight: 700;
+      }
+      .modal-head span {
+        font-size: 11.5px;
+        color: var(--txt-3);
+      }
+      .modal-close {
+        margin-left: auto;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        color: var(--txt-3);
+        transition: 0.14s;
+      }
+      .modal-close:hover {
+        color: var(--red);
+        background: rgba(255, 86, 86, 0.1);
+      }
+      .modal-close svg {
+        width: 14px;
+        height: 14px;
+      }
+      .modal-body {
+        padding: 18px 20px;
+        overflow-y: auto;
+      }
+      .modal-foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 14px 20px;
+        border-top: 1px solid var(--line);
+      }
+      .field {
+        margin-bottom: 14px;
+      }
+      .field label {
+        display: block;
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        color: var(--txt-3);
+        margin-bottom: 6px;
+      }
+      .field input,
+      .field textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: var(--input-bg);
+        border: 1px solid var(--line);
+        font-size: 13px;
+        transition: 0.15s;
+      }
+      .field textarea {
+        min-height: 96px;
+        resize: vertical;
+        line-height: 1.55;
+      }
+      .field input:focus,
+      .field textarea:focus {
+        border-color: var(--accent-line);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      .field .hint {
+        font-size: 10.5px;
+        color: var(--txt-3);
+        margin-top: 5px;
+      }
+      .btn {
+        height: 34px;
+        padding: 0 15px;
+        border-radius: 9px;
+        font-size: 12.5px;
+        font-weight: 600;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        color: var(--txt-2);
+        transition: 0.14s;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .btn:hover {
+        color: var(--txt);
+        border-color: var(--line-2);
+      }
+      .btn svg {
+        width: 14px;
+        height: 14px;
+      }
+      .btn-primary {
+        background: var(--grad);
+        border-color: transparent;
+        color: var(--on-accent);
+        box-shadow: var(--glow-sm);
+      }
+      .btn-primary:hover {
+        color: var(--on-accent);
+        transform: translateY(-1px);
+      }
+      .btn-danger {
+        background: var(--red);
+        border-color: transparent;
+        color: #fff;
+      }
+      .btn-danger:hover {
+        color: #fff;
+        opacity: 0.9;
+      }
+      .tags-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 9px;
+      }
+      .p-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 26px;
+        padding: 0 6px 0 9px;
+        border-radius: 8px;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--avatar-txt);
+      }
+      .p-tag .rm {
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        opacity: 0.75;
+      }
+      .p-tag .rm:hover {
+        opacity: 1;
+      }
+      .add-row {
+        display: flex;
+        gap: 6px;
+      }
+      .add-row input {
+        flex: 1;
+        min-width: 0;
+        padding: 9px 11px;
+        border-radius: 9px;
+        background: var(--input-bg);
+        border: 1px solid var(--line);
+        font-size: 12.5px;
+      }
+      .add-row input:focus {
+        border-color: var(--accent-line);
+      }
+      .add-btn {
+        width: 36px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        background: var(--accent-soft);
+        border: 1px solid var(--accent-line);
+        color: var(--accent);
+        transition: 0.14s;
+      }
+      .add-btn:hover {
+        background: var(--accent);
+        color: var(--on-accent);
+      }
+      .add-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+      .sep-line {
+        height: 1px;
+        background: var(--line);
+        margin: 16px 0;
+      }
+      .mention-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 9px;
+        cursor: pointer;
+        font-size: 12.5px;
+        transition: 0.12s;
+      }
+      .mention-item:hover {
+        background: var(--item-hover);
+      }
+      .mention-item.selected {
+        background: var(--accent-soft);
+      }
+      .mention-av {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--avatar-txt);
+      }
+      .mention-check {
+        margin-left: auto;
+        width: 16px;
+        height: 16px;
+        border-radius: 5px;
+        border: 1px solid var(--line-2);
+      }
+      .mention-item.selected .mention-check {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+
+      /* ============ LIGHTBOX / TOASTS ============ */
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1200;
+      }
+      .lightbox.active {
+        display: flex;
+      }
+      .lightbox img {
+        max-width: 90vw;
+        max-height: 88vh;
+        border-radius: 12px;
+      }
+      .lightbox-close {
+        position: absolute;
+        top: 22px;
+        right: 24px;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+      .toasts {
+        position: fixed;
+        bottom: 22px;
+        right: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 1500;
+      }
+      .toast {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 9px 13px;
+        border-radius: 10px;
+        background: var(--surface-2);
+        border: 1px solid var(--line-2);
+        font-size: 12px;
+        line-height: 1.4;
+        box-shadow: var(--shadow);
+        transition: 0.2s;
+        max-width: 300px;
+        border-left: 2px solid var(--accent);
+      }
+      .toast svg {
+        width: 15px;
+        height: 15px;
+        flex: none;
+        margin-top: 1px;
+      }
+      .toast span {
+        flex: 1;
+        min-width: 0;
+      }
+      .toast.err {
+        border-left-color: var(--red);
+      }
+      .toast.ok {
+        border-left-color: var(--accent);
+      }
+      .toast.info {
+        border-left-color: var(--blue);
+      }
+
+      @media (max-width: 1100px) {
+        .shell.details-open,
+        .shell.rail-open.details-open {
+          grid-template-columns: 64px 0px 1fr 328px;
+        }
+      }
+      @media (max-width: 860px) {
+        .shell,
+        .shell.rail-open {
+          grid-template-columns: 0px 1fr 0px 0px;
+        }
+        .rail {
+          display: none;
+        }
+        .shell.show-chat {
+          grid-template-columns: 0px 0px 1fr 0px;
+        }
+        /* Panel détails en plein écran sur mobile — utilise le bouton "X" existant
+     (#btnCloseDetails) comme retour, au lieu d'être écrasé à 0px. */
+        .shell.details-open {
+          grid-template-columns: 0px 0px 0px 1fr;
+        }
+        .chat-back {
+          display: grid;
+        }
+        .msg-body {
+          max-width: 82%;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="shell" id="shell">
+      <!-- ══════════ 1. RAIL ══════════ -->
+      <nav class="rail" id="rail">
+        <div class="rail-brandrow">
+          <div class="rail-logo">
+            <img src="./images/aigent-emploi.png" alt="AiGENT Emploi" />
+          </div>
+
+          <div class="rail-brand"><b>Mon AiGENT</b><span>Emploi</span></div>
+        </div>
+
+        <div class="rail-newmsg" id="railNewMsg">
+          <button
+            class="rail-newmsg-main"
+            id="railNewMsgMain"
+            title="Nouveau message direct"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            <span>Nouveau message</span>
+          </button>
+          <button
+            class="rail-newmsg-arrow"
+            id="railNewMsgArrow"
+            title="Choisir : message direct ou groupe"
+          >
+            <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          <div class="rail-dropdown hidden" id="railNewDropdown">
+            <button id="railBtnDirect">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                />
+              </svg>
+              Message direct
+            </button>
+            <button id="railBtnGroup">
+              <svg viewBox="0 0 24 24">
+                <circle cx="9" cy="8" r="3" />
+                <circle cx="17" cy="8" r="2.4" />
+                <path d="M3 20c0-3 2.7-5 6-5s6 2 6 5" />
+                <path d="M17 14c2.4 0 4 1.7 4 4" />
+              </svg>
+              Nouveau groupe
+            </button>
+          </div>
+        </div>
+
+        <a class="rail-item" href="/chat-emploi.html">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3a9 9 0 0 1 9 9v5a3 3 0 0 1-3 3h-4" />
+            <path d="M3 17v-5a9 9 0 0 1 3-6.7" />
+            <rect x="3" y="12" width="4" height="6" rx="1.5" />
+            <rect x="17" y="12" width="4" height="6" rx="1.5" />
+          </svg>
+          <span>Agent IA</span>
+        </a>
+        <a class="rail-item active" href="/messagerie-emploi.html">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            />
+          </svg>
+          <span>Messagerie</span>
+        </a>
+        <a class="rail-item" href="/favoris-emploi.html">
+          <svg viewBox="0 0 24 24">
+            <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+          <span>Favoris</span>
+        </a>
+        <a class="rail-item" href="/profil-emploi.html">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+          </svg>
+          <span>Profil</span>
+        </a>
+
+        <div class="rail-spacer"></div>
+
+        <button class="rail-toggle" id="btnRailToggle">
+          <svg viewBox="0 0 24 24">
+            <path d="M13 6l6 6-6 6" />
+            <path d="M6 6v12" />
+          </svg>
+          <span>Réduire</span>
+        </button>
+      </nav>
+
+      <!-- ══════════ 2. PANEL CONVERSATIONS ══════════ -->
+      <section class="conv-panel" id="convPanel">
+        <div class="conv-head">
+          <div class="conv-head-txt">
+            <h2>Messagerie</h2>
+            <p id="convHeadSub">Vos échanges candidats et recruteurs</p>
+          </div>
+          <button class="conv-head-add" id="btnNewDropdown" title="Nouveau">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+          </button>
+          <div class="menu hidden" id="newDropdown">
+            <button id="btnOpenNewMsg">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                />
+              </svg>
+              Message direct
+            </button>
+            <button id="btnOpenNewGroup">
+              <svg viewBox="0 0 24 24">
+                <circle cx="9" cy="8" r="3" />
+                <circle cx="17" cy="8" r="2.4" />
+                <path d="M3 20c0-3 2.7-5 6-5s6 2 6 5" />
+                <path d="M17 14c2.4 0 4 1.7 4 4" />
+              </svg>
+              Nouveau groupe
+            </button>
+          </div>
+        </div>
+
+        <div class="conv-search-row">
+          <div class="conv-search">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
+            </svg>
+            <input
+              type="text"
+              id="searchConv"
+              placeholder="Rechercher une conversation…"
+            />
+          </div>
+          <button
+            class="conv-settings-btn"
+            id="btnConvSettings"
+            title="Options"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M4 7h16M4 12h16M4 17h10" />
+            </svg>
+          </button>
+          <div class="menu hidden" id="convSettingsDropdown">
+            <div class="label">Trier par</div>
+            <button data-sort="recent" class="sort-opt">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+              Plus récents
+            </button>
+            <button data-sort="unread" class="sort-opt">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+              </svg>
+              Non lues d'abord
+            </button>
+            <button data-sort="alpha" class="sort-opt">
+              <svg viewBox="0 0 24 24">
+                <path d="M6 4v16M3 17l3 3 3-3" />
+                <path d="M13 6h7M13 11h7M13 16h5" />
+              </svg>
+              Alphabétique
+            </button>
+            <div class="sep"></div>
+            <button id="btnMarkAllRead">
+              <svg viewBox="0 0 24 24">
+                <path d="M2 13l4 4L13 8" />
+                <path d="M11 15l2 2 9-10" />
+              </svg>
+              Tout marquer comme lu
+            </button>
+            <button id="btnToggleCompact">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <span id="compactLabel">Vue compacte</span>
+            </button>
+            <div class="sep"></div>
+            <button id="btnThemeSwitch">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="4.5" />
+                <path
+                  d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"
+                />
+              </svg>
+              <span id="themeLabel">Mode jour</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="conv-tabs">
+          <button class="conv-tab active" data-filter="all">Toutes</button>
+          <button class="conv-tab" data-filter="unread">
+            Non lues
+            <span class="conv-tab-badge hidden" id="unreadBadge">0</span>
+          </button>
+          <button class="conv-tab" data-filter="groups">Groupes</button>
+          <button class="conv-tab" data-filter="archived">Archivées</button>
+        </div>
+
+        <div class="conv-list" id="conversationsContainer"></div>
+
+        <div class="conv-userrow">
+          <div class="av" id="meAvatar">?</div>
+          <div class="conv-userrow-info">
+            <div class="conv-userrow-name" id="meName">—</div>
+            <div class="conv-userrow-status">
+              <i></i><span id="meStatus">En ligne</span>
+            </div>
+          </div>
+          <button class="icon-btn" id="btnLogout" title="Déconnexion">
+            <svg viewBox="0 0 24 24">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="M16 17l5-5-5-5M21 12H9" />
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ══════════ 3. PANEL CHAT ══════════ -->
+      <section class="chat-panel" id="chatPanel">
+        <div class="chat-header">
+          <button class="chat-back" id="btnBackToList">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+          <div id="chatAvatarWrap">
+            <div id="chatAvatarWrap"></div>
+          </div>
+          <div class="chat-head-info">
+            <div class="chat-title" id="chatTitle">
+              Sélectionnez une conversation
+            </div>
+            <div class="chat-subtitle" id="chatSubtitle"></div>
+          </div>
+          <div class="chat-head-actions">
+            <button
+              class="icon-btn"
+              id="btnSearchInChat"
+              title="Rechercher dans la conversation"
+            >
+              <svg viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3.5-3.5" />
+              </svg>
+            </button>
+            <button
+              class="icon-btn"
+              id="btnHeaderTheme"
+              title="Thème jour / nuit"
+            >
+              <svg viewBox="0 0 24 24">
+                <path d="M21 13a8.5 8.5 0 1 1-10-10 6.6 6.6 0 0 0 10 10z" />
+              </svg>
+            </button>
+            <button
+              class="icon-btn"
+              id="btnToggleDetails"
+              title="Détails du groupe"
+            >
+              <svg viewBox="0 0 24 24">
+                <circle cx="9" cy="8" r="3" />
+                <circle cx="17" cy="8" r="2.4" />
+                <path d="M3 20c0-3 2.7-5 6-5s6 2 6 5" />
+                <path d="M17 14c2.4 0 4 1.7 4 4" />
+              </svg>
+            </button>
+            <button class="icon-btn" id="btnChatMore" title="Plus d'options">
+              <svg viewBox="0 0 24 24">
+                <circle
+                  cx="5"
+                  cy="12"
+                  r="1.4"
+                  fill="currentColor"
+                  stroke="none"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="1.4"
+                  fill="currentColor"
+                  stroke="none"
+                />
+                <circle
+                  cx="19"
+                  cy="12"
+                  r="1.4"
+                  fill="currentColor"
+                  stroke="none"
+                />
+              </svg>
+            </button>
+            <div class="menu hidden" id="chatMoreDropdown">
+              <button id="btnArchive">
+                <svg viewBox="0 0 24 24">
+                  <rect x="3" y="4" width="18" height="4" rx="1" />
+                  <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+                  <path d="M10 12h4" />
+                </svg>
+                <span id="archiveLabel">Archiver</span>
+              </button>
+              <button id="btnExportConv">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 3v12" />
+                  <path d="M8 11l4 4 4-4" />
+                  <path d="M4 19h16" />
+                </svg>
+                Exporter (.txt)
+              </button>
+              <button id="btnBlock">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M5.6 5.6l12.8 12.8" />
+                </svg>
+                <span id="blockLabel">Bloquer</span>
+              </button>
+              <div class="sep"></div>
+              <button class="danger" id="btnDeleteConv">
+                <svg viewBox="0 0 24 24">
+                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+                </svg>
+                Supprimer la conversation
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-empty" id="chatEmptyState">
+            <div class="ic">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                />
+              </svg>
+            </div>
+            <b>Aucune conversation sélectionnée</b>
+            <p>
+              Choisissez une conversation dans la liste, ou démarrez un nouveau
+              message pour contacter un candidat ou un recruteur.
+            </p>
+          </div>
+        </div>
+
+        <div class="typing-row hidden" id="typingRow">
+          <span class="typing-dots"><i></i><i></i><i></i></span>
+          <span id="typingText"></span>
+        </div>
+
+        <div class="reply-bar hidden" id="replyBar">
+          <svg
+            viewBox="0 0 24 24"
+            width="15"
+            height="15"
+            style="color: var(--accent)"
+          >
+            <path d="M9 14L4 9l5-5" />
+            <path d="M4 9h10a6 6 0 0 1 6 6v4" />
+          </svg>
+          <div class="t">
+            <b id="replyName"></b>
+            <p id="replyText"></p>
+          </div>
+          <button class="icon-btn" id="replyCancel">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div class="attachments-preview" id="attachmentsPreview"></div>
+
+        <div class="quick-replies-wrap" id="quickRepliesWrap">
+          <button class="qr-nav left" id="qrPrev" type="button">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+          <div class="quick-replies" id="quickReplies"></div>
+          <button class="qr-nav right" id="qrNext" type="button">
+            <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" /></svg>
+          </button>
+        </div>
+
+        <div class="composer-zone">
+          <div class="composer-inner">
+            <div class="comp-actions">
+              <button
+                class="icon-btn"
+                id="btnAttachFile"
+                title="Joindre un document"
+              >
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M21 12.5l-8.4 8.4a5 5 0 0 1-7-7l8.9-8.9a3.3 3.3 0 1 1 4.7 4.7l-8.9 8.9a1.7 1.7 0 0 1-2.4-2.4l8-8"
+                  />
+                </svg>
+              </button>
+              <button
+                class="icon-btn"
+                id="btnAttachImage"
+                title="Joindre une image"
+              >
+                <svg viewBox="0 0 24 24">
+                  <rect x="3" y="4" width="18" height="16" rx="2.5" />
+                  <circle cx="9" cy="10" r="1.8" />
+                  <path d="M4 18l5-5 4 4 3-2 4 4" />
+                </svg>
+              </button>
+              <button class="icon-btn" id="btnEmoji" title="Émoticônes">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M8.5 14.5a4.5 4.5 0 0 0 7 0" />
+                  <path d="M9 9.5h.01M15 9.5h.01" />
+                </svg>
+              </button>
+              <button class="icon-btn" id="btnMention" title="Mentionner">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M16 8v5a3 3 0 0 0 5 2 9 9 0 1 0-3 5" />
+                </svg>
+              </button>
+            </div>
+            <textarea
+              id="messageInput"
+              rows="1"
+              placeholder="Écrivez votre message…"
+            ></textarea>
+            <button class="send-btn" id="btnSend" type="button" title="Envoyer">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 12l16-8-6 8 6 8z" />
+              </svg>
+            </button>
+          </div>
+          <div class="composer-hint">
+            <span><kbd>Entrée</kbd> envoyer</span>
+            <span><kbd>Maj + Entrée</kbd> nouvelle ligne</span>
+            <span id="composerStatus"></span>
+          </div>
+          <input type="file" id="inputImages" accept="image/*" multiple />
+          <input type="file" id="inputFiles" multiple />
+        </div>
+      </section>
+
+      <!-- ══════════ 4. PANEL DÉTAILS ══════════ -->
+      <aside class="details-panel" id="detailsPanel">
+        <div class="details-head">
+          <h3>Détails du groupe</h3>
+          <button class="icon-btn" id="btnCloseDetails">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div class="details-body">
+          <div class="details-avatar-wrap">
+            <div class="details-avatar empty" id="detailsAvatar">
+              <svg viewBox="0 0 24 24">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 17l-6 6M16 17l6 6" />
+              </svg>
+            </div>
+            <div class="details-name" id="detailsName">
+              Aucun groupe sélectionné
+            </div>
+            <div class="details-status" id="detailsStatus"></div>
+            <div class="details-actions">
+              <button class="dbtn primary" id="btnInvite">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="9" cy="8" r="3.2" />
+                  <path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" />
+                  <path d="M18 8v6M15 11h6" />
+                </svg>
+                Inviter
+              </button>
+              <div class="dbtn-menu">
+                <button class="dbtn" id="btnDetailsMore">
+                  <svg viewBox="0 0 24 24">
+                    <circle
+                      cx="5"
+                      cy="12"
+                      r="1.4"
+                      fill="currentColor"
+                      stroke="none"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="1.4"
+                      fill="currentColor"
+                      stroke="none"
+                    />
+                    <circle
+                      cx="19"
+                      cy="12"
+                      r="1.4"
+                      fill="currentColor"
+                      stroke="none"
+                    />
+                  </svg>
+                </button>
+                <div class="menu hidden" id="detailsMoreDropdown">
+                  <button id="btnArchiveFromDetails">
+                    <svg viewBox="0 0 24 24">
+                      <rect x="3" y="4" width="18" height="4" rx="1" />
+                      <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+                    </svg>
+                    <span id="archiveLabel2">Archiver</span>
+                  </button>
+                  <div class="sep"></div>
+                  <button class="danger" id="btnDeleteFromDetails">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+                    </svg>
+                    Quitter le groupe
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="details-section-label">Membres</div>
+          <div class="members-list" id="membersList">
+            <div class="media-empty">
+              Ouvrez une conversation de groupe pour voir ses participants.
+            </div>
+          </div>
+
+          <div class="details-section-label">Notifications</div>
+          <button class="mute-row" id="btnMuteGroup">
+            <svg viewBox="0 0 24 24">
+              <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8" />
+              <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+            </svg>
+            Mettre le groupe en sourdine
+            <span class="mute-toggle" id="muteToggle"></span>
+          </button>
+
+          <div class="details-section-label">Médias et documents partagés</div>
+          <div class="shared-media-grid" id="sharedMedia"></div>
+
+          <div class="details-section-label">Résumé</div>
+          <div class="details-about" id="groupAbout">
+            Aucun groupe sélectionné pour l'instant.
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ══════════ MODALES ══════════ -->
+    <div class="overlay" id="newMsgOverlay">
+      <div class="modal">
+        <div class="modal-head">
+          <div class="modal-ic">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h3>Nouveau message</h3>
+            <span>Identifiez votre destinataire par pseudo et email</span>
+          </div>
+          <button class="modal-close" id="newMsgClose">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <label>Pseudo du destinataire</label>
+            <input
+              type="text"
+              id="nmPseudo"
+              placeholder="ex. claire.dupont"
+              autocomplete="off"
+            />
+            <div class="hint" id="nmCheckHint"></div>
+          </div>
+          <div class="field">
+            <label>Email du destinataire</label>
+            <input
+              type="email"
+              id="nmEmail"
+              placeholder="ex. claire@exemple.fr"
+              autocomplete="off"
+            />
+          </div>
+          <div class="field">
+            <label>Objet</label>
+            <input type="text" id="nmSubject" placeholder="Objet du message" />
+          </div>
+          <div class="field">
+            <label>Message</label>
+            <textarea
+              id="nmBody"
+              placeholder="Écrivez votre message…"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn" id="nmCancel">Annuler</button>
+          <button class="btn btn-primary" id="nmSend">
+            <svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 8 6 8z" /></svg>
+            Envoyer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="groupOverlay">
+      <div class="modal">
+        <div class="modal-head">
+          <div class="modal-ic">
+            <svg viewBox="0 0 24 24">
+              <circle cx="9" cy="8" r="3" />
+              <circle cx="17" cy="8" r="2.4" />
+              <path d="M3 20c0-3 2.7-5 6-5s6 2 6 5" />
+              <path d="M17 14c2.4 0 4 1.7 4 4" />
+            </svg>
+          </div>
+          <div>
+            <h3>Nouveau groupe</h3>
+            <span>Chaque membre est vérifié en base avant l'ajout</span>
+          </div>
+          <button class="modal-close" id="groupClose">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <label>Nom du groupe</label>
+            <input
+              type="text"
+              id="grpName"
+              placeholder="ex. Recrutement développeurs"
+            />
+          </div>
+          <div class="field">
+            <label>Participants</label>
+            <div class="tags-list" id="grpParticipants"></div>
+            <div class="add-row">
+              <input type="text" id="grpAddPseudo" placeholder="Pseudo" />
+              <input type="email" id="grpAddEmail" placeholder="Email" />
+              <button class="add-btn" id="grpAddBtn" type="button">
+                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+              </button>
+            </div>
+            <div class="hint">
+              Pseudo + email doivent correspondre à un compte existant.
+            </div>
+          </div>
+          <div class="sep-line"></div>
+          <div class="field">
+            <label>Objet</label>
+            <input
+              type="text"
+              id="grpSubject"
+              placeholder="Objet du premier message"
+            />
+          </div>
+          <div class="field">
+            <label>Premier message</label>
+            <textarea
+              id="grpBody"
+              placeholder="Lancez la conversation…"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn" id="groupCancel" type="button">Annuler</button>
+          <button class="btn btn-primary" id="groupSend" type="button">
+            Créer le groupe
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="inviteOverlay">
+      <div class="modal" style="max-width: 400px">
+        <div class="modal-head">
+          <div class="modal-ic">
+            <svg viewBox="0 0 24 24">
+              <circle cx="9" cy="8" r="3.2" />
+              <path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" />
+              <path d="M18 8v6M15 11h6" />
+            </svg>
+          </div>
+          <div>
+            <h3>Inviter un membre</h3>
+            <span>Pseudo et email requis</span>
+          </div>
+          <button class="modal-close" id="inviteClose">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <label>Pseudo</label
+            ><input type="text" id="invPseudo" placeholder="Pseudo" />
+          </div>
+          <div class="field">
+            <label>Email</label
+            ><input type="email" id="invEmail" placeholder="Email" />
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn" id="inviteCancel">Annuler</button>
+          <button class="btn btn-primary" id="inviteSend">Inviter</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="mentionOverlay">
+      <div class="modal" style="max-width: 340px">
+        <div class="modal-head">
+          <div class="modal-ic">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M16 8v5a3 3 0 0 0 5 2 9 9 0 1 0-3 5" />
+            </svg>
+          </div>
+          <div>
+            <h3>Mentionner</h3>
+            <span>Sélectionnez des membres</span>
+          </div>
+          <button class="modal-close" id="mentionClose">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div class="modal-body"><div id="mentionList"></div></div>
+        <div class="modal-foot">
+          <button class="btn btn-primary" id="btnValidateMentions">
+            Insérer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="searchOverlay">
+      <div class="modal" style="max-width: 480px">
+        <div class="modal-head">
+          <div class="modal-ic">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
+            </svg>
+          </div>
+          <div>
+            <h3>Rechercher</h3>
+            <span>Dans la conversation ouverte</span>
+          </div>
+          <button class="modal-close" id="searchClose">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <input type="text" id="searchInChat" placeholder="Mot-clé…" />
+          </div>
+          <div id="searchResults"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="editOverlay">
+      <div class="modal" style="max-width: 420px">
+        <div class="modal-head">
+          <div class="modal-ic">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 20h4l10-10-4-4L4 16z" />
+              <path d="M13.5 6.5l4 4" />
+            </svg>
+          </div>
+          <div>
+            <h3>Modifier le message</h3>
+            <span>L'historique indiquera « modifié »</span>
+          </div>
+          <button class="modal-close" id="editClose">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="field"><textarea id="editBody"></textarea></div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn" id="editCancel">Annuler</button>
+          <button class="btn btn-primary" id="editSave">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="confirmOverlay">
+      <div class="modal" style="max-width: 400px">
+        <div class="modal-head">
+          <div
+            class="modal-ic"
+            style="
+              background: rgba(255, 86, 86, 0.1);
+              border-color: rgba(255, 86, 86, 0.3);
+              color: var(--red);
+            "
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M12 4l9 16H3z" />
+              <path d="M12 10v4M12 17h.01" />
+            </svg>
+          </div>
+          <div><h3 id="confirmTitle">Confirmer</h3></div>
+          <button class="modal-close" id="confirmClose">
+            <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p
+            id="confirmText"
+            style="font-size: 13px; color: var(--txt-2); line-height: 1.65"
+          ></p>
+        </div>
+        <div class="modal-foot">
+          <button class="btn" id="confirmCancel">Annuler</button>
+          <button class="btn btn-danger" id="confirmOk">Confirmer</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctx-menu hidden" id="msgCtxMenu">
+      <button class="ctx-item" data-action="reply">
+        <svg viewBox="0 0 24 24">
+          <path d="M9 14L4 9l5-5" />
+          <path d="M4 9h10a6 6 0 0 1 6 6v4" />
+        </svg>
+        Répondre
+      </button>
+      <button class="ctx-item" data-action="copy">
+        <svg viewBox="0 0 24 24">
+          <rect x="9" y="9" width="11" height="11" rx="2" />
+          <path d="M5 15V5a2 2 0 0 1 2-2h8" />
+        </svg>
+        Copier le texte
+      </button>
+      <button class="ctx-item" data-action="edit">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 20h4l10-10-4-4L4 16z" />
+          <path d="M13.5 6.5l4 4" />
+        </svg>
+        Modifier
+      </button>
+      <div
+        class="sep"
+        style="height: 1px; background: var(--line); margin: 5px 2px"
+      ></div>
+      <button class="ctx-item danger" data-action="delete">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+        </svg>
+        Supprimer
+      </button>
+    </div>
+
+    <div class="lightbox" id="lightbox">
+      <button class="lightbox-close" id="lightboxClose">
+        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
+      </button>
+      <img id="lightboxImg" alt="Pièce jointe" />
+    </div>
+
+    <div class="toasts" id="toasts"></div>
+
+    <script src="/messagerie-emploi.js"></script>
+  </body>
+</html>
