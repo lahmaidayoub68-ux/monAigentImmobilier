@@ -769,19 +769,40 @@ function knownSummary(sc) {
     .join(", ");
 }
 
+function isFirstTurn(sc) {
+  return (
+    Object.entries(sc).filter(
+      ([k, v]) =>
+        v !== null &&
+        v !== undefined &&
+        v !== "" &&
+        !k.endsWith("Hint") &&
+        !k.endsWith("Confirmed"),
+    ).length === 0
+  );
+}
+
+function continuityGuard(firstTurn) {
+  return firstTurn
+    ? `C'est le TOUT PREMIER message de la conversation : tu peux saluer brièvement une seule fois ("Bonjour !" ou équivalent), une seule phrase d'accroche, puis ta question.`
+    : `La conversation est DÉJÀ EN COURS depuis plusieurs échanges. INTERDICTION ABSOLUE de redire "Bonjour", de te réprésenter, ou de reformuler l'intégralité du contexte connu. Enchaîne directement, comme le ferait un humain qui continue une discussion — une courte transition de quelques mots maximum (ou aucune) avant la question, jamais un résumé complet des critères. Varie ta formulation par rapport aux tours précédents pour ne jamais sonner robotique ou répétitif.`;
+}
+
 function buildSingleQuestionPrompt(role, sc, field) {
   const label = SINGLE_FIELD_LABELS[role][field];
+  const firstTurn = isFirstTurn(sc);
   return `Tu es l'agent IA de Mon AiGENT Voyage, expert en tourisme et négociation de dernière minute.
 
 ${toneBlock(role)}
 
-Informations déjà comprises (ne les redemande JAMAIS) : ${knownSummary(sc) || "aucune pour l'instant"}.
+${continuityGuard(firstTurn)}
 
-TÂCHE : pose UNE SEULE question, courte et naturelle, pour connaître : ${label}. Une phrase, deux maximum. Ne pose aucune autre question, même si plusieurs infos manquent encore.
+Informations déjà comprises (ne les redemande JAMAIS, ne les récite JAMAIS en intégralité) : ${knownSummary(sc) || "aucune pour l'instant"}.
+
+TÂCHE : pose UNE SEULE question, courte et naturelle, pour connaître : ${label}. Une phrase, exceptionnellement deux si une micro-transition est nécessaire. Ne pose aucune autre question, même si plusieurs infos manquent encore.
 
 Réponds UNIQUEMENT avec le texte du message, sans JSON, sans guillemets, sans préambule.`;
 }
-
 function buildPopupTransitionPrompt(role, sc, field, hint) {
   const fieldLabel =
     field === "categorie"
@@ -792,15 +813,18 @@ function buildPopupTransitionPrompt(role, sc, field, hint) {
   const hintNote = hint
     ? `La personne a déjà glissé une piste ("${hint}") dans la conversation : reconnais-la brièvement et avec naturel, sans la valider officiellement.`
     : "";
+  const firstTurn = isFirstTurn(sc);
 
   return `Tu es l'agent IA de Mon AiGENT Voyage.
 
 ${toneBlock(role)}
 
+${continuityGuard(firstTurn)}
+
 Informations déjà comprises : ${knownSummary(sc) || "aucune pour l'instant"}.
 ${hintNote}
 
-TÂCHE : annonce en UNE SEULE phrase fluide et chaleureuse (jamais robotique) que tu affiches maintenant un sélecteur pour préciser ${fieldLabel}. Ne pose AUCUNE question ouverte — l'interface s'affiche juste après ton message.
+TÂCHE : annonce en UNE SEULE phrase fluide (jamais "Bonjour", jamais de résumé complet du contexte) que tu affiches maintenant un sélecteur pour préciser ${fieldLabel}. Ne pose AUCUNE question ouverte — l'interface s'affiche juste après ton message.
 
 Réponds UNIQUEMENT avec le texte du message, sans JSON, sans guillemets.`;
 }
@@ -896,9 +920,21 @@ export async function generateConfirmation(role, sc) {
       ],
       140,
     );
+    /* APRÈS — aiParseeVoyage.js : garde-fou déterministe, appliqué partout */
+    const GREETING_RE =
+      /^(bonjour|bonsoir|salut|coucou|hello|hi)\s*[!.,:]?\s*/i;
+
+    function cleanAssistantText(text, sc) {
+      let t = (text || "").trim().replace(/^"|"$/g, "");
+      if (!isFirstTurn(sc)) t = t.replace(GREETING_RE, "").trimStart();
+      return t;
+    }
+
+    // Utilisation dans generateConfirmation, buildPopupTransitionPrompt,
+    // aiExploreIntro, aiExplorePick, aiResultsChat :
     const message =
       aiText && !isUnusableOutput(aiText)
-        ? aiText.trim().replace(/^"|"$/g, "")
+        ? cleanAssistantText(aiText, sc)
         : fallbackSingleQuestion(role, field);
     return { message, missing, nextField: field, popup: null, done: false };
   } catch (e) {
@@ -919,70 +955,97 @@ export async function generateConfirmation(role, sc) {
    elle propose des pistes structurées et exploitables.
    ════════════════════════════════════════════════════════════════════════ */
 
-function buildIdeasPrompt(sc) {
-  const known = Object.entries(sc)
-    .filter(([, v]) => v !== null && v !== undefined && v !== "")
-    .map(([k, v]) => `${k}=${v}`)
-    .join(", ");
+const CATEGORY_DISPLAY = {
+  mer: "Mer",
+  nature: "Nature",
+  culture: "Culture",
+  gastronomie: "Gastronomie",
+  detente: "Détente",
+  aventure: "Aventure",
+  nocturne: "Nocturne",
+  famille: "Famille",
+  transport: "Transport",
+  hebergement: "Hébergement",
+  autre: "Autre",
+};
 
-  return `${LANG_GUARD}
-
-Tu es un conseiller voyage expert et créatif pour Mon AiGENT Voyage. Un voyageur a exprimé une demande. Propose 3 IDÉES D'EXPÉRIENCES concrètes et réalistes (pas nécessairement dans le pool de la plateforme — des pistes générales adaptées à sa ville, son budget et son créneau), pour l'inspirer et affiner sa recherche.
-
-Demande connue : ${known || "peu d'informations, reste générique mais utile"}.
-
-Réponds UNIQUEMENT avec ce JSON strict (tableau de 3 objets), sans texte autour :
-{
-  "idees": [
-    { "titre": "string court", "description": "1-2 phrases concrètes", "budgetEstime": "string ex: 30-50€/pers", "categorie": "mer|nature|culture|gastronomie|detente|aventure|nocturne|famille" }
-  ]
-}`;
+function formatDistribution(distribution) {
+  return Object.entries(distribution)
+    .sort((a, b) => b[1].count - a[1].count)
+    .map(
+      ([cat, d]) =>
+        `${CATEGORY_DISPLAY[cat] || cat} : ${d.count} offre${d.count > 1 ? "s" : ""}${d.minPrice != null ? `, à partir de ${d.minPrice}€` : ""}`,
+    )
+    .join(" / ");
 }
 
-const FALLBACK_IDEAS = [
-  {
-    titre: "Balade en bord de mer ou de rivière",
-    description:
-      "Une marche ou un tour en petit bateau selon la ville, idéal pour un après-midi flexible sur le budget.",
-    budgetEstime: "10-30€/pers",
-    categorie: "nature",
-  },
-  {
-    titre: "Visite guidée du centre historique",
-    description:
-      "Une découverte culturelle à pied avec un guide local, adaptable à un petit groupe.",
-    budgetEstime: "15-25€/pers",
-    categorie: "culture",
-  },
-  {
-    titre: "Moment détente ou dégustation locale",
-    description:
-      "Un spa, un atelier culinaire ou une dégustation pour finir la journée en douceur.",
-    budgetEstime: "25-55€/pers",
-    categorie: "detente",
-  },
-];
+/** Message d'introduction à l'exploration — commente les VRAIS chiffres du
+ *  marché (calculés par le moteur), n'invente jamais d'offre. */
+export async function aiExploreIntro(role, sc, distribution) {
+  const isPrestataire = role === "prestataire";
+  const hasData = Object.keys(distribution).length > 0;
+  const dataLine = hasData
+    ? `Répartition réelle du marché actuel : ${formatDistribution(distribution)}.`
+    : "Aucune offre ne correspond encore au marché actuel avec les critères connus.";
 
-/** Génère 3 idées de voyage structurées, même en l'absence de résultats réels. */
-export async function generateTravelIdeas(demandCriteria) {
-  try {
-    const prompt = buildIdeasPrompt(demandCriteria);
-    const aiText = await callLLM(
-      [
-        { role: "system", content: prompt },
-        { role: "user", content: "Génère les idées." },
-      ],
-      450,
-      { expectJson: true },
-    );
-    const raw = aiText ? extractJSON(aiText) : null;
-    if (raw?.idees && Array.isArray(raw.idees) && raw.idees.length) {
-      return raw.idees.slice(0, 3);
-    }
-  } catch (e) {
-    console.warn("⚠️ [VOYAGE AI] Idées FAILED:", e?.message?.slice(0, 100));
-  }
-  return FALLBACK_IDEAS;
+  const prompt = `${LANG_GUARD}
+
+Tu es l'agent IA de Mon AiGENT Voyage, en train d'aider un ${isPrestataire ? "prestataire" : "voyageur"} à explorer le marché avant de se décider sur un type d'expérience précis.
+
+RÈGLE ABSOLUE : tu ne dois JAMAIS inventer une offre, un lieu, un prix ou un détail qui n'est pas dans les données ci-dessous. Tu commentes UNIQUEMENT ces chiffres réels.
+
+${dataLine}
+
+TÂCHE : en 2-3 phrases chaleureuses, présente ce que révèlent ces chiffres (ce qu'il y a le plus, les prix constatés), puis invite la personne à choisir un thème dans le sélecteur qui s'affiche juste après ton message. Ne pose pas de question fermée, ne liste pas de faux exemples.
+
+Réponds UNIQUEMENT avec le texte du message, sans JSON, sans préambule.`;
+
+  const aiText = await callLLM(
+    [
+      { role: "system", content: prompt },
+      { role: "user", content: "Présente le marché." },
+    ],
+    260,
+  );
+  if (aiText && !isUnusableOutput(aiText)) return { message: aiText.trim() };
+  return {
+    message: hasData
+      ? `Voici ce que le marché propose en ce moment : ${formatDistribution(distribution)}. Choisissez un thème ci-dessous pour affiner.`
+      : "Aucune offre ne correspond encore à vos critères actuels — choisissez un thème ci-dessous pour voir ce qui s'en rapproche le plus, ou ajustez votre budget/zone.",
+  };
+}
+
+/** Commentaire sur un aperçu réel de matches pour une catégorie choisie —
+ *  toujours basé sur les résultats fournis par le moteur, jamais inventé. */
+export async function aiExplorePick(role, sc, categorie, matches) {
+  const isPrestataire = role === "prestataire";
+  const top = (matches || []).slice(0, 5);
+  const label = CATEGORY_DISPLAY[categorie] || categorie;
+
+  const prompt = `${LANG_GUARD}
+
+Tu es l'agent IA de Mon AiGENT Voyage. La personne explore le thème "${label}".
+
+RÉSULTATS RÉELS DU MOTEUR (${top.length}) — n'invente rien au-delà :
+${JSON.stringify(top, null, 2)}
+
+TÂCHE : en 2-3 phrases, commente honnêtement ce que tu vois (rien si la liste est vide — dis-le simplement), et si les résultats semblent vraiment correspondre à l'envie de la personne, propose-lui explicitement de confirmer ce type d'expérience pour poursuivre vers la publication. Sinon, encourage-la à essayer un autre thème.
+
+Réponds UNIQUEMENT avec le texte du message, sans JSON, sans préambule.`;
+
+  const aiText = await callLLM(
+    [
+      { role: "system", content: prompt },
+      { role: "user", content: "Commente cet aperçu." },
+    ],
+    220,
+  );
+  if (aiText && !isUnusableOutput(aiText)) return { message: aiText.trim() };
+  return {
+    message: top.length
+      ? `${top.length} offre${top.length > 1 ? "s" : ""} correspondent au thème "${label}". Si ça vous convient, confirmez ce type d'expérience pour continuer.`
+      : `Aucune offre "${label}" ne correspond encore à vos critères actuels. Essayez un autre thème, ou ajustez votre budget.`,
+  };
 }
 
 /* ════════════════════════════════════════════════════════════════════════

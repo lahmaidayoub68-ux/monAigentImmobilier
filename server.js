@@ -24,6 +24,7 @@ import { createHmac } from "crypto";
 import occasRoutes from "./server-occas.js";
 import emploiRoutes from "./server-emploi.js";
 import voyageRoutes from "./server-voyage.js";
+import aigentRoutes from "./server-aigent.js";
 const HOST = "0.0.0.0";
 import {
   addBuyer,
@@ -476,6 +477,7 @@ app.use("/leaflet", express.static(path.join(__dirname, "public/leaflet")));
 app.use(occasRoutes);
 app.use(emploiRoutes);
 app.use(voyageRoutes);
+app.use(aigentRoutes);
 // ================== RATE LIMIT UNIQUEMENT POUR API ==================
 const apiLimiter = rateLimit({
   windowMs: 60_000,

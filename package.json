@@ -50,6 +50,7 @@
     "gsap": "^3.14.2",
     "helmet": "^8.1.0",
     "http": "^0.0.1-security",
+    "jose": "^6.2.12",
     "jsonwebtoken": "^9.0.3",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",

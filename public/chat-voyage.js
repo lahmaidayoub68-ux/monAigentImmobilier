@@ -705,11 +705,15 @@ function handleResponse(data) {
 
   updatePanel();
 
-  if (data.matches) renderMatches(data.matches);
+  if (data.actionType !== "explore_pick" && data.matches)
+    renderMatches(data.matches);
   if (data.pricing !== undefined)
     renderPricing(data.pricing, data.pricingExplanation);
-  if (data.ideas) renderIdeas(data.ideas);
   if (data.postReply) addMessage(data.postReply, "assistant", { typing: true });
+  if (data.exploreDistribution)
+    renderExploreDistribution(data.exploreDistribution);
+  if (data.actionType === "explore_pick")
+    renderExplorePreview(data.matches, data.previewCategorie);
 
   if (data.actionType === "reserve_done") {
     renderReserveConfirmation(data.messageSent, data.contactInfo);
@@ -797,9 +801,20 @@ function updatePanel() {
         fieldRow(
           ICON.tag,
           "Type d'expérience",
-          c.categorie ? CATEGORY_LABELS[c.categorie] || c.categorie : null,
+          c.categorie
+            ? [
+                CATEGORY_LABELS[c.categorie] || c.categorie,
+                c.categorieSousTheme,
+              ]
+                .filter(Boolean)
+                .join(" · ")
+            : null,
         ),
-        fieldRow(ICON.spark, "Préférences", c.preferences),
+        fieldRow(
+          ICON.spark,
+          "Préférences",
+          c.preferencesConfirmed ? c.preferences || "Aucune" : null,
+        ),
       ];
 
   panel.innerHTML = rows.join("");
@@ -980,29 +995,81 @@ function renderPricing(pricing, explanation) {
     ${explanation ? `<p class="pricing-explain">${esc(explanation)}</p>` : ""}`;
 }
 
-function renderIdeas(ideas) {
-  if (!ideas?.length) return;
+// Distribution RÉELLE du marché — comptes calculés par le moteur, jamais
+// inventés. Chaque tuile est cliquable pour prévisualiser les vraies offres.
+function renderExploreDistribution(distribution) {
   clearEmptyState();
   const box = $("conversation");
   const row = document.createElement("div");
   row.className = "msg-row msg-assistant";
+  const entries = Object.entries(distribution || {}).sort(
+    (a, b) => b[1].count - a[1].count,
+  );
+
+  if (!entries.length) {
+    row.innerHTML = `
+      <div class="assistant-avatar">${LOGO_SVG}</div>
+      <div class="opp-empty">
+        <span class="opp-empty-icon">${ICON.compass}</span>
+        <p>Aucune offre ne correspond encore à vos critères actuels sur le marché.</p>
+      </div>`;
+    box.appendChild(row);
+    scrollBottom(box);
+    return;
+  }
+
   row.innerHTML = `
     <div class="assistant-avatar">${LOGO_SVG}</div>
-    <div class="ideas-grid">
-      ${ideas
-        .map(
-          (idea) => `
-        <div class="idea-card">
-          <span class="idea-tag">${CATEGORY_LABELS[idea.categorie] || idea.categorie || "Idée"}</span>
-          <h5>${esc(idea.titre)}</h5>
-          <p>${esc(idea.description)}</p>
-          <span class="idea-budget">${esc(idea.budgetEstime || "")}</span>
-        </div>`,
-        )
+    <div class="cat-grid explore-grid">
+      ${entries
+        .map(([cat, d]) => {
+          const meta = CATEGORY_META[cat] || CATEGORY_META.detente;
+          return `
+          <button type="button" class="cat-tile explore-tile" data-cat="${esc(cat)}" style="--tile-color:${meta.color}">
+            <span class="cat-tile-icon">${meta.icon}</span>
+            <span class="cat-tile-label">${esc(meta.label)}</span>
+            <span class="explore-tile-count">${d.count} offre${d.count > 1 ? "s" : ""}${d.minPrice != null ? ` · dès ${d.minPrice}€` : ""}</span>
+          </button>`;
+        })
         .join("")}
     </div>`;
   box.appendChild(row);
   scrollBottom(box);
+
+  row.querySelectorAll(".explore-tile").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      sendSpecial({ message: `__ACTION_EXPLORE_PICK__:${btn.dataset.cat}` });
+    });
+  });
+}
+
+// Aperçu réel pour une catégorie choisie pendant l'exploration, avec un
+// bouton pour confirmer officiellement (reprend la séquence normale).
+function renderExplorePreview(matches, categorie) {
+  renderMatches(matches);
+  clearEmptyState();
+  const box = $("conversation");
+  const row = document.createElement("div");
+  row.className = "msg-row msg-assistant";
+  const label = CATEGORY_LABELS[categorie] || categorie;
+  row.innerHTML = `
+    <div class="assistant-avatar">${LOGO_SVG}</div>
+    <div class="confirm-card explore-confirm">
+      <span class="confirm-icon">${ICON.check}</span>
+      <div>
+        <strong>Confirmer "${esc(label)}" ?</strong>
+        <p>Cela reprend votre recherche avec ce type d'expérience.</p>
+      </div>
+      <button type="button" class="opp-btn-primary" id="explore-confirm-btn">Confirmer</button>
+    </div>`;
+  box.appendChild(row);
+  scrollBottom(box);
+  row.querySelector("#explore-confirm-btn").addEventListener("click", () => {
+    sendSpecial({
+      message: "__CRITERIA_UPDATE__",
+      updatedCriteria: { categorie },
+    });
+  });
 }
 
 function renderReserveConfirmation(sent, contact) {
@@ -1381,11 +1448,11 @@ function wireCategoryModal(overlay, path, hint) {
 
 function finalizeCategory(categorie, sousTheme) {
   closeModal();
+  // IMPORTANT : ne jamais injecter "preferences" ici — cela contournerait
+  // le pop-up préférences dédié, qui reste la seule source de vérité.
+  // Le sous-thème est conservé à part, purement informatif/pré-suggestion.
   const updatedCriteria = { categorie };
-  if (sousTheme) {
-    const prev = state.criteria?.preferences || "";
-    updatedCriteria.preferences = prev ? `${prev}, ${sousTheme}` : sousTheme;
-  }
+  if (sousTheme) updatedCriteria.categorieSousTheme = sousTheme;
   sendSpecial({ message: "__CRITERIA_UPDATE__", updatedCriteria });
 }
 
@@ -1799,7 +1866,7 @@ async function boot() {
 
   $("btn-new-search")?.addEventListener("click", newSearch);
   $("btn-ideas")?.addEventListener("click", () =>
-    sendSpecial({ message: "__ACTION_IDEAS__" }),
+    sendSpecial({ message: "__ACTION_EXPLORE__" }),
   );
   // Seul point d'entrée pour éditer les critères, y compris pour rouvrir
   // les pop-ups categorie/préférences : le crayon dans l'en-tête du panel.

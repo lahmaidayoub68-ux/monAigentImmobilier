@@ -48,14 +48,14 @@ import {
 import {
   extractCriteria,
   generateConfirmation,
-  generateTravelIdeas,
   explainPricing,
   detectResultsIntent,
   aiResultsChat,
   generateReservationMessage,
+  aiExploreIntro,
+  aiExplorePick,
   CATEGORIES_EXPERIENCE,
 } from "./services/aiParseeVoyage.js";
-
 dotenv.config();
 
 const VOYAGE_JWT_SECRET =
@@ -684,7 +684,10 @@ async function buildSequentialPayload(role, sc, username, alreadyPublished) {
     triggerCategoriePopup: popup === "categorie",
     triggerPreferencesPopup: popup === "preferences",
     categorieHint: sc.categorieHint || null,
-    preferencesHint: sc.preferencesHint || null,
+    // Le sous-thème choisi dans le pop-up catégorie sert de suggestion
+    // pré-cochée dans le pop-up préférences suivant — jamais une valeur
+    // confirmée automatiquement.
+    preferencesHint: sc.preferencesHint || sc.categorieSousTheme || null,
     triggerPublishPopup: !alreadyPublished && !nextField,
   };
 }
@@ -774,6 +777,41 @@ async function computeLiveMatches(role, sc, username) {
   return getMatchesForOffer(sc, pool, { limit: 8 });
 }
 
+/** Distribution RÉELLE des offres/demandes du marché par catégorie, en
+ *  ignorant temporairement le critère catégorie (pas encore connu) mais en
+ *  respectant tout le reste (ville, date, budget...). Aucune valeur n'est
+ *  inventée : chaque chiffre vient du moteur déterministe. */
+async function computeCategoryDistribution(role, sc, username) {
+  const scWithoutCategorie = { ...sc };
+  delete scWithoutCategorie.categorie;
+
+  const allMatches =
+    role === "voyageur"
+      ? getMatchesForDemand(scWithoutCategorie, await getOffersPool(username), {
+          limit: 200,
+        })
+      : getMatchesForOffer(
+          scWithoutCategorie,
+          await getDemandesPool(username),
+          { limit: 200 },
+        );
+
+  const byCategorie = {};
+  for (const m of allMatches) {
+    const cat = m.categorie || "autre";
+    if (!byCategorie[cat]) byCategorie[cat] = { count: 0, minPrice: null };
+    byCategorie[cat].count += 1;
+    const price = m.prixRecommande ?? m.prixHabituel ?? m.budgetTotal ?? null;
+    if (
+      price != null &&
+      (byCategorie[cat].minPrice == null || price < byCategorie[cat].minPrice)
+    ) {
+      byCategorie[cat].minPrice = price;
+    }
+  }
+  return byCategorie;
+}
+
 router.post("/api/voyage/chat", authenticateVoyageToken, async (req, res) => {
   try {
     const username = req.user.username;
@@ -788,18 +826,31 @@ router.post("/api/voyage/chat", authenticateVoyageToken, async (req, res) => {
     /* ---------- Commandes spéciales (issues des pop-ups du front) ---------- */
 
     if (message === "__PUBLISH_CONFIRMED__") {
+      // Garde-fou déterministe : on NE PUBLIE JAMAIS sans confirmation
+      // explicite des deux champs gardés, même si le front pense pouvoir
+      // sauter l'étape.
+      if (!sc.categorieConfirmed || !sc.preferencesConfirmed) {
+        return res.json({
+          success: true,
+          ...(await buildSequentialPayload(role, sc, username, false)),
+        });
+      }
+
       const { categorieHint, preferencesHint, ...cleanSc } = sc;
       sc = cleanSc;
+
       profile = await saveProfile(username, {
         criteria: sc,
         publishedCriteria: sc,
         phase: "results",
         published: true,
       });
+
       try {
         const userRow = await db
           .prepare(`SELECT id FROM users_voyage WHERE username=$1`)
           .get(username);
+
         if (userRow) {
           await db
             .prepare(
@@ -827,11 +878,6 @@ router.post("/api/voyage/chat", authenticateVoyageToken, async (req, res) => {
         sc,
         { role, matchingOffers: matches },
       );
-
-      let ideas = null;
-      if (role === "voyageur" && matches.length === 0) {
-        ideas = await generateTravelIdeas(sc);
-      }
 
       return res.json({
         success: true,
@@ -915,15 +961,42 @@ router.post("/api/voyage/chat", authenticateVoyageToken, async (req, res) => {
       });
     }
 
-    if (message.startsWith("__ACTION_IDEAS__")) {
-      const ideas = await generateTravelIdeas(sc);
+    if (message.startsWith("__ACTION_EXPLORE__")) {
+      const distribution = await computeCategoryDistribution(
+        role,
+        sc,
+        username,
+      );
+      const { message: guideText } = await aiExploreIntro(
+        role,
+        sc,
+        distribution,
+      );
       return res.json({
         success: true,
         phase,
         criteria: sc,
-        ideas,
         reply: null,
-        actionType: "ideas",
+        postReply: guideText,
+        exploreDistribution: distribution,
+        actionType: "explore",
+      });
+    }
+
+    if (message.startsWith("__ACTION_EXPLORE_PICK__:")) {
+      const cat = message.split(":")[1];
+      const previewSc = { ...sc, categorie: cat };
+      const matches = await computeLiveMatches(role, previewSc, username);
+      const { message: pickText } = await aiExplorePick(role, sc, cat, matches);
+      return res.json({
+        success: true,
+        phase,
+        criteria: sc,
+        matches,
+        reply: null,
+        postReply: pickText,
+        actionType: "explore_pick",
+        previewCategorie: cat,
       });
     }
 
