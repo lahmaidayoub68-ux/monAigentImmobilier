@@ -976,24 +976,27 @@
         color: var(--text-faint);
       }
       .send-btn {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
         border: none;
-        background: var(--primary-gradient);
+        background: transparent;
+        color: var(--text-muted);
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
-        transition: 0.2s;
+        transition: background 0.16s ease, color 0.16s ease, transform 0.12s ease;
         flex-shrink: 0;
         align-self: flex-end;
       }
       .send-btn:hover {
-        transform: scale(1.06);
-        box-shadow: 0 6px 24px rgba(124, 58, 237, 0.4);
+        background: var(--bg-hover);
+        color: var(--purple, #8b5cf6);
       }
+      .send-btn:active:not(:disabled) { transform: scale(0.92); }
+      .send-btn:focus-visible { outline: 2px solid var(--purple, #8b5cf6); outline-offset: 2px; }
+      .send-btn svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 1.8; }
 
       .attach-row {
         display: flex;
@@ -2770,8 +2773,8 @@
           min-height: 22px;
         }
         .send-btn {
-          width: 40px;
-          height: 40px;
+          width: 36px;
+          height: 36px;
         }
         .attach-row {
           gap: 2px;
@@ -4591,7 +4594,10 @@
           display: contents;
         }
       }
+      .chat-attachment-strip{display:flex;flex-wrap:wrap;gap:7px;padding:8px 12px 0}.chat-attachment-strip[hidden]{display:none}.chat-attachment-chip{display:inline-flex;align-items:center;gap:8px;max-width:min(100%,260px);padding:5px 7px 5px 10px;border:1px solid rgba(128,138,154,.35);border-radius:999px;background:rgba(128,138,154,.09);font-size:12px}.chat-attachment-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chat-attachment-remove{display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:17px;line-height:1;cursor:pointer}.chat-attachment-remove:hover{background:rgba(128,138,154,.18)}
+
     </style>
+
   </head>
 
   <body data-favicon="immo">
@@ -5030,14 +5036,13 @@
                   class="send-btn"
                   id="send-btn"
                   title="Envoyer"
+                  aria-label="Envoyer"
                 >
                   <svg
-                    width="18"
-                    height="18"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="white"
-                    stroke-width="2.5"
+                    stroke="currentColor"
+                    stroke-width="1.8"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                   >

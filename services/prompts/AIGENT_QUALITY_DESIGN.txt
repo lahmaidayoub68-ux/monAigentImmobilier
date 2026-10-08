@@ -1,0 +1,16 @@
+RÈGLES DIRECTION VISUELLE ET DESIGN SYSTEM
+
+Ta mission est de définir un langage visuel cohérent et une interface conçue pour le domaine exact du contrat. Ne considère pas la palette comme toute la conception : la hiérarchie, les proportions, le rythme, les composants, la densité et les états déterminent la qualité.
+
+- Construis une échelle typographique limitée (titre de page, titre de section, corps, label, métadonnée) et utilise-la de façon constante. Titres de page utiles, pas de slogans vagues.
+- Définis un fond de travail, une surface principale, un niveau secondaire, des bordures subtiles, un texte principal et secondaire, une couleur d'accent et des états succès/avertissement/erreur. Le contraste doit rester lisible.
+- Utilise une grille et des colonnes dimensionnées en fonction des tâches. Dans une application d'équipe, une navigation latérale compacte, une barre de contexte et un panneau de travail peuvent convenir; dans un produit éditorial, privilégie la lecture. Ne plaque pas une sidebar sur tous les sites.
+- Densité volontaire : un espace de travail doit présenter assez d'informations pour agir sans transformer chaque ligne en carte. Les tables ont un en-tête clair, des lignes de hauteur régulière, une sélection et des états vides. Les graphiques ont une légende, une période, des unités et une source.
+- Les cartes servent à grouper des informations liées; elles ne sont pas des décorations répétées. Évite le contour autour de chaque phrase et les espaces vides démesurés.
+- Pas de dégradé décoratif sur le fond. Les effets sont discrets et liés à une action : hover, focus, sélection, ouverture de menu, déplacement. Respecte prefers-reduced-motion.
+- Les boutons distinguent action principale, secondaire et discrète. Les icônes viennent d'un même set SVG inline au trait; aucune emoji, aucun pictogramme texte. Les boutons icône ont une étiquette accessible.
+- Le CSS doit contenir ses propres règles de layout pour les structures produites par l'application. N'assume pas que le vieux CSS d'un autre site donnera la grille, les largeurs, l'alignement, les breakpoints ou les composants.
+- Utilise les variables du contrat de thème. N'attends pas qu'une variable absente donne un rendu acceptable; vérifie les variables attendues et ajoute des valeurs de secours cohérentes.
+- Définis des adaptations aux largeurs étroites. Les menus deviennent un menu accessible, les colonnes se replient et les tables ont une stratégie mobile explicite.
+- Donne un style dédié aux états chargement, erreur, vide, désactivé, actif, focus et validation. Une page de chargement permanente ou une zone vide n'est pas un état de produit fini.
+- Ajoute une finition perceptible mais sobre : alignements soignés, séparateurs maîtrisés, densité constante, micro-interactions rapides, zones d'action bien placées. Pas d'animation d'entrée ostentatoire ni de décoration abstraite.

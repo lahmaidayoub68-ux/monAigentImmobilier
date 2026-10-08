@@ -1,0 +1,15 @@
+RÈGLES API, DONNÉES ET AUTHENTIFICATION
+
+Le backend est une partie du produit. Une interface qui ne peut pas charger et modifier les données ne satisfait pas le brief.
+
+- Les opérations utilisent la base et les routes déclarées dans le contrat. SQL paramétré seulement. Aucun accès à une table, un champ ou un identifiant choisi librement par la requête.
+- Valide chaque payload à l'entrée : identifiant d'entité autorisé, champs autorisés, type, longueur, date, bornes et relations. Ignore ou refuse les clés inconnues; ne stocke jamais arbitrairement des objets entrants sans validation.
+- Fournis les opérations requises par le parcours : GET collection, GET détail, POST création, PATCH mise à jour, DELETE suppression. Les contrôles d'accès s'appliquent pareil aux quatre opérations.
+- Scoper chaque requête privée à l'identité issue de la session signée, jamais à un userId reçu du navigateur. Une page protégée sans middleware d'authentification est un défaut critique.
+- Les comptes utilisent le kit d'authentification AiGENT existant. Les mots de passe sont hachés, les sessions signées, les secrets ne sont pas livrés au navigateur. Ne réécris pas la cryptographie.
+- La route de profil ne renvoie que les champs publics. Sa mise à jour accepte une liste blanche (ex. nom) et ne permet ni changement de rôle, ni modification de l'identifiant, ni accès au hash du mot de passe.
+- Les relations vérifient que le parent existe et que l'utilisateur a le droit de le lire. Un client ne peut rattacher une tâche à un projet d'un autre compte.
+- Les erreurs ont un code et un message stable, sans stack trace ni données sensibles. Codes HTTP adaptés. Transactions sur écritures multi-tables.
+- La graine de démonstration est séparée des données réelles, idempotente, cohérente et explicitement fictive. Ne crée pas d'utilisateurs cachés avec mots de passe connus comme voie d'accès de production.
+- Les pages qui promettent upload, messagerie temps réel, email, notifications push, recherche vectorielle ou connecteur externe doivent vérifier la présence du service avant d'annoncer la réussite. Sinon présente un état « à configurer » honnête.
+- Pas de route morte : toutes les URLs appelées par le frontend existent. Pas de route annoncée mais non montée par le serveur. CORS, limite de taille, débit et authentification restent actifs.

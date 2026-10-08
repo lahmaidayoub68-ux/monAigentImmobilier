@@ -377,6 +377,17 @@
           border-color 0.18s var(--ease),
           box-shadow 0.18s var(--ease);
       }
+      .field input:-webkit-autofill,
+      .field input:-webkit-autofill:hover,
+      .field input:-webkit-autofill:focus,
+      .field input:autofill {
+        -webkit-text-fill-color: #211b32 !important;
+        caret-color: #211b32;
+        background-color: #eeeaff !important;
+        -webkit-box-shadow: 0 0 0 1000px #eeeaff inset !important;
+        box-shadow: 0 0 0 1000px #eeeaff inset !important;
+        border-color: rgba(169, 155, 255, 0.68) !important;
+      }
       .field input::placeholder {
         color: var(--dim);
       }
@@ -778,7 +789,7 @@
     <div class="page">
       <header>
         <a class="logo" href="./index.html" aria-label="Mon AiGENT"
-          ><img src="./images/aigent.ico" alt="" />Mon AiGENT</a
+          ><img src="./images/aigent.png" alt="" />Mon AiGENT</a
         >
         <nav aria-label="Navigation">
           <a href="./index.html#concept">Le concept</a
@@ -1103,7 +1114,7 @@
 
     <script type="module">
       const TOKEN = "aigent_token",
-        NEXT = "./aigent.html",
+        NEXT = "./aigent-chat.html",
         REMEMBER = "aigent_identifier";
       const $ = (s) => document.querySelector(s);
       const $$ = (s) => [...document.querySelectorAll(s)];

@@ -1,0 +1,31 @@
+RÈGLES APPLICATION FRONTEND
+
+Tu écris un vrai client métier, pas une capture statique.
+
+BOOT ET ROUTAGE
+- Le HTML contient le point d'entrée #app. Monte l'application dedans au démarrage, immédiatement avec un état de chargement, et affiche une erreur utile en cas d'échec.
+- Le menu correspond aux pages du contrat. Chaque destination a un titre de page, un état actif et un contenu qui lui appartient. Les liens, boutons retour, liens profonds et rafraîchissements de route fonctionnent.
+- Une application privée commence par une vraie vue connexion/inscription quand aucune session n'existe. Appelle les endpoints d'authentification définis; charge /api/auth/me après connexion, protège les pages privées et offre une déconnexion.
+- Le profil charge les données de /api/auth/me, propose les modifications prévues par l'API et affiche les erreurs serveur. Aucun nom, rôle, email ou avatar codé en dur.
+
+DONNÉES ET INTERACTIONS
+- Au montage, charge chaque entité nécessaire depuis sa route contractuelle. Affiche les données reçues; calcule les badges et KPI à partir des résultats. La liste ne doit pas être écrite directement dans le code.
+- Les formulaires utilisent les champs, contraintes et labels du contrat. Ils valident côté client pour l'ergonomie et traitent aussi les réponses 400, 401, 403, 404 et 500.
+- Créer, modifier, supprimer, rechercher, filtrer ou changer l'état appelle une route correspondante. Affiche succès ou erreur et rafraîchis les données depuis la source de vérité après l'écriture.
+- Confirme les suppressions et les actions importantes. Évite les mises à jour optimistes impossibles à annuler.
+- Les données liées affichent une navigation vers leur contexte : projet associé, responsable, document source, réunion ou décision. Les liens ne sont pas des libellés décoratifs.
+- Évite une page par défaut qui ne fait qu'afficher le nom du projet, un texte court et des KPIs codés en dur.
+
+DOM ET SÉCURITÉ
+- DOM natif : createElement, textContent, append/replaceChildren. N'utilise pas innerHTML, document.write, eval, new Function, scripts distants, CDN, ressources réseau non déclarées ou imports dynamiques.
+- Échappe et borne toute entrée. Ne place pas des réponses utilisateur dans un attribut ou une URL non encodés.
+- Icônes SVG inline avec titre/aria-hidden adapté; aucune emoji ni symbole Unicode décoratif.
+- Utilise des labels associés, boutons natifs, navigation au clavier, focus visible, régions aria-live pour retours et aria-current pour la page active.
+- Pas d'action qui n'a qu'un changement visuel sans persistance, pas de toast de succès en cas d'échec HTTP, pas de données locales présentées comme sauvegardées côté serveur.
+
+FINITION
+- Produit des composants spécialisés par page, mais partage les éléments de navigation, boutons, formulaires, badges et tableaux.
+- Le premier écran montre le prochain travail utile dans le domaine, pas un grand texte publicitaire suivi de cartes vides.
+- Prévois données réelles, chargement, erreur, vide et action de création pour chaque page de liste.
+- Les formats de date, monnaie, nombre et fuseau sont adaptés à la langue. Pas de données de démo périmées.
+- Toutes les largeurs, tabulations et formes respectent le design system. Teste chaque route conceptuellement contre le contrat avant de répondre.

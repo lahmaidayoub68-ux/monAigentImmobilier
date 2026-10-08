@@ -413,10 +413,25 @@ export function extractJSON(text) {
 
 /** Rejette les sorties inexploitables (raisonnement brut, méta-commentaire,
  *  verdicts de classifieurs de modération, anglais, JSON non demandé…). */
-function isUnusableOutput(text, { expectJson = false, maxChars = 900 } = {}) {
+function isUnusableOutput(
+  text,
+  { expectJson = false, expectCode = false, maxChars = 900, profile = "" } = {},
+) {
   if (!text || !text.trim()) return true;
+  // Le code source est validé par aigentCodegen.js après réception. Les
+  // filtres de prose ne doivent ni couper sa longueur ni forcer du JSON.
+  if (expectCode) return false;
   const t = text.toLowerCase();
-  if (!expectJson && text.length > maxChars) return true;
+  // Les réponses du Chat sont volontairement plus longues et peuvent contenir
+  // un bloc de livrable [[AIGENT_DATA]] en JSON. Le filtre court était conçu
+  // pour les réponses de classification, pas pour une conversation.
+  const conversational =
+    profile === "chat" || profile === "deep" || profile === "fast";
+  if (
+    !expectJson &&
+    text.length > (conversational ? Math.max(maxChars, 16000) : maxChars)
+  )
+    return true;
   if (!expectJson && text.trim().split(/\s+/).length < 3) return true;
   const meta = [
     /\btu es un\b/,
@@ -434,14 +449,28 @@ function isUnusableOutput(text, { expectJson = false, maxChars = 900 } = {}) {
     /\bmoderation (result|verdict|flag)\b/i,
     /\bpolicy violation\b/i,
   ];
-  if (meta.some((re) => re.test(t))) return true;
-  if (!expectJson && /[{}]/.test(text)) return true;
+  // APRÈS
+  // En conversation, « tu es un… » ou « let me » sont des phrases légitimes : on ne filtre que les vraies fuites.
+  const leaks = [
+    /<think/i,
+    /^\s*(safe|unsafe)\s*[:.]?\s*$/i,
+    /\bmoderation (result|verdict|flag)\b/i,
+    /\bpolicy violation\b/i,
+  ];
+  if (
+    (conversational ? leaks : meta).some((re) =>
+      re.test(conversational ? text : t),
+    )
+  )
+    return true;
+  if (!expectJson && !conversational && /[{}]/.test(text)) return true;
   const englishTells = (
     t.match(
       /\b(the|here|where|every|this|should|would|i am|as an|okay|please note)\b/g,
     ) || []
   ).length;
-  if (englishTells >= 3) return true;
+  // APRÈS
+  if (!conversational && englishTells >= 3) return true;
   return false;
 }
 
@@ -541,7 +570,7 @@ async function getOpenRouterFreeModels(opts = {}) {
     })
     .filter((m) => openRouterPriority(m, opts) >= 0)
     .sort((a, b) => openRouterPriority(b, opts) - openRouterPriority(a, opts))
-    .slice(0, 6);
+    .slice(0, 12);
   orCache = models;
   orCacheAt = Date.now();
   return models;
@@ -560,6 +589,49 @@ async function callOpenRouter(messages, o) {
     );
     return null;
   }
+  if (!models.length) {
+    console.warn(
+      "[AiGENT AI] OpenRouter : aucun modèle texte explicitement gratuit au catalogue.",
+    );
+    return null;
+  }
+
+  const tested = await Promise.all(
+    models.map(async (model) => {
+      const healthy = await pingModel(
+        `openrouter:${model.id}`,
+        async (msgs, opts) => {
+          const result = await fetchJSON(
+            `${OPENROUTER_API_URL}/chat/completions`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: model.id,
+                messages: msgs,
+                max_tokens: opts.maxTokens,
+                temperature: 0,
+              }),
+            },
+            opts.timeoutMs,
+          );
+          if (!result.ok)
+            throw Object.assign(new Error(`HTTP ${result.status}`), {
+              status: result.status,
+            });
+          return result.data?.choices?.[0]?.message?.content?.trim() || "";
+        },
+      );
+      return healthy ? model : null;
+    }),
+  );
+  models = tested.filter(Boolean);
+  console.info(
+    `[AiGENT AI] OpenRouter : ${models.length} modèles gratuits testés et disponibles.`,
+  );
   if (!models.length) return null;
 
   for (const model of models.slice(0, o.maxModelTries || 3)) {
@@ -586,6 +658,10 @@ async function callOpenRouter(messages, o) {
       );
       if (!ok) {
         console.warn(`⚠️ [AiGENT AI] OpenRouter ${model.id}: HTTP ${status}`);
+        MODEL_HEALTH.set(`openrouter:${model.id}`, {
+          ok: false,
+          checkedAt: Date.now(),
+        });
         continue;
       }
       const text = data?.choices?.[0]?.message?.content?.trim() || "";
@@ -593,10 +669,230 @@ async function callOpenRouter(messages, o) {
         console.log(`✅ [AiGENT AI] OpenRouter OK (${model.id})`);
         return text;
       }
+      MODEL_HEALTH.set(`openrouter:${model.id}`, {
+        ok: false,
+        checkedAt: Date.now(),
+      });
+      console.warn(
+        `[AiGENT AI] OpenRouter ${model.id} : réponse vide ou rejetée par le filtre de sortie.`,
+      );
     } catch (e) {
       console.warn(
         `⚠️ [AiGENT AI] OpenRouter ${model.id} FAILED:`,
         e.message?.slice(0, 80),
+      );
+    }
+  }
+  return null;
+}
+
+/* ─── Pollinations : catalogue vivant + qualification des modèles gratuits ─── */
+const POLLINATIONS_URL = "https://gen.pollinations.ai";
+let pollinationsCatalog = null;
+let pollinationsCatalogAt = 0;
+let pollinationsWorking = null;
+let pollinationsWorkingAt = 0;
+const POLLINATIONS_TTL = 5 * 60 * 1000;
+const POLLINATIONS_MAX_TESTS = 12;
+
+function pollinationsPricing(model) {
+  const pricing = model?.pricing || {};
+  return {
+    prompt: Number(pricing.promptTextTokens ?? NaN),
+    completion: Number(pricing.completionTextTokens ?? NaN),
+  };
+}
+
+function pollinationsClassify(model) {
+  const id = String(model?.id ?? model?.name ?? "").toLowerCase();
+  const { prompt, completion } = pollinationsPricing(model);
+  if (prompt === 0 || completion === 0) return "free";
+  if (/:free$|-free(?:$|[-_])|_free(?:$|[-_])|\/free(?:$|[-_])/.test(id))
+    return "candidate";
+  if (!Number.isFinite(prompt) && !Number.isFinite(completion))
+    return "unknown";
+  if (prompt <= 0.000001 && completion <= 0.000003) return "cheap";
+  return "paid";
+}
+
+function pollinationsPriority(model) {
+  const id = String(model?.id ?? model?.name ?? "").toLowerCase();
+  const capabilities = [
+    model?.description,
+    model?.type,
+    ...(model?.input_modalities || []),
+    ...(model?.output_modalities || []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (
+    /(embedding|tts|transcrib|whisper|realtime|audio|voice|speech|image|flux|video|3d|moderation)/.test(
+      `${id} ${capabilities}`,
+    )
+  )
+    return -1;
+  if (/gpt-oss-120b/.test(id)) return 110;
+  if (/gpt-oss-20b/.test(id)) return 101;
+  if (
+    /(deepseek.*(v3|coder)|qwen.*(coder|72b|110b)|llama.*70b|nemotron.*(70b|120b)|command-r-plus|mistral-large)/.test(
+      id,
+    )
+  )
+    return 100;
+  if (
+    /(qwen.*32b|llama.*(32b|3\.3)|mistral-small|command-r|glm.*(4|9b))/.test(id)
+  )
+    return 80;
+  if (/(qwen|llama|mistral|gemma|phi|granite|aya|deepseek)/.test(id)) return 60;
+  return 30;
+}
+
+function selectPollinationsModels(models) {
+  const candidates = (Array.isArray(models) ? models : [])
+    .filter((model) => pollinationsPriority(model) >= 0)
+    .filter((model) =>
+      ["free", "candidate", "cheap"].includes(pollinationsClassify(model)),
+    )
+    .sort((a, b) => {
+      return (
+        pollinationsPriority(b) - pollinationsPriority(a) ||
+        { free: 3, candidate: 2, cheap: 1 }[pollinationsClassify(b)] -
+          { free: 3, candidate: 2, cheap: 1 }[pollinationsClassify(a)]
+      );
+    });
+  return candidates
+    .filter(
+      (model, index, all) =>
+        all.findIndex(
+          (other) => (other.id ?? other.name) === (model.id ?? model.name),
+        ) === index,
+    )
+    .slice(0, POLLINATIONS_MAX_TESTS);
+}
+
+async function getPollinationsCatalog() {
+  if (
+    pollinationsCatalog &&
+    Date.now() - pollinationsCatalogAt < POLLINATIONS_TTL
+  )
+    return pollinationsCatalog;
+  const key = process.env.POLLINATIONS_API_KEY;
+  if (!key) return [];
+  const { ok, status, data } = await fetchJSON(
+    `${POLLINATIONS_URL}/text/models`,
+    {
+      headers: { Authorization: `Bearer ${key}`, Accept: "application/json" },
+    },
+    12000,
+  );
+  if (!ok) throw new Error(data?.error?.message || `HTTP ${status}`);
+  pollinationsCatalog = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.data)
+      ? data.data
+      : [];
+  pollinationsCatalogAt = Date.now();
+  return pollinationsCatalog;
+}
+
+async function pollinationsCompletion(model, messages, opts, key) {
+  const { ok, status, data } = await fetchJSON(
+    `${POLLINATIONS_URL}/v1/chat/completions`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        max_tokens: opts.maxTokens,
+        temperature: opts.temperature,
+        ...(opts.expectJson
+          ? { response_format: { type: "json_object" } }
+          : {}),
+      }),
+    },
+    opts.timeoutMs,
+  );
+  if (!ok)
+    throw Object.assign(new Error(data?.error?.message || `HTTP ${status}`), {
+      status,
+    });
+  const content =
+    data?.choices?.[0]?.message?.content ?? data?.choices?.[0]?.text ?? "";
+  return Array.isArray(content)
+    ? content
+        .filter((part) => part?.type === "text")
+        .map((part) => part.text)
+        .join("\n")
+        .trim()
+    : String(content).trim();
+}
+
+async function getPollinationsWorkingModels() {
+  if (
+    pollinationsWorking &&
+    Date.now() - pollinationsWorkingAt < POLLINATIONS_TTL
+  )
+    return pollinationsWorking;
+  const key = process.env.POLLINATIONS_API_KEY;
+  const candidates = selectPollinationsModels(await getPollinationsCatalog());
+  const tested = await Promise.all(
+    candidates.map(async (model) => {
+      const id = String(model.id ?? model.name);
+      const healthy = await pingModel(
+        `pollinations:${id}`,
+        (messages, opts) => pollinationsCompletion(id, messages, opts, key),
+        { ttl: POLLINATIONS_TTL },
+      );
+      return healthy ? model : null;
+    }),
+  );
+  pollinationsWorking = tested.filter(Boolean);
+  pollinationsWorkingAt = Date.now();
+  console.info(
+    `[AiGENT AI] Pollinations : ${pollinationsWorking.length}/${candidates.length} modèles candidats répondent.`,
+  );
+  return pollinationsWorking;
+}
+
+async function callPollinations(messages, o) {
+  const key = process.env.POLLINATIONS_API_KEY;
+  if (!key) return null;
+  let models;
+  try {
+    models = await getPollinationsWorkingModels();
+  } catch (error) {
+    console.warn(
+      "[AiGENT AI] Pollinations catalogue indisponible :",
+      error.message?.slice(0, 100),
+    );
+    return null;
+  }
+  for (const model of models.slice(0, o.maxModelTries || 3)) {
+    const id = String(model.id ?? model.name);
+    try {
+      const text = await withRetry(() =>
+        pollinationsCompletion(id, messages, o, key),
+      );
+      if (text && !isUnusableOutput(text, o)) {
+        console.info(`[AiGENT AI] Pollinations OK (${id})`);
+        return text;
+      }
+      console.warn(
+        `[AiGENT AI] Pollinations ${id} : réponse vide ou invalide.`,
+      );
+    } catch (error) {
+      MODEL_HEALTH.set(`pollinations:${id}`, {
+        ok: false,
+        checkedAt: Date.now(),
+      });
+      console.warn(
+        `[AiGENT AI] Pollinations ${id} échec HTTP ${error.status || "réseau"}.`,
       );
     }
   }
@@ -639,7 +935,7 @@ async function getGroqModels() {
   const models = (data?.data || [])
     .filter((m) => groqPriority(m) >= 0)
     .sort((a, b) => groqPriority(b) - groqPriority(a))
-    .slice(0, 5);
+    .slice(0, 12);
   groqCache = models;
   groqCacheAt = Date.now();
   return models;
@@ -648,6 +944,8 @@ async function getGroqModels() {
 async function callGroq(messages, o) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
+  // Quota de sortie ~1000 tokens/min : impossible de produire un fichier de code complet.
+  if (o.expectCode) return null;
   let models = [];
   try {
     models = await getGroqModels();
@@ -658,31 +956,98 @@ async function callGroq(messages, o) {
     );
     return null;
   }
-  for (const model of models.slice(0, o.maxModelTries || 3)) {
-    try {
-      const { ok, status, data } = await fetchJSON(
-        `${GROQ_API_URL}/chat/completions`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: model.id,
-            messages,
-            max_tokens: o.maxTokens,
-            temperature: o.temperature,
-            ...(model.id.includes("gpt-oss")
-              ? { reasoning_effort: "low" }
-              : {}),
-            ...(o.expectJson
-              ? { response_format: { type: "json_object" } }
-              : {}),
-          }),
+  const tested = await Promise.all(
+    models.map(async (model) => {
+      const healthy = await pingModel(
+        `groq:${model.id}`,
+        async (msgs, opts) => {
+          const result = await fetchJSON(
+            `${GROQ_API_URL}/chat/completions`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: model.id,
+                messages: msgs,
+                max_tokens: opts.maxTokens,
+                temperature: 0,
+                ...(model.id.includes("gpt-oss")
+                  ? { reasoning_effort: "low" }
+                  : {}),
+              }),
+            },
+            opts.timeoutMs,
+          );
+          if (!result.ok)
+            throw Object.assign(new Error(`HTTP ${result.status}`), {
+              status: result.status,
+            });
+          return result.data?.choices?.[0]?.message?.content?.trim() || "";
         },
-        o.timeoutMs,
       );
+      return healthy ? model : null;
+    }),
+  );
+  const healthyModels = tested.filter(Boolean);
+  console.info(
+    `[AiGENT AI] Groq : ${healthyModels.length}/${models.length} modèles du catalogue répondent.`,
+  );
+  if (healthyModels.length)
+    console.info(
+      `[AiGENT AI] Groq candidats validés : ${healthyModels.map((model) => model.id).join(", ")}.`,
+    );
+  for (const model of healthyModels.slice(0, o.maxModelTries || 3)) {
+    try {
+      let maxTokens = o.maxTokens;
+      let result;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        result = await fetchJSON(
+          `${GROQ_API_URL}/chat/completions`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: model.id,
+              messages,
+              max_tokens: maxTokens,
+              temperature: o.temperature,
+              ...(model.id.includes("gpt-oss")
+                ? { reasoning_effort: "low" }
+                : {}),
+              ...(o.expectJson
+                ? { response_format: { type: "json_object" } }
+                : {}),
+            }),
+          },
+          o.timeoutMs,
+        );
+        const errorText = String(result.data?.error?.message || "");
+        if (
+          attempt === 0 &&
+          result.status === 429 &&
+          /output tokens per minute|requested .* tokens|reduce max_tokens/i.test(
+            errorText,
+          ) &&
+          maxTokens > 256
+        ) {
+          maxTokens = Math.max(
+            256,
+            Math.min(900, Math.floor(maxTokens * 0.75)),
+          );
+          console.warn(
+            `[AiGENT AI] Groq ${model.id}: quota de sortie, nouvel essai avec ${maxTokens} tokens.`,
+          );
+          continue;
+        }
+        break;
+      }
+      const { ok, status, data } = result;
       if (!ok) {
         console.warn(
           `⚠️ [AiGENT AI] Groq ${model.id}: HTTP ${status} ${data?.error?.message || ""}`,
@@ -716,7 +1081,9 @@ const CEREBRAS_TTL = 15 * 60 * 1000;
 function cerebrasPriority(id) {
   const s = id.toLowerCase();
   if (/(whisper|embed|guard|moderation|vision|tts)/.test(s)) return -1;
-  if (/(235b|120b|180b)/.test(s)) return 100;
+  if (/gpt-oss-120b/.test(s)) return 115;
+  if (/gpt-oss-20b/.test(s)) return 100;
+  if (/(235b|120b|180b)/.test(s)) return 95;
   if (/(70b|72b)/.test(s)) return 85;
   if (/(32b|34b)/.test(s)) return 70;
   if (/(8b|9b)/.test(s)) return 50;
@@ -755,7 +1122,12 @@ async function callCerebras(messages, o) {
     );
     return null;
   }
-  if (!candidates.length) return null;
+  if (!candidates.length) {
+    console.warn(
+      "[AiGENT AI] Cerebras : aucun modèle de chat actif dans le catalogue.",
+    );
+    return null;
+  }
 
   const call = (model, msgs, opts) =>
     fetchJSON(
@@ -785,13 +1157,23 @@ async function callCerebras(messages, o) {
   const healthy = (
     await Promise.all(
       candidates.slice(0, 15).map(async (model) => {
-        const ok = await pingModel(`cerebras:${model}`, (msgs, opts) =>
-          call(model, msgs, opts),
+        const ok = await pingModel(
+          `cerebras:${model}`,
+          (msgs, opts) => call(model, msgs, opts),
+          { logFailure: true },
         );
         return ok ? model : null;
       }),
     )
   ).filter(Boolean);
+
+  console.info(
+    `[AiGENT AI] Cerebras : ${healthy.length}/${candidates.length} modèles du catalogue répondent.`,
+  );
+  if (healthy.length)
+    console.info(
+      `[AiGENT AI] Cerebras candidats validés : ${healthy.join(", ")}.`,
+    );
 
   for (const model of healthy.slice(0, o.maxModelTries || 3)) {
     try {
@@ -844,6 +1226,9 @@ async function callGithubModels(messages, o) {
       console.log("✅ [AiGENT AI] GitHub Models OK");
       return text;
     }
+    console.warn(
+      "[AiGENT AI] GitHub Models : réponse vide ou rejetée par le filtre de sortie.",
+    );
   } catch (e) {
     console.warn(
       "⚠️ [AiGENT AI] GitHub Models FAILED:",
@@ -904,7 +1289,57 @@ async function callCohere(messages, o) {
     );
     return null;
   }
-  for (const model of models.slice(0, o.maxModelTries || 2)) {
+  const rank = (model) => {
+    const id = String(model.name || "").toLowerCase();
+    if (/(embed|rerank|classify|summarize|moderation)/.test(id)) return -1;
+    if (/command-a|command-r-plus/.test(id)) return 100;
+    if (/command-r/.test(id)) return 85;
+    if (/command/.test(id)) return 70;
+    if (/aya/.test(id)) return 55;
+    return 20;
+  };
+  const candidates = models
+    .filter((model) => rank(model) >= 0)
+    .sort((a, b) => rank(b) - rank(a))
+    .slice(0, 4);
+  const healthy = await Promise.all(
+    candidates.map(async (model) => {
+      const id = String(model.name);
+      const ok = await pingModel(`cohere:${id}`, async (msgs, opts) => {
+        const result = await fetchJSON(
+          `${COHERE_API_URL}/v2/chat`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: id,
+              messages: msgs,
+              max_tokens: opts.maxTokens,
+              temperature: 0,
+            }),
+          },
+          opts.timeoutMs,
+        );
+        if (!result.ok)
+          throw Object.assign(new Error(`HTTP ${result.status}`), {
+            status: result.status,
+          });
+        const parts = result.data?.message?.content;
+        return Array.isArray(parts)
+          ? parts
+              .filter((part) => part?.type === "text")
+              .map((part) => part.text)
+              .join(" ")
+              .trim()
+          : "";
+      });
+      return ok ? model : null;
+    }),
+  );
+  for (const model of healthy.filter(Boolean).slice(0, o.maxModelTries || 2)) {
     try {
       const { ok, status, data } = await fetchJSON(
         `${COHERE_API_URL}/v2/chat`,
@@ -954,15 +1389,6 @@ async function callCohere(messages, o) {
 // au plus rapide), chacun ping-testé avant usage réel. Un 402 (quota/payant)
 // ou 429 (rate-limit persistant) invalide immédiatement le cache : on ne
 // perd plus de temps dessus aux appels suivants pendant la fenêtre TTL.
-const MISTRAL_MODELS = [
-  process.env.MISTRAL_MODEL,
-  "mistral-small-latest",
-  "open-mistral-nemo",
-  "ministral-8b-latest",
-  "ministral-3b-latest",
-].filter(Boolean);
-
-// APRÈS
 const MISTRAL_API_URL = "https://api.mistral.ai/v1";
 let mistralCache = null;
 let mistralCacheAt = 0;
@@ -971,6 +1397,7 @@ const MISTRAL_TTL = 15 * 60 * 1000;
 function mistralPriority(id) {
   const s = id.toLowerCase();
   if (/(embed|moderation|ocr|guard)/.test(s)) return -1;
+  if (s.includes("mistral-large")) return 110;
   if (s.includes("open-mixtral-8x22b")) return 100;
   if (s.includes("open-mixtral")) return 85;
   if (s.includes("open-mistral-nemo")) return 80;
@@ -1012,7 +1439,12 @@ async function callMistral(messages, o) {
     );
     return null;
   }
-  if (!candidates.length) return null;
+  if (!candidates.length) {
+    console.warn(
+      "[AiGENT AI] Mistral : aucun modèle de chat actif dans le catalogue.",
+    );
+    return null;
+  }
 
   const call = (model, msgs, opts) =>
     fetchJSON(
@@ -1053,6 +1485,14 @@ async function callMistral(messages, o) {
     )
   ).filter(Boolean);
 
+  console.info(
+    `[AiGENT AI] Mistral : ${healthy.length}/${candidates.length} modèles du catalogue répondent.`,
+  );
+  if (healthy.length)
+    console.info(
+      `[AiGENT AI] Mistral candidats validés : ${healthy.join(", ")}.`,
+    );
+
   for (const model of healthy.slice(0, o.maxModelTries || 3)) {
     try {
       const text = await withRetry(() => call(model, messages, o));
@@ -1079,15 +1519,6 @@ async function callMistral(messages, o) {
 // NIM gratuit (build.nvidia.com), ping avant usage réel. Le 410 que tu
 // observais (endpoint/modèle retiré) invalide le cache dès le premier échec
 // au lieu d'être retenté indéfiniment à chaque requête utilisateur.
-const NVIDIA_MODELS = [
-  process.env.NVIDIA_MODEL,
-  "meta/llama-3.3-70b-instruct",
-  "meta/llama-3.1-70b-instruct",
-  "nvidia/nemotron-4-340b-instruct",
-  "mistralai/mixtral-8x22b-instruct-v0.1",
-].filter(Boolean);
-
-// APRÈS
 const NVIDIA_API_URL = "https://integrate.api.nvidia.com/v1";
 let nvidiaCache = null;
 let nvidiaCacheAt = 0;
@@ -1095,13 +1526,32 @@ const NVIDIA_TTL = 15 * 60 * 1000;
 
 function nvidiaPriority(id) {
   const s = id.toLowerCase();
-  if (/(embed|rerank|guard|moderation|vision|tts|asr)/.test(s)) return -1;
-  if (/(405b|340b)/.test(s)) return 100;
+  if (
+    /(embed|rerank|guard|moderation|vision|tts|asr|reasoning|calibration|omni)/.test(
+      s,
+    )
+  )
+    return -1;
+  if (/nemotron-3\.5-lightning/.test(s)) return 125;
+  if (/nemotron-3-ultra|nemotron-3-nano-omni/.test(s)) return 115;
+  if (/ising-calibration/.test(s)) return 105;
+  if (/laguna-xs/.test(s)) return 95;
+  if (
+    /gpt-oss-120b|deepseek.*(v3|r1)|llama-3\.3-70b|qwen.*(coder|72b)|nemotron.*(70b|120b)/.test(
+      s,
+    )
+  )
+    return 110;
+  if (
+    /gpt-oss-20b|llama.*70b|command-r-plus|mistral-large|mixtral.*8x22b/.test(s)
+  )
+    return 100;
+  if (/(405b|340b)/.test(s)) return 95;
   if (/(70b|72b)/.test(s)) return 85;
   if (/(mixtral|8x22b)/.test(s)) return 75;
   if (/(34b|32b)/.test(s)) return 60;
   if (/(8b|9b)/.test(s)) return 40;
-  return 20;
+  return 10;
 }
 
 async function getNvidiaModelIds() {
@@ -1136,7 +1586,12 @@ async function callNvidia(messages, o) {
     );
     return null;
   }
-  if (!candidates.length) return null;
+  if (!candidates.length) {
+    console.warn(
+      "[AiGENT AI] NVIDIA : aucun modèle de chat actif dans le catalogue.",
+    );
+    return null;
+  }
 
   const call = (model, msgs, opts) =>
     fetchJSON(
@@ -1164,16 +1619,33 @@ async function callNvidia(messages, o) {
       return r.data?.choices?.[0]?.message?.content?.trim() || "";
     });
 
-  const healthy = (
-    await Promise.all(
-      candidates.slice(0, 15).map(async (model) => {
-        const ok = await pingModel(`nvidia:${model}`, (msgs, opts) =>
-          call(model, msgs, opts),
+  const healthy = [];
+  // Le catalogue NVIDIA peut contenir des dizaines de modèles retirés ou
+  // non conversationnels. Les sonder tous ajoutait plusieurs minutes à chaque
+  // génération et se répétait sur des appels simultanés. Vérifier uniquement
+  // les 12 meilleurs candidats; le cache ping/in-flight mutualise le travail.
+  const shortlist = candidates.slice(0, 12);
+  for (let offset = 0; offset < shortlist.length; offset += 6) {
+    const checked = await Promise.all(
+      shortlist.slice(offset, offset + 6).map(async (model) => {
+        const ok = await pingModel(
+          `nvidia:${model}`,
+          (msgs, opts) => call(model, msgs, opts),
+          { logFailure: true },
         );
         return ok ? model : null;
       }),
-    )
-  ).filter(Boolean);
+    );
+    healthy.push(...checked.filter(Boolean));
+  }
+
+  console.info(
+    `[AiGENT AI] NVIDIA : ${healthy.length}/${shortlist.length} candidats prioritaires répondent (${candidates.length} listés).`,
+  );
+  if (healthy.length)
+    console.info(
+      `[AiGENT AI] NVIDIA candidats validés : ${healthy.join(", ")}.`,
+    );
 
   for (const model of healthy.slice(0, o.maxModelTries || 3)) {
     try {
@@ -1197,23 +1669,138 @@ const geminiClient = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
-const GEMINI_MODELS = [
-  "gemini-3.5-flash-lite",
-  "gemini-3.5-flash",
-  "gemini-3.6-flash",
-  "gemini-3.1-flash-lite",
-  "gemini-3.1-pro-preview",
-  "gemini-2.5-flash",
-];
+let geminiModelsCache = null;
+let geminiModelsCacheAt = 0;
+const GEMINI_MODELS_TTL = 5 * 60 * 1000;
+
+async function getGeminiModels() {
+  if (geminiModelsCache && Date.now() - geminiModelsCacheAt < GEMINI_MODELS_TTL)
+    return geminiModelsCache;
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return [];
+  const { ok, status, data } = await fetchJSON(
+    "https://generativelanguage.googleapis.com/v1beta/models",
+    {
+      headers: { "x-goog-api-key": key, Accept: "application/json" },
+    },
+    12000,
+  );
+  if (!ok) throw new Error(data?.error?.message || `HTTP ${status}`);
+  const rank = (id) => {
+    const name = id.toLowerCase();
+    if (/embedding|aqa|tts|image|veo/.test(name)) return -1;
+    if (/gemini-3.*pro/.test(name)) return 110;
+    if (/gemini-2\.5-pro/.test(name)) return 100;
+    if (/gemini-3.*flash/.test(name)) return 90;
+    if (/gemini-2\.5-flash(?!-lite)/.test(name)) return 85;
+    if (/flash-lite/.test(name)) return 60;
+    return 40;
+  };
+  geminiModelsCache = [
+    ...new Set(
+      (data?.models || [])
+        .filter((model) =>
+          model.supportedGenerationMethods?.includes("generateContent"),
+        )
+        .map((model) => String(model.name || "").replace(/^models\//, ""))
+        .filter((id) => id && rank(id) >= 0),
+    ),
+  ]
+    .sort((a, b) => rank(b) - rank(a))
+    .slice(0, 12);
+  geminiModelsCacheAt = Date.now();
+  return geminiModelsCache;
+}
 
 async function callGemini(messages, o) {
   if (!geminiClient) return null;
-  const contents = messages
-    .map((m) =>
-      m.role === "system" ? `[Instructions système]\n${m.content}` : m.content,
-    )
-    .join("\n\n");
-  for (const model of GEMINI_MODELS.slice(0, o.maxModelTries || 3)) {
+  let models;
+  try {
+    models = await getGeminiModels();
+  } catch (error) {
+    console.warn(
+      "[AiGENT AI] Gemini catalogue indisponible :",
+      error.message?.slice(0, 100),
+    );
+    return null;
+  }
+  const candidates = await Promise.all(
+    models.map(async (model) => {
+      const healthy = await pingModel(`gemini:${model}`, async (msgs, opts) => {
+        const contents = msgs
+          .map(
+            (message) =>
+              `${message.role === "system" ? "[Instructions]" : message.role === "assistant" ? "[Assistant]" : "[Utilisateur]"} ${message.content}`,
+          )
+          .join("\n\n");
+        const response = await geminiClient.models.generateContent({
+          model,
+          contents,
+          config: { maxOutputTokens: opts.maxTokens, temperature: 0 },
+        });
+        return response?.text?.trim() || "";
+      });
+      return healthy ? model : null;
+    }),
+  );
+  const healthyModels = candidates.filter(Boolean);
+  if (!healthyModels.length) {
+    console.warn(
+      `[AiGENT AI] Gemini : 0/${models.length} modèles du catalogue répondent.`,
+    );
+    return null;
+  }
+  console.info(
+    `[AiGENT AI] Gemini : ${healthyModels.length}/${models.length} modèles du catalogue répondent.`,
+  );
+  const hasMultimodal = messages.some((message) =>
+    Array.isArray(message.content),
+  );
+  const contents = hasMultimodal
+    ? messages
+        .filter((message) => message.role !== "system")
+        .map((message, index) => {
+          const parts = Array.isArray(message.content)
+            ? message.content
+                .map((part) => {
+                  if (part.type === "text")
+                    return { text: String(part.text || "") };
+                  if (part.type === "inline_data")
+                    return {
+                      inlineData: { mimeType: part.mimeType, data: part.data },
+                    };
+                  if (part.type === "image_url") {
+                    const match = String(part.image_url?.url || "").match(
+                      /^data:(image\/[\w.+-]+);base64,([\s\S]+)$/i,
+                    );
+                    return match
+                      ? { inlineData: { mimeType: match[1], data: match[2] } }
+                      : null;
+                  }
+                  return null;
+                })
+                .filter(Boolean)
+            : [{ text: String(message.content || "") }];
+          if (index === 0)
+            parts.unshift({
+              text: `[Instructions système]\n${messages
+                .filter((item) => item.role === "system")
+                .map((item) => item.content)
+                .join("\n\n")}\n\n`,
+            });
+          return {
+            role: message.role === "assistant" ? "model" : "user",
+            parts,
+          };
+        })
+    : messages
+        .map((m) =>
+          m.role === "system"
+            ? `[Instructions système]\n${m.content}`
+            : m.content,
+        )
+        .join("\n\n");
+  for (const model of healthyModels.slice(0, o.maxModelTries || 3)) {
     try {
       const response = await geminiClient.models.generateContent({
         model,
@@ -1235,24 +1822,135 @@ async function callGemini(messages, o) {
   return null;
 }
 
-// AJOUT dans aiParsee-aigent.js — nouveau provider, même schéma que les autres
-
 /* ─── 2.9 Cloudflare Workers AI ─── */
-// Liste issue de ton test réel (script fourni) : uniquement les modèles qui
-// ont renvoyé une réponse EXPLOITABLE (pas juste "OK" mais du texte cohérent
-// et complet), triés du plus capable au plus rapide pour le rôle "code".
-const CLOUDFLARE_MODELS = [
-  "@cf/openai/gpt-oss-120b",
-  "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-  "@cf/mistralai/mistral-small-3.1-24b-instruct",
-  "@cf/qwen/qwen2.5-coder-32b-instruct",
-  "@cf/openai/gpt-oss-20b",
-];
+const CLOUDFLARE_API_URL = "https://api.cloudflare.com/client/v4";
+let cloudflareModelsCache = null;
+let cloudflareModelsCacheAt = 0;
+const CLOUDFLARE_TTL = 10 * 60 * 1000;
+
+function cloudflarePriority(model) {
+  const id = String(model?.name || model?.id || "").toLowerCase();
+  const task = String(
+    model?.task?.name || model?.task || model?.pipeline_tag || "",
+  ).toLowerCase();
+  if (!id || (task && !/(text generation|text-generation|chat)/.test(task)))
+    return -1;
+  if (
+    /(embed|rerank|guard|moderation|vision|tts|asr|whisper|image|audio)/.test(
+      id,
+    )
+  )
+    return -1;
+  if (
+    /gpt-oss-120b|deepseek.*(v3|coder)|qwen.*(coder|72b)|llama.*70b|command-r-plus|mistral-large/.test(
+      id,
+    )
+  )
+    return 100;
+  if (/gpt-oss-20b|qwen.*32b|llama.*32b|mistral-small|command-r/.test(id))
+    return 80;
+  return 50;
+}
+
+async function getCloudflareModelIds(accountId, apiKey) {
+  if (
+    cloudflareModelsCache &&
+    Date.now() - cloudflareModelsCacheAt < CLOUDFLARE_TTL
+  )
+    return cloudflareModelsCache;
+  const { ok, status, data } = await fetchJSON(
+    `${CLOUDFLARE_API_URL}/accounts/${encodeURIComponent(accountId)}/ai/models/search?hide_experimental=true&per_page=100`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+      },
+    },
+    12000,
+  );
+  if (!ok || data?.success === false)
+    throw new Error(data?.errors?.[0]?.message || `HTTP ${status}`);
+  const models = (
+    Array.isArray(data?.result)
+      ? data.result
+      : Array.isArray(data?.result?.data)
+        ? data.result.data
+        : []
+  )
+    .map((model) => ({ model, id: String(model?.name || model?.id || "") }))
+    .filter(
+      ({ model, id }) => id && cloudflarePriority({ ...model, name: id }) >= 0,
+    )
+    .sort(
+      (a, b) =>
+        cloudflarePriority({ ...b.model, name: b.id }) -
+        cloudflarePriority({ ...a.model, name: a.id }),
+    );
+  cloudflareModelsCache = [...new Set(models.map(({ id }) => id))];
+  cloudflareModelsCacheAt = Date.now();
+  return cloudflareModelsCache;
+}
 
 async function callCloudflare(messages, o) {
   const apiKey = process.env.CLOUDFLARE_API_KEY;
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   if (!apiKey || !accountId) return null;
+  let models;
+  try {
+    models = await getCloudflareModelIds(accountId, apiKey);
+  } catch (error) {
+    console.warn(
+      "[AiGENT AI] Cloudflare catalogue indisponible :",
+      error.message?.slice(0, 100),
+    );
+    return null;
+  }
+  if (!models.length) {
+    console.warn(
+      "[AiGENT AI] Cloudflare : aucun modèle de génération de texte dans le catalogue.",
+    );
+    return null;
+  }
+  const healthyModels = (
+    await Promise.all(
+      models.slice(0, 15).map(async (model) => {
+        const healthy = await pingModel(`cloudflare:${model}`, (msgs, opts) => {
+          const prompt = msgs.map((message) => message.content).join("\n\n");
+          return fetchJSON(
+            `${CLOUDFLARE_API_URL}/accounts/${encodeURIComponent(accountId)}/ai/run/${model}`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ prompt, max_tokens: opts.maxTokens }),
+            },
+            opts.timeoutMs,
+          ).then((result) => {
+            if (!result.ok || result.data?.success === false)
+              throw Object.assign(new Error(`HTTP ${result.status}`), {
+                status: result.status,
+              });
+            return (
+              result.data?.result?.response ||
+              result.data?.result?.choices?.[0]?.text ||
+              ""
+            );
+          });
+        });
+        return healthy ? model : null;
+      }),
+    )
+  ).filter(Boolean);
+  console.info(
+    `[AiGENT AI] Cloudflare : ${healthyModels.length}/${models.length} modèles du catalogue répondent.`,
+  );
+  if (healthyModels.length)
+    console.info(
+      `[AiGENT AI] Cloudflare candidats validés : ${healthyModels.join(", ")}.`,
+    );
+  if (!healthyModels.length) return null;
   const prompt = messages
     .map(
       (m) =>
@@ -1260,7 +1958,7 @@ async function callCloudflare(messages, o) {
     )
     .join("\n\n");
 
-  for (const model of CLOUDFLARE_MODELS.slice(0, o.maxModelTries || 2)) {
+  for (const model of healthyModels.slice(0, o.maxModelTries || 2)) {
     const healthKey = `cloudflare:${model}`;
     const call = (msgsPrompt, opts) =>
       fetchJSON(
@@ -1286,14 +1984,6 @@ async function callCloudflare(messages, o) {
           r.data?.result?.response ?? r.data?.result?.choices?.[0]?.text ?? "";
         return typeof out === "string" ? out.trim() : "";
       });
-
-    const healthy = await pingModel(healthKey, () =>
-      call(PING_PROMPT.map((m) => m.content).join("\n"), {
-        maxTokens: 10,
-        timeoutMs: 8000,
-      }),
-    );
-    if (!healthy) continue;
 
     try {
       const text = await withRetry(() => call(prompt, o));
@@ -1340,34 +2030,104 @@ export async function callLLMConsensus(
  *  Le rôle choisit un ordre dédié de fournisseurs, puis la cascade normale
  *  assure le repli si un modèle est absent ou indisponible. */
 const CODE_PROVIDER_ORDERS = {
-  architect: ["github", "gemini", "cloudflare", "groq", "openrouter", "cerebras", "mistral", "nvidia", "cohere"],
-  design: ["gemini", "github", "cloudflare", "groq", "openrouter", "cerebras", "mistral", "nvidia", "cohere"],
-  frontend: ["cloudflare", "groq", "github", "gemini", "openrouter", "cerebras", "mistral", "nvidia", "cohere"],
-  backend: ["github", "cloudflare", "groq", "cerebras", "gemini", "openrouter", "mistral", "nvidia", "cohere"],
-  qa: ["gemini", "github", "cloudflare", "groq", "openrouter", "cerebras", "mistral", "nvidia", "cohere"],
+  architect: [
+    "gemini",
+    "github",
+    "openrouter",
+    "groq",
+    "cerebras",
+    "cohere",
+    "mistral",
+    "nvidia",
+    "pollinations",
+    "cloudflare",
+  ],
+  design: [
+    "pollinations",
+    "gemini",
+    "cohere",
+    "mistral",
+    "nvidia",
+    "groq",
+    "cerebras",
+    "openrouter",
+    "github",
+    "cloudflare",
+  ],
+  frontend: [
+    "gemini",
+    "mistral",
+    "github",
+    "cohere",
+    "pollinations",
+    "openrouter",
+    "nvidia",
+    "cloudflare",
+  ],
+  backend: [
+    "gemini",
+    "mistral",
+    "github",
+    "cohere",
+    "pollinations",
+    "openrouter",
+    "nvidia",
+    "cloudflare",
+  ],
+  qa: [
+    "cohere",
+    "gemini",
+    "github",
+    "nvidia",
+    "mistral",
+    "cerebras",
+    "groq",
+    "openrouter",
+    "pollinations",
+    "cloudflare",
+  ],
 };
 
 export async function callCode(messages, opts = {}) {
   const role = CODE_PROVIDER_ORDERS[opts.role] ? opts.role : "frontend";
   const envOrder = process.env[`AIGENT_${role.toUpperCase()}_PROVIDER_ORDER`];
   const order = envOrder
-    ? envOrder.split(",").map((name) => name.trim()).filter(Boolean)
+    ? envOrder
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean)
     : CODE_PROVIDER_ORDERS[role];
   const raw = await callLLM(messages, {
     profile: "code",
-    expectJson: true, // accepte accolades, code long et syntaxe anglaise
+    expectJson: false,
+    expectCode: true,
     maxTokens: Math.min(12000, Math.max(1200, Number(opts.maxTokens) || 7000)),
     temperature: 0.2,
-    timeoutMs: Math.min(120000, Math.max(30000, Number(opts.timeoutMs) || 90000)),
+    timeoutMs: Math.min(
+      120000,
+      Math.max(30000, Number(opts.timeoutMs) || 90000),
+    ),
     maxModelTries: 1,
     order,
   });
   if (!raw || !String(raw).trim()) return null;
   let source = String(raw).trim();
-  const fence = source.match(/^```(?:javascript|js|css|html|sql)?\s*\r?\n([\s\S]*?)\r?\n```$/i);
+  const fence = source.match(
+    /^```(?:javascript|js|css|html|sql)?\s*\r?\n([\s\S]*?)\r?\n```$/i,
+  );
   if (fence) source = fence[1].trim();
   return source || null;
 }
+
+export const __aiModelTestHooks = {
+  isUnusableOutput,
+  pollinationsClassify,
+  pollinationsPriority,
+  selectPollinationsModels,
+  cloudflarePriority,
+  codeProviderOrders: CODE_PROVIDER_ORDERS,
+  normalizeUnderstanding,
+};
 
 /* ─── 2.9 Cascade ─── */
 // APRÈS — Cloudflare placé après Groq/OpenRouter (rapides, fiables) et
@@ -1375,6 +2135,7 @@ export async function callCode(messages, opts = {}) {
 const PROVIDERS = {
   openrouter: callOpenRouter,
   groq: callGroq,
+  pollinations: callPollinations,
   cloudflare: callCloudflare,
   cerebras: callCerebras,
   github: callGithubModels,
@@ -1386,7 +2147,7 @@ const PROVIDERS = {
 
 const DEFAULT_ORDER = (
   process.env.AIGENT_PROVIDER_ORDER ||
-  "openrouter,groq,cloudflare,github,cohere,gemini,cerebras,mistral,nvidia"
+  "openrouter,groq,cerebras,gemini,github,pollinations,nvidia,mistral,cohere,cloudflare"
 )
   .split(",")
   .map((s) => s.trim())
@@ -1395,9 +2156,25 @@ const DEFAULT_ORDER = (
 /**
  * Appel LLM avec cascade complète.
  * @param {Array} messages  messages OpenAI-like
- * @param {Object} opts     { maxTokens, temperature, expectJson, timeoutMs,
+ * @param {Object} opts     { maxTokens, temperature, expectJson, expectCode, timeoutMs,
  *                            allowReasoning, order, profile, maxModelTries }
  */
+
+const SLOT_LIMIT = { gemini: 2, openrouter: 2, pollinations: 2, cloudflare: 2 };
+const slots = new Map();
+async function withSlot(name, fn) {
+  const s = slots.get(name) || { active: 0, queue: [] };
+  slots.set(name, s);
+  if (s.active >= (SLOT_LIMIT[name] || 1))
+    await new Promise((r) => s.queue.push(r));
+  s.active++;
+  try {
+    return await fn();
+  } finally {
+    s.active--;
+    s.queue.shift()?.();
+  }
+}
 export async function callLLM(messages, opts = {}) {
   const profiles = {
     fast: {
@@ -1430,7 +2207,8 @@ export async function callLLM(messages, opts = {}) {
     code: {
       maxTokens: 7000,
       temperature: 0.2,
-      expectJson: true,
+      expectJson: false,
+      expectCode: true,
       timeoutMs: 90000,
       maxModelTries: 1,
       allowReasoning: false,
@@ -1452,9 +2230,50 @@ export async function callLLM(messages, opts = {}) {
   const live = order.filter((n) => !isDown(n));
   const chain = live.length ? live : order; // si tout est en cooldown, on retente quand même
 
+  const deadline =
+    Number(opts.totalTimeoutMs) > 0
+      ? Date.now() + Number(opts.totalTimeoutMs)
+      : Infinity;
   for (const name of chain) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      console.warn(
+        `[AiGENT AI] Délai global atteint après ${Number(opts.totalTimeoutMs)} ms; cascade interrompue.`,
+      );
+      break;
+    }
     try {
-      const out = await PROVIDERS[name](messages, o);
+      console.info(`[AiGENT AI] Tentative fournisseur : ${name}.`);
+      const attemptOptions = Number.isFinite(deadline)
+        ? { ...o, timeoutMs: Math.max(500, Math.min(o.timeoutMs, remaining)) }
+        : o;
+      let out;
+      if (Number.isFinite(deadline)) {
+        let timer;
+        const providerBudget = Math.max(500, Math.min(o.timeoutMs, remaining));
+        const attemptOptions = { ...o, timeoutMs: providerBudget };
+        try {
+          out = await Promise.race([
+            withSlot(name, () => PROVIDERS[name](messages, attemptOptions)),
+            new Promise((_, reject) => {
+              timer = setTimeout(
+                () =>
+                  reject(
+                    new Error(
+                      `Délai fournisseur dépassé (${providerBudget} ms)`,
+                    ),
+                  ),
+                providerBudget,
+              );
+            }),
+          ]);
+        } finally {
+          clearTimeout(timer);
+        }
+      } else
+        out = await withSlot(name, () =>
+          PROVIDERS[name](messages, attemptOptions),
+        );
       if (out) {
         markOk(name);
         return stripThinking(out);
@@ -1511,12 +2330,16 @@ export async function probeProviders() {
   const configured = {
     openrouter: !!process.env.OPENROUTER_API_KEY,
     groq: !!process.env.GROQ_API_KEY,
+    pollinations: !!process.env.POLLINATIONS_API_KEY,
     cerebras: !!process.env.CEREBRAS_API_KEY,
     github: !!process.env.GITHUB_TOKEN,
     cohere: !!process.env.COHERE_API_KEY,
     mistral: !!(process.env.MISTRAL || process.env.MISTRAL_API_KEY),
     nvidia: !!process.env.NVIDIA_API_KEY,
     gemini: !!process.env.GEMINI_API_KEY,
+    cloudflare: !!(
+      process.env.CLOUDFLARE_API_KEY && process.env.CLOUDFLARE_ACCOUNT_ID
+    ),
   };
   for (const name of DEFAULT_ORDER) {
     const h = health.get(name);
@@ -1536,7 +2359,8 @@ export async function probeProviders() {
 
 /* ─── Health-checker actif : ne fait confiance qu'à un modèle testé ─── */
 const MODEL_HEALTH = new Map(); // "provider:model" -> { ok, checkedAt }
-const HEALTH_TTL = 20 * 60 * 1000;
+const MODEL_PROBES_IN_FLIGHT = new Map();
+const HEALTH_TTL = 5 * 60 * 1000;
 const PING_PROMPT = [{ role: "user", content: "Réponds uniquement: ok" }];
 
 /** Erreurs qui justifient un nouvel essai (transitoires) vs erreurs
@@ -1567,27 +2391,47 @@ async function withRetry(fn, { retries = 2, baseDelay = 400 } = {}) {
 
 /** Ping réel d'un modèle avant de le proposer à la cascade. Résultat mis
  *  en cache : on ne re-teste pas à chaque requête utilisateur. */
-async function pingModel(key, callFn) {
+async function pingModel(
+  key,
+  callFn,
+  { ttl = HEALTH_TTL, logFailure = false } = {},
+) {
   const cached = MODEL_HEALTH.get(key);
-  if (cached && Date.now() - cached.checkedAt < HEALTH_TTL) return cached.ok;
-  let ok = false;
+  if (cached && Date.now() - cached.checkedAt < ttl) return cached.ok;
+  if (MODEL_PROBES_IN_FLIGHT.has(key)) return MODEL_PROBES_IN_FLIGHT.get(key);
+  const probe = (async () => {
+    let ok = false;
+    try {
+      const out = await withRetry(
+        () =>
+          callFn(PING_PROMPT, {
+            maxTokens: 10,
+            temperature: 0,
+            timeoutMs: 8000,
+            expectJson: false,
+          }),
+        { retries: 1 },
+      );
+      ok = !!out && out.trim().length > 0;
+    } catch (error) {
+      if (logFailure) {
+        const reason = error.status
+          ? `HTTP ${error.status}`
+          : String(error.message || "échec réseau");
+        console.warn(
+          `[AiGENT AI] Ping ${key} refusé : ${reason.slice(0, 140)}.`,
+        );
+      }
+    }
+    MODEL_HEALTH.set(key, { ok, checkedAt: Date.now() });
+    return ok;
+  })();
+  MODEL_PROBES_IN_FLIGHT.set(key, probe);
   try {
-    const out = await withRetry(
-      () =>
-        callFn(PING_PROMPT, {
-          maxTokens: 10,
-          temperature: 0,
-          timeoutMs: 8000,
-          expectJson: false,
-        }),
-      { retries: 1 },
-    );
-    ok = !!out && out.trim().length > 0;
-  } catch (_) {
-    ok = false;
+    return await probe;
+  } finally {
+    MODEL_PROBES_IN_FLIGHT.delete(key);
   }
-  MODEL_HEALTH.set(key, { ok, checkedAt: Date.now() });
-  return ok;
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1928,11 +2772,11 @@ Règles :
 Réponds UNIQUEMENT avec ce JSON :
 {
   "understanding": {
-    "objective": "une phrase",
-    "audience": "une phrase",
-    "sector": "mot-clé",
-    "missions": [{"id":"slug","label":"…","enabled":true}],
-    "summary": "2 phrases max, ce que tu as compris"
+    "objective": "objectif concret déduit de la demande utilisateur",
+    "audience": "public réellement visé, ou public à préciser si la demande ne le dit pas",
+    "sector": "secteur réellement déduit, ou général si inconnu",
+    "missions": [{"id":"mission-1","label":"mission concrète liée à la demande","enabled":true}],
+    "summary": "résumé fidèle et spécifique du besoin"
   },
   "suggestedTools": ["knowledge.search","…"],
   "suggestedKnowledge": [{"id":"slug","type":"text|faq|file|url|table","label":"…"}],
@@ -1945,9 +2789,99 @@ Réponds UNIQUEMENT avec ce JSON :
 DERNIERS ÉCHANGES : ${JSON.stringify((history || []).slice(-6))}
 NOUVELLE DEMANDE : "${message}"`;
 
-  const json = await callJSON(system, user, { maxTokens: 1100 });
+  const json = await callJSON(system, user, {
+    maxTokens: 1600,
+    profile: "json",
+    timeoutMs: 18000,
+    totalTimeoutMs: 45000,
+    maxModelTries: 1,
+    order: [
+      "groq",
+      "gemini",
+      "cohere",
+      "mistral",
+      "openrouter",
+      "pollinations",
+      "cloudflare",
+    ],
+  });
   if (!json?.understanding) return fallbackUnderstanding(message);
-  return json;
+  return normalizeUnderstanding(json, message);
+}
+
+function isTemplateValue(value) {
+  const text = String(value ?? "")
+    .trim()
+    .toLocaleLowerCase("fr");
+  return (
+    !text ||
+    /^(?:une phrase|un mot-cl[eé]|mot-cl[eé]|\.\.\.|…|n\/a|tbd|à définir|a definir|non pr[eé]cis[eé]|slug|mission concr[eè]te|public r[eé]ellement vis[eé])$/i.test(
+      text,
+    )
+  );
+}
+
+function normalizeUnderstanding(raw, message) {
+  const u =
+    raw.understanding && typeof raw.understanding === "object"
+      ? raw.understanding
+      : {};
+  const fallback = fallbackUnderstanding(message).understanding;
+  const objective =
+    isTemplateValue(u.objective) ||
+    /^assistant intelligent\s*:/i.test(String(u.objective || ""))
+      ? fallback.objective
+      : String(u.objective).trim().slice(0, 360);
+  const audience = isTemplateValue(u.audience)
+    ? fallback.audience
+    : String(u.audience).trim().slice(0, 180);
+  const sector = isTemplateValue(u.sector)
+    ? fallback.sector
+    : String(u.sector).trim().slice(0, 100);
+  const missions = (Array.isArray(u.missions) ? u.missions : [])
+    .filter(
+      (item) =>
+        item && typeof item === "object" && !isTemplateValue(item.label),
+    )
+    .slice(0, 8)
+    .map((item, index) => ({
+      id: /^[a-z][a-z0-9_-]{1,48}$/.test(String(item.id || ""))
+        ? item.id
+        : `mission-${index + 1}`,
+      label: String(item.label).trim().slice(0, 140),
+      enabled: item.enabled !== false,
+    }));
+  const summary = isTemplateValue(u.summary)
+    ? fallback.summary
+    : String(u.summary).trim().slice(0, 500);
+  return {
+    ...raw,
+    understanding: {
+      ...u,
+      objective,
+      audience,
+      sector,
+      missions: missions.length ? missions : fallback.missions,
+      summary,
+    },
+    suggestedTools: Array.isArray(raw.suggestedTools) ? raw.suggestedTools : [],
+    suggestedKnowledge: Array.isArray(raw.suggestedKnowledge)
+      ? raw.suggestedKnowledge.filter(
+          (item) => item && !isTemplateValue(item.label),
+        )
+      : [],
+    questions: Array.isArray(raw.questions)
+      ? raw.questions
+          .filter((item) => item && !isTemplateValue(item.question))
+          .slice(0, 3)
+      : [],
+    risks: Array.isArray(raw.risks)
+      ? raw.risks.filter((item) => !isTemplateValue(item)).slice(0, 8)
+      : [],
+    confidence: Number.isFinite(Number(raw.confidence))
+      ? Math.max(0, Math.min(1, Number(raw.confidence)))
+      : 0.4,
+  };
 }
 
 function fallbackUnderstanding(message) {
@@ -2036,8 +2970,8 @@ MESSAGE : "${message}"`;
 export async function proposeIdentity(spec) {
   const system = `${LANG_GUARD}
 ${PRODUCT_GUARD}
-Tu proposes l'identité d'un assistant à créer. Sobriété : pas de superlatifs, pas d'emoji.
-Le nom est court (1 à 3 mots), mémorisable, sans jeu de mots forcé.
+Tu proposes l'identité de marque d'un assistant à créer. La demande complète de l'utilisateur décrit le produit : elle ne doit JAMAIS être découpée en questions ni transformée en choix de fonctionnalités.
+Propose exactement trois directions créatives cohérentes et distinctes pour le nom, la signature, le ton et la personnalité de l'assistant. Chaque choix est une identité complète, pas une question, une fonctionnalité ou un résumé du cahier des charges. Sobriété : pas de superlatifs, pas d'emoji. Le nom est court (1 à 3 mots), mémorisable, sans jeu de mots forcé. Les signatures sont des slogans courts; les personas décrivent la manière de parler, jamais les exigences du produit.
 
 Réponds UNIQUEMENT avec ce JSON :
 {
@@ -2054,30 +2988,52 @@ Réponds UNIQUEMENT avec ce JSON :
     `PROJET : ${JSON.stringify(compactSpec(spec))}`,
     { maxTokens: 800 },
   );
-  if (json?.options?.length) return json;
+  const validOptions = Array.isArray(json?.options)
+    ? json.options
+        .filter((option) => {
+          const name = String(option?.name || "").trim();
+          const tagline = String(option?.tagline || "").trim();
+          const persona = String(option?.persona || "").trim();
+          const words = name.split(/\s+/).filter(Boolean);
+          return (
+            name &&
+            name.length <= 40 &&
+            words.length <= 4 &&
+            tagline.length <= 130 &&
+            persona.length <= 300 &&
+            !/[?？]/.test(`${name} ${tagline}`) &&
+            !/^(?:quel|quelle|quels|quelles|comment|pourquoi)\b/i.test(name)
+          );
+        })
+        .slice(0, 3)
+    : [];
+  if (validOptions.length === 3) return { ...json, options: validOptions };
   const base = spec.sector || "Assistant";
   return {
     options: [
       {
         id: "a",
-        name: `${cap(base)} Assistant`,
-        tagline: spec.purpose || "Votre assistant intelligent",
+        name: `${cap(base)} Atelier`,
+        tagline: "Le suivi clair de chaque intervention",
         tone: ["professionnel", "chaleureux"],
-        persona: "Il va droit au but, avec courtoisie.",
+        persona:
+          "Il accueille avec assurance, suit le dossier avec méthode et explique chaque étape sans jargon.",
       },
       {
         id: "b",
         name: `${cap(base)} Copilote`,
-        tagline: "L'aide en ligne de vos clients",
+        tagline: "La bonne information au bon moment",
         tone: ["clair", "direct"],
-        persona: "Il explique simplement, sans jargon.",
+        persona:
+          "Il est concis et réactif, anticipe les prochaines étapes et donne des réponses concrètes.",
       },
       {
         id: "c",
-        name: "Assistant Maison",
-        tagline: "Toujours disponible pour vos visiteurs",
-        tone: ["accueillant"],
-        persona: "Il accueille comme le ferait un hôte attentif.",
+        name: `${cap(base)} Confiance`,
+        tagline: "Un accueil attentif, du premier contact à la restitution",
+        tone: ["rassurant", "accessible"],
+        persona:
+          "Il met les personnes à l'aise, reformule les informations importantes et veille à ce que rien ne soit oublié.",
       },
     ],
     greeting: "Bonjour, comment puis-je vous aider ?",
@@ -2091,74 +3047,258 @@ Réponds UNIQUEMENT avec ce JSON :
 
 /** 5.4 — Architecture visualisable (nœuds + liens) pour le panneau de réflexion. */
 export async function proposeArchitecture(spec) {
+  const integrations = computeIntegrations(spec).filter(
+    (i) => i.service !== "ai_provider",
+  );
+  const knowledgeSources = (spec.knowledge || []).map((item, index) => ({
+    ...item,
+    graphId: `knowledge_${slugify(item.id || item.label || `source-${index + 1}`)}`,
+  }));
+  const configuredTools = (spec.tools || []).map((tool, index) => {
+    const definition = TOOL_CATALOG.find((entry) => entry.id === tool.id);
+    return {
+      ...tool,
+      definition,
+      graphId: `tool_${slugify(tool.id || `tool-${index + 1}`)}`,
+    };
+  });
+  const domain =
+    `${spec.sector || ""} ${spec.purpose || ""} ${spec.name || ""}`.toLowerCase();
+  const education =
+    /éduc|pédagog|scol|cours|apprentiss|révision|pronote|élève|professeur|devoir/.test(
+      domain,
+    );
+  const theme = /éduc|scol|cours|apprentiss|révision/.test(domain)
+    ? { accent: "#6459d9", core: "#24223f", tint: "#f0efff" }
+    : /immobilier|logement|maison|habitat/.test(domain)
+      ? { accent: "#328276", core: "#1f3b39", tint: "#eaf6f3" }
+      : /emploi|carrière|recrut|cv/.test(domain)
+        ? { accent: "#b56a35", core: "#392b22", tint: "#fbf1e8" }
+        : /voyage|tourisme|séjour/.test(domain)
+          ? { accent: "#3475a8", core: "#1f3042", tint: "#edf5fb" }
+          : { accent: "#655bd8", core: "#24223f", tint: "#f0efff" };
   const deterministic = {
+    theme,
     nodes: [
-      { id: "user", label: spec.audience || "Utilisateur", kind: "actor" },
+      {
+        id: "user",
+        label: spec.audience || "Utilisateur",
+        description: "Point d’entrée",
+        kind: "actor",
+      },
       {
         id: "interface",
         label:
           INTERFACE_KINDS.find((i) => i.id === spec.interface?.kind)?.label ||
           "Interface",
+        description: "Canal d’accès configuré",
         kind: "surface",
       },
-      { id: "agent", label: spec.name || "AiGENT", kind: "core" },
-      ...((spec.knowledge || []).length
-        ? [{ id: "knowledge", label: "Connaissances", kind: "data" }]
+      {
+        id: "agent",
+        label: spec.name || "AiGENT",
+        description: `LLM · ${(spec.tools || []).length} outil(s) · ${(spec.knowledge || []).length} source(s)`,
+        kind: "core",
+      },
+      ...knowledgeSources.map((item) => ({
+        id: item.graphId,
+        label: item.label || item.type || "Source documentaire",
+        description: `${item.type || "source"} · ${item.status || "configurée"}`,
+        kind: "data",
+        status: item.status,
+      })),
+      ...configuredTools.map((tool) => ({
+        id: tool.graphId,
+        label: tool.definition?.label || tool.id || "Outil",
+        description: `${tool.definition?.category || "capacité"} · ${tool.status || "configurée"}`,
+        kind: "tools",
+        status: tool.status,
+      })),
+      ...(education
+        ? [
+            {
+              id: "school_courses",
+              label: "Cours & leçons",
+              description: "Supports, matières et ressources",
+              kind: "data",
+            },
+            {
+              id: "school_assignments",
+              label: "Devoirs",
+              description: "Consignes, échéances et rendu",
+              kind: "data",
+            },
+            {
+              id: "school_assessments",
+              label: "DS & évaluations",
+              description: "Sujets, réponses et correction",
+              kind: "data",
+            },
+            {
+              id: "school_grades",
+              label: "Notes",
+              description: "Résultats et appréciations",
+              kind: "data",
+            },
+            {
+              id: "school_progress",
+              label: "Progression",
+              description: "Compétences acquises et lacunes",
+              kind: "data",
+            },
+            {
+              id: "school_students",
+              label: "Dossier élève",
+              description: "Classe, matières et préférences",
+              kind: "tools",
+            },
+            {
+              id: "school_teacher",
+              label: "Espace professeur",
+              description: "Publication et suivi pédagogique",
+              kind: "service",
+              external: true,
+            },
+            {
+              id: "school_alerts",
+              label: "Notifications",
+              description: "Échéances et résultats importants",
+              kind: "service",
+              external: true,
+            },
+          ]
         : []),
-      ...((spec.tools || []).length
-        ? [{ id: "tools", label: "Outils", kind: "tools" }]
-        : []),
-      ...computeIntegrations(spec)
-        .filter((i) => i.service !== "ai_provider")
-        .map((i) => ({
-          id: `svc_${i.service}`,
-          label: i.label,
-          kind: "service",
-          external: true,
-        })),
+      ...integrations.map((i) => ({
+        id: `svc_${i.service}`,
+        label: i.label,
+        description: i.reason || i.service,
+        kind: "service",
+        external: true,
+      })),
     ],
     edges: [
       { from: "user", to: "interface" },
       { from: "interface", to: "agent" },
-      ...((spec.knowledge || []).length
-        ? [{ from: "agent", to: "knowledge" }]
+      ...knowledgeSources.map((item) => ({
+        from: "agent",
+        to: item.graphId,
+        label: "READ",
+      })),
+      ...configuredTools.map((tool) => ({
+        from: "agent",
+        to: tool.graphId,
+        label: "EXEC",
+      })),
+      ...(education
+        ? [
+            ...[
+              "school_courses",
+              "school_assignments",
+              "school_assessments",
+              "school_grades",
+              "school_progress",
+            ].map((to) => ({ from: "agent", to, label: "READ / WRITE" })),
+            { from: "agent", to: "school_students", label: "CONTEXT" },
+            { from: "agent", to: "school_teacher", label: "PUBLISH" },
+            { from: "agent", to: "school_alerts", label: "NOTIFY" },
+          ]
         : []),
-      ...((spec.tools || []).length ? [{ from: "agent", to: "tools" }] : []),
-      ...computeIntegrations(spec)
-        .filter((i) => i.service !== "ai_provider")
-        .map((i) => ({
-          from: "tools",
-          to: `svc_${i.service}`,
+      ...integrations.map((integration) => {
+        const sourceTool = configuredTools.find(
+          (tool) => tool.definition?.service === integration.service,
+        );
+        return {
+          from: sourceTool?.graphId || "agent",
+          to: `svc_${integration.service}`,
+          label: "API",
           external: true,
-        })),
+        };
+      }),
     ],
+    caption: `${integrations.length} service${integrations.length === 1 ? "" : "s"} externe${integrations.length === 1 ? "" : "s"} · ${configuredTools.length} outil${configuredTools.length === 1 ? "" : "s"} · ${knowledgeSources.length} source${knowledgeSources.length === 1 ? "" : "s"} de connaissance.`,
+    flow: education
+      ? [
+          {
+            step: "Demande pédagogique",
+            detail:
+              "L’élève ou le professeur précise matière, classe et objectif.",
+          },
+          {
+            step: "Contexte élève",
+            detail: "Vérification du profil, du niveau et des préférences.",
+          },
+          {
+            step: "Cours & ressources",
+            detail: "Recherche dans les leçons et supports autorisés.",
+          },
+          {
+            step: "Devoirs & échéances",
+            detail: "Repérage des consignes et travaux à rendre.",
+          },
+          {
+            step: "Révision ciblée",
+            detail: "Exercices et QCM adaptés aux notions à renforcer.",
+          },
+          {
+            step: "Évaluation",
+            detail: "Correction guidée et explication des erreurs.",
+          },
+          {
+            step: "Notes & progression",
+            detail: "Mise à jour du suivi après validation.",
+          },
+          {
+            step: "Partage sécurisé",
+            detail: "Synthèse à l’élève et notification au professeur.",
+          },
+        ]
+      : [
+          {
+            step: "Demande reçue",
+            detail: "L’utilisateur formule son besoin.",
+          },
+          {
+            step: "Qualification",
+            detail: "Le besoin est classé selon les missions configurées.",
+          },
+          {
+            step: "Contexte",
+            detail:
+              "Les informations déjà fournies sont rapprochées de la demande.",
+          },
+          {
+            step: "Contrôle",
+            detail: "Les consignes et limites de l’AiGENT sont appliquées.",
+          },
+          {
+            step: (spec.knowledge || []).length
+              ? "Recherche documentaire"
+              : "Vérification des informations",
+            detail: (spec.knowledge || []).length
+              ? "Consultation des sources de connaissance connectées."
+              : "Repérage des précisions nécessaires avant de poursuivre.",
+          },
+          {
+            step: (spec.tools || []).length
+              ? "Action autorisée"
+              : "Préparation de la réponse",
+            detail: (spec.tools || []).length
+              ? "Sélection d’un outil déclaré et autorisé."
+              : "Organisation des éléments utiles sans action externe.",
+          },
+          {
+            step: "Contrôle du résultat",
+            detail:
+              "La réponse est vérifiée au regard de la demande et du contexte.",
+          },
+          {
+            step: "Réponse & suivi",
+            detail:
+              "L’utilisateur reçoit une réponse claire et les prochaines étapes utiles.",
+          },
+        ],
   };
-
-  const json = await callJSON(
-    `${LANG_GUARD}
-Tu décris, en une phrase par étape, le parcours d'une demande dans cet assistant.
-Réponds UNIQUEMENT avec ce JSON :
-{"caption":"une phrase de synthèse","flow":[{"step":"…","detail":"…"}]}`,
-    `PROJET : ${JSON.stringify(compactSpec(spec))}`,
-    { maxTokens: 500 },
-  );
-
-  return {
-    ...deterministic,
-    caption:
-      json?.caption ||
-      "Le visiteur écrit, l'AiGENT comprend, consulte vos informations puis agit.",
-    flow: json?.flow || [
-      { step: "Question", detail: "Le visiteur formule sa demande." },
-      { step: "Compréhension", detail: "L'AiGENT identifie l'intention." },
-      { step: "Recherche", detail: "Il consulte vos connaissances." },
-      { step: "Décision", detail: "Il choisit d'informer ou d'agir." },
-      {
-        step: "Action",
-        detail: "Il répond, enregistre ou transfère à un humain.",
-      },
-    ],
-  };
+  return deterministic;
 }
 
 /** 5.5 — Workflows proposés. */

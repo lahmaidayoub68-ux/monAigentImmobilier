@@ -907,27 +907,34 @@
         color: var(--text-faint);
       }
       .send-btn {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
         border: none;
-        background: var(--primary-gradient);
+        background: transparent;
+        color: var(--text-muted);
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        box-shadow: 0 4px 16px rgba(255, 90, 40, 0.3);
-        transition: 0.2s;
+        transition: background 0.16s ease, color 0.16s ease, transform 0.12s ease;
         flex-shrink: 0;
         align-self: flex-end;
       }
       .send-btn:hover {
-        transform: scale(1.06);
-        box-shadow: 0 6px 24px rgba(255, 90, 40, 0.4);
+        background: var(--bg-hover);
+        color: var(--orange, #ff6a3d);
       }
+      .send-btn:active:not(:disabled) { transform: scale(0.92); }
+      .send-btn.is-ready { color: var(--orange, #ff6a3d); }
+      .send-btn:focus-visible { outline: 2px solid var(--orange, #ff6a3d); outline-offset: 2px; }
+      .send-btn svg { width: 17px; height: 17px; stroke-width: 1.8; }
 
       .attach-row {
         display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
         gap: 4px;
         margin-top: 8px;
         padding-top: 8px;
@@ -935,6 +942,9 @@
       }
       .attach-btn {
         display: flex;
+        flex: 0 0 auto;
+        width: auto;
+        white-space: nowrap;
         align-items: center;
         gap: 5px;
         padding: 5px 10px;
@@ -1729,13 +1739,7 @@
         stroke: var(--orange);
         transform: scale(1.1);
       }
-      /* ============================================================
-   PATCH À COLLER dans chat-occas.html, à la fin du bloc <style>
-   existant (juste avant la fermeture </style>).
-   Aucune autre modification du fichier HTML n'est nécessaire :
-   chat-occas.js cible tout le reste via closest()/querySelector(),
-   compatible avec la structure HTML actuelle telle quelle.
-   ============================================================ */
+      /* Styles historiques du panneau de résultats. */
 
 /* ── CARTE RÉCAPITULATIVE VENDEUR (image 60% + infos 40%) ─────────── */
 .recap-ad-wrap {
@@ -2147,11 +2151,31 @@
           transition-duration: 0.001ms !important;
         }
       }
+
+      .mobile-ai-panel-toggle { display: none; }
+      .mobile-ai-backdrop { display: none; }
+      @media (max-width: 900px) {
+        .mobile-ai-panel-toggle { display: grid !important; place-items: center; width: 36px; height: 36px; }
+        body.ai-panel-mobile-open .mobile-ai-backdrop {
+          display: block; position: fixed; inset: var(--header-h, 52px) 0 var(--footer-h, 32px);
+          z-index: 4998; border: 0; background: rgba(3, 6, 10, .52); cursor: default;
+        }
+        body.ai-panel-mobile-open .ai-panel {
+          display: flex; position: fixed; top: var(--header-h, 52px); right: 0; bottom: var(--footer-h, 32px);
+          z-index: 4999; width: min(390px, calc(100vw - 14px)); max-width: calc(100vw - 14px);
+          overflow: hidden; box-shadow: -18px 0 44px rgba(0, 0, 0, .25); animation: ai-panel-mobile-in .18s ease-out;
+        }
+        body.ai-panel-mobile-open .ai-panel-inner { width: 100%; height: 100%; min-height: 0; overflow-y: auto; }
+      }
+      @keyframes ai-panel-mobile-in { from { transform: translateX(14px); opacity: .7; } to { transform: translateX(0); opacity: 1; } }
+  .chat-attachment-strip{display:flex;flex-wrap:wrap;gap:7px;padding:8px 12px 0}.chat-attachment-strip[hidden]{display:none}.chat-attachment-chip{display:inline-flex;align-items:center;gap:8px;max-width:min(100%,260px);padding:5px 7px 5px 10px;border:1px solid rgba(128,138,154,.35);border-radius:999px;background:rgba(128,138,154,.09);font-size:12px}.chat-attachment-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chat-attachment-remove{display:grid;place-items:center;width:20px;height:20px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:17px;line-height:1;cursor:pointer}.chat-attachment-remove:hover{background:rgba(128,138,154,.18)}
+
     </style>
+
   </head>
   <body data-favicon="occas">
     <!-- HEADER -->
-    
+
        <!-- HEADER -->
     <header class="top-banner">
       <div class="logo-container">
@@ -2172,6 +2196,10 @@
         <span class="logo-text">Mon <span>AiGENT</span> Occasion</span>
       </div>
       <div class="header-actions">
+        <button class="hbtn mobile-ai-panel-toggle" id="mobile-ai-panel-toggle" type="button" aria-label="Afficher le panneau Cerveau IA" aria-expanded="false" title="Cerveau IA">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16M13 9h4M13 13h4"/></svg>
+        </button>
+
         <button class="hbtn" id="btn-theme" aria-label="Changer le thème">
           <svg
             class="icon-sun"
@@ -2232,6 +2260,7 @@
         </button>
       </div>
     </header>
+    <button class="mobile-ai-backdrop" id="mobile-ai-backdrop" type="button" aria-label="Fermer le panneau Cerveau IA"></button>
 
 
 <!-- SIDEBAR -->
@@ -2499,17 +2528,16 @@
                   title="Envoyer"
                 >
                   <svg
-                    width="18"
-                    height="18"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="white"
-                    stroke-width="2.5"
+                    stroke="currentColor"
+                    stroke-width="1.8"
                     stroke-linecap="round"
                     stroke-linejoin="round"
+                    aria-hidden="true"
                   >
-                    <line x1="22" y1="2" x2="11" y2="13" />
-                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                    <path d="M4 12h13" />
+                    <path d="M13 6l7 6-7 6" />
                   </svg>
                 </button>
               </div>
@@ -2564,6 +2592,7 @@
                   Carte grise / CT
                 </button>
               </div>
+              <input type="file" id="chat-files-input" hidden multiple />
             </div>
             <div class="user-info-bar" id="user-info">
               <span class="user-info-dot"></span>
@@ -2918,5 +2947,18 @@
     <script type="module" src="chat-occas.js"></script>
     <link rel="stylesheet" href="vehicle-ad-cards.css">
     <script src="./favicon.js"></script>
+
+    <script data-mobile-ai-panel-controller>
+      (() => {
+        const button = document.getElementById('mobile-ai-panel-toggle');
+        const panel = document.querySelector('.ai-panel');
+        const backdrop = document.getElementById('mobile-ai-backdrop');
+        if (!button || !panel || !backdrop) return;
+        const close = () => { document.body.classList.remove('ai-panel-mobile-open'); button.setAttribute('aria-expanded', 'false'); };
+        button.addEventListener('click', () => { const open = document.body.classList.toggle('ai-panel-mobile-open'); button.setAttribute('aria-expanded', String(open)); });
+        backdrop.addEventListener('click', close);
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
+      })();
+    </script>
 </body>
 </html>

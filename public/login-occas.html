@@ -511,11 +511,14 @@
       .input-group input:-webkit-autofill,
       .input-group input:-webkit-autofill:hover,
       .input-group input:-webkit-autofill:focus,
+      .input-group input:autofill,
       .input-group select:-webkit-autofill {
-        -webkit-text-fill-color: #ffffff !important;
-        -webkit-box-shadow: 0 0 0px 1000px rgba(20, 12, 10, 0.95) inset !important;
-        border: 1px solid rgba(255, 90, 40, 0.35) !important;
-        transition: background-color 9999s ease-in-out 0s;
+        -webkit-text-fill-color: #2b1a13 !important;
+        caret-color: #2b1a13;
+        background-color: #fff0e8 !important;
+        -webkit-box-shadow: 0 0 0 1000px #fff0e8 inset !important;
+        box-shadow: 0 0 0 1000px #fff0e8 inset !important;
+        border: 1px solid rgba(255, 106, 61, 0.5) !important;
       }
       .input-group input::placeholder {
         color: rgba(255, 222, 205, 0.35);

@@ -535,10 +535,12 @@ function initAttachments() {
   input.addEventListener("change", () => {
     const kind = input.dataset.kind || "doc";
     Array.from(input.files || []).forEach((file) => {
+      const fingerprint = `${file.name.toLocaleLowerCase()}|${file.size}|${file.lastModified}|${file.type}`;
+      if (state.attachments.some((item) => item.fingerprint === fingerprint)) return;
       const isImage = file.type.startsWith("image/");
       state.attachments.push({
         id: `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        file,
+        file, fingerprint,
         kind: isImage ? "image" : kind,
         name: file.name,
         size: file.size,

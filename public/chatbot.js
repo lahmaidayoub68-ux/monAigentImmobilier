@@ -16,6 +16,78 @@ import { generateSessionPDF } from "./sessionReplay.js";
 import { openNiveauEnergetiquePopup } from "./niveauEnergetiquePopup.js";
 import { openProximitePopup } from "./proximitePopup.js";
 import { renderProjectionHTML } from "./compatibilityProjection.js";
+const readAsDataUrl = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result || ""));
+  reader.onerror = () => reject(reader.error || new Error("Lecture impossible"));
+  reader.readAsDataURL(file);
+});
+
+/** Shared picker + removable chips for the four specialist chat composers. */
+export function initChatAttachments({ buttons, input, before = null, maxFiles = 6, maxBytes = 2_000_000 }) {
+  const picker = typeof input === "string" ? document.getElementById(input) : input;
+  if (!picker) return { take: () => [], clear: () => {} };
+  let files = [];
+  const strip = document.createElement("div");
+  strip.className = "chat-attachment-strip";
+  strip.hidden = true;
+  if (before?.parentNode) before.parentNode.insertBefore(strip, before);
+
+  const render = () => {
+    strip.replaceChildren();
+    strip.hidden = files.length === 0;
+    files.forEach((file, index) => {
+      const chip = document.createElement("span");
+      chip.className = "chat-attachment-chip";
+      const name = document.createElement("span");
+      name.className = "chat-attachment-name";
+      name.textContent = file.name;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "chat-attachment-remove";
+      remove.setAttribute("aria-label", `Retirer ${file.name}`);
+      remove.textContent = "×";
+      remove.addEventListener("click", () => { files.splice(index, 1); render(); });
+      chip.append(name, remove);
+      strip.append(chip);
+    });
+  };
+
+  for (const { button, accept, kind } of buttons) {
+    document.getElementById(button)?.addEventListener("click", () => {
+      picker.accept = accept;
+      picker.dataset.kind = kind || "document";
+      picker.value = "";
+      picker.click();
+    });
+  }
+  picker.multiple = true;
+  picker.addEventListener("change", async () => {
+    for (const file of [...picker.files]) {
+      if (files.length >= maxFiles || files.reduce((sum, item) => sum + item.size, 0) + file.size > maxBytes) {
+        window.alert(`Limite de pièces jointes : ${maxFiles} fichiers et ${Math.round(maxBytes / 1_000_000)} Mo.`);
+        break;
+      }
+      const ext = file.name.split(".").pop().toLowerCase();
+      const isText = /^(txt|md|markdown|csv|tsv|json|html|htm|xml|log|yaml|yml|sql)$/.test(ext) || file.type.startsWith("text/");
+      try {
+        const fingerprint = `${file.name.toLocaleLowerCase()}|${file.size}|${file.lastModified}|${file.type}`;
+        if (files.some((item) => item.fingerprint === fingerprint)) continue;
+        files.push({ fingerprint, name: file.name.slice(0, 120), mime: file.type || "application/octet-stream", size: file.size,
+          kind: picker.dataset.kind || "document",
+          content: isText ? (await file.text()).slice(0, 80_000) : "",
+          dataUrl: isText ? "" : await readAsDataUrl(file),
+        });
+      } catch { window.alert(`Impossible de lire ${file.name}.`); }
+    }
+    render();
+  });
+  return {
+    take() { const out = files; files = []; render(); return out; },
+    clear() { files = []; render(); },
+  };
+}
+
 // ================== CONFIG & STATE ==================
 const API_BASE = window.location.origin;
 const MAX_HISTORY = 50;
@@ -193,6 +265,7 @@ function addMessage({
   structured = false,
   persist = true,
   typing = false,
+  attachments = [],
 }) {
   if (!text) return;
 
@@ -208,6 +281,11 @@ function addMessage({
         <div class="bu-text">${text}</div>
         <div class="bu-time">${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</div>
       </div>`;
+    if (attachments.length) {
+      const strip = document.createElement("div"); strip.className = "chat-attachment-strip";
+      for (const file of attachments) { const chip = document.createElement("span"); chip.className = "chat-attachment-chip"; chip.textContent = file.name; strip.appendChild(chip); }
+      row.appendChild(strip);
+    }
     box.appendChild(row);
   } else if (structured) {
     const c = document.createElement("div");
@@ -446,10 +524,10 @@ async function sendSpecialUpdate(payload) {
   }
 }
 
-async function sendMessage(text) {
-  if (state.sending || !text) return;
+async function sendMessage(text, attachments = []) {
+  if (state.sending || (!text && !attachments.length)) return;
   state.sending = true;
-  addMessage({ text, from: "user" });
+  addMessage({ text: text || "Fichier(s) joint(s)", from: "user", attachments });
 
   const thinkEl = addThinkingIndicator();
   try {
@@ -459,7 +537,7 @@ async function sendMessage(text) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${state.user?.token || ""}`,
       },
-      body: JSON.stringify({ message: text }),
+      body: JSON.stringify({ message: text || "Analyse les fichiers joints.", attachments }),
     });
     const data = await res.json();
     thinkEl.remove();
@@ -2317,6 +2395,17 @@ export function initChatbot() {
   // ── INPUT & SEND ──────────────────────────────────────────────
   const input = $("user-input");
   const sendBtn = $("send-btn");
+  const chatAttachments = initChatAttachments({
+    input: "file-input-general",
+    before: document.querySelector(".chat-input-row"),
+    maxBytes: 1_500_000,
+    buttons: [
+      { button: "btn-attach-file", accept: ".txt,.md,.csv,.json,.pdf,.doc,.docx,.rtf,.xlsx,.xls", kind: "document" },
+      { button: "btn-attach-pdf", accept: ".pdf", kind: "document" },
+      { button: "btn-attach-image", accept: "image/*", kind: "image" },
+      { button: "btn-attach-excel", accept: ".xlsx,.xls,.csv", kind: "spreadsheet" },
+    ],
+  });
   // AJOUTER après "const sendBtn = $("send-btn");"
   const chatBox = $("chat-box");
   const scrollBtn = $("btn-scroll-bottom");
@@ -2357,10 +2446,11 @@ export function initChatbot() {
 
   function doSend() {
     const text = (input?.value || "").trim();
-    if (!text) return;
+    const attachments = chatAttachments.take();
+    if (!text && !attachments.length) return;
 
     if (state.user) {
-      sendMessage(text);
+      sendMessage(text, attachments);
     } else {
       addMessage({ text, from: "user" });
       setTimeout(() => {

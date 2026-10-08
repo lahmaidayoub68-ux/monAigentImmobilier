@@ -427,7 +427,13 @@ app.use(
           "https://c.basemaps.cartocdn.com",
           "https://d.basemaps.cartocdn.com",
         ],
-        fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+        // APRÈS
+        fontSrc: [
+          "'self'",
+          "data:",
+          "https://fonts.gstatic.com",
+          "https://cdn.jsdelivr.net",
+        ],
 
         // 🔥 AJOUT CRUCIAL POUR AUDIO
         mediaSrc: ["'self'", "https://*.supabase.co"],
@@ -1426,9 +1432,25 @@ function computeSellerTriggerContext(sc, villeJustReceived) {
 // ================== CHAT ROUTE ==================
 app.post("/chat", authenticateToken, userQueueMiddleware, async (req, res) => {
   try {
-    const { message } = z
+    const { message: userMessage } = z
       .object({ message: z.string().min(1) })
       .parse(req.body);
+    const chatFiles = Array.isArray(req.body?.attachments)
+      ? req.body.attachments.slice(0, 6)
+      : [];
+    const attachmentContext = chatFiles
+      .map((file) => {
+        const name = String(file?.name || "document")
+          .replace(/[\\/\r\n]/g, "_")
+          .slice(0, 120);
+        const content = String(file?.content || "").slice(0, 25_000);
+        return content
+          ? `\n\n[Texte du fichier joint : ${name}]\n${content}`
+          : `\n\n[Fichier joint : ${name} (${String(file?.mime || "type inconnu")})]`;
+      })
+      .join("")
+      .slice(0, 90_000);
+    const message = `${userMessage}${attachmentContext}`;
 
     const username = req.user.username;
     const userRole = req.user.role;

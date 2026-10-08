@@ -888,7 +888,16 @@ router.post("/emploi/chat", authenticateEmploiToken, async (req, res) => {
     const username = req.user.username;
     const role = req.user.role;
     const body = req.body || {};
-    const message = (body.message || "").toString();
+    const userMessage = (body.message || "").toString();
+    const chatFiles = Array.isArray(body.attachments) ? body.attachments.slice(0, 6) : [];
+    const attachmentText = chatFiles.map((file) => {
+      const name = String(file?.name || "document").replace(/[\\/\r\n]/g, "_").slice(0, 120);
+      const content = String(file?.content || "").slice(0, 30_000);
+      return content
+        ? `\n\n[Texte du fichier joint : ${name}]\n${content}`
+        : `\n\n[Fichier joint : ${name} (${String(file?.mime || "type inconnu")})]`;
+    }).join("").slice(0, 90_000);
+    const message = `${userMessage}${attachmentText}`;
 
     let profile = await getOrCreateProfile(username, role);
     let sc = { ...(profile.criteria || {}), intent: role };

@@ -895,9 +895,18 @@ async function fetchMarketStats(sc) {
 // APRÈS
 router.post("/occas/chat", authenticateOccasToken, async (req, res) => {
   try {
-    const { message } = z
+    const { message: userMessage } = z
       .object({ message: z.string().min(1) })
       .parse(req.body);
+    const chatFiles = Array.isArray(req.body?.attachments) ? req.body.attachments.slice(0, 6) : [];
+    const attachmentText = chatFiles.map((file) => {
+      const name = String(file?.name || "document").replace(/[\\/\r\n]/g, "_").slice(0, 120);
+      const content = String(file?.content || "").slice(0, 30_000);
+      return content
+        ? `\n\n[Texte du fichier joint : ${name}]\n${content}`
+        : `\n\n[Fichier joint : ${name} (${String(file?.mime || "type inconnu")})]`;
+    }).join("").slice(0, 90_000);
+    const message = `${userMessage}${attachmentText}`;
     const username = req.user.username;
     const role = req.user.role;
     const contact = req.user.contact;

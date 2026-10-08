@@ -744,6 +744,19 @@
           box-shadow 0.22s var(--ease),
           background 0.22s var(--ease);
       }
+      input[type="text"]:-webkit-autofill,
+      input[type="email"]:-webkit-autofill,
+      input[type="password"]:-webkit-autofill,
+      input[type="text"]:autofill,
+      input[type="email"]:autofill,
+      input[type="password"]:autofill {
+        -webkit-text-fill-color: #142633 !important;
+        caret-color: #142633;
+        background-color: #e3f5ff !important;
+        -webkit-box-shadow: 0 0 0 1000px #e3f5ff inset !important;
+        box-shadow: 0 0 0 1000px #e3f5ff inset !important;
+        border-color: rgba(56, 189, 248, 0.65) !important;
+      }
       input::placeholder {
         color: var(--text-dim);
       }

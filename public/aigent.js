@@ -36,6 +36,7 @@ const state = {
   shots: [],
   shooting: false,
   lightbox: null,
+  attachments: [],
 };
 
 /* ── Raccourcis DOM ───────────────────────────────────────────────── */
@@ -117,12 +118,75 @@ function scroll() {
   requestAnimationFrame(() => (thread.scrollTop = thread.scrollHeight));
 }
 
-function addUser(text) {
+function copyMessageAction(text) {
+  const button = el("button", "message-copy");
+  button.type = "button";
+  button.title = "Copier le message";
+  button.setAttribute("aria-label", "Copier le message");
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  rect.setAttribute("x", "8");
+  rect.setAttribute("y", "8");
+  rect.setAttribute("width", "13");
+  rect.setAttribute("height", "13");
+  rect.setAttribute("rx", "2");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute(
+    "d",
+    "M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3",
+  );
+  svg.append(rect, path);
+  button.prepend(svg);
+  button.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(String(text || ""));
+    } catch {
+      const fallback = el("textarea");
+      fallback.value = String(text || "");
+      fallback.style.position = "fixed";
+      fallback.style.opacity = "0";
+      document.body.appendChild(fallback);
+      fallback.select();
+      const copied = document.execCommand("copy");
+      fallback.remove();
+      if (!copied) {
+        toast("Copie impossible dans ce navigateur.");
+        return;
+      }
+    }
+    const check = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "path",
+    );
+    check.setAttribute("d", "m5 12 4 4L19 6");
+    svg.replaceChildren(check);
+    button.classList.add("is-copied");
+    button.setAttribute("aria-label", "Message copié");
+    button.title = "Message copié";
+    setTimeout(() => {
+      svg.replaceChildren(rect, path);
+      button.classList.remove("is-copied");
+      button.setAttribute("aria-label", "Copier le message");
+      button.title = "Copier le message";
+    }, 1400);
+  });
+  return button;
+}
+
+function addUser(text, attachments = []) {
   const turn = el("div", "turn user");
   const bubble = el("div", "bubble");
   bubble.appendChild(el("p", null, text));
+  if (attachments.length) {
+    const list = el("div", "user-attachments");
+    for (const file of attachments)
+      list.appendChild(el("span", "user-attachment", file.name));
+    bubble.appendChild(list);
+  }
   bubble.appendChild(el("div", "time", now()));
-  turn.appendChild(bubble);
+  turn.append(bubble, copyMessageAction(text));
   thread.appendChild(turn);
   scroll();
 }
@@ -135,6 +199,7 @@ function addAgent(text, node) {
   if (text) body.appendChild(el("p", null, text));
   if (node) body.appendChild(node);
   body.appendChild(el("div", "time", now()));
+  if (text) body.appendChild(copyMessageAction(text));
   turn.append(mark, body);
   thread.appendChild(turn);
   scroll();
@@ -335,158 +400,413 @@ async function runPreviews(manifest) {
    SCHÉMAS (SVG généré, jamais d'image décorative)
    ══════════════════════════════════════════════════════════════════ */
 
-function schemaFromArchitecture(arch) {
-  const wrap = el("div", "schema");
-  const nodes = arch?.nodes || [];
-  const order = ["actor", "surface", "core", "data", "tools", "service"];
-  const rows = order
-    .map((kind) => nodes.filter((n) => n.kind === kind))
-    .filter((r) => r.length);
-
-  const W = 680,
-    boxH = 44,
-    gapY = 30,
-    padY = 14;
-  const H = padY * 2 + rows.length * boxH + (rows.length - 1) * gapY;
+let architectureGraphSequence = 0;
+function schemaFromArchitecture(arch, { compact = false } = {}) {
+  const wrap = el(
+    "section",
+    `schema architecture-canvas${compact ? " is-compact" : ""}`,
+  );
+  if (arch?.theme?.accent)
+    wrap.style.setProperty("--arch-accent", arch.theme.accent);
+  if (arch?.theme?.core) wrap.style.setProperty("--arch-core", arch.theme.core);
+  if (arch?.theme?.tint) wrap.style.setProperty("--arch-tint", arch.theme.tint);
+  const nodes = Array.isArray(arch?.nodes) ? arch.nodes : [];
+  const fitSvgLabel = (value, limit) => {
+    const text = String(value || "").trim();
+    if (text.length <= limit) return text;
+    const head = text.slice(0, limit - 1);
+    const boundary = head.lastIndexOf(" ");
+    return `${(boundary > limit * 0.55 ? head.slice(0, boundary) : head).trimEnd()}…`;
+  };
+  if (!nodes.length) {
+    wrap.appendChild(
+      el(
+        "p",
+        "schema-caption",
+        arch?.caption ||
+          "Aucun composant technique détaillé n’a été déclaré pour le moment.",
+      ),
+    );
+    return wrap;
+  }
+  const columns = [
+    ["actor", "UTILISATEURS"],
+    ["surface", "INTERFACE & ENTRÉES"],
+    ["core", "ORCHESTRATION"],
+    ["data", "CONNAISSANCES & MÉMOIRE"],
+    ["tools", "OUTILS"],
+    ["service", "SERVICES & SORTIES"],
+  ]
+    .map(([kind, title]) => ({
+      kind,
+      title,
+      nodes: nodes.filter((node) => node.kind === kind),
+    }))
+    .filter((column) => column.nodes.length);
+  if (compact) {
+    const shortTitles = {
+      actor: "PUBLIC",
+      surface: "ENTRÉE",
+      core: "AIGENT",
+      data: "DONNÉES",
+      tools: "ACTIONS",
+      service: "SORTIES",
+    };
+    columns.forEach((column) => {
+      column.title = shortTitles[column.kind] || column.title;
+    });
+  }
   const ns = "http://www.w3.org/2000/svg";
+  const colW = compact ? 150 : 190,
+    gap = compact ? 40 : 56,
+    nodeH = compact ? 52 : 72,
+    nodeGap = compact ? 12 : 22;
+  const W = 64 + columns.length * colW + Math.max(0, columns.length - 1) * gap;
+  const maxCount = Math.max(...columns.map((column) => column.nodes.length));
+  const H = (compact ? 78 : 100) + maxCount * (nodeH + nodeGap);
+  const viewH = Math.max(compact ? 190 : 320, H);
   const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("viewBox", `0 0 ${W} ${viewH}`);
   svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "Schéma d'architecture de l'AiGENT");
-
+  svg.setAttribute("aria-label", "Architecture fonctionnelle de l’AiGENT");
+  const defs = document.createElementNS(ns, "defs");
+  const markerId = `arch-arrow-${++architectureGraphSequence}`;
   const marker = document.createElementNS(ns, "marker");
-  marker.setAttribute("id", "arrow");
+  marker.setAttribute("id", markerId);
   marker.setAttribute("viewBox", "0 0 8 8");
-  marker.setAttribute("refX", "6");
+  marker.setAttribute("refX", "7");
   marker.setAttribute("refY", "4");
   marker.setAttribute("markerWidth", "6");
   marker.setAttribute("markerHeight", "6");
   marker.setAttribute("orient", "auto");
-  const tri = document.createElementNS(ns, "path");
-  tri.setAttribute("d", "M0 1 L7 4 L0 7 z");
-  tri.setAttribute("class", "s-arrow");
-  marker.appendChild(tri);
-  const defs = document.createElementNS(ns, "defs");
+  const arrow = document.createElementNS(ns, "path");
+  arrow.setAttribute("d", "M0 1 L7 4 L0 7 z");
+  arrow.setAttribute("class", "s-arrow");
+  marker.appendChild(arrow);
   defs.appendChild(marker);
   svg.appendChild(defs);
-
   const pos = new Map();
-  rows.forEach((row, r) => {
-    const y = padY + r * (boxH + gapY);
-    const boxW = Math.min(230, (W - 40 - (row.length - 1) * 18) / row.length);
-    const totalW = row.length * boxW + (row.length - 1) * 18;
-    let x = (W - totalW) / 2;
-    row.forEach((n) => {
-      pos.set(n.id, { x: x + boxW / 2, y, h: boxH });
-      const rect = document.createElementNS(ns, "rect");
-      rect.setAttribute("x", x);
-      rect.setAttribute("y", y);
-      rect.setAttribute("width", boxW);
-      rect.setAttribute("height", boxH);
-      rect.setAttribute("rx", 10);
-      rect.setAttribute(
-        "class",
-        "s-box" + (n.kind === "core" ? " core" : n.external ? " ext" : ""),
+  columns.forEach((column, ci) => {
+    const x = 32 + ci * (colW + gap);
+    const heading = document.createElementNS(ns, "text");
+    heading.setAttribute("x", x);
+    heading.setAttribute("y", 35);
+    heading.setAttribute("class", "arch-column-title");
+    heading.textContent = column.title;
+    svg.appendChild(heading);
+    const totalH =
+      column.nodes.length * nodeH + (column.nodes.length - 1) * nodeGap;
+    column.nodes.forEach((node, ni) => {
+      const y = Math.max(
+        compact ? 56 : 70,
+        (viewH - totalH) / 2 + ni * (nodeH + nodeGap),
       );
-      svg.appendChild(rect);
-
-      const label = document.createElementNS(ns, "text");
-      label.setAttribute("x", x + boxW / 2);
-      label.setAttribute("y", y + 20);
-      label.setAttribute("text-anchor", "middle");
-      label.setAttribute("class", "s-label");
-      label.textContent = (n.label || n.id).slice(0, 26);
-      svg.appendChild(label);
-
-      const kind = document.createElementNS(ns, "text");
-      kind.setAttribute("x", x + boxW / 2);
-      kind.setAttribute("y", y + 34);
-      kind.setAttribute("text-anchor", "middle");
-      kind.setAttribute("class", "s-kind");
-      kind.textContent = n.external
-        ? "service externe à connecter"
-        : {
-            actor: "point d'entrée",
-            surface: "interface",
-            core: "votre AiGENT",
-            data: "connaissances",
-            tools: "capacités",
-            service: "externe",
-          }[n.kind] || "";
-      svg.appendChild(kind);
-
-      x += boxW + 18;
+      pos.set(node.id, {
+        x,
+        y,
+        cx: x + colW / 2,
+        cy: y + nodeH / 2,
+        column: ci,
+      });
     });
   });
-
-  (arch?.edges || []).forEach((e) => {
-    const a = pos.get(e.from),
-      b = pos.get(e.to);
-    if (!a || !b) return;
+  (arch?.edges || []).forEach((edge) => {
+    const from = pos.get(edge.from),
+      to = pos.get(edge.to);
+    if (!from || !to) return;
     const path = document.createElementNS(ns, "path");
     path.setAttribute(
       "d",
-      `M ${a.x} ${a.y + a.h} C ${a.x} ${a.y + a.h + 14}, ${b.x} ${b.y - 14}, ${b.x} ${b.y - 4}`,
+      `M ${from.x + colW} ${from.cy} C ${from.x + colW + 24} ${from.cy}, ${to.x - 24} ${to.cy}, ${to.x} ${to.cy}`,
     );
-    path.setAttribute("class", "s-line" + (e.external ? " ext" : ""));
-    path.setAttribute("marker-end", "url(#arrow)");
+    path.setAttribute(
+      "class",
+      `s-line arch-edge${edge.external ? " ext" : ""}`,
+    );
+    path.setAttribute("marker-end", `url(#${markerId})`);
     svg.appendChild(path);
+    const relation =
+      edge.label ||
+      (edge.from === "user"
+        ? "INPUT"
+        : edge.to === "knowledge"
+          ? "READ"
+          : edge.to === "tools"
+            ? "EXEC"
+            : edge.external
+              ? "API"
+              : edge.from === "interface"
+                ? "PROMPT"
+                : "DATA");
+    if (relation) {
+      const text = document.createElementNS(ns, "text");
+      text.setAttribute("x", (from.x + colW + to.x) / 2);
+      text.setAttribute("y", (from.cy + to.cy) / 2 - 7);
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("class", "arch-edge-label");
+      text.textContent = String(relation).slice(0, 24);
+      svg.appendChild(text);
+    }
   });
-
-  wrap.appendChild(svg);
+  nodes.forEach((node) => {
+    const at = pos.get(node.id);
+    if (!at) return;
+    const group = document.createElementNS(ns, "g");
+    group.setAttribute(
+      "class",
+      `arch-node ${node.kind || "service"}${node.external ? " ext" : ""}`,
+    );
+    group.setAttribute("tabindex", "0");
+    group.setAttribute("role", "button");
+    group.setAttribute("aria-label", node.label || node.id);
+    const rect = document.createElementNS(ns, "rect");
+    rect.setAttribute("x", at.x);
+    rect.setAttribute("y", at.y);
+    rect.setAttribute("width", colW);
+    rect.setAttribute("height", nodeH);
+    rect.setAttribute("rx", node.kind === "data" ? 18 : 10);
+    group.appendChild(rect);
+    if (node.kind === "data") {
+      const top = document.createElementNS(ns, "ellipse");
+      top.setAttribute("cx", at.x + colW / 2);
+      top.setAttribute("cy", at.y + 5);
+      top.setAttribute("rx", colW / 2);
+      top.setAttribute("ry", 6);
+      top.setAttribute("class", "arch-store-rim");
+      group.appendChild(top);
+      const bottom = document.createElementNS(ns, "ellipse");
+      bottom.setAttribute("cx", at.x + colW / 2);
+      bottom.setAttribute("cy", at.y + nodeH - 5);
+      bottom.setAttribute("rx", colW / 2);
+      bottom.setAttribute("ry", 6);
+      bottom.setAttribute("class", "arch-store-rim bottom");
+      group.appendChild(bottom);
+    }
+    const label = document.createElementNS(ns, "text");
+    label.setAttribute("x", at.x + 14);
+    label.setAttribute("y", at.y + (compact ? 25 : 30));
+    label.setAttribute("class", "arch-node-label");
+    label.textContent = fitSvgLabel(node.label || node.id, compact ? 18 : 23);
+    group.appendChild(label);
+    const detail = document.createElementNS(ns, "text");
+    detail.setAttribute("x", at.x + 14);
+    detail.setAttribute("y", at.y + (compact ? 41 : 52));
+    detail.setAttribute("class", "arch-node-detail");
+    detail.textContent = fitSvgLabel(
+      node.description ||
+        node.role ||
+        (node.external ? "Service externe" : node.kind),
+      compact ? 22 : 30,
+    );
+    group.appendChild(detail);
+    const showDetail = () => {
+      wrap
+        .querySelectorAll(".arch-node")
+        .forEach((item) => item.classList.remove("selected"));
+      group.classList.add("selected");
+      const panel = wrap.querySelector(".arch-detail");
+      panel.replaceChildren(el("strong", null, node.label || node.id));
+      if (node.description)
+        panel.appendChild(el("span", null, node.description));
+      if (node.role) panel.appendChild(el("span", null, node.role));
+      if (node.model)
+        panel.appendChild(el("span", null, `Modèle : ${node.model}`));
+      if (node.tools?.length)
+        panel.appendChild(
+          el("span", null, `Outils : ${node.tools.join(", ")}`),
+        );
+    };
+    group.addEventListener("click", showDetail);
+    group.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        showDetail();
+      }
+    });
+    svg.appendChild(group);
+  });
+  const viewport = el(
+    "div",
+    `architecture-viewport${compact ? " is-compact" : ""}`,
+  );
+  viewport.appendChild(svg);
+  const detailPanel = el("div", "arch-detail");
+  detailPanel.setAttribute("aria-live", "polite");
+  detailPanel.appendChild(
+    el(
+      "span",
+      null,
+      "Sélectionnez un composant pour afficher ses détails déclarés.",
+    ),
+  );
+  wrap.append(viewport, detailPanel);
   if (arch?.caption) wrap.appendChild(el("p", "schema-caption", arch.caption));
   return wrap;
 }
-
-function schemaFromFlow(flow) {
-  const wrap = el("div", "schema");
-  const ns = "http://www.w3.org/2000/svg";
-  const stepW = 128,
-    gap = 22,
-    H = 78;
-  const W = flow.length * stepW + (flow.length - 1) * gap;
-  const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "Parcours d'une demande");
-
-  flow.forEach((s, i) => {
-    const x = i * (stepW + gap);
-    const rect = document.createElementNS(ns, "rect");
-    rect.setAttribute("x", x);
-    rect.setAttribute("y", 8);
-    rect.setAttribute("width", stepW);
-    rect.setAttribute("height", 52);
-    rect.setAttribute("rx", 10);
-    rect.setAttribute("class", "s-box");
-    svg.appendChild(rect);
-
-    const t1 = document.createElementNS(ns, "text");
-    t1.setAttribute("x", x + stepW / 2);
-    t1.setAttribute("y", 28);
-    t1.setAttribute("text-anchor", "middle");
-    t1.setAttribute("class", "s-label");
-    t1.textContent = s.step;
-    svg.appendChild(t1);
-
-    const t2 = document.createElementNS(ns, "text");
-    t2.setAttribute("x", x + stepW / 2);
-    t2.setAttribute("y", 44);
-    t2.setAttribute("text-anchor", "middle");
-    t2.setAttribute("class", "s-kind");
-    t2.textContent = (s.detail || "").slice(0, 22);
-    svg.appendChild(t2);
-
-    if (i < flow.length - 1) {
-      const line = document.createElementNS(ns, "path");
-      line.setAttribute("d", `M ${x + stepW} 34 H ${x + stepW + gap - 6}`);
-      line.setAttribute("class", "s-line");
-      line.setAttribute("marker-end", "url(#arrow)");
-      svg.appendChild(line);
+function openArchitectureModal(
+  architecture,
+  title = "Architecture de l’AiGENT",
+) {
+  const overlay = el("div", "architecture-modal");
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-label", title);
+  const panel = el("section", "architecture-modal-panel");
+  const header = el("header", "architecture-modal-header");
+  const heading = el("div");
+  heading.append(
+    el("h2", null, title),
+    el(
+      "p",
+      null,
+      architecture?.caption ||
+        "Vue des composants déclarés et de leurs échanges.",
+    ),
+  );
+  const actions = el("div", "architecture-modal-actions");
+  const canvas = schemaFromArchitecture(architecture);
+  const viewport = canvas.querySelector(".architecture-viewport");
+  const svg = viewport?.querySelector("svg");
+  let resizeArchitecture = () => {};
+  const close = el("button", "arch-control arch-close", "Fermer");
+  close.type = "button";
+  close.setAttribute("aria-label", "Fermer l’architecture");
+  close.addEventListener("click", () => {
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+  });
+  if (viewport && svg) {
+    const zoom = { value: 1 };
+    const aspect =
+      svg.viewBox.baseVal.width / Math.max(1, svg.viewBox.baseVal.height);
+    let fitWidth = 0;
+    const measureFit = () =>
+      Math.max(
+        1,
+        Math.min(viewport.clientWidth, viewport.clientHeight * aspect),
+      );
+    const scale = () => {
+      if (!fitWidth) fitWidth = measureFit();
+      svg.style.width = `${fitWidth * zoom.value}px`;
+      svg.style.transform = "none";
+    };
+    resizeArchitecture = scale;
+    const button = (label, titleText, action) => {
+      const b = el("button", "arch-control", label);
+      b.type = "button";
+      b.title = titleText;
+      b.setAttribute("aria-label", titleText);
+      b.addEventListener("click", action);
+      actions.appendChild(b);
+    };
+    button("−", "Réduire le zoom", () => {
+      zoom.value = Math.max(0.55, zoom.value - 0.1);
+      scale();
+    });
+    button("+", "Agrandir le zoom", () => {
+      zoom.value = Math.min(1.8, zoom.value + 0.1);
+      scale();
+    });
+    button("Fit", "Ajuster le diagramme à la fenêtre", () => {
+      zoom.value = 1;
+      fitWidth = measureFit();
+      scale();
+      viewport.scrollTo({ left: 0, top: 0, behavior: "smooth" });
+    });
+    button("1:1", "Réinitialiser le zoom à sa taille de lecture", () => {
+      zoom.value = 1;
+      fitWidth = viewport.clientWidth;
+      scale();
+      viewport.scrollTo({ left: 0, top: 0, behavior: "smooth" });
+    });
+    let drag = null;
+    viewport.addEventListener("pointerdown", (event) => {
+      if (event.target.closest(".arch-node")) return;
+      drag = {
+        x: event.clientX,
+        y: event.clientY,
+        left: viewport.scrollLeft,
+        top: viewport.scrollTop,
+      };
+      viewport.setPointerCapture(event.pointerId);
+    });
+    viewport.addEventListener("pointermove", (event) => {
+      if (!drag) return;
+      viewport.scrollLeft = drag.left - (event.clientX - drag.x);
+      viewport.scrollTop = drag.top - (event.clientY - drag.y);
+    });
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach((name) =>
+      viewport.addEventListener(name, () => {
+        drag = null;
+      }),
+    );
+    if (window.ResizeObserver)
+      new ResizeObserver(() => {
+        fitWidth = measureFit();
+        scale();
+      }).observe(viewport);
+  }
+  actions.appendChild(close);
+  header.append(heading, actions);
+  const legend = el("footer", "architecture-modal-legend");
+  [
+    ["connected", "Actif"],
+    ["external", "Service externe"],
+    ["attention", "À configurer"],
+  ].forEach(([kind, label]) => {
+    const item = el("span", null);
+    item.append(el("i", kind), document.createTextNode(label));
+    legend.appendChild(item);
+  });
+  panel.append(header, canvas, legend);
+  overlay.appendChild(panel);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      overlay.remove();
+      document.removeEventListener("keydown", onKey);
     }
   });
-
-  wrap.appendChild(svg);
+  const onKey = (event) => {
+    if (event.key === "Escape") {
+      overlay.remove();
+      document.removeEventListener("keydown", onKey);
+    }
+    if (event.key === "Tab") {
+      const focusable = [
+        ...overlay.querySelectorAll("button:not(:disabled),[tabindex='0']"),
+      ];
+      if (!focusable.length) return;
+      const first = focusable[0],
+        last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+  };
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(overlay);
+  requestAnimationFrame(resizeArchitecture);
+  close.focus();
+}
+function schemaFromFlow(flow, theme) {
+  const wrap = el("div", "request-journey");
+  if (theme?.accent) wrap.style.setProperty("--arch-accent", theme.accent);
+  wrap.setAttribute("aria-label", "Parcours d'une demande");
+  const steps = Array.isArray(flow) ? flow : [];
+  steps.forEach((step, index) => {
+    const card = el("article", "journey-step");
+    card.dataset.stage = String(index + 1);
+    card.append(
+      el("span", "journey-index", String(index + 1).padStart(2, "0")),
+      el("h5", null, step.step || "Étape"),
+      el("p", null, step.detail || ""),
+    );
+    wrap.appendChild(card);
+  });
   return wrap;
 }
 
@@ -1264,10 +1584,17 @@ const PANELS = {
       title: p.title || "Architecture proposée",
       glyph: "i-network",
     });
-    body.appendChild(schemaFromArchitecture(p.architecture));
+    body.appendChild(schemaFromArchitecture(p.architecture, { compact: true }));
+    const expandArchitecture = actionBtn("Ouvrir en grand", null, () =>
+      openArchitectureModal(p.architecture, p.title || "Architecture proposée"),
+    );
+    expandArchitecture.classList.add("architecture-open-button");
+    body.appendChild(expandArchitecture);
     if (p.architecture?.flow?.length) {
-      body.appendChild(el("h4", "panel-desc", "Parcours d'une demande"));
-      body.appendChild(schemaFromFlow(p.architecture.flow));
+      body.appendChild(el("h4", "journey-heading", "Parcours d'une demande"));
+      body.appendChild(
+        schemaFromFlow(p.architecture.flow, p.architecture.theme),
+      );
     }
     if (p.workflows?.length) {
       const table = el("table", "table");
@@ -1302,7 +1629,10 @@ const PANELS = {
       }),
       actionBtn("Continuer", "primary", () => {
         disableCard(card);
-        send("__ARCHITECTURE_VALIDATED__", { silent: true });
+        send("__ARCHITECTURE_VALIDATED__", {
+          silent: true,
+          payload: { sitePlan: p.sitePlan },
+        });
       }),
     ]);
     return card;
@@ -1314,13 +1644,22 @@ const PANELS = {
       title: p.title || "Identité de votre AiGENT",
       glyph: "i-user-id",
     });
-    const choices = el("div", "choices");
+    const choices = el("div", "choices identity-choices");
     let selected = null;
-    (p.options || []).forEach((o) => {
-      const c = el("button", "choice");
+    (p.options || []).slice(0, 3).forEach((o, index) => {
+      const c = el("button", "choice identity-choice");
+      c.type = "button";
+      c.appendChild(
+        el(
+          "span",
+          "identity-choice-kicker",
+          `Direction ${String(index + 1).padStart(2, "0")}`,
+        ),
+      );
       c.appendChild(el("h5", null, o.name));
       c.appendChild(el("p", null, o.tagline));
       if (o.tone?.length) c.appendChild(el("p", null, o.tone.join(" · ")));
+      if (o.persona) c.appendChild(el("p", "identity-persona", o.persona));
       c.addEventListener("click", () => {
         choices
           .querySelectorAll(".choice")
@@ -1673,7 +2012,10 @@ const PANELS = {
         const b = el("button", "pal");
         b.type = "button";
         b.title = pp.name;
-        b.style.background = `linear-gradient(135deg, ${pp.bg} 50%, ${pp.accent} 50%)`;
+        b.setAttribute("aria-label", `Appliquer la palette ${pp.name}`);
+        const swatch = el("span", "pal-swatch");
+        swatch.style.background = `linear-gradient(115deg, ${pp.bg} 0 58%, ${pp.accent} 58% 82%, ${pp.accentTo || pp.accent} 82%)`;
+        b.append(swatch, el("span", "pal-name", pp.name));
         b.addEventListener("click", () => {
           Object.assign(design.colors, {
             accent: pp.accent,
@@ -2684,13 +3026,6 @@ function openAdvanced(design, ctx, commit, onClose) {
     agent: () => [
       group(
         "Présence",
-        ctl(
-          "Position",
-          S("agent.position", [
-            ["right", "Bas droite"],
-            ["left", "Bas gauche"],
-          ]),
-        ),
         switchRow(
           "Ouvrir automatiquement le chat",
           design.agent.autoOpen,
@@ -2908,12 +3243,15 @@ const PHASE_STEPS = {
   validation: ["Contrôle de cohérence", "Vérification des dépendances"],
 };
 
-async function send(message, { silent = false, payload = {}, echo } = {}) {
+async function send(
+  message,
+  { silent = false, payload = {}, echo, attachments = [] } = {},
+) {
   if (state.busy || !state.projectId) return;
   state.busy = true;
   sendBtn.disabled = true;
 
-  if (!silent) addUser(message);
+  if (!silent) addUser(message, attachments);
   else if (echo) addUser(echo);
 
   const think = startThinking(
@@ -2940,6 +3278,10 @@ async function send(message, { silent = false, payload = {}, echo } = {}) {
     think.done();
     console.error("[send]", err);
     if (err.message !== "session") {
+      if (attachments.length) {
+        state.attachments = [...attachments, ...state.attachments].slice(0, 5);
+        renderComposerAttachments();
+      }
       addAgent(
         "La requête n'a pas abouti. Reformulez ou réessayez dans un instant.",
       );
@@ -3045,7 +3387,6 @@ function startBuild() {
       think.setStatus(msg.id, msg.status);
       return;
     }
-
     if (msg.type === "done") {
       source.close();
       think.done();
@@ -3085,7 +3426,8 @@ function startBuild() {
       source.close();
       think.done();
       addAgent(
-        "La construction a échoué. Vos décisions sont conservées : réessayez depuis le récapitulatif.",
+        msg.message ||
+          "La construction a échoué. Vos décisions sont conservées : réessayez depuis le récapitulatif.",
       );
     }
   };
@@ -3589,9 +3931,19 @@ function renderWelcome() {
 async function renderProjects() {
   closeProjectPanel();
   thread.innerHTML = "";
-  const { projects } = await api("/api/aigent/projects");
-  const wrap = el("div", "empty");
-  wrap.appendChild(el("h2", null, "Mes AiGENT"));
+  let { projects } = await api("/api/aigent/projects");
+  const wrap = el("div", "workspace-page projects-page");
+  wrap.append(
+    el("p", "page-eyebrow", "ESPACE DE TRAVAIL"),
+    el("h2", null, "Mes AiGENT"),
+  );
+  wrap.appendChild(
+    el(
+      "p",
+      "page-lede",
+      "Retrouvez vos projets et leurs conversations au même endroit.",
+    ),
+  );
 
   if (!projects.length) {
     wrap.appendChild(
@@ -3605,59 +3957,364 @@ async function renderProjects() {
     return;
   }
 
-  const grid = el("div", "project-grid");
-  projects.forEach((p) => {
-    const c = el("button", "project-card");
-    c.appendChild(el("h4", null, p.name));
-    c.appendChild(
-      el(
-        "p",
-        null,
-        p.tagline ||
-          { draft: "En conception", built: "Construit", exported: "Exporté" }[
-            p.status
-          ],
-      ),
-    );
-    const bar = el("div", "bar");
-    const i = el("i");
-    i.style.width = `${p.progress}%`;
-    bar.appendChild(i);
-    c.appendChild(bar);
-    c.addEventListener("click", () => {
-      setView("chat");
-      loadProject(p.id);
-    });
-    grid.appendChild(c);
+  const toolbar = el("div", "projects-toolbar");
+  const search = el("input", "projects-search");
+  search.type = "search";
+  search.placeholder = "Rechercher un AiGENT…";
+  search.setAttribute("aria-label", "Rechercher un AiGENT");
+  const filter = el("select", "projects-filter");
+  filter.setAttribute("aria-label", "Filtrer les AiGENT");
+  [
+    ["active", "Actifs"],
+    ["archived", "Archivés"],
+    ["all", "Tous"],
+  ].forEach(([v, label]) => {
+    const option = el("option", null, label);
+    option.value = v;
+    filter.appendChild(option);
   });
+  const sort = el("select", "projects-filter");
+  sort.setAttribute("aria-label", "Trier les AiGENT");
+  [
+    ["recent", "Plus récents"],
+    ["name", "Nom A–Z"],
+    ["progress", "Progression"],
+  ].forEach(([v, label]) => {
+    const option = el("option", null, label);
+    option.value = v;
+    sort.appendChild(option);
+  });
+  toolbar.append(search, filter, sort);
+  wrap.appendChild(toolbar);
+  const grid = el("div", "project-grid");
   wrap.appendChild(grid);
+  const paint = () => {
+    grid.replaceChildren();
+    let items = projects.filter(
+      (p) =>
+        filter.value === "all" ||
+        Boolean(p.archived) === (filter.value === "archived"),
+    );
+    const q = search.value.trim().toLocaleLowerCase("fr");
+    if (q)
+      items = items.filter((p) =>
+        `${p.name} ${p.tagline || ""} ${p.category || ""}`
+          .toLocaleLowerCase("fr")
+          .includes(q),
+      );
+    if (sort.value === "name")
+      items.sort((a, b) => a.name.localeCompare(b.name, "fr"));
+    if (sort.value === "progress")
+      items.sort((a, b) => b.progress - a.progress);
+    if (!items.length) {
+      grid.appendChild(
+        el("p", "projects-empty", "Aucun résultat pour ces filtres."),
+      );
+      return;
+    }
+    items.forEach((p) => {
+      const card = el("article", "project-card");
+      const open = el("button", "project-card-open");
+      open.type = "button";
+      const row = el("span", "project-card-top");
+      row.append(
+        el("span", "project-glyph", "A"),
+        el(
+          "span",
+          "project-status",
+          p.archived
+            ? "Archivé"
+            : {
+                draft: "En conception",
+                built: "Construit",
+                exported: "Exporté",
+              }[p.status] || "En cours",
+        ),
+      );
+      open.append(
+        row,
+        el("h3", null, p.name),
+        el("p", "project-tagline", p.tagline || "Projet AiGENT"),
+      );
+      const bar = el("div", "bar");
+      const fill = el("i");
+      fill.style.width = `${p.progress}%`;
+      bar.appendChild(fill);
+      open.append(
+        bar,
+        el(
+          "span",
+          "project-progress",
+          `${p.progress}% complété · ${p.builds} génération${p.builds === 1 ? "" : "s"}`,
+        ),
+      );
+      open.addEventListener("click", () => {
+        setView("chat");
+        loadProject(p.id);
+      });
+      const actions = el("div", "project-card-actions");
+      const category = el("input", "project-category");
+      category.value = p.category || "";
+      category.placeholder = "Ajouter une catégorie";
+      category.setAttribute("aria-label", `Catégorie de ${p.name}`);
+      category.addEventListener("change", async () => {
+        try {
+          await api(`/api/aigent/projects/${p.id}`, {
+            method: "PATCH",
+            body: { category: category.value },
+          });
+          p.category = category.value;
+          toast("Catégorie enregistrée");
+        } catch {
+          toast("La catégorie n’a pas pu être enregistrée");
+        }
+      });
+      const archive = el(
+        "button",
+        "btn btn-small",
+        p.archived ? "Restaurer" : "Archiver",
+      );
+      archive.type = "button";
+      archive.addEventListener("click", async () => {
+        try {
+          await api(`/api/aigent/projects/${p.id}`, {
+            method: "PATCH",
+            body: { archived: !p.archived },
+          });
+          p.archived = !p.archived;
+          paint();
+        } catch {
+          toast("Impossible de modifier l’archive");
+        }
+      });
+      const remove = el("button", "btn btn-small btn-danger", "Supprimer");
+      remove.type = "button";
+      remove.addEventListener("click", async () => {
+        if (
+          !confirm(`Supprimer définitivement « ${p.name} » et son historique ?`)
+        )
+          return;
+        try {
+          await api(`/api/aigent/projects/${p.id}`, { method: "DELETE" });
+          projects = projects.filter((x) => x.id !== p.id);
+          paint();
+          toast("AiGENT supprimé");
+        } catch {
+          toast("La suppression a échoué");
+        }
+      });
+      actions.append(category, archive, remove);
+      card.append(open, actions);
+      grid.appendChild(card);
+    });
+  };
+  search.addEventListener("input", paint);
+  filter.addEventListener("change", paint);
+  sort.addEventListener("change", paint);
+  paint();
   thread.appendChild(wrap);
 }
 
 function renderSettings() {
   closeProjectPanel();
   thread.innerHTML = "";
-  const wrap = el("div", "empty");
-  wrap.appendChild(el("h2", null, "Paramètres"));
-  wrap.appendChild(
+  const wrap = el("div", "workspace-page settings-page");
+  wrap.append(
+    el("p", "page-eyebrow", "PRÉFÉRENCES DU COMPTE"),
+    el("h2", null, "Paramètres"),
+    el("p", "page-lede", "Gérez votre profil et vos préférences AiGENT."),
+  );
+  const profile = el("section", "settings-card");
+  profile.append(el("div", "settings-card-heading", null));
+  profile.lastChild.append(
+    el("h3", null, "Profil"),
+    el("p", null, "Informations de votre compte connecté."),
+  );
+  const form = el("form", "settings-form");
+  const field = (labelText, name, value, type = "text") => {
+    const label = el("label", "settings-field");
+    label.appendChild(el("span", null, labelText));
+    const control = el("input");
+    control.name = name;
+    control.type = type;
+    control.value = value || "";
+    label.appendChild(control);
+    return label;
+  };
+  const username = field("Nom affiché", "username", state.account?.username);
+  const contact = field(
+    "Adresse e-mail",
+    "contact",
+    state.account?.contact,
+    "email",
+  );
+  const save = el("button", "btn btn-primary", "Enregistrer les modifications");
+  save.type = "submit";
+  form.append(username, contact, save);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    save.disabled = true;
+    try {
+      const result = await api("/api/aigent/me", {
+        method: "PATCH",
+        body: {
+          username: username.querySelector("input").value,
+          contact: contact.querySelector("input").value,
+        },
+      });
+      state.account = { ...state.account, ...result };
+      $("#accountName").textContent = result.username;
+      toast("Profil enregistré");
+    } catch (error) {
+      toast(error.message || "Impossible d’enregistrer le profil");
+    } finally {
+      save.disabled = false;
+    }
+  });
+  profile.appendChild(form);
+  const account = el("section", "settings-card settings-meta");
+  account.append(el("h3", null, "Compte AiGENT"));
+  [
+    ["Spécialité", state.account?.sourceLabel || "AiGENT"],
+    ["Offre", state.account?.plan || "Gratuite"],
+    ["Projets", String(state.account?.projectCount ?? 0)],
+    [
+      "Thème",
+      document.documentElement.dataset.theme === "dark" ? "Sombre" : "Clair",
+    ],
+  ].forEach(([label, value]) => {
+    const row = el("div", "settings-meta-row");
+    row.append(el("span", null, label), el("strong", null, value));
+    account.appendChild(row);
+  });
+  const appearance = el("section", "settings-card");
+  appearance.append(
+    el("h3", null, "Apparence"),
     el(
       "p",
-      null,
-      `Connecté en tant que ${state.account?.username} via ${state.account?.sourceLabel}.`,
+      "settings-copy",
+      "Choisissez un thème et retrouvez-le lors de votre prochaine visite.",
     ),
   );
-
-  const out = el("button", "btn", "Se déconnecter");
+  const themeChoices = el("div", "settings-theme-choices");
+  themeChoices.setAttribute("role", "group");
+  themeChoices.setAttribute("aria-label", "Thème de l’interface");
+  const themeStatus = el(
+    "p",
+    "settings-copy settings-theme-status",
+    `Thème actif : ${document.documentElement.dataset.theme === "dark" ? "sombre" : "clair"}.`,
+  );
+  [
+    ["light", "Clair"],
+    ["dark", "Sombre"],
+  ].forEach(([theme, label]) => {
+    const choice = el("button", "btn settings-theme-choice", label);
+    choice.type = "button";
+    choice.setAttribute(
+      "aria-pressed",
+      String(document.documentElement.dataset.theme === theme),
+    );
+    choice.addEventListener("click", async () => {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem("aigent_theme", theme);
+      themeStatus.textContent = `Thème actif : ${theme === "dark" ? "sombre" : "clair"}.`;
+      themeChoices
+        .querySelectorAll("button")
+        .forEach((button) =>
+          button.setAttribute("aria-pressed", String(button === choice)),
+        );
+      try {
+        const result = await api("/api/aigent/me", {
+          method: "PATCH",
+          body: {
+            username: username.querySelector("input").value,
+            contact: contact.querySelector("input").value,
+            preferences: { theme },
+          },
+        });
+        state.account = { ...state.account, preferences: result.preferences };
+      } catch {
+        toast(
+          "Le thème est appliqué, mais n’a pas pu être mémorisé sur le compte.",
+        );
+      }
+    });
+    themeChoices.appendChild(choice);
+  });
+  appearance.append(themeChoices, themeStatus);
+  const chatPrefs = el("section", "settings-card");
+  chatPrefs.append(
+    el("h3", null, "Réponses du Chat"),
+    el(
+      "p",
+      "settings-copy",
+      "Réglez la profondeur utilisée par défaut dans vos nouvelles demandes.",
+    ),
+  );
+  const effortLabel = el("label", "settings-field");
+  effortLabel.appendChild(el("span", null, "Niveau de réflexion"));
+  const effortSelect = el("select", "settings-select");
+  effortSelect.name = "chatEffort";
+  [
+    ["quick", "Rapide"],
+    ["standard", "Équilibré"],
+    ["deep", "Approfondi"],
+  ].forEach(([value, label]) => {
+    const option = el("option", null, label);
+    option.value = value;
+    effortSelect.appendChild(option);
+  });
+  effortSelect.value = state.account?.preferences?.chatEffort || "standard";
+  effortSelect.addEventListener("change", async () => {
+    effortSelect.disabled = true;
+    try {
+      const result = await api("/api/aigent/me", {
+        method: "PATCH",
+        body: {
+          username: username.querySelector("input").value,
+          contact: contact.querySelector("input").value,
+          preferences: { chatEffort: effortSelect.value },
+        },
+      });
+      state.account = { ...state.account, preferences: result.preferences };
+      toast("Préférence enregistrée");
+    } catch (error) {
+      toast(error.message || "Impossible d’enregistrer la préférence");
+    } finally {
+      effortSelect.disabled = false;
+    }
+  });
+  effortLabel.appendChild(effortSelect);
+  chatPrefs.appendChild(effortLabel);
+  const security = el("section", "settings-card settings-security");
+  security.append(
+    el("h3", null, "Session"),
+    el("p", "settings-copy", "Vous pourrez vous reconnecter à tout moment."),
+  );
+  const out = el("button", "btn btn-danger", "Se déconnecter");
+  out.type = "button";
   out.addEventListener("click", () => {
     localStorage.removeItem(TOKEN_KEY);
     location.href = LOGIN_PAGE;
   });
-  wrap.appendChild(out);
+  security.appendChild(out);
+  wrap.append(profile, account, appearance, chatPrefs, security);
   thread.appendChild(wrap);
 }
 
 function setView(view) {
   state.view = view;
+  shell.dataset.view = view;
+  const pageHeadings = {
+    mine: ["Mes AiGENT", "Vos projets, classés et synchronisés"],
+    settings: ["Paramètres", "Profil et préférences de votre espace"],
+    home: ["Accueil", "Votre espace de création AiGENT"],
+  };
+  const pageHeading = pageHeadings[view];
+  if (pageHeading) {
+    $("#projectTitle").textContent = pageHeading[0];
+    $("#projectSub").textContent = pageHeading[1];
+  } else if (state.project) refreshHeader();
   document
     .querySelectorAll(".nav-item")
     .forEach((b) => b.classList.toggle("is-active", b.dataset.view === view));
@@ -3736,19 +4393,106 @@ input.addEventListener("keydown", (e) => {
 
 composer.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const message = input.value.trim();
+  const selectedAttachments = state.attachments;
+  const message =
+    input.value.trim() ||
+    (selectedAttachments.length
+      ? "Analyse les documents joints et utilise-les comme contexte pour ma demande."
+      : "");
   if (!message) return;
   input.value = "";
   input.style.height = "auto";
   syncComposer();
+  state.attachments = [];
+  renderComposerAttachments();
   if (!state.projectId) await newProject();
   if (thread.querySelector(".empty")) thread.innerHTML = "";
-  send(message);
+  send(message, {
+    attachments: selectedAttachments,
+    payload: selectedAttachments.length
+      ? { attachments: selectedAttachments }
+      : {},
+  });
 });
 
-$("#attachBtn").addEventListener("click", () =>
-  toast("L'import de documents arrive avec la base de connaissances."),
-);
+const attachmentInput = $("#attachmentInput");
+const composerAttachments = $("#composerAttachments");
+const ATTACHMENT_EXTENSIONS = new Set([
+  "txt",
+  "md",
+  "markdown",
+  "csv",
+  "tsv",
+  "json",
+  "html",
+  "htm",
+  "xml",
+  "log",
+  "yaml",
+  "yml",
+  "sql",
+  "js",
+  "ts",
+  "css",
+  "py",
+]);
+function renderComposerAttachments() {
+  composerAttachments.replaceChildren();
+  composerAttachments.hidden = state.attachments.length === 0;
+  state.attachments.forEach((file, index) => {
+    const chip = el("span", "composer-attachment");
+    chip.appendChild(el("span", "composer-attachment-name", file.name));
+    const remove = el("button", "composer-attachment-remove", "×");
+    remove.type = "button";
+    remove.setAttribute("aria-label", `Retirer ${file.name}`);
+    remove.addEventListener("click", () => {
+      state.attachments.splice(index, 1);
+      renderComposerAttachments();
+    });
+    chip.appendChild(remove);
+    composerAttachments.appendChild(chip);
+  });
+}
+$("#attachBtn").addEventListener("click", () => attachmentInput.click());
+attachmentInput.addEventListener("change", async () => {
+  const chosen = [...attachmentInput.files];
+  attachmentInput.value = "";
+  for (const file of chosen) {
+    const ext = file.name.split(".").pop().toLowerCase();
+    if (!ATTACHMENT_EXTENSIONS.has(ext)) {
+      toast(
+        `${file.name} : format non pris en charge. Joignez un fichier texte, CSV, JSON ou code.`,
+      );
+      continue;
+    }
+    const fingerprint = `${file.name.toLocaleLowerCase()}|${file.size}|${file.lastModified}|${file.type}`;
+    if (state.attachments.some((item) => item.fingerprint === fingerprint))
+      continue;
+    if (file.size > 80_000) {
+      toast(`${file.name} dépasse la limite de 80 Ko.`);
+      continue;
+    }
+    if (
+      state.attachments.length >= 5 ||
+      state.attachments.reduce((sum, item) => sum + item.content.length, 0) +
+        file.size >
+        120_000
+    ) {
+      toast("Limite atteinte : 5 fichiers et 120 Ko par message.");
+      break;
+    }
+    try {
+      state.attachments.push({
+        fingerprint,
+        name: file.name.slice(0, 120),
+        content: (await file.text()).slice(0, 80_000),
+      });
+    } catch {
+      toast(`Impossible de lire ${file.name}.`);
+    }
+  }
+  renderComposerAttachments();
+});
 $("#micBtn").addEventListener("click", () =>
   toast("La dictée n'est pas encore disponible."),
 );
@@ -3765,11 +4509,28 @@ $("#undoBtn").addEventListener("click", async () => {
   );
 });
 
-$("#themeBtn").addEventListener("click", () => {
+$("#themeBtn").addEventListener("click", async () => {
   const next =
     document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   document.documentElement.dataset.theme = next;
   localStorage.setItem("aigent_theme", next);
+  if (state.account) {
+    try {
+      const result = await api("/api/aigent/me", {
+        method: "PATCH",
+        body: {
+          username: state.account.username,
+          contact: state.account.contact,
+          preferences: { theme: next },
+        },
+      });
+      state.account.preferences = result.preferences;
+    } catch {
+      toast(
+        "Le thème est appliqué, mais n’a pas pu être mémorisé sur le compte.",
+      );
+    }
+  }
 });
 
 $("#panelBack").addEventListener("click", closeProjectPanel);
@@ -3813,8 +4574,17 @@ async function stageShot(frame, slug, shot, n) {
     frame.src = `/a/${slug}?__shot=${shot.mode || "guest"}&_=${n}#${shot.hash}`;
   });
   const doc = frame.contentDocument;
-  await until(() => doc.querySelector("#view h1, #view .auth"), 8000);
-  await until(() => !doc.querySelector("#view.loading, .skeleton"), 6000);
+  await until(
+    () =>
+      doc.querySelector(
+        "#view h1, #view .auth, #app .ax-main, #app .ax-authcard",
+      ),
+    8000,
+  );
+  await until(
+    () => !doc.querySelector("#view.loading, .skeleton, .ax-skel"),
+    6000,
+  );
   const byText = (t) =>
     [...doc.querySelectorAll("button, a")].find((b) =>
       b.textContent.includes(t),
@@ -3934,6 +4704,11 @@ async function captureShots(manifest, slug, onShot) {
   try {
     const me = await api("/api/aigent/me");
     state.account = me.account;
+    const preferredTheme = me.account.preferences?.theme;
+    if (["light", "dark"].includes(preferredTheme)) {
+      document.documentElement.dataset.theme = preferredTheme;
+      localStorage.setItem("aigent_theme", preferredTheme);
+    }
     $("#accountName").textContent = me.account.username;
     $("#accountSource").textContent =
       me.account.sourceLabel || me.account.source;
@@ -3944,8 +4719,18 @@ async function captureShots(manifest, slug, onShot) {
     state.catalog = await api("/api/aigent/catalog");
 
     const { projects } = await api("/api/aigent/projects");
-    if (projects.length) await loadProject(projects[0].id);
+    const requestedProjectId = new URLSearchParams(location.search).get(
+      "project",
+    );
+    const requestedProject = requestedProjectId
+      ? projects.find((project) => String(project.id) === requestedProjectId)
+      : null;
+    if (projects.length)
+      await loadProject((requestedProject || projects[0]).id);
     else renderWelcome();
+    const requestedView = new URLSearchParams(location.search).get("view");
+    if (requestedView === "mine" || requestedView === "settings")
+      setView(requestedView);
   } catch (err) {
     if (err.message !== "session") {
       thread.innerHTML = "";

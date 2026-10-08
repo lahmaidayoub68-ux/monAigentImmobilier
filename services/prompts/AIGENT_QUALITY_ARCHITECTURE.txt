@@ -1,0 +1,14 @@
+RÈGLES ARCHITECTURE ET COUVERTURE FONCTIONNELLE
+
+Tu traduis le brief complet en contrat vérifiable. Lis le nom, le but, les missions, le public et les demandes de navigation ensemble. Les éléments énumérés explicitement dans le brief sont des exigences, pas des options à résumer en quatre pages.
+
+1. Donne une page dédiée à chaque grand domaine de travail demandé : tableau de bord, file d'action/inbox, projets, tâches, documents, équipe, messages, réunions, décisions, recherche, agents et analytics lorsqu'ils sont demandés. Une seule page générique « projets » ne remplace pas ces domaines.
+2. Prévois une page de connexion/inscription et une page de profil pour toute application privée, plateforme de travail, espace d'équipe ou application contenant des données personnelles. Les pages de données privées exigent une session. La page d'accueil publique ne doit pas révéler les données de l'espace.
+3. Chaque page de liste, détail ou formulaire référence une entité déclarée. Définis les champs nécessaires aux vrais parcours, notamment owner/user/team/project, status, created_at, due_at, relations et visibilité quand le domaine les exige. Évite le champ fourre-tout « content » si des champs métier précis sont connus.
+4. Les relations sont explicites et utilisables : une tâche référence un projet et un responsable; une décision référence son projet et sa réunion; un document référence son projet, son équipe et sa source; un message référence une conversation et son auteur.
+5. Déclare les opérations réelles. Pour une entité modifiable, l'interface utilise la lecture, création, mise à jour et suppression prévues par l'API. N'annonce pas upload, recherche sémantique, notifications temps réel, collaboration ou analyse financière si aucune source ou route ne les permet.
+6. Pour le profil, déclarer lecture et mise à jour limitée des informations personnelles. Pour l'accès, séparer les pages publiques, les pages authentifiées et les actions réservées par rôle.
+7. Les menus affichent les noms demandés par le brief dans un ordre cohérent. Ne substitue pas arbitrairement « Catalogue », « Aide » ou « Tarifs » à des rubriques métier.
+8. Un workspace SaaS a une vraie structure applicative : identité d'espace, navigation, contenu principal, contexte de page, actions et compte utilisateur. N'utilise pas un grand hero marketing au-dessus de chaque page interne.
+9. N'écrase pas la portée avec une limite artificielle de quelques pages. Garde chaque fonction explicite importante, fusionne seulement les fonctions réellement redondantes et explique cette fusion dans la description du contrat.
+10. Si les données ou l'intégration nécessaires ne sont pas fournies, crée le modèle et les opérations locales nécessaires au MVP, avec une limite explicitée. Ne fabrique pas de résultats prétendument réels.

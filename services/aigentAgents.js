@@ -47,6 +47,7 @@ import {
   TOOL_CATALOG as TOOL_CATALOG_REF,
 } from "./aiParsee-aigent.js";
 import { PRIMITIVES, sanitizeBlockTree } from "./aigentBlocks.js";
+import { qualityRulesFor } from "./aigentPromptRules.js";
 
 /* ════════════════════════════════════════════════════════════════════
    0. LE "GROS DOSSIER" — lu par chaque agent avant de produire quoi
@@ -99,45 +100,54 @@ sans emoji, sans guillemets décoratifs autour des valeurs.`;
 const ROLE = {
   lead: {
     label: "Lead / Orchestrateur",
+    qualityRole: "architect",
     mission: "Découpe le travail et garde la cohérence globale.",
   },
   architect: {
     label: "Architecte de site",
+    qualityRole: "architect",
     mission:
       "Décide, à partir du besoin réel, quelles pages, données et vocabulaire ce site précis a besoin — jamais un squelette fixe recopié d'un projet à l'autre.",
   },
   uiux: {
     label: "UI/UX",
+    qualityRole: "design",
     mission:
       "Donne une direction de composition (rythme visuel, primitives à privilégier) que l'agent de rédaction suivra pour assembler des pages qui ne se ressemblent pas toutes.",
   },
   composer: {
     label: "Composition de pages",
+    qualityRole: "frontend",
     mission:
       "Assemble l'accueil et les pages statiques du plan de site à partir de la bibliothèque de blocs, en choisissant primitives, variantes et contenu réellement propres à ce projet.",
   },
   copy: {
     label: "Rédaction",
+    qualityRole: "product",
     mission:
       "Écrit le contenu de secours et les textes transverses (connexion, capacités) dans le vocabulaire réel du projet.",
   },
   backend: {
     label: "Backend",
+    qualityRole: "backend",
     mission:
       "Identifie si une logique métier spécifique au secteur manque et, si besoin seulement, propose UNE fonction pure supplémentaire.",
   },
   security: {
     label: "Sécurité",
+    qualityRole: "review",
     mission:
       "Analyse tout code produit par l'équipe avant qu'il ne soit intégrable. Aucune tolérance.",
   },
   qa: {
     label: "QA / Cohérence",
+    qualityRole: "review",
     mission:
       "Vérifie que rien de générique, hors-sujet ou incohérent avec les modules du site n'est livré.",
   },
   integrator: {
     label: "Intégration",
+    qualityRole: "architect",
     mission:
       "Assemble les décisions validées en un seul jeu de contenus prêt à être injecté dans le site.",
   },
@@ -195,6 +205,8 @@ function makeMemory(spec, bp) {
       : m.bp.modules;
     return {
       domaine: m.sitePlan?.domainLabel || m.bp.domain,
+      archétype: m.sitePlan?.archetype || "custom",
+      assistant: m.sitePlan?.assistant || { enabled: false, mode: "none" },
       modules_actifs: Object.keys(merged).filter((k) => merged[k]),
       objectif: m.brief.purpose,
       public: m.brief.audience,
@@ -215,6 +227,9 @@ function makeMemory(spec, bp) {
 
 async function askJSON(role, memory, task, userPrompt, opts = {}) {
   const system = `${PRODUCT_QUALITY_GUIDE}
+
+RÈGLES DÉTAILLÉES OBLIGATOIRES :
+${qualityRulesFor(role.qualityRole || "product")}
 
 RÔLE DANS L'ÉQUIPE : ${role.label}
 MISSION : ${role.mission}
@@ -534,7 +549,54 @@ const PAGE_KINDS = [
   "form",
   "chat",
   "static",
+  "lesson",
+  "quiz",
+  "progress",
+  "settings",
+  "library",
+  "workspace",
+  "auth",
+  "profile",
 ];
+
+const WORKSPACE_FEATURES = [
+  { id: "overview", label: "Vue d'ensemble", path: "/overview", kind: "dashboard", match: /tableau de bord|vue d'ensemble|overview|dashboard/i },
+  { id: "inbox", label: "Inbox", path: "/inbox", kind: "list", entity: "notifications", match: /\binbox\b|notifications? intelligentes?|file d'action/i },
+  { id: "projects", label: "Projets", path: "/projects", kind: "list", entity: "projects", match: /projets?|roadmap/i },
+  { id: "tasks", label: "Tâches", path: "/tasks", kind: "list", entity: "tasks", match: /tâches?|actions? à (?:faire|exécuter)|deadlines?|échéances?/i },
+  { id: "documents", label: "Documents", path: "/documents", kind: "list", entity: "documents", match: /documents?|fichiers?/i },
+  { id: "team", label: "Équipe", path: "/team", kind: "list", entity: "teams", match: /équipes?|permissions par utilisateur/i },
+  { id: "messages", label: "Messages", path: "/messages", kind: "list", entity: "messages", match: /messagerie|messages?|conversations?/i },
+  { id: "meetings", label: "Réunions", path: "/meetings", kind: "list", entity: "meetings", match: /réunions?|compte rendu/i },
+  { id: "decisions", label: "Décisions", path: "/decisions", kind: "list", entity: "decisions", match: /décisions?/i },
+  { id: "search", label: "Recherche", path: "/search", kind: "workspace", match: /recherche globale|recherche intelligente|retrouver une information/i },
+  { id: "agents", label: "Agents", path: "/agents", kind: "list", entity: "agents", match: /agents? spécialisés?|orchestrateur|project agent|document agent|meeting agent|communication agent|research agent|finance agent|strategy agent/i },
+  { id: "analytics", label: "Analytics", path: "/analytics", kind: "dashboard", match: /analytics|indicateurs|kpi|statistiques/i },
+  { id: "settings", label: "Paramètres", path: "/settings", kind: "settings", match: /paramètres?|settings/i },
+  { id: "profile", label: "Profil", path: "/profile", kind: "profile", auth: true, match: /profil|compte utilisateur|utilisateur connecté/i },
+  { id: "sign-in", label: "Connexion", path: "/connexion", kind: "auth", match: /\bconnexion\b|login|sign[ -]?in|authentification/i },
+];
+
+const WORKSPACE_ENTITIES = {
+  notifications: { label: "Notification", fields: [{ key: "title", label: "Titre", type: "text" }, { key: "body", label: "Détail", type: "richtext" }, { key: "status", label: "État", type: "text" }, { key: "project_id", label: "Projet associé", type: "text" }, { key: "due_date", label: "Échéance", type: "date" }] },
+  projects: { label: "Projet", fields: [{ key: "title", label: "Nom", type: "text" }, { key: "description", label: "Description", type: "richtext" }, { key: "status", label: "État", type: "text" }, { key: "owner_id", label: "Responsable", type: "text" }, { key: "team_id", label: "Équipe", type: "text" }, { key: "due_date", label: "Échéance", type: "date" }, { key: "progress", label: "Progression", type: "number" }] },
+  tasks: { label: "Tâche", fields: [{ key: "title", label: "Tâche", type: "text" }, { key: "project_id", label: "Projet", type: "text" }, { key: "assignee_id", label: "Responsable", type: "text" }, { key: "status", label: "État", type: "text" }, { key: "priority", label: "Priorité", type: "text" }, { key: "due_date", label: "Échéance", type: "date" }] },
+  documents: { label: "Document", fields: [{ key: "title", label: "Nom", type: "text" }, { key: "project_id", label: "Projet", type: "text" }, { key: "team_id", label: "Équipe", type: "text" }, { key: "source", label: "Source", type: "text" }, { key: "url", label: "Lien", type: "text" }, { key: "visibility", label: "Visibilité", type: "text" }] },
+  teams: { label: "Équipe", fields: [{ key: "name", label: "Nom", type: "text" }, { key: "lead_id", label: "Responsable", type: "text" }, { key: "description", label: "Description", type: "richtext" }] },
+  messages: { label: "Message", fields: [{ key: "conversation_id", label: "Conversation", type: "text" }, { key: "author_id", label: "Auteur", type: "text" }, { key: "project_id", label: "Projet", type: "text" }, { key: "body", label: "Message", type: "richtext" }] },
+  meetings: { label: "Réunion", fields: [{ key: "title", label: "Sujet", type: "text" }, { key: "project_id", label: "Projet", type: "text" }, { key: "starts_at", label: "Date", type: "date" }, { key: "attendees", label: "Participants", type: "richtext" }, { key: "summary", label: "Compte rendu", type: "richtext" }, { key: "status", label: "État", type: "text" }] },
+  decisions: { label: "Décision", fields: [{ key: "title", label: "Décision", type: "text" }, { key: "project_id", label: "Projet", type: "text" }, { key: "meeting_id", label: "Réunion", type: "text" }, { key: "owner_id", label: "Responsable", type: "text" }, { key: "rationale", label: "Contexte", type: "richtext" }, { key: "created_at", label: "Date", type: "date" }] },
+  agents: { label: "Agent spécialisé", fields: [{ key: "name", label: "Nom", type: "text" }, { key: "specialty", label: "Spécialité", type: "text" }, { key: "status", label: "État", type: "text" }, { key: "description", label: "Mission", type: "richtext" }] },
+};
+
+function briefText(spec = {}) {
+  const missions = (spec.missions || []).map((item) => typeof item === "string" ? item : item?.label || "");
+  return [spec.name, spec.purpose, spec.tagline, spec.sector, ...missions].filter(Boolean).join(" ").toLowerCase();
+}
+
+function isPrivateWorkspaceBrief(spec = {}) {
+  return /startup|\bworkspace\b|espace de travail|plateforme collaborative|système d'exploitation|système d’exploitation|\bintranet\b/i.test(briefText(spec));
+}
 
 function qaFilterSitePlan(plan) {
   if (!plan || typeof plan !== "object") return null;
@@ -560,8 +622,8 @@ function qaFilterSitePlan(plan) {
   const entities = Array.isArray(plan.entities)
     ? plan.entities
         .filter(okEntity)
-        .slice(0, 6)
-        .map((e) => ({ ...e, fields: e.fields.slice(0, 8) }))
+        .slice(0, 20)
+        .map((e) => ({ ...e, fields: e.fields.slice(0, 20) }))
     : [];
   const entityIds = new Set(entities.map((e) => e.id));
 
@@ -585,7 +647,7 @@ function qaFilterSitePlan(plan) {
         .filter((p) =>
           seenPaths.has(p.path) ? false : (seenPaths.add(p.path), true),
         )
-        .slice(0, 8)
+        .slice(0, 24)
         .map((p) => ({
           id: p.id,
           label: String(p.label).slice(0, 60),
@@ -593,13 +655,16 @@ function qaFilterSitePlan(plan) {
           kind: p.kind,
           entity: p.entity && entityIds.has(p.entity) ? p.entity : null,
           auth: !!p.auth,
+          features: cleanPlanItems(p.features, ["id", "label", "description", "kind"]),
+          components: cleanPlanItems(p.components, ["id", "label", "description", "kind"]),
+          actions: cleanPlanItems(p.actions, ["id", "label", "description", "operation"]),
         }))
     : [];
   if (!pages.length) return null; // rien d'exploitable : repli sur le squelette existant
 
   const pageIds = new Set(pages.map((p) => p.id));
   const nav = Array.isArray(plan.nav)
-    ? plan.nav.filter((id) => pageIds.has(id)).slice(0, 8)
+    ? plan.nav.filter((id) => pageIds.has(id)).slice(0, 24)
     : pages.map((p) => p.id);
 
   const vocab =
@@ -632,14 +697,174 @@ function qaFilterSitePlan(plan) {
   return {
     domainLabel:
       typeof plan.domainLabel === "string" ? plan.domainLabel.slice(0, 60) : "",
+    archetype: ["learning", "coaching", "dashboard", "editorial", "community", "service", "ecommerce", "booking", "custom"].includes(plan.archetype)
+      ? plan.archetype
+      : "custom",
+    assistant: plan.assistant && typeof plan.assistant === "object"
+      ? {
+          enabled: plan.assistant.enabled === true,
+          mode: ["inline", "page", "contextual", "none"].includes(plan.assistant.mode) ? plan.assistant.mode : "none",
+          pageId: typeof plan.assistant.pageId === "string" && /^[a-z][a-z0-9-]*$/.test(plan.assistant.pageId) ? plan.assistant.pageId : null,
+        }
+      : { enabled: false, mode: "none", pageId: null },
     commerceModel,
     vocabulary: vocab,
     entities,
     pages,
     nav,
+    authRequired: plan.authRequired === true,
   };
 }
 
+function cleanPlanItems(items, keys) {
+  if (!Array.isArray(items)) return [];
+  return items.slice(0, 30).flatMap((item, index) => {
+    if (typeof item === "string") return [{ id: `item-${index + 1}`, label: item.slice(0, 100) }];
+    if (!item || typeof item !== "object") return [];
+    const clean = {};
+    for (const key of keys) if (typeof item[key] === "string" && item[key].trim()) clean[key] = item[key].trim().slice(0, 180);
+    return clean.label || clean.id ? [clean] : [];
+  });
+}
+function completePlanFromBrief(plan, spec = {}) {
+  if (!plan) return null;
+  // Cette étape normalise déjà le contrat dans qaFilterSitePlan. Elle ne
+  // doit jamais inventer des pages à partir de mots-clés du prompt.
+  return plan;
+}
+
+function sitePlanRelevanceErrors(plan, spec = {}) {
+  if (!plan) return ["plan absent"];
+  const brief = briefText(spec);
+  const proposed = [plan.domainLabel, plan.archetype, ...(plan.entities || []).map((item) => item.label),
+    ...(plan.pages || []).flatMap((page) => [page.label, page.id, ...(page.features || []).map((item) => `${item.label || ""} ${item.description || ""}`)])]
+    .filter(Boolean).join(" ").toLocaleLowerCase("fr");
+  const domains = [
+    { id: "restauration", brief: /restaurant|restauration|restaurateur|cuisine|traiteur|menu|service en salle/i, plan: /restaurant|restauration|restaurateur|cuisine|traiteur|menu|plat|réservation de table|commande à emporter/i },
+    { id: "archives", brief: /archive|archivage|archives|patrimoine documentaire/i, plan: /archive|archivage|archives|document|dossier|patrimoine documentaire/i },
+    { id: "éducation", brief: /école|élève|élèves|professeur|pronote|cours scolaires?|devoirs scolaires?|bulletins? scolaires?|révisions scolaires?/i, plan: /école|élève|professeur|cours|scolaire|devoir|notes|révision|quiz|leçon/i },
+    { id: "immobilier", brief: /immobilier|logement|appartement|maison|location|propriétaire|locataire/i, plan: /immobilier|logement|appartement|maison|location|propriétaire|locataire|annonce immobilière/i },
+    { id: "e-commerce", brief: /boutique en ligne|e-commerce|panier|catalogue produit|produits à vendre/i, plan: /boutique|e-commerce|panier|catalogue produit|produits à vendre/i },
+    { id: "santé", brief: /santé|patient|médical|cabinet médical|clinique|soin/i, plan: /santé|patient|médical|clinique|soin|rendez-vous médical/i },
+  ];
+  const requested = domains.filter((domain) => domain.brief.test(brief));
+  const mismatches = requested.filter((domain) => !domain.plan.test(proposed));
+  if (mismatches.length) return [`Le plan ne reprend aucun élément du domaine explicitement demandé (${mismatches.map((item) => item.id).join(", ")}).`];
+  if (/^(?:une phrase|mot-clé|…|\.\.\.)$/i.test(String(plan.domainLabel || "").trim())) return ["le domaine du plan est resté un exemple de schéma"];
+  return [];
+}
+
+function sitePlanCoverageErrors(plan, spec) {
+  const brief = [spec.purpose, ...(spec.missions || [])].filter(Boolean).join(" ").toLowerCase();
+  const educationContext = /\b(école|scolaire|étudiant|études|lycée|collège|université|enseignant|professeur|élève|formation|pédagogique|apprentissage|académique|cours)\b/i.test(brief);
+  const pages = (plan?.pages || []).map((page) => {
+    const entity = (plan.entities || []).find((item) => item.id === page.entity);
+    return [page.id, page.label, page.kind, page.path, entity?.id, entity?.label,
+      ...(page.features || []).flatMap((item) => Object.values(item)),
+      ...(page.components || []).flatMap((item) => Object.values(item)),
+      ...(page.actions || []).flatMap((item) => Object.values(item))]
+      .filter(Boolean).join(" ").toLowerCase();
+  }).join(" ");
+  const errors = [];
+  const checks = [
+    [/\b(quiz|qcm|questionnaire)s?\b/i, /quiz|qcm|questionnaire/i, "quiz / QCM"],
+    [/\b(exercices?|s'exercer|entraînement)\b/i, /exercice|s'exercer|entraînement|entrainement/i, "exercices"],
+    [/\b(tests?|évaluations?|contrôles?)\b/i, /test|évaluation|evaluation|contrôle|controle/i, "tests / évaluations"],
+    [/simulation.{0,24}(ds|devoir surveillé)|\b(ds|devoir surveillé)\b/i, /simulation|devoir surveillé|\bds\b/i, "simulation de DS"],
+    [/correction.{0,20}(ia|automatique)|corrigés? par l'ia|correction ia/i, /correction|corrigé|feedback/i, "correction des réponses"],
+  ];
+  const missing = educationContext ? checks.filter(([requested, covered]) => requested.test(brief) && !covered.test(pages)).map(([, , label]) => label) : [];
+  if (missing.length) errors.push(`Fonctionnalités éducatives non couvertes dans les pages, modules, composants ou actions : ${missing.join(", ")}.`);
+  if (educationContext && /\b(progression|progrès|suivi des résultats|scores?)\b/i.test(brief) && !/(progression|progrès|suivi|score|résultat|évolution|dashboard|statistique)/i.test(pages)) errors.push("Suivi de progression demandé, mais aucune page ni aucun module/composant/action ne le décrit.");
+  const workspaceChecks = [
+    [/(notes?|bulletins?|moyennes?)/i, /notes?|bulletin|moyenne/i, "notes"],
+    [/(devoirs?|travaux à rendre)/i, /devoir|travail à rendre/i, "devoirs"],
+    [/(emploi du temps|planning|agenda)/i, /emploi du temps|planning|agenda|calendrier/i, "emploi du temps"],
+    [/(messagerie|messages?)/i, /messagerie|message|conversation/i, "messagerie"],
+    [/(tableau de bord|vue d'ensemble)/i, /tableau de bord|vue d'ensemble|dashboard|priorités/i, "tableau de bord"],
+  ];
+  for (const [requested, covered, label] of workspaceChecks) if ((!educationContext || !["notes", "devoirs"].includes(label)) && requested.test(brief) && !covered.test(pages)) errors.push(`Exigence métier « ${label} » sans fonctionnalité, composant ou action déclaré.`);  if (educationContext && /\b(leçons?|cours|révisions?|matières?|apprentissage)\b/i.test(brief) && !/(leçon|\bcours\b|révision|matière|apprentissage|lesson|library)/i.test(pages)) errors.push("Contenu de cours demandé, mais aucune page ni aucun module/composant/action ne le décrit.");
+  if (/(paramètre|préférence|profil|mon compte)/i.test(brief) && !/(paramètre|préférence|profil|compte|settings)/i.test(pages)) errors.push("Espace de compte ou paramètres demandé, mais aucune page ni aucun module correspondant n'est décrit.");
+  return errors;
+}
+
+function plannerTrace(stage, details = {}) {
+  console.info(JSON.stringify({ subsystem: "aigent.planner", stage, ...details }));
+}
+
+function planShape(plan) {
+  return {
+    type: plan == null ? "null" : typeof plan,
+    pagesCount: Array.isArray(plan?.pages) ? plan.pages.length : 0,
+    entitiesCount: Array.isArray(plan?.entities) ? plan.entities.length : 0,
+    pages: (plan?.pages || []).map((page) => ({
+      id: page.id, label: page.label, path: page.path, kind: page.kind,
+      entity: page.entity || null,
+      features: (page.features || []).length,
+      components: (page.components || []).length,
+      actions: (page.actions || []).length,
+    })),
+  };
+}
+
+function detectedRequirements(spec = {}) {
+  const text = briefText(spec);
+  const educationContext = /\b(école|scolaire|étudiant|études|lycée|collège|université|enseignant|professeur|élève|formation|pédagogique|apprentissage|académique|cours)\b/i.test(text);
+  const catalog = [
+    [/\b(quiz|qcm|questionnaire)s?\b/i, "quiz / QCM", true], [/\b(exercices?|s'exercer|entraînement)\b/i, "exercices", true],
+    [/\b(tests?|évaluations?|contrôles?)\b/i, "tests / évaluations", true], [/simulation.{0,24}(ds|devoir surveillé)|\b(ds|devoir surveillé)\b/i, "simulation de DS", true],
+    [/correction.{0,20}(ia|automatique)|corrigés? par l'ia|correction ia/i, "correction des réponses", true],
+    [/\b(progression|progrès|suivi des résultats|scores?)\b/i, "suivi de progression", true], [/\b(notes?|bulletins?|moyennes?)\b/i, "notes", true],
+    [/\b(devoirs?|travaux à rendre)\b/i, "devoirs", true], [/emploi du temps|planning|agenda/i, "emploi du temps"],
+    [/messagerie|messages?/i, "messagerie"], [/tableau de bord|vue d'ensemble/i, "tableau de bord"],
+    [/\b(leçons?|cours|révisions?|matières?|apprentissage)\b/i, "cours et leçons", true],
+  ];
+  return catalog.filter(([pattern, , educationOnly]) => (!educationOnly || educationContext) && pattern.test(text)).map(([, label]) => label);
+}
+
+function addDeterministicCoverage(plan, spec) {
+  if (!plan) return plan;
+  const text = briefText(spec);
+  const educationContext = /\b(école|scolaire|étudiant|études|lycée|collège|université|enseignant|professeur|élève|formation|pédagogique|apprentissage|académique|cours)\b/i.test(text);
+  const ensure = (requested, needles, label, description) => {
+    if (!requested.test(text)) return;
+    const entries = plan.pages.flatMap((page) => [...(page.features || []), ...(page.components || []), ...(page.actions || [])]);
+    if (entries.some((entry) => needles.test(`${entry.id || ""} ${entry.label || ""} ${entry.description || ""}`))) return;
+    const page = plan.pages.find((item) => ["workspace", "dashboard", "home", "list"].includes(item.kind)) || plan.pages[0];
+    page.features ||= [];
+    page.features.push({ id: label.toLowerCase().replace(/[^a-z0-9]+/g, "-"), label, description, kind: "module" });
+  };
+  if (educationContext) {
+  ensure(/\b(quiz|qcm|questionnaire)s?\b/i, /quiz|qcm|questionnaire/i, "Quiz et QCM", "Créer et réaliser des quiz et QCM pour vérifier les acquis, puis consulter les réponses.");
+  ensure(/\b(exercices?|s'exercer|entraînement)\b/i, /exercice|s'exercer|entraînement|entrainement/i, "Exercices", "Proposer des exercices d'entraînement adaptés aux notions étudiées.");
+  ensure(/\b(tests?|évaluations?|contrôles?)\b/i, /test|évaluation|evaluation|contrôle|controle/i, "Évaluations", "Préparer et suivre les tests et évaluations demandés.");
+  ensure(/simulation.{0,24}(ds|devoir surveillé)|\b(ds|devoir surveillé)\b/i, /simulation|devoir surveillé|\bds\b/i, "Simulation de DS", "Générer une simulation de devoir surveillé et s'entraîner dans les conditions prévues.");
+  ensure(/correction.{0,20}(ia|automatique)|corrigés? par l'ia|correction ia/i, /correction|corrigé|feedback/i, "Correction des réponses", "Corriger les réponses et fournir un retour expliquant les points à reprendre.");
+  ensure(/progression|progrès|suivi des résultats|scores?/i, /progression|progrès|suivi|score|résultat|évolution|dashboard|statistique/i, "Suivi de progression", "Suivre les résultats et visualiser l’évolution des acquis.");
+  ensure(/notes?|bulletins?|moyennes?/i, /notes?|bulletin|moyenne/i, "Notes et moyennes", "Consulter les notes, moyennes et résultats scolaires.");
+  ensure(/devoirs?|travaux à rendre/i, /devoir|travail à rendre/i, "Devoirs", "Consulter les devoirs et suivre les travaux à rendre.");
+  ensure(/emploi du temps|planning|agenda/i, /emploi du temps|planning|agenda|calendrier/i, "Emploi du temps", "Consulter les cours et échéances dans un planning.");
+  ensure(/messagerie|messages?/i, /messagerie|message|conversation/i, "Messagerie", "Échanger des messages liés au parcours scolaire.");
+  ensure(/tableau de bord|vue d'ensemble/i, /tableau de bord|vue d'ensemble|dashboard|priorités/i, "Tableau de bord", "Afficher une vue d’ensemble et les priorités de l’utilisateur.");
+  ensure(/\b(leçons?|cours|révisions?|matières?|apprentissage)\b/i, /leçon|\bcours\b|révision|matière|apprentissage|lesson|library/i, "Cours et leçons", "Organiser les cours et leçons pour faciliter les révisions.");
+  }
+  return plan;
+}
+
+export function buildDeterministicSitePlan(spec = {}) {
+  const seed = qaFilterSitePlan({
+    archetype: "custom", domainLabel: spec.sector || "Espace de travail",
+    assistant: { enabled: false, mode: "none", pageId: null },
+    commerceModel: { orders: false, returns: false, booking: false, bookingKind: null, catalog: false, catalogIsMenu: false },
+    vocabulary: { itemSingular: "élément", itemPlural: "éléments", actionVerb: "gérer" },
+    entities: [], nav: ["workspace"],
+    pages: [{ id: "workspace", label: spec.name || "Espace principal", path: "/workspace", kind: "workspace", entity: null, auth: false,
+      features: [{ id: "workspace-overview", label: "Espace métier", description: spec.purpose || "Retrouver les fonctions principales du service." }], components: [], actions: [] }],
+  });
+  const completed = completePlanFromBrief(seed, spec);
+  const plan = addDeterministicCoverage(completed, spec);
+  return { ...plan, entities: plan.entities || [], pages: plan.pages || [], nav: plan.nav || [] };
+}
 /** L'architecte comprend le VRAI projet et décide de son vrai domaine
  *  commercial ainsi que de ses pages/données/vocabulaire propres. Tourne
  *  seul et en premier : tout le reste de l'équipe lit son résultat via
@@ -647,19 +872,23 @@ function qaFilterSitePlan(plan) {
  *  le travail de taskComposeBlocks (section 7), pour garder chaque agent
  *  concentré sur une seule responsabilité. */
 async function taskSitePlan(memory) {
+  plannerTrace("generation.start", { expectedShape: ["archetype", "entities[]", "pages[]", "nav[]"] });
   const json = await askJSON(
     ROLE.architect,
     memory,
-    "Décide, à partir du besoin RÉEL du projet (jamais d'un modèle fixe), quel est son vrai domaine commercial (a-t-il des commandes/livraisons, des retours, une réservation, un catalogue ?) ainsi que ses pages, données et vocabulaire propres. N'invente rien qui ne serait pas rendable.",
+     "Conçois l'architecture réelle de cette application à partir du besoin. Choisis un archétype métier, les vraies pages, entités et le vocabulaire. La classification commerce est seulement un sous-ensemble : pour l'éducation, le sport, la santé, le suivi personnel ou tout autre sujet, mets commandes/retours/réservation/catalogue à false sauf demande explicite. Un article de cours, une leçon ou une carte géographique n'est pas un produit de boutique. Le chat assistant est facultatif; décide s'il sert ce parcours et où il vit. N'invente rien qui ne serait pas rendable.",
     `Projet : ${JSON.stringify(memory.brief)}
 Classification par mots-clés faite en secours (à corriger si elle se trompe — un site qui parle de 'suivre ses révisions' n'est PAS une commande, par exemple) : ${JSON.stringify(memory.bp.modules)}
 
 Types de page autorisés : ${PAGE_KINDS.join(", ")}
+Archétypes : learning, coaching, dashboard, editorial, community, service, ecommerce, booking, custom.
 Une page de type "list"/"detail"/"form" doit référencer une entité déclarée ci-dessous.
 Ne propose jamais de page au chemin "/" : c'est déjà l'accueil.
 
 Réponds avec ce JSON exact :
 {
+  "archetype": "learning|coaching|dashboard|editorial|community|service|ecommerce|booking|custom",
+  "assistant": {"enabled":true|false,"mode":"inline|page|contextual|none","pageId":"identifiant de page ou null"},
   "domainLabel": "2 à 4 mots décrivant le vrai secteur du projet",
   "commerceModel": {
     "orders": true|false,
@@ -671,14 +900,52 @@ Réponds avec ce JSON exact :
   },
   "vocabulary": {"itemSingular":"…","itemPlural":"…","actionVerb":"…"},
   "entities": [{"id":"slug_court","label":"…","fields":[{"key":"slug_champ","label":"…","type":"text|number|date|richtext"}]}],
-  "pages": [{"id":"slug_page","label":"…","path":"/chemin","kind":"home|list|detail|dashboard|form|chat|static","entity":"id d'une entité ci-dessus ou null","auth":true|false}],
+  "pages": [{"id":"slug_page","label":"…","path":"/chemin","kind":"home|list|detail|dashboard|form|chat|static|workspace|settings|profile|auth","entity":"id entité ou null","auth":true|false,"features":[{"id":"…","label":"capacité métier","description":"fonction concrète proposée dans cette page","kind":"module"}],"components":[{"id":"…","label":"composant visible","description":"rôle du composant"}],"actions":[{"id":"…","label":"action","description":"résultat attendu","operation":"create|read|update|delete|analyze"}]}],
+  "authRequired": true|false,
   "nav": ["id de page", "…"]
 }
-"commerceModel" doit refléter la RÉALITÉ du projet, pas la classification par mots-clés fournie en contexte si elle se trompe. Maximum 6 entités, 8 pages, 8 champs par entité. Ne propose pas de page qui ferait doublon avec ce que "commerceModel" couvre déjà (une réservation n'a pas besoin d'une page en plus, elle a déjà son propre parcours).`,
-    { maxTokens: 1500, profile: "json" },
+"commerceModel" doit refléter la RÉALITÉ du projet, pas la classification par mots-clés fournie en contexte si elle se trompe. Maximum 20 entités, 24 pages et 20 champs par entité. Couvre chaque rubrique demandée explicitement et décris les capacités, composants et actions de chaque page. Une fonctionnalité peut vivre dans une page sans route dédiée. Pour une plateforme privée de travail d'équipe, prévois connexion, profil, permissions et protège les données.`,
+    {
+      maxTokens: 6000,
+      profile: "deep",
+      maxModelTries: 1,
+      order: ["github", "gemini", "groq", "pollinations", "openrouter", "cerebras", "nvidia", "mistral", "cohere", "cloudflare"],
+    },
   );
-  memory.sitePlan = qaFilterSitePlan(json);
+  plannerTrace("parse.complete", { parsed: Boolean(json), keys: json && typeof json === "object" ? Object.keys(json) : [], rawPlanShape: planShape(json) });
+  const filtered = qaFilterSitePlan(json);
+  const relevanceErrors = filtered ? sitePlanRelevanceErrors(filtered, memory.brief) : [];
+  plannerTrace("normalization.complete", { accepted: Boolean(filtered) && !relevanceErrors.length, reason: !filtered ? "plan null ou aucune page conforme au schéma" : relevanceErrors[0] || null, plan: planShape(filtered) });
+  memory.sitePlan = filtered && !relevanceErrors.length ? filtered : null;
+  if (filtered && relevanceErrors.length) plannerTrace("selection.rejected", { reason: "plan hors sujet", errors: relevanceErrors, plan: planShape(filtered) });
+  plannerTrace("completion.complete", { plan: planShape(memory.sitePlan) });
+  if (!memory.sitePlan) {
+    throw new Error("Le plan d'architecture IA est invalide ou hors sujet. Aucun plan générique ne sera substitué.");
+  }
+  plannerTrace("initial.validation", { requirements: detectedRequirements(memory.brief), missing: sitePlanCoverageErrors(memory.sitePlan, memory.brief), plan: planShape(memory.sitePlan) });
   return memory.sitePlan;
+}
+
+async function taskRepairSitePlan(memory, errors) {
+  plannerTrace("repair.generation.start", { missing: errors, currentPlan: planShape(memory.sitePlan) });
+  const json = await askJSON(
+    ROLE.architect,
+    memory,
+    "Répare le plan incomplet. Une exigence peut être couverte par une feature, un composant ou une action dans une page existante; ne crée une page dédiée que si le parcours le justifie. Préserve les pages utiles et décris les capacités ajoutées.",
+    `Plan à corriger : ${JSON.stringify(memory.sitePlan)}\n\nFonctionnalités manquantes (à traiter sémantiquement dans les pages/modules/composants/actions) :\n- ${errors.join("\n- ")}\n\nBesoin : ${JSON.stringify(memory.brief)}\n\nRetourne le plan JSON complet au même format que la tâche d'architecture : archetype, assistant, domainLabel, commerceModel, vocabulary, entities, pages et nav. Le site est personnalisé au besoin; ne crée aucun catalogue de boutique sauf demande explicite.`,
+    {
+      maxTokens: 2800,
+      profile: "deep",
+      maxModelTries: 1,
+      order: ["github", "gemini", "groq", "pollinations", "openrouter", "cerebras", "nvidia", "mistral", "cohere", "cloudflare"],
+    },
+  );
+  plannerTrace("repair.parse.complete", { parsed: Boolean(json), keys: json && typeof json === "object" ? Object.keys(json) : [], rawPlanShape: planShape(json) });
+  const repaired = qaFilterSitePlan(json);
+  plannerTrace("repair.normalization.complete", { accepted: Boolean(repaired), plan: planShape(repaired) });
+  if (repaired) memory.sitePlan = repaired;
+  plannerTrace("repair.revalidation", { missing: sitePlanCoverageErrors(memory.sitePlan, memory.brief), plan: planShape(memory.sitePlan) });
+  return repaired;
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1080,11 +1347,9 @@ async function runSilent(fn) {
 }
 
 /**
- * Fait travailler l'équipe multi-agents sur UN projet et renvoie un objet
- * "overrides" à fusionner dans le blueprint déterministe (aigentGenerator.js
- * décide comment, via finalizeBlueprint/applyCreativeOverrides). Ne lance
- * jamais d'exception : en cas de souci, une partie (ou tout) des overrides
- * est simplement absente, et le squelette déterministe prend le relais.
+ * L'équipe commence par un vrai contrat de site. Le rendu legacy par blocs
+ * n'est plus un chemin de construction : le codegen indépendant produit les
+ * fichiers métier et bloque la livraison si le contrat manque.
  */
 export async function runMultiAgentBuild(
   spec,
@@ -1098,50 +1363,44 @@ export async function runMultiAgentBuild(
     } catch (_) {}
   };
 
-  // Niveau 0 — compréhension réelle du projet : pages, données,
-  // vocabulaire, domaine commercial. Tourne seul et en premier : tout
-  // le reste de l'équipe lit son résultat via memory.shared().
-  await runTask("architect", "site_plan", () => taskSitePlan(memory), emit);
-
-  // Niveau 1 — indépendants, en parallèle (ton de marque / direction de
-  // composition).
-  await Promise.all([
-    runTask("copy", "brand", () => taskBrand(memory), emit),
-    runTask("uiux", "design", () => taskDesign(memory), emit),
-  ]);
-
-  // Niveau 2 — la composition réelle du site (accueil + pages statiques)
-  // est le travail principal, visible dans la progression sous l'id
-  // "copy" (même étape que l'ancienne rédaction, dans le même esprit :
-  // "Rédaction du contenu réel du site"). Le filet de secours texte plat,
-  // le choix de capacités et le texte d'authentification tournent en
-  // parallèle silencieusement ; le backend évalue en même temps s'il faut
-  // une fonction métier dédiée.
-  await Promise.all([
-    runTask("composer", "copy", () => taskComposeBlocks(memory), emit),
-    runSilent(() => taskCopy(memory)),
-    runTask("backend", "backend_tool", () => taskBackendTool(memory), emit),
-    runTask("copy", "capabilities", () => taskCapabilities(memory), emit),
-    runSilent(() => taskAuthCopy(memory)),
-  ]);
-
-  // Niveau 3 — la sécurité dépend du résultat backend.
-  await runTask("security", "security", () => taskSecurity(memory), emit);
-
-  // Niveau 4 — QA globale (y a-t-il quelque chose d'exploitable ?).
-  await runTask("qa", "qa", () => taskQA(memory), emit);
-
-  // Niveau 4bis — le contenu correspond-il vraiment au sujet ? Une seule
-  // reprise bornée si non : jamais de boucle infinie, jamais un blocage
-  // silencieux — l'échec final reste visible dans le manifeste (qaFlag).
-  await runTask("qa", "verify", () => taskVerify(memory), emit);
-  if (memory.verifyVerdict && !memory.verifyVerdict.pass) {
-    memory.copyRejectionReason = memory.verifyVerdict.reason;
-    await runTask("composer", "copy", () => taskComposeBlocks(memory), emit);
-    await runTask("qa", "verify", () => taskVerify(memory), emit);
+  // Niveau 0 — architecture complète, sans inférer un commerce à partir
+  // d'un mot isolé tel que « article » ou « suivre ses révisions ».
+  if (spec.workArchitecture) {
+    memory.sitePlan = qaFilterSitePlan(spec.workArchitecture);
+    if (!memory.sitePlan)
+      throw new Error("L’architecture approuvée n’est plus valide. Revenez à l’étape Architecture et corrigez-la avant la construction.");
+    plannerTrace("plan.loaded_from_approved_architecture", { plan: planShape(memory.sitePlan) });
+  } else {
+    await runTask("architect", "site_plan", () => taskSitePlan(memory), emit);
+  }
+  if (!memory.sitePlan) {
+    throw new Error("L'architecte IA n'a pas produit de plan de pages et de données validable.");
+  }
+  const MAX_PLAN_REPAIRS = 3;
+  let coverageErrors = sitePlanCoverageErrors(memory.sitePlan, memory.brief);
+  plannerTrace("validation.initial", { requirements: detectedRequirements(memory.brief), result: coverageErrors.length ? "rejected" : "accepted", missing: coverageErrors, plan: planShape(memory.sitePlan) });
+  for (let attempt = 1; coverageErrors.length && attempt <= MAX_PLAN_REPAIRS; attempt++) {
+    console.info(`[AiGENT planner] réparation ${attempt}/${MAX_PLAN_REPAIRS}; exigences absentes : ${coverageErrors.join(" | ")}`);
+    const before = new Set((memory.sitePlan.pages || []).flatMap((page) => [...(page.features || []), ...(page.components || []), ...(page.actions || [])].map((item) => item.id || item.label)));
+    await runTask("architect", "site_plan", () => taskRepairSitePlan(memory, coverageErrors), emit);
+    const after = new Set((memory.sitePlan.pages || []).flatMap((page) => [...(page.features || []), ...(page.components || []), ...(page.actions || [])].map((item) => item.id || item.label)));
+    const added = [...after].filter((item) => !before.has(item));
+    console.info(`[AiGENT planner] capacités ajoutées : ${added.length ? added.join(", ") : "aucune"}`);
+    coverageErrors = sitePlanCoverageErrors(memory.sitePlan, memory.brief);
+    plannerTrace("validation.after_repair", { attempt, result: coverageErrors.length ? "rejected" : "accepted", missing: coverageErrors, plan: planShape(memory.sitePlan) });
+  }
+  if (coverageErrors.length) {
+    plannerTrace("selection.rejected", { reason: "exigences métier encore absentes après réparation IA", missing: coverageErrors, plan: planShape(memory.sitePlan) });
+    throw new Error(`Le plan reste incomplet après ${MAX_PLAN_REPAIRS} réparations IA : ${coverageErrors.join(" ")}`);
+  } else {
+    plannerTrace("selection.accepted", { reason: "toutes les exigences sont couvertes", plan: planShape(memory.sitePlan) });
+  }
+  // Les capacités de l'assistant sont calculées seulement si l'architecte
+  // a décidé qu'un assistant sert réellement le parcours.
+  if (memory.sitePlan.assistant?.enabled) {
+    await runTask("copy", "capabilities", () => taskCapabilities(memory), emit);
   }
 
-  // Niveau 5 — intégration finale.
   const overrides = await runTask(
     "integrator",
     "integrate",
@@ -1149,6 +1408,22 @@ export async function runMultiAgentBuild(
     emit,
   );
   return overrides;
+}
+
+export async function proposeWorkArchitecture(spec, bp) {
+  const memory = makeMemory(spec, bp);
+  memory.sitePlan = await taskSitePlan(memory);
+  if (!memory.sitePlan)
+    throw new Error("L’architecte IA n’a pas produit de plan exploitable.");
+  const maxRepairs = 3;
+  for (let attempt = 0; attempt < maxRepairs; attempt += 1) {
+    const missing = sitePlanCoverageErrors(memory.sitePlan, memory.brief);
+    if (!missing.length) return memory.sitePlan;
+    const repaired = await taskRepairSitePlan(memory, missing);
+    if (!repaired) break;
+  }
+  const remaining = sitePlanCoverageErrors(memory.sitePlan, memory.brief);
+  throw new Error(`L’architecture reste incomplète après correction : ${remaining.join(" ")}`);
 }
 
 async function taskBrand(memory) {
@@ -1172,3 +1447,5 @@ export default {
   suggestCapabilities,
   PRODUCT_QUALITY_GUIDE,
 };
+
+export const __aigentAgentsTestHooks = { qaFilterSitePlan, sitePlanCoverageErrors, sitePlanRelevanceErrors, completePlanFromBrief, addDeterministicCoverage, buildDeterministicSitePlan, briefText, isPrivateWorkspaceBrief };

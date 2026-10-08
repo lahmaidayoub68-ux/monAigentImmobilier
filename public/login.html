@@ -458,16 +458,15 @@
       .input-group input:-webkit-autofill,
       .input-group input:-webkit-autofill:hover,
       .input-group input:-webkit-autofill:focus,
+      .input-group input:autofill,
       .input-group textarea:-webkit-autofill,
       .input-group select:-webkit-autofill {
-        -webkit-text-fill-color: #ffffff !important;
-
-        /* TA COULEUR */
-        -webkit-box-shadow: 0 0 0px 1000px rgba(15, 14, 28, 0.95) inset !important;
-
-        border: 1px solid rgba(138, 75, 255, 0.35) !important;
-
-        transition: background-color 9999s ease-in-out 0s;
+        -webkit-text-fill-color: #211832 !important;
+        caret-color: #211832;
+        background-color: #efe9ff !important;
+        -webkit-box-shadow: 0 0 0 1000px #efe9ff inset !important;
+        box-shadow: 0 0 0 1000px #efe9ff inset !important;
+        border: 1px solid rgba(138, 75, 255, 0.48) !important;
       }
       .input-group input::placeholder {
         color: rgba(220, 215, 255, 0.35);

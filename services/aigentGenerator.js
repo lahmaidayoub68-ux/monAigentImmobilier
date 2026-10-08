@@ -61,7 +61,10 @@ import {
   computeIntegrations,
   slugify,
 } from "./aiParsee-aigent.js";
-import { runMultiAgentBuild } from "./aigentAgents.js";
+import {
+  runMultiAgentBuild,
+} from "./aigentAgents.js";
+import { generateApplicationCode } from "./aigentContractBuild.js";
 import { PRIMITIVES, sanitizeBlockTree } from "./aigentBlocks.js";
 import {
   normalizeDesign,
@@ -749,6 +752,12 @@ function deriveGenericPages(sitePlan, bp) {
   });
   return {
     domainLabel: sitePlan.domainLabel,
+    archetype: sitePlan.archetype || "custom",
+    assistant: sitePlan.assistant || {
+      enabled: false,
+      mode: "none",
+      pageId: null,
+    },
     vocabulary: sitePlan.vocabulary,
     entities: sitePlan.entities || [],
     pages: pages.map((p) => {
@@ -762,7 +771,10 @@ function deriveGenericPages(sitePlan, bp) {
     }),
     nav,
     entityAuth,
-    needsAuthModule: Object.keys(entityAuth).length > 0,
+    needsAuthModule:
+      Object.keys(entityAuth).length > 0 ||
+      sitePlan.authRequired === true ||
+      pages.some((p) => p.auth || p.kind === "auth" || p.kind === "profile"),
   };
 }
 
@@ -781,7 +793,19 @@ export function finalizeBlueprint(spec, draftBp, overrides) {
     );
     bp = buildBlueprintFromClassification(spec, merged);
   }
-  return applyCreativeOverrides(bp, overrides, spec);
+  const finalized = applyCreativeOverrides(bp, overrides, spec);
+  console.info(
+    JSON.stringify({
+      subsystem: "aigent.planner",
+      stage: "blueprint.finalized",
+      source: overrides?.sitePlan
+        ? "validated-site-plan"
+        : "deterministic-blueprint",
+      pagesCount: finalized.sitePlan?.pages?.length || 0,
+      entitiesCount: finalized.sitePlan?.entities?.length || 0,
+    }),
+  );
+  return finalized;
 }
 
 /** Fusionne le résultat de l'équipe multi-agents dans le blueprint
@@ -878,28 +902,21 @@ export function applyCreativeOverrides(bp, overrides, spec = {}) {
   return next;
 }
 
-/** Point d'entrée build : fait travailler l'équipe multi-agents puis
- *  génère le projet. En cas d'échec de l'équipe (réseau, providers tous
- *  indisponibles...), repli total et silencieux sur le blueprint standard
- *  (généreProject() applique lui-même son propre filet de sécurité pour
- *  homeBlocks, donc l'accueil n'est jamais vide même dans ce cas). */
+/** Point d'entrée build : la génération par IA et ses contrôles sont
+ *  obligatoires. Une panne ou un contrat invalide arrête la construction ;
+ *  aucun site de démonstration historique n'est présenté comme résultat. */
 export async function generateProjectWithAgents(
   spec0,
   extras = {},
   { onEvent } = {},
 ) {
   const draftBp = deriveBlueprint(spec0);
-  let overrides = null;
-  try {
-    overrides = await runMultiAgentBuild(spec0, draftBp, { onEvent });
-  } catch (err) {
-    console.warn(
-      "[AiGENT agents] équipe indisponible, repli sur le gabarit standard:",
-      err.message,
-    );
-  }
+  const overrides = await runMultiAgentBuild(spec0, draftBp, { onEvent });
   const finalBp = finalizeBlueprint(spec0, draftBp, overrides);
-  return generateProject(spec0, extras, finalBp);
+  const generatedApplication = await generateApplicationCode(spec0, finalBp, {
+    onEvent,
+  });
+  return generateProject(spec0, { ...extras, generatedApplication }, finalBp);
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1406,7 +1423,8 @@ function fileEnvExample(spec, bp) {
   return lines.join("\n");
 }
 
-const hasDemo = (bp) => bp.modules.orders || bp.modules.catalog;
+const hasDemo = (bp) =>
+  bp.modules.orders || bp.modules.catalog || !!bp.sitePlan?.entities?.length;
 
 function filePackageJson(spec, bp) {
   const deps = {
@@ -1436,22 +1454,13 @@ function filePackageJson(spec, bp) {
 
 function fileReadme(spec, bp, integrations) {
   const pages = [
-    "- **Accueil** — présentation, action principale, questions fréquentes",
-    bp.modules.auth && "- **Connexion / Inscription** — comptes clients",
-    bp.modules.auth && "- **Espace client** — tableau de bord personnel",
-    bp.modules.orders &&
-      "- **Suivi de colis** (public) et **Mes commandes** — chronologie détaillée par commande",
-    bp.modules.returns &&
-      "- **Retours** — demande guidée pas à pas, suivi du statut",
-    bp.modules.catalog &&
-      `- **${bp.labels.catalog}** — recherche, filtres, questions sur chaque fiche`,
-    bp.modules.booking &&
-      `- **${bp.booking.title}** — parcours guidé (${bp.bookingMode === "confirm" ? "confirmation en direct" : "demande à confirmer"})`,
-    "- **Aide** — FAQ issue de `knowledge/` et formulaire de contact",
-    "- **Assistant IA** — présent sur toutes les pages" +
-      (bp.modules.orders
-        ? ", il connaît les commandes du client connecté"
-        : ""),
+    "- **Accueil** — conçu autour de l'objectif et du public du projet",
+    ...(bp.sitePlan?.pages || []).map(
+      (page) => `- **${page.label}** — \`${page.path}\` (${page.kind})`,
+    ),
+    bp.sitePlan?.assistant?.enabled
+      ? `- **Assistant IA** — ${bp.sitePlan.assistant.mode} selon le parcours défini`
+      : null,
   ]
     .filter(Boolean)
     .join("\n");
@@ -1590,6 +1599,9 @@ import { adminRoutes } from "./src/routes/admin.js";
 //#if entities
 import { entityRoutes } from "./src/routes/entities.js";
 //#endif
+//#if domainLogic
+import { domainRoutes } from "./src/routes/domain.js";
+//#endif
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -1657,6 +1669,9 @@ app.use("/api/admin", adminRoutes);
 app.use("/api", accountRoutes);
 //#endif
 app.use("/api", siteRoutes);
+//#if domainLogic
+app.use("/api/domain", domainRoutes);
+//#endif
 
 // ── Outils exposés en HTTP (vos propres intégrations) ──────────────
 app.use("/api/tools", rateLimit({ windowMs: 60000, max: 60 }), toolRoutes);
@@ -1675,6 +1690,25 @@ await loadKnowledge();
 app.listen(PORT, () => {
   console.log(__AGENT_NAME__ + " démarré sur http://localhost:" + PORT);
   if (!process.env.AI_API_KEY) console.warn("⚠️  AI_API_KEY manquante — l'assistant répondra 503 tant qu'elle n'est pas renseignée.");
+});
+`;
+
+const SRV_DOMAIN = String.raw`import express from "express";
+import { evaluate } from "../domain-logic.js";
+
+export const domainRoutes = express.Router();
+domainRoutes.post("/evaluate", async (req, res, next) => {
+  try {
+    const input = req.body && typeof req.body === "object" ? req.body.input : null;
+    if (!input || typeof input !== "object" || Array.isArray(input)) {
+      return res.status(400).json({ ok: false, error: "invalid_input", message: "Une entrée JSON est requise." });
+    }
+    const result = await evaluate(input);
+    const safe = JSON.parse(JSON.stringify(result));
+    return res.json({ ok: true, result: safe });
+  } catch (error) {
+    return next(error);
+  }
 });
 `;
 
@@ -1936,6 +1970,16 @@ accountRoutes.post("/auth/login", strict, needDb, async (req, res, next) => {
 accountRoutes.get("/auth/me", requireAuth, (req, res) => {
   res.json({ ok: true, customer: publicCustomer(req.customer) });
 });
+
+accountRoutes.patch("/auth/me", requireAuth, needDb, async (req, res, next) => {
+  try {
+    const name = String((req.body || {}).name || "").trim().slice(0, 80);
+    if (name.length < 2) return bad(res, "Le nom doit contenir au moins deux caractères.");
+    const rows = await query("UPDATE customers SET name = $1 WHERE id = $2 RETURNING id, name, email", [name, req.customer.id]);
+    if (!rows.length) return res.status(404).json({ ok: false, error: "not_found" });
+    res.json({ ok: true, customer: publicCustomer(rows[0]) });
+  } catch (e) { next(e); }
+});
 //#if orders
 
 // ── Commandes ──────────────────────────────────────────────────────
@@ -2112,6 +2156,7 @@ import { requireAuth } from "../auth.js";
 // Listes fermées : définies par la conception, jamais par l'utilisateur final.
 const ENTITY_IDS = __ENTITY_IDS__;
 const PROTECTED_IDS = __ENTITY_AUTH_IDS__;
+const ENTITY_FIELDS = __ENTITY_FIELDS__;
 
 export const entityRoutes = express.Router();
 
@@ -2164,7 +2209,8 @@ entityRoutes.get("/:entityId/:id", assertEntity, requireAuthIfProtected, async (
 entityRoutes.post("/:entityId", assertEntity, requireAuthIfProtected, async (req, res, next) => {
   if (!isConfigured()) return res.status(503).json({ ok: false, error: "service_not_configured", service: "database" });
   try {
-    const data = req.body && typeof req.body === "object" ? req.body : {};
+    const data = cleanData(req.params.entityId, req.body);
+    if (!data) return res.status(400).json({ ok: false, error: "invalid", message: "Les champs fournis ne correspondent pas à cette rubrique." });
     const row = await query(
       "INSERT INTO generic_items (entity_id, customer_id, data) VALUES ($1,$2,$3::jsonb) RETURNING id, created_at",
       [req.params.entityId, req.customer?.id || null, JSON.stringify(data)],
@@ -2173,6 +2219,57 @@ entityRoutes.post("/:entityId", assertEntity, requireAuthIfProtected, async (req
   } catch (e) {
     next(e);
   }
+});
+
+function cleanData(entityId, input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const fields = ENTITY_FIELDS[entityId] || [];
+  const output = {};
+  for (const [key, value] of Object.entries(input)) {
+    const field = fields.find((item) => item.key === key);
+    if (!field) return null;
+    if (field.type === "number") {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return null;
+      output[key] = number;
+    } else if (field.type === "date") {
+            if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}(?:T[^ ]+)?$/.test(value)) return null;
+      output[key] = value.slice(0, 40);
+    } else {
+      if (typeof value !== "string") return null;
+      output[key] = value.trim().slice(0, field.type === "richtext" ? 8000 : 500);
+    }
+  }
+  return Object.keys(output).length ? output : null;
+}
+
+entityRoutes.patch("/:entityId/:id", assertEntity, requireAuthIfProtected, async (req, res, next) => {
+  if (!isConfigured()) return res.status(503).json({ ok: false, error: "service_not_configured", service: "database" });
+  const data = cleanData(req.params.entityId, req.body);
+  const id = Number(req.params.id);
+  if (!data || !Number.isSafeInteger(id) || id < 1) return res.status(400).json({ ok: false, error: "invalid" });
+  try {
+    const scoped = PROTECTED_IDS.includes(req.params.entityId);
+    const rows = scoped
+      ? await query("UPDATE generic_items SET data = data || $1::jsonb WHERE entity_id = $2 AND id = $3 AND customer_id = $4 RETURNING id, data, created_at", [JSON.stringify(data), req.params.entityId, id, req.customer.id])
+      : await query("UPDATE generic_items SET data = data || $1::jsonb WHERE entity_id = $2 AND id = $3 RETURNING id, data, created_at", [JSON.stringify(data), req.params.entityId, id]);
+    if (!rows.length) return res.status(404).json({ ok: false, error: "not_found" });
+    res.json({ ok: true, item: { id: rows[0].id, ...rows[0].data, createdAt: rows[0].created_at } });
+  } catch (e) { next(e); }
+});
+
+entityRoutes.delete("/:entityId/:id", assertEntity, requireAuthIfProtected, async (req, res, next) => {
+  if (!isConfigured()) return res.status(503).json({ ok: false, error: "service_not_configured", service: "database" });
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ ok: false, error: "invalid" });
+  try {
+    const scoped = PROTECTED_IDS.includes(req.params.entityId);
+    const rows = scoped
+      ? await query("DELETE FROM generic_items WHERE entity_id = $1 AND id = $2 AND customer_id = $3 RETURNING id", [req.params.entityId, id, req.customer.id])
+      : await query("DELETE FROM generic_items WHERE entity_id = $1 AND id = $2 RETURNING id", [req.params.entityId, id]);
+    if (!rows.length) return res.status(404).json({ ok: false, error: "not_found" });
+    res.json({ ok: true, deleted: true });
+  } catch (e) { next(e); }
 });
 `;
 const SRV_SITE = String.raw`import express from "express";
@@ -2566,6 +2663,16 @@ if (!isConfigured()) {
 const at = (days) => new Date(Date.now() - days * 86400000).toISOString();
 
 await withTx(async (q) => {
+  let entityDemoCustomerId = null;
+//#if auth
+  if ((DEMO.protectedEntities || []).length) {
+    const demoCustomer = await q(
+      "INSERT INTO customers (name, email, password_hash) VALUES ($1,$2,$3) ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name RETURNING id",
+      ["Camille Demo", "demo@exemple.fr", await hashPassword("demo1234")],
+    );
+    entityDemoCustomerId = demoCustomer[0]?.id || null;
+  }
+//#endif
 //#if orders
   const email = "demo@exemple.fr";
   const customer = await q(
@@ -2596,6 +2703,18 @@ await withTx(async (q) => {
     );
   }
 //#endif
+  for (const group of DEMO.domainEntities || []) {
+    const customerId = (DEMO.protectedEntities || []).includes(group.id)
+      ? entityDemoCustomerId
+      : null;
+    for (const item of group.items || []) {
+      const json = JSON.stringify(item);
+      await q(
+        "INSERT INTO generic_items (entity_id, customer_id, data) SELECT $1,$2,$3::jsonb WHERE NOT EXISTS (SELECT 1 FROM generic_items WHERE entity_id = $1 AND customer_id IS NOT DISTINCT FROM $2 AND data = $3::jsonb)",
+        [group.id, customerId, json],
+      );
+    }
+  }
 });
 
 console.log("Données de démonstration insérées.");
@@ -4963,7 +5082,24 @@ export function generateProject(spec0, extras = {}, precomputedBp = null) {
     webhook: ids.has("notify.webhook"),
     email: needsEmail(spec),
     entities: !!bp.sitePlan?.entities?.length,
+    domainLogic: Boolean(
+      extras.generatedApplication?.sources?.["backend/src/domain-logic.js"],
+    ),
   };
+  const demo = demoDataFor(bp);
+  if (extras.generatedApplication?.sources?.["builder/demo-data.json"]) {
+    try {
+      demo.domainEntities =
+        JSON.parse(
+          extras.generatedApplication.sources["builder/demo-data.json"],
+        ).entities || [];
+    } catch {
+      throw new Error(
+        "Données de démonstration générées illisibles; construction annulée.",
+      );
+    }
+  }
+  demo.protectedEntities = Object.keys(bp.sitePlan?.entityAuth || {});
   const files = {};
 
   // Racine
@@ -5013,6 +5149,17 @@ export function generateProject(spec0, extras = {}, precomputedBp = null) {
         ENTITY_AUTH_IDS: JSON.stringify(
           Object.keys(bp.sitePlan.entityAuth || {}),
         ),
+        ENTITY_FIELDS: JSON.stringify(
+          Object.fromEntries(
+            bp.sitePlan.entities.map((entity) => [
+              entity.id,
+              entity.fields.map((field) => ({
+                key: field.key,
+                type: field.type,
+              })),
+            ]),
+          ),
+        ),
       },
       flags,
     );
@@ -5024,7 +5171,7 @@ export function generateProject(spec0, extras = {}, precomputedBp = null) {
   if (hasDemo(bp))
     files["backend/scripts/seed-demo.js"] = tpl(
       SRV_SEED,
-      { DEMO: J(demoDataFor(bp)) },
+      { DEMO: J(demo) },
       flags,
     );
 
@@ -5035,6 +5182,40 @@ export function generateProject(spec0, extras = {}, precomputedBp = null) {
   files["frontend/index.html"] = fileFrontendHtml(spec, bp);
   files["frontend/styles.css"] = fileFrontendCss(spec, bp);
   files["frontend/app.js"] = clientJs(bp);
+  if (extras.generatedApplication?.sources) {
+    const generated = extras.generatedApplication.sources;
+    const configScript = `<script>window.__APP__ = ${jsonForScript(clientConfig(spec, bp))};</script>`;
+    const design = normalizeDesign(spec.interface?.design);
+    const attrs = Object.entries(designAttrs(design))
+      .map(([key, value]) => `data-${key}="${esc(value)}"`)
+      .join(" ");
+    const href = fontHref(design);
+    const fontLink = href
+      ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link rel="stylesheet" href="${esc(href)}" />`
+      : "";
+    let generatedHtml = String(generated["frontend/index.html"] || "");
+    generatedHtml = generatedHtml.replace(
+      /<html\b([^>]*)>/i,
+      (whole, existing) => `<html${existing} ${attrs}>`,
+    );
+    generatedHtml = generatedHtml.replace(/<\/head>/i, `${fontLink}</head>`);
+    files["frontend/index.html"] = generatedHtml.replace(
+      /<script\s+src=["']\.\/app\.js["']\s*><\/script>/i,
+      `${configScript}\n<script src="./app.js"></script>`,
+    );
+    files["frontend/styles.css"] +=
+      `\n\n/* Direction visuelle générée pour ce projet */\n${generated["frontend/styles.generated.css"] || ""}`;
+    files["frontend/app.js"] =
+      generated["frontend/app.js"] || files["frontend/app.js"];
+    if (generated["backend/src/domain-logic.js"]) {
+      files["backend/src/domain-logic.js"] =
+        generated["backend/src/domain-logic.js"];
+      files["backend/src/routes/domain.js"] = SRV_DOMAIN;
+    }
+    files["builder/site-contract.json"] =
+      generated["builder/site-contract.json"];
+    files["builder/demo-data.json"] = generated["builder/demo-data.json"];
+  }
   if (
     spec.interface?.kind === "widget" ||
     (spec.export?.formats || []).includes("widget")
@@ -5067,7 +5248,7 @@ export function generateProject(spec0, extras = {}, precomputedBp = null) {
     modules: Object.keys(m).filter((k) => m[k]),
     pages: bp.nav.map((n) => n.label),
     qaFlag: bp.qaFlag || null,
-    shots: previewShotsFor(spec0),
+      shots: previewShotsFor(spec0, bp),
     stack: {
       frontend: "Site monopage HTML/CSS/JS (sans build)",
       backend: "Node.js 18+ · Express",
@@ -5257,6 +5438,41 @@ const DEMO_SHIM = String.raw`(function () {
     var m;
     if (path === "/health") return [200, { status: "ok", env: SHOT ? "production" : "preview", demo: true, agent: META.name, modules: META.modules, policy: { returnWindowDays: DEMO.returnWindowDays }, configured: { ai: true, database: true, sessions: true } }];
     if (path === "/knowledge") return [200, { ok: true, sections: DEMO.faq }];
+    if (path === "/domain/evaluate" && method === "POST") {
+      if (typeof window.__AIGENT_EVALUATE__ !== "function") return [503, { ok: false, error: "service_not_configured" }];
+      return Promise.resolve(window.__AIGENT_EVALUATE__(body.input || {})).then(function (result) {
+        return [200, { ok: true, result: result }];
+      });
+    }
+    if ((m = path.match(/^\/entities\/([a-z][a-z0-9_]*)\/?([^/]*)$/))) {
+      var entityId = m[1], itemId = m[2] || "";
+      if ((META.protectedEntities || []).indexOf(entityId) >= 0 && !user) return NEED_AUTH;
+      var groups = DEMO.domainEntities || [];
+      if (!groups.some(function (group) { return group.id === entityId; })) return [404, { ok: false, error: "not_found" }];
+      var rows = load("entity:" + entityId, null);
+      if (!rows) {
+        var seed = groups.filter(function (group) { return group.id === entityId; })[0];
+        rows = (seed.items || []).map(function (item, index) { return Object.assign({ id: index + 1, createdAt: new Date().toISOString() }, item); });
+      }
+      if (itemId && method === "GET") {
+        var row = rows.filter(function (item) { return String(item.id) === itemId; })[0];
+        return row ? [200, { ok: true, item: row }] : [404, { ok: false, error: "not_found" }];
+      }
+      if (itemId && (method === "PATCH" || method === "DELETE")) {
+        var index = rows.findIndex(function (item) { return String(item.id) === itemId; });
+        if (index < 0) return [404, { ok: false, error: "not_found" }];
+        if (method === "DELETE") { rows.splice(index, 1); save("entity:" + entityId, rows); return [200, { ok: true, deleted: true }]; }
+        rows[index] = Object.assign({}, rows[index], body || {}, { id: rows[index].id });
+        save("entity:" + entityId, rows);
+        return [200, { ok: true, item: rows[index] }];
+      }
+      if (!itemId && method === "GET") return [200, { ok: true, items: rows }];
+      if (!itemId && method === "POST") {
+        var created = Object.assign({ id: Date.now(), createdAt: new Date().toISOString() }, body || {});
+        rows.unshift(created); save("entity:" + entityId, rows);
+        return [200, { ok: true, id: created.id, createdAt: created.createdAt }];
+      }
+    }
     if (path === "/catalog") {
       var s = (qs.get("search") || "").toLowerCase(), c = qs.get("category") || "";
       var items = DEMO.catalog.filter(function (i) { return (!c || i.category === c) && (!s || (i.name + " " + i.description).toLowerCase().indexOf(s) >= 0); });
@@ -5280,7 +5496,16 @@ const DEMO_SHIM = String.raw`(function () {
       if (!found) return [401, { ok: false, error: "bad_credentials", message: "Email ou mot de passe incorrect." }];
       return [200, { ok: true, token: "demo." + encodeURIComponent(e2), customer: pub(found) }];
     }
-    if (path === "/auth/me") return user ? [200, { ok: true, customer: pub(user) }] : NEED_AUTH;
+    if (path === "/auth/me" && method === "GET") return user ? [200, { ok: true, customer: pub(user) }] : NEED_AUTH;
+    if (path === "/auth/me" && method === "PATCH") {
+      if (!user) return NEED_AUTH;
+      var updatedName = String(body.name || "").trim().slice(0, 80);
+      if (updatedName.length < 2) return [400, { ok: false, error: "invalid", message: "Le nom doit contenir au moins deux caractères." }];
+      var allUsers = load("users", []);
+      allUsers.forEach(function (entry) { if (entry.email === user.email) entry.name = updatedName; });
+      save("users", allUsers);
+      return [200, { ok: true, customer: pub({ name: updatedName, email: user.email }) }];
+    }
     if (path === "/track" && method === "POST") {
       var o = findOrder(body.ref);
       if (!o || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(body.email || ""))) return [404, { ok: false, error: "not_found", message: "Aucune commande ne correspond à ces informations. En démonstration, essayez " + (orders[0] ? orders[0].ref : "CMD-48213") + " avec n'importe quel email." }];
@@ -5338,42 +5563,145 @@ const DEMO_SHIM = String.raw`(function () {
       return realFetch(ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: String(body.message || "").slice(0, 900) + ctx, history: body.history || [] }) });
     }
     var out = handle(method, path, body, user, qs);
-    return Promise.resolve(json(out[0], out[1]));
+    return Promise.resolve(out).then(function (result) { return json(result[0], result[1]); });
   };
 })();
 `;
 
-export function buildPreviewHtml(spec, files, previewEndpoint) {
-  const bp = deriveBlueprint(spec);
+/** Répare les aperçus persistés par les anciennes versions qui conservaient
+ *  un lien CSS relatif sans servir le fichier styles.css au navigateur. */
+export function ensurePreviewStyles(html, files) {
+  const source = String(html || "");
+  if (source.includes("data-aigent-preview-styles")) return source;
+  const css = String(files?.["frontend/styles.css"] || "");
+  if (!css.trim())
+    throw new Error("L'aperçu ne contient aucune feuille de style à intégrer.");
+  const stylesheet =
+    /<link\b(?=[^>]*\brel=["']stylesheet["'])(?=[^>]*\bhref=["'](?:\.\/)?styles\.css(?:\?[^"']*)?["'])[^>]*\/?\s*>/i;
+  if (!stylesheet.test(source)) {
+    if (/<style\b[^>]*>[\s\S]*?<\/style\s*>/i.test(source)) return source;
+    throw new Error(
+      "Impossible de réparer l'aperçu : le lien vers styles.css est absent.",
+    );
+  }
+  return source.replace(
+    stylesheet,
+    () => `<style data-aigent-preview-styles>\n${css}\n</style>`,
+  );
+}
+
+const PREVIEW_RUNTIME_GUARD = `<script data-aigent-preview-guard>(function(){var reported=false;function report(reason){if(reported)return;var root=document.getElementById("app");if(!root||root.childElementCount)return;reported=true;console.error("[AiGENT preview] application non rendue",reason);var panel=document.createElement("section");panel.setAttribute("role","alert");panel.style.cssText="max-width:640px;margin:12vh auto;padding:32px;border:1px solid #f0c7c7;border-radius:16px;background:#fff;color:#1f2937;font:15px/1.6 system-ui,sans-serif;box-shadow:0 12px 40px rgba(15,23,42,.08)";var title=document.createElement("h1");title.textContent="L’aperçu n’a pas pu s’afficher";title.style.cssText="margin:0 0 8px;font-size:22px";var message=document.createElement("p");message.textContent="Cette version n’a produit aucun contenu visible. Le site doit être corrigé avant de pouvoir être présenté.";message.style.margin="0";panel.append(title,message);root.replaceChildren(panel)}function defer(reason){setTimeout(function(){report(reason)},0)}window.addEventListener("error",function(event){defer(event.message||"erreur JavaScript")});window.addEventListener("unhandledrejection",function(event){defer(event.reason||"erreur asynchrone")});setTimeout(function(){report("point d’entrée #app resté vide")},8000)})();</script>`;
+
+export function ensurePreviewRuntimeGuard(html, files = {}) {
+  const source = String(html || "");
+  if (source.includes("data-aigent-preview-guard")) return source;
+  const appSource = String(files?.["frontend/app.js"] || "");
+  if (appSource) {
+    const appIndex = source.indexOf(appSource);
+    if (appIndex >= 0) {
+      const scriptStart = source.lastIndexOf("<script", appIndex);
+      if (scriptStart >= 0) {
+        return `${source.slice(0, scriptStart)}${PREVIEW_RUNTIME_GUARD}${source.slice(scriptStart)}`;
+      }
+    }
+  }
+  if (!/<\/body\s*>/i.test(source))
+    throw new Error(
+      "Impossible d'ajouter le contrôle de rendu : document HTML incomplet.",
+    );
+  return source.replace(/<\/body\s*>/i, `${PREVIEW_RUNTIME_GUARD}</body>`);
+}
+
+export function buildPreviewHtml(
+  spec,
+  files,
+  previewEndpoint,
+  precomputedBp = null,
+) {
+  const bp = precomputedBp || deriveBlueprint(spec);
   const html = files["frontend/index.html"] || "";
   const css = files["frontend/styles.css"] || "";
   const js = files["frontend/app.js"] || "";
+  const demo = demoDataFor(bp);
+  try {
+    demo.domainEntities =
+      JSON.parse(files["builder/demo-data.json"] || "{}").entities || [];
+  } catch {
+    throw new Error(
+      "Les données de démonstration du site ne sont pas valides.",
+    );
+  }
+  demo.protectedEntities = Object.keys(bp.sitePlan?.entityAuth || {});
+  const domainLogic = String(files["backend/src/domain-logic.js"] || "")
+    .replace(
+      /^export\s+async\s+function\s+evaluate\s*\(/m,
+      "window.__AIGENT_EVALUATE__ = async function evaluate(",
+    )
+    .replace(
+      /^export\s+function\s+evaluate\s*\(/m,
+      "window.__AIGENT_EVALUATE__ = function evaluate(",
+    );
+  if (domainLogic && domainLogic === files["backend/src/domain-logic.js"]) {
+    throw new Error("La logique métier n'a pas pu être chargée dans l'aperçu.");
+  }
   const shim = tpl(DEMO_SHIM, {
-    DEMO: jsonForScript(demoDataFor(bp)),
+    DEMO: jsonForScript(demo),
     META: jsonForScript({
       name: spec.name || "AiGENT",
       slug: spec.slug || slugify(spec.name || "mon-aigent"),
       modules: Object.keys(bp.modules).filter((k) => bp.modules[k]),
       bookingMode: bp.bookingMode,
+      protectedEntities: demo.protectedEntities,
     }),
     ENDPOINT: jsonForScript(previewEndpoint),
   });
   const badge = `<div class="aigent-badge" style="position:fixed;left:12px;bottom:10px;z-index:60;font:500 11px/1 ${styleTokens(spec).font};color:#6B6E76;background:rgba(255,255,255,.9);border:1px solid #E6E7EB;border-radius:999px;padding:6px 10px;pointer-events:none">APERÇU · Créé avec AiGENT</div>`;
-  return html
-    .replace(
-      '<link rel="stylesheet" href="./styles.css" />',
-      () => `<style>\n${css}\n</style>`,
-    )
-    .replace(
-      '<script src="./app.js"></script>',
-      () => `<script>\n${shim}\n</script>\n<script>\n${js}\n</script>`,
-    )
-    .replace("</body>", () => `${badge}</body>`);
+  if (!css.trim())
+    throw new Error(
+      "L'aperçu a été arrêté : la feuille de style du site est vide.",
+    );
+  if (!js.trim())
+    throw new Error(
+      "L'aperçu a été arrêté : le code de l'application est vide.",
+    );
+  let preview;
+  try {
+    preview = ensurePreviewStyles(html, files);
+  } catch (error) {
+    throw new Error(`L'aperçu a été arrêté : ${error.message}`);
+  }
+  preview = preview.replace(
+    /<script\b(?=[^>]*\bsrc=["']\.\/app\.js["'])[^>]*>\s*<\/script\s*>/i,
+    () =>
+      `<script>window.__AIGENT_PREVIEW__=true;</script>\n${PREVIEW_RUNTIME_GUARD}\n<script>\n${domainLogic}\n</script>\n<script>\n${shim}\n</script>\n<script data-aigent-preview-app>\n${js}\n</script>`,
+  );
+  if (
+    preview === html ||
+    /<script\b[^>]*src=["']\.\/app\.js["']/i.test(preview)
+  ) {
+    throw new Error(
+      "L'aperçu a été arrêté : impossible d'intégrer l'application générée dans la page.",
+    );
+  }
+  if (!/<\/body\s*>/i.test(preview))
+    throw new Error("L'aperçu a été arrêté : document HTML incomplet.");
+  return preview.replace(/<\/body\s*>/i, `${badge}</body>`);
 }
 
 /** Les 3 écrans qui racontent le mieux le site livré (le Builder les capture). */
-export function previewShotsFor(spec) {
-  const bp = deriveBlueprint(spec);
+export function previewShotsFor(spec, bpIn = null) {
+  const bp = bpIn || deriveBlueprint(spec);
+  const planned = (bp.sitePlan?.pages || [])
+    .filter((p) => p.kind !== "auth")
+    .slice(0, 3);
+  if (planned.length) {
+    return planned.map((p) => ({
+      id: p.id,
+      label: p.label,
+      mode: p.auth ? "user" : "guest",
+      hash: p.path,
+    }));
+  }
   const m = bp.modules;
   const home = { id: "accueil", label: "Accueil", mode: "guest", hash: "/" };
   if (m.orders) {
