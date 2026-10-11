@@ -9,7 +9,10 @@ import {
   isFormulaLine,
   looksAsciiChart,
   loadKatex,
+  exportFigure,
+  highlightCode,
 } from "./artifacts/aigent-artifacts.js";
+import { normalizeScientificText } from "./artifacts/scientific-text.js";
 const TOKEN_KEY = "aigent_token";
 const LOGIN_PAGE = "./aigent-login.html";
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -66,6 +69,7 @@ const state = {
   artifactView: "main",
   artifactEditDraft: null,
   panelOpen: false,
+  artifactStyle: localStorage.getItem("aigent_artifact_style") || "linear",
   toastTimer: 0,
 };
 const icon = (name) => {
@@ -81,6 +85,15 @@ const el = (tag, className, text) => {
   if (text != null) node.textContent = text;
   return node;
 };
+
+const themeLogo = () =>
+  document.documentElement.dataset.theme === "dark"
+    ? "./images/aigent.png"
+    : "./images/aigent.ico";
+const syncLogos = () =>
+  $$("img.chat-brand-mark, #chatLogo").forEach((img) => {
+    img.src = themeLogo();
+  });
 
 const drawAgentMark = () => {
   const ns = "http://www.w3.org/2000/svg";
@@ -223,6 +236,87 @@ function messageTime(value) {
     ? ""
     : date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
+
+const KIND_LABELS = {
+  code: "Code",
+  doc: "Document",
+  document: "Document",
+  report: "Dossier",
+  plot: "Courbe",
+  diagram: "Schéma",
+  timeline: "Frise",
+  probtree: "Arbre de probabilités",
+  scene3d: "Maquette 3D",
+  map: "Carte",
+  sheet: "Tableur",
+  table: "Tableau",
+  chart: "Graphique",
+  decision: "Décision",
+  debate: "Débat",
+  perspectives: "Perspectives",
+  plan: "Plan",
+  presentation: "Présentation",
+  mindmap: "Carte mentale",
+  diagram3d: "Schéma 3D",
+};
+const SEMANTIC_LABELS = {
+  mind_map: "Carte mentale",
+  concept_map: "Carte conceptuelle",
+  org_chart: "Organigramme",
+  sequence_diagram: "Diagramme de séquence",
+  state_diagram: "Diagramme d'états",
+  er_diagram: "Modèle de données",
+  class_diagram: "Diagramme de classes",
+  quadrant: "Quadrant",
+  venn: "Diagramme de Venn",
+  architecture_diagram: "Architecture",
+  flowchart: "Organigramme de flux",
+  process_diagram: "Processus",
+  scientific_diagram: "Schéma scientifique",
+  piping_instrumentation: "P&ID",
+  electrical_single_line: "Schéma unifilaire",
+  network: "Réseau",
+};
+function artifactKindLabel(a) {
+  return (
+    (a?.type === "diagram" && SEMANTIC_LABELS[a.semanticType]) ||
+    KIND_LABELS[a?.type] ||
+    "Livrable"
+  );
+}
+function artifactStats(a) {
+  const n = (v, one, many) =>
+    Array.isArray(v) && v.length
+      ? `${v.length} ${v.length > 1 ? many : one}`
+      : "";
+  switch (a?.type) {
+    case "code":
+      return n(a.files, "fichier", "fichiers");
+    case "doc":
+      return n(a.sections, "section", "sections");
+    case "scene3d":
+      return n(a.objects, "pièce", "pièces");
+    case "diagram":
+      return (
+        n(a.nodes, "élément", "éléments") ||
+        n(a.lifelines, "participant", "participants") ||
+        n(a.states, "état", "états") ||
+        n(a.entities, "entité", "entités") ||
+        n(a.items, "point", "points")
+      );
+    case "timeline":
+      return n(a.events, "événement", "événements");
+    case "plot":
+      return (
+        n(a.functions, "fonction", "fonctions") ||
+        n(a.points, "point", "points")
+      );
+    case "sheet":
+      return n(a.rows, "ligne", "lignes");
+    default:
+      return "";
+  }
+}
 function renderMessage(message) {
   const article = el("article", `chat-message ${message.role}`);
   article.dataset.messageId = message.id || "";
@@ -230,7 +324,7 @@ function renderMessage(message) {
   if (message.role === "user") badge.textContent = avatarLetters();
   else {
     const logo = el("img", "chat-brand-mark");
-    logo.src = "./images/aigent.ico";
+    logo.src = themeLogo();
     logo.alt = "AiGENT";
     badge.append(logo);
   }
@@ -258,21 +352,36 @@ function renderMessage(message) {
   main.append(meta, content);
   if (artifact) {
     const preview = el("section", "chat-inline-artifact");
-    preview.append(
-      el(
-        "div",
-        "chat-inline-artifact-heading",
-        artifact.title || "Illustration",
-      ),
+    const head = el("div", "chat-inline-artifact-head");
+    head.append(
+      el("span", "artifact-chip", artifactKindLabel(artifact)),
+      el("strong", null, artifact.title || "Illustration"),
     );
+    const stats = artifactStats(artifact);
+    if (stats) head.append(el("span", "artifact-chip-muted", stats));
+    preview.append(head);
     if (artifact.summary)
       preview.append(el("p", "artifact-summary", artifact.summary));
-    // APRÈS
-    renderArtifactMain(artifact, preview, {
-      inline: true,
-      messageId: message.id,
-    });
-    if (!isEngineArtifact(artifact)) {
+    if (artifact.openInPanel) {
+      const open = el(
+        "button",
+        "chat-artifact-expand",
+        "Ouvrir dans le panneau",
+      );
+      open.type = "button";
+      open.addEventListener("click", () => {
+        state.artifact = artifact;
+        state.artifactMessageId = message.id;
+        state.artifactView = "main";
+        showArtifact();
+      });
+      preview.append(open);
+    } else
+      renderArtifactMain(artifact, preview, {
+        inline: true,
+        messageId: message.id,
+      });
+    if (!artifact.openInPanel && !isEngineArtifact(artifact)) {
       const enlarge = el("button", "chat-artifact-expand", "Voir en grand");
       enlarge.type = "button";
       enlarge.addEventListener("click", () => {
@@ -346,7 +455,7 @@ function cleanMarkdown(value) {
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/\\\(([\s\S]*?)\\\)/g, (_, f) => `$${f.trim()}$`)
     .replace(/\\\[([\s\S]*?)\\\]/g, (_, f) => `\n$$\n${f.trim()}\n$$\n`);
-  return sanitizeText(t).trim();
+  return sanitizeText(normalizeScientificText(t)).trim();
 }
 function readableMath(source) {
   let value = String(source || "").replace(
@@ -706,13 +815,52 @@ function renderMath(source, block = false) {
     .catch(() => {});
   return fallback;
 }
+function normalizeInlineMathSpacing(value) {
+  return String(value)
+    .split(/(`[^`]*`)/g)
+    .map((segment, index) =>
+      index % 2
+        ? segment
+        : segment.replace(
+            /\$([^$\n]+)\$(?!\$)/g,
+            (match, formula, offset, whole) => {
+              // Rattrape les sorties fréquentes où le modèle colle le LaTeX aux mots voisins.
+              const normalized = formula.replace(
+                /([a-z])2(?=[+\-*/=)\s]|$)/gi,
+                "$1^2",
+              );
+              const before = whole[offset - 1] || "";
+              const after = whole[offset + match.length] || "";
+              const needsBefore = /[\p{L}\p{N}]$/u.test(before);
+              const needsAfter = /^[\p{L}\p{N}]/u.test(after);
+              return `${needsBefore ? " " : ""}$${normalized}$${needsAfter ? " " : ""}`;
+            },
+          ),
+    )
+    .join("");
+}
+
+const NUM_RE =
+  /(?<![\p{L}\d_.])[+−-]?\d+(?:[\u00a0\u202f ]\d{3})*(?:[.,]\d+)?(?:[\u00a0\u202f ]?(?:%|‰|°[CF]?|[µμ]?(?:ms|km|cm|mm|kg|mg|kWh|MWh|Wh|kW|MW|GW|Hz|kHz|MHz|Pa|bar|mol|min|[mgsLWVAJNKh])(?:[²³]|\/[A-Za-z]+)?))?(?![\p{L}\d_])/gu;
+function appendText(parent, text) {
+  let cursor = 0;
+  for (const m of text.matchAll(NUM_RE)) {
+    if (m.index > cursor)
+      parent.append(document.createTextNode(text.slice(cursor, m.index)));
+    parent.append(el("span", "chat-num", m[0]));
+    cursor = m.index + m[0].length;
+  }
+  if (cursor < text.length)
+    parent.append(document.createTextNode(text.slice(cursor)));
+}
 function appendInline(parent, value) {
+  value = normalizeInlineMathSpacing(value);
   const pattern =
     /(\*\*[^*]+\*\*|__[^_]+__|\*[^*\n]+\*|(?<![\w$])_[^_\n]+_(?![\w])|`[^`]+`|\$\$[^$]+\$\$|\$(?![\s$])[^$\n]+?(?<![\s$])\$|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/g;
   let cursor = 0;
   for (const match of value.matchAll(pattern)) {
     if (match.index > cursor)
-      parent.append(document.createTextNode(value.slice(cursor, match.index)));
+      appendText(parent, value.slice(cursor, match.index));
     const token = match[0];
     let node;
     if (token.startsWith("**") || token.startsWith("__")) {
@@ -733,16 +881,30 @@ function appendInline(parent, value) {
       );
     else {
       const link = /^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/.exec(token);
-      node = el("a", "chat-link", link[1]);
-      node.href = link[2];
+      node = el("a", "chat-link");
+      let target;
+      try {
+        target = new URL(link[2]);
+      } catch {
+        parent.append(document.createTextNode(link[1]));
+        cursor = match.index + token.length;
+        continue;
+      }
+      node.href = target.href;
       node.target = "_blank";
       node.rel = "noopener noreferrer";
+      const favicon = el("img", "chat-source-favicon");
+      favicon.src = `${target.origin}/favicon.ico`;
+      favicon.alt = "";
+      favicon.loading = "lazy";
+      favicon.referrerPolicy = "no-referrer";
+      favicon.addEventListener("error", () => favicon.remove(), { once: true });
+      node.append(favicon, el("span", null, link[1]));
     }
     parent.append(node);
     cursor = match.index + token.length;
   }
-  if (cursor < value.length)
-    parent.append(document.createTextNode(value.slice(cursor)));
+  if (cursor < value.length) appendText(parent, value.slice(cursor));
 }
 
 function codeBlock(source, lang = "") {
@@ -759,7 +921,11 @@ function codeBlock(source, lang = "") {
     }, 1400);
   });
   bar.append(el("span", null, lang || "code"), copy);
-  pre.append(el("code", null, source));
+  {
+    const codeEl = el("code");
+    codeEl.append(highlightCode(source, lang));
+    pre.append(codeEl);
+  }
   wrap.append(bar, pre);
   return wrap;
 }
@@ -1044,6 +1210,8 @@ function clearConversation() {
   $("#thinkingLayout").classList.remove("has-space");
   $("#thinkingSpace").hidden = true;
   $("#chatMessages").replaceChildren();
+  $("#artifactContent").replaceChildren();
+  disposeDetached();
   $("#chatWelcome").hidden = false;
   setConversationHeading();
   renderConversations();
@@ -1077,6 +1245,7 @@ async function loadConversation(id) {
     setConversationHeading();
     renderConversations();
     $("#chatMessages").replaceChildren();
+    disposeDetached();
     $("#chatWelcome").hidden = state.messages.length > 0;
     state.messages.forEach(renderMessage);
     if (state.panelOpen) showArtifact();
@@ -1221,17 +1390,24 @@ async function sendMessage(text, attachments = []) {
     $("#thinkingSend").disabled = false;
   }
 }
-
 function toggleArtifact(open = !state.panelOpen) {
+  if (open && !state.artifact) {
+    toast("Aucun livrable dans cette conversation pour l’instant.");
+    open = false;
+  }
   state.panelOpen = Boolean(open && state.artifact);
   $("#thinkingLayout").classList.toggle("has-space", state.panelOpen);
   $("#thinkingSpace").hidden = !state.panelOpen;
   $("#chatPanelToggle").setAttribute("aria-pressed", String(state.panelOpen));
+  $("#thinkingLayout").classList.remove("is-compact", "is-expanded");
+  if (state.panelOpen) renderArtifact();
+  else {
+    $("#artifactContent").replaceChildren();
+    disposeDetached();
+  }
 }
 function showArtifact() {
-  if (!state.artifact) return;
-  toggleArtifact(true);
-  renderArtifact();
+  if (state.artifact) toggleArtifact(true);
 }
 function hideArtifact() {
   toggleArtifact(false);
@@ -1240,7 +1416,14 @@ function renderArtifact() {
   const artifact = state.artifact;
   if (!artifact) return;
   disposeDetached();
+  $("#thinkingSpace").dataset.visualStyle = state.artifactStyle;
   $("#artifactTitle").textContent = artifact.title || "Espace de réflexion";
+  $("#artifactEyebrow").textContent = [
+    artifactKindLabel(artifact),
+    artifactStats(artifact),
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const tabs = $("#spaceTabs");
   tabs.replaceChildren();
   const options = [
@@ -1261,6 +1444,7 @@ function renderArtifact() {
     });
     tabs.append(button);
   });
+  tabs.hidden = options.length < 2;
   const body = $("#artifactContent");
   body.replaceChildren();
   if (artifact.summary)
@@ -1283,108 +1467,237 @@ function renderArtifact() {
       panel: true,
       messageId: state.artifactMessageId,
     });
+  buildFooter(artifact);
+}
+
+function buildFooter(artifact) {
   const footer = $("#artifactFooter");
   footer.replaceChildren();
+  const engine = isEngineArtifact(artifact),
+    exports = [],
+    actions = [];
+  const md = () =>
+    downloadFile(
+      `${slug(artifact.title)}.md`,
+      artifact.type === "document"
+        ? artifact.body || ""
+        : artifactToText(artifact),
+      "text/markdown;charset=utf-8",
+    );
   if (artifact.type === "document" && state.artifactEditDraft !== null) {
     footer.append(
-      actionButton(
-        "Enregistrer les modifications",
-        saveArtifactEdit,
-        "artifact-save",
-      ),
+      actionButton("Enregistrer", saveArtifactEdit, "is-primary"),
       actionButton("Annuler", () => {
         state.artifactEditDraft = null;
         renderArtifact();
       }),
     );
-  } else if (artifact.type === "document")
-    footer.append(
-      actionButton("Modifier le document", () => {
-        state.artifactEditDraft = artifact.body || "";
-        renderArtifact();
-      }),
-    );
-  if (artifact.type === "table")
-    footer.append(
-      actionButton("Exporter CSV", () => downloadCsv(artifact)),
-      actionButton("Ouvrir dans Excel", () => downloadTsv(artifact)),
-    );
-  if (artifact.type === "report") {
-    artifact.sections
-      ?.filter((section) => section.type === "table")
-      .forEach((table) =>
-        footer.append(
-          actionButton(`Exporter ${table.title || "le tableau"} en CSV`, () =>
-            downloadCsv(table),
-          ),
-        ),
-      );
-    footer.append(
-      actionButton("Télécharger le rapport", () =>
-        downloadFile(
-          `${slug(artifact.title)}.md`,
-          artifactToText(artifact),
-          "text/markdown;charset=utf-8",
-        ),
-      ),
-      actionButton("Imprimer / PDF", () => window.print()),
-    );
+    return;
   }
   if (artifact.type === "document")
-    footer.append(
-      actionButton("Télécharger .md", () =>
-        downloadFile(
-          `${slug(artifact.title)}.md`,
-          artifact.body || "",
-          "text/markdown;charset=utf-8",
-        ),
-      ),
-      actionButton("Imprimer / PDF", () => window.print()),
+    actions.push([
+      "Modifier le texte",
+      () => {
+        state.artifactEditDraft = artifact.body || "";
+        renderArtifact();
+      },
+    ]);
+  if (engine)
+    actions.push(
+      [
+        "Régénérer ce visuel",
+        () =>
+          sendMessage(
+            `Améliore et régénère ce visuel : ${artifact.title}. Garde le sujet exact et améliore la lisibilité.`,
+          ),
+      ],
+      ["Dupliquer dans la conversation", duplicateArtifact],
     );
-  if (artifact.type === "presentation")
-    footer.append(
-      actionButton("Télécharger .md", () =>
-        downloadFile(
-          `${slug(artifact.title)}.md`,
-          artifactToText(artifact),
-          "text/markdown;charset=utf-8",
-        ),
-      ),
-      actionButton("Imprimer / PDF", () => window.print()),
-    );
-  if (artifact.type === "plan")
-    footer.append(
-      actionButton("Copier le plan", () =>
-        copyText(
-          (artifact.items || [])
-            .map(
-              (item, index) =>
-                `${index + 1}. ${item.title}${item.detail ? ` — ${item.detail}` : ""}`,
-            )
-            .join("\n"),
-        ),
-      ),
-    );
-  // APRÈS
-  if (artifact.type === "doc")
-    footer.append(
-      actionButton("Télécharger .md", () =>
-        downloadFile(
-          `${slug(artifact.title)}.md`,
-          artifactToText(artifact),
-          "text/markdown;charset=utf-8",
-        ),
-      ),
-    );
-  footer.append(
-    actionButton("Copier le livrable", () =>
-      copyText(artifactToText(artifact)),
-    ),
+  actions.push(
+    ["Copier le contenu", () => copyText(artifactToText(artifact))],
+    "-",
   );
-  footer.append(transformPicker(artifact));
+  [
+    ["table", "Tableau"],
+    ["chart", "Graphique"],
+    ["document", "Document"],
+    ["presentation", "Présentation"],
+    ["plan", "Feuille de route"],
+    ["decision", "Décision"],
+  ].forEach(([target, title]) =>
+    actions.push([
+      `Transformer en ${title.toLowerCase()}`,
+      () =>
+        state.busy
+          ? null
+          : sendMessage(
+              `Transforme le livrable ci-dessous en ${title.toLowerCase()}. Conserve les informations exactes.\n\nLivrable source (${artifact.title}, ${artifact.type}) :\n${artifactToText(artifact).slice(0, 12000)}`,
+            ),
+    ]),
+  );
+  if (
+    ["document", "report", "presentation", "plan", "doc"].includes(
+      artifact.type,
+    )
+  )
+    exports.push(["Markdown (.md)", md]);
+  if (artifact.type === "code") {
+    const f = artifact.files?.[0];
+    if (f)
+      exports.push([
+        `Fichier (${f.path})`,
+        () =>
+          downloadFile(
+            f.path.split("/").pop(),
+            f.content,
+            "text/plain;charset=utf-8",
+          ),
+      ]);
+  }
+  if (artifact.type === "table" || artifact.type === "sheet")
+    exports.push(
+      ["CSV", () => downloadCsv(artifact)],
+      ["Excel (TSV)", () => downloadTsv(artifact)],
+    );
+  if (artifact.type === "report")
+    (artifact.sections || [])
+      .filter((s) => s.type === "table")
+      .forEach((t) =>
+        exports.push([`CSV · ${t.title || "tableau"}`, () => downloadCsv(t)]),
+      );
+  if (engine && artifact.type !== "code")
+    exports.push(
+      ["Image vectorielle (SVG)", exportArtifactSvg],
+      ["Image (PNG)", exportArtifactPng],
+    );
+  exports.push(
+    ["Imprimer / PDF", () => window.print()],
+    [
+      "Données (JSON)",
+      () =>
+        downloadFile(
+          `${slug(artifact.title)}.json`,
+          JSON.stringify(artifact, null, 2),
+          "application/json;charset=utf-8",
+        ),
+    ],
+  );
   footer.append(
+    menuButton("Actions ▾", actions),
+    menuButton("Exporter ▾", exports),
     actionButton("Continuer dans Work", convertToWork, "artifact-work"),
   );
+}
+function menuButton(label, entries, className = "") {
+  const menu = el("details", `artifact-menu ${className}`.trim()),
+    list = el("div", "artifact-menu-list");
+  menu.append(el("summary", "artifact-action", label), list);
+  entries.forEach((entry) => {
+    if (entry === "-") return list.append(el("i", "artifact-menu-sep"));
+    const [text, run] = entry,
+      item = el("button", "artifact-menu-item", text);
+    item.type = "button";
+    item.addEventListener("click", () => {
+      menu.open = false;
+      Promise.resolve(run()).catch((error) =>
+        toast(error.message || "Action impossible"),
+      );
+    });
+    list.append(item);
+  });
+  return menu;
+}
+function artifactSvg() {
+  const root = $("#artifactContent");
+  const svg = root?.querySelector("svg");
+  if (!svg) return null;
+  const copy = svg.cloneNode(true);
+  copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  if (!copy.getAttribute("width"))
+    copy.setAttribute("width", copy.viewBox?.baseVal?.width || 1200);
+  if (!copy.getAttribute("height"))
+    copy.setAttribute("height", copy.viewBox?.baseVal?.height || 800);
+  return new XMLSerializer().serializeToString(copy);
+}
+
+function duplicateArtifact() {
+  if (!state.artifact) return;
+  const copy = structuredClone(state.artifact);
+  copy.title = `${state.artifact.title || "Visuel"} · copie`;
+  copy.openInPanel = false;
+  const message = {
+    role: "assistant",
+    content: `Copie du livrable « ${state.artifact.title || "Visuel"} ».`,
+    artifact: copy,
+    created_at: new Date().toISOString(),
+  };
+  state.messages.push(message);
+  renderMessage(message);
+  toast("Copie ajoutée à la conversation");
+}
+const panelFigure = () =>
+  $("#artifactContent")?.querySelector("svg.ax-svg") || null;
+function exportArtifactSvg() {
+  const figure = panelFigure();
+  if (figure) {
+    const { xml } = exportFigure.svgMarkup(figure, exportFigure.svgBox(figure));
+    return downloadFile(
+      `${slug(state.artifact?.title)}.svg`,
+      xml,
+      "image/svg+xml;charset=utf-8",
+    );
+  }
+  const svg = artifactSvg();
+  if (!svg) return toast("Ce visuel ne propose pas d’export SVG.");
+  downloadFile(
+    `${slug(state.artifact?.title)}.svg`,
+    svg,
+    "image/svg+xml;charset=utf-8",
+  );
+}
+async function exportArtifactPng() {
+  const capture =
+    $("#artifactContent")?.querySelector(".ax-scene3d")?.__capture;
+  if (capture) {
+    const link = document.createElement("a");
+    link.href = await capture();
+    link.download = `${slug(state.artifact?.title)}.png`;
+    return link.click();
+  }
+  const figure = panelFigure();
+  if (figure) {
+    const blob = await exportFigure.svgToPng(
+      figure,
+      exportFigure.svgBox(figure),
+    );
+    if (blob)
+      return downloadFile(
+        `${slug(state.artifact?.title)}.png`,
+        blob,
+        "image/png",
+      );
+  }
+  const svg = artifactSvg();
+  if (!svg) return toast("Ce visuel ne propose pas d’export PNG.");
+  const image = new Image(),
+    url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+  image.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth || 1200;
+    canvas.height = image.naturalHeight || 800;
+    canvas.getContext("2d").drawImage(image, 0, 0);
+    URL.revokeObjectURL(url);
+    canvas.toBlob(
+      (blob) =>
+        blob &&
+        downloadFile(`${slug(state.artifact?.title)}.png`, blob, "image/png"),
+    );
+  };
+  image.onerror = () => {
+    URL.revokeObjectURL(url);
+    toast("L’export PNG n’a pas abouti.");
+  };
+  image.src = url;
 }
 async function saveArtifactEdit() {
   if (!state.artifactMessageId || !state.conversationId) {
@@ -1471,9 +1784,21 @@ function persistArtifact(messageId, artifact) {
     }, 900),
   );
 }
+
+function subjectOf(messageId) {
+  const i = state.messages.findIndex((m) => String(m.id) === String(messageId));
+  for (let k = (i < 0 ? state.messages.length : i) - 1; k >= 0; k--)
+    if (state.messages[k].role === "user")
+      return String(state.messages[k].content)
+        .split("\n\nFichiers joints")[0]
+        .slice(0, 500);
+  return "";
+}
 /** Contexte commun passé au moteur : rendu Markdown/maths du Chat, repli vers les anciens renderers, sauvegarde. */
 function engineCtx(extra = {}) {
   return {
+    visualStyle: state.artifactStyle,
+    subject: subjectOf(extra.messageId),
     downloadCsv,
     renderMarkdown,
     renderMath,
@@ -1488,6 +1813,7 @@ function engineCtx(extra = {}) {
 function renderArtifactMain(artifact, root, ctx = {}) {
   if (isEngineArtifact(artifact)) {
     const slot = el("section", "artifact-card artifact-engine");
+    slot.dataset.visualStyle = state.artifactStyle;
     root.append(slot);
     mountArtifact(
       artifact,
@@ -1502,6 +1828,7 @@ function renderArtifactMain(artifact, root, ctx = {}) {
     return;
   }
   const card = el("section", "artifact-card");
+  card.dataset.visualStyle = state.artifactStyle;
   switch (artifact.type) {
     case "table":
       renderTable(artifact, card);
@@ -1971,7 +2298,7 @@ function renderChart(data, root) {
     return;
   }
   const ns = "http://www.w3.org/2000/svg",
-    width = Math.max(720, points.length * 88 + 150),
+    width = Math.max(560, points.length * 88 + 150),
     height = 310,
     pad = 76,
     plotHeight = 210,
@@ -2090,6 +2417,20 @@ function renderChart(data, root) {
   axis.setAttribute("d", `M${pad} 12V${plotHeight + 14}H${width - 8}`);
   axis.setAttribute("class", "chart-axis");
   svg.append(axis);
+  for (let tick = 0; tick <= 4; tick += 1) {
+    const y = plotHeight + 12 - (tick / 4) * (plotHeight - 12);
+    const grid = document.createElementNS(ns, "path");
+    grid.setAttribute("d", `M${pad} ${y}H${width - 8}`);
+    grid.setAttribute("class", "chart-grid");
+    svg.insertBefore(grid, axis);
+    const label = document.createElementNS(ns, "text");
+    label.setAttribute("x", pad - 8);
+    label.setAttribute("y", y + 3);
+    label.setAttribute("text-anchor", "end");
+    label.setAttribute("class", "chart-tick");
+    label.textContent = String(Number(((max * tick) / 4).toPrecision(3)));
+    svg.append(label);
+  }
   points.forEach((point, index) => {
     const barHeight = Math.max(2, (point.value / max) * (plotHeight - 12));
     const rect = document.createElementNS(ns, "rect");
@@ -2113,6 +2454,25 @@ function renderChart(data, root) {
     value.textContent = String(point.value);
     svg.append(value);
   });
+  if (data.yLabel || data.unit) {
+    const label = document.createElementNS(ns, "text");
+    label.setAttribute("x", 14);
+    label.setAttribute("y", plotHeight / 2);
+    label.setAttribute("transform", `rotate(-90 14 ${plotHeight / 2})`);
+    label.setAttribute("text-anchor", "middle");
+    label.setAttribute("class", "chart-axis-label");
+    label.textContent = data.yLabel || data.unit;
+    svg.append(label);
+  }
+  if (data.xLabel) {
+    const label = document.createElementNS(ns, "text");
+    label.setAttribute("x", pad + (width - pad - 8) / 2);
+    label.setAttribute("y", height - 2);
+    label.setAttribute("text-anchor", "middle");
+    label.setAttribute("class", "chart-axis-label");
+    label.textContent = data.xLabel;
+    svg.append(label);
+  }
   root.append(svg);
 }
 function renderMap(data, root) {
@@ -2428,6 +2788,10 @@ function probTreeToText(node, depth = 0) {
 }
 function artifactToText(artifact) {
   switch (artifact.type) {
+    case "code":
+      return (artifact.files || [])
+        .map((f) => `// ${f.path}\n${f.content}`)
+        .join("\n\n");
     case "doc":
       return docToText(artifact);
     case "plot":
@@ -2676,11 +3040,27 @@ function initInteractions() {
     toggleArtifact(!state.panelOpen),
   );
   $("#closeThinkingSpace").addEventListener("click", () => hideArtifact());
+  $("#artifactFullscreen").addEventListener("click", async () => {
+    const panel = $("#thinkingSpace");
+    try {
+      if (document.fullscreenElement === panel) await document.exitFullscreen();
+      else if (panel.requestFullscreen) await panel.requestFullscreen();
+      else panel.classList.toggle("is-fullscreen");
+    } catch {
+      panel.classList.toggle("is-fullscreen");
+    }
+  });
+  $("#artifactStyle").addEventListener("change", (event) => {
+    state.artifactStyle = event.target.value;
+    localStorage.setItem("aigent_artifact_style", state.artifactStyle);
+    renderArtifact();
+  });
   $("#chatTheme").addEventListener("click", async () => {
     const next =
       document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = next;
     localStorage.setItem("aigent_theme", next);
+    syncLogos();
     if (state.account) {
       try {
         await api("/api/aigent/me", {
@@ -2721,11 +3101,110 @@ function initInteractions() {
       }
     }
   });
+  /* panneau redimensionnable */
+  const handle = $("#spaceResizer"),
+    layout = $("#thinkingLayout");
+  const clampW = (w) =>
+    Math.round(
+      Math.min(Math.max(360, w), Math.min(window.innerWidth * 0.72, 1100)),
+    );
+  const savedW = Number(localStorage.getItem("aigent_space_w"));
+  if (savedW >= 360)
+    layout.style.setProperty("--space-w", `${clampW(savedW)}px`);
+  const setW = (w) => {
+    layout.style.setProperty("--space-w", `${clampW(w)}px`);
+    localStorage.setItem("aigent_space_w", String(clampW(w)));
+  };
+  handle.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    handle.classList.add("is-drag");
+    layout.classList.add("is-resizing");
+    document.body.classList.add("is-resizing");
+  });
+  handle.addEventListener("pointermove", (event) => {
+    if (handle.hasPointerCapture(event.pointerId))
+      layout.style.setProperty(
+        "--space-w",
+        `${clampW(layout.getBoundingClientRect().right - event.clientX)}px`,
+      );
+  });
+  const endDrag = (event) => {
+    if (!handle.hasPointerCapture(event.pointerId)) return;
+    handle.releasePointerCapture(event.pointerId);
+    handle.classList.remove("is-drag");
+    layout.classList.remove("is-resizing");
+    document.body.classList.remove("is-resizing");
+    const w = parseInt(layout.style.getPropertyValue("--space-w"), 10);
+    if (w) localStorage.setItem("aigent_space_w", String(w));
+  };
+  handle.addEventListener("pointerup", endDrag);
+  handle.addEventListener("pointercancel", endDrag);
+  handle.addEventListener("dblclick", () => {
+    layout.style.removeProperty("--space-w");
+    localStorage.removeItem("aigent_space_w");
+  });
+  handle.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    event.preventDefault();
+    setW(
+      $("#thinkingSpace").getBoundingClientRect().width +
+        (event.key === "ArrowLeft" ? 32 : -32),
+    );
+  });
+  /* Échap ferme le panneau, menus d'export, retour en bas */
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.key === "Escape" &&
+      state.panelOpen &&
+      !document.fullscreenElement &&
+      !document.querySelector(".artifact-zoom-overlay") &&
+      !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)
+    )
+      hideArtifact();
+  });
+  document.addEventListener("pointerdown", (event) =>
+    document.querySelectorAll(".artifact-menu[open]").forEach((menu) => {
+      if (!menu.contains(event.target)) menu.open = false;
+    }),
+  );
+  const feed = $("#chatMessages"),
+    jump = $("#scrollBottom");
+  feed.addEventListener(
+    "scroll",
+    () => {
+      jump.hidden =
+        feed.scrollHeight - feed.scrollTop - feed.clientHeight < 160;
+    },
+    { passive: true },
+  );
+  jump.addEventListener("click", () =>
+    feed.scrollTo({ top: feed.scrollHeight, behavior: "smooth" }),
+  );
+  const shell = $("#chatShell"),
+    sideBtn = $("#sidebarToggle");
+  const setSide = (collapsed) => {
+    shell.classList.toggle("is-collapsed", collapsed);
+    sideBtn.setAttribute("aria-pressed", String(collapsed));
+    localStorage.setItem("aigent_side_collapsed", collapsed ? "1" : "0");
+  };
+  setSide(localStorage.getItem("aigent_side_collapsed") === "1");
+  sideBtn.addEventListener("click", () =>
+    setSide(!shell.classList.contains("is-collapsed")),
+  );
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.key === "[" &&
+      !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)
+    )
+      setSide(!shell.classList.contains("is-collapsed"));
+  });
 }
 
 async function boot() {
   document.documentElement.dataset.theme =
     localStorage.getItem("aigent_theme") || "dark";
+  syncLogos();
   renderModeBar();
   initInteractions();
   if (!token()) {
@@ -2749,6 +3228,7 @@ async function boot() {
     $("#chatAccountSource").textContent =
       me.account.sourceLabel || me.account.source;
     $("#chatAvatar").textContent = avatarLetters();
+    syncLogos();
     await refreshConversationList();
     const requestedId = new URLSearchParams(location.search).get(
       "conversation",

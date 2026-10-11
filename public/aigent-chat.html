@@ -4,12 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#08080a" />
+    <meta name="color-scheme" content="dark light" />
     <title>Chat AiGENT — Thinking Room</title>
     <link rel="icon" href="./images/aigent.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./aigent.css" />
@@ -74,6 +79,9 @@
         <rect x="3" y="7" width="18" height="14" rx="2" />
         <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18m-11 0v2h4v-2" />
       </symbol>
+      <symbol id="i-panel" viewBox="0 0 24 24">
+        <path d="M4 5h16v14H4zM14 5v14" />
+      </symbol>
       <symbol id="i-close" viewBox="0 0 24 24">
         <path d="m6 6 12 12M18 6 6 18" />
       </symbol>
@@ -81,9 +89,25 @@
 
     <div class="shell thinking-shell" id="chatShell">
       <aside class="sidebar thinking-sidebar">
-        <a class="logo" href="./aigent-chat.html"
-          ><img src="./images/aigent.ico" alt="" /><span>AiGENT</span></a
-        >
+        <div class="sidebar-head">
+          <a class="logo" href="./aigent-chat.html"
+            ><img id="chatLogo" src="./images/aigent.ico" alt="" /><span
+              >AiGENT</span
+            ></a
+          >
+          <button
+            class="sidebar-toggle"
+            id="sidebarToggle"
+            type="button"
+            aria-label="Réduire la barre latérale"
+            aria-pressed="false"
+            title="Réduire / agrandir ( [ )"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h16v14H4zM9 5v14" />
+            </svg>
+          </button>
+        </div>
         <nav class="nav">
           <a class="nav-item is-active" href="./aigent-chat.html"
             ><svg><use href="#i-chat" /></svg>Chat AiGENT</a
@@ -183,7 +207,7 @@
               title="Afficher ou masquer l’espace de réflexion"
               aria-label="Afficher ou masquer l’espace de réflexion"
             >
-              <svg><use href="#i-more" /></svg>
+              <svg><use href="#i-panel" /></svg>
             </button>
           </div>
         </header>
@@ -200,6 +224,17 @@
               class="chat-messages"
               aria-live="polite"
             ></div>
+            <button
+              class="scroll-bottom"
+              id="scrollBottom"
+              type="button"
+              aria-label="Aller au dernier message"
+              hidden
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14m-6-6 6 6 6-6" />
+              </svg>
+            </button>
             <div id="chatWelcome" class="chat-welcome">
               <span class="thinking-mark"
                 ><svg><use href="#i-spark" /></svg
@@ -289,8 +324,9 @@
                 </div>
               </form>
               <p class="composer-note">
-                AiGENT peut se tromper. Vérifiez les décisions importantes et
-                les données chiffrées.
+                Entrée pour envoyer · Maj+Entrée : nouvelle ligne · / : cibler
+                le champ. AiGENT peut se tromper : vérifiez les données
+                chiffrées.
               </p>
             </div>
           </section>
@@ -300,18 +336,54 @@
             aria-label="Espace de réflexion"
             hidden
           >
+            <div
+              class="space-resizer"
+              id="spaceResizer"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Redimensionner le panneau (double-clic : réinitialiser)"
+              tabindex="0"
+            ></div>
             <header class="space-header">
-              <div>
-                <p class="page-eyebrow">THINKING SPACE</p>
-                <h2 id="artifactTitle">Votre espace de réflexion</h2>
+              <div class="space-header-top">
+                <p class="page-eyebrow" id="artifactEyebrow">
+                  LIVRABLE · APERÇU
+                </p>
+                <div class="space-header-actions">
+                  <label
+                    class="artifact-style-control"
+                    for="artifactStyle"
+                    title="Style du livrable"
+                    ><span>Style</span
+                    ><select
+                      id="artifactStyle"
+                      class="artifact-style-select"
+                      aria-label="Style visuel"
+                    >
+                      <option value="linear">Studio</option>
+                      <option value="classroom">Cours</option>
+                      <option value="mono">Contraste</option>
+                    </select></label
+                  >
+                  <button
+                    class="space-tool"
+                    id="artifactFullscreen"
+                    title="Plein écran"
+                    aria-label="Plein écran"
+                  >
+                    ⛶
+                  </button>
+                  <button
+                    class="space-close"
+                    id="closeThinkingSpace"
+                    title="Fermer le panneau (Échap)"
+                    aria-label="Fermer le panneau"
+                  >
+                    <svg><use href="#i-close" /></svg>
+                  </button>
+                </div>
               </div>
-              <button
-                class="space-close"
-                id="closeThinkingSpace"
-                title="Fermer l’espace"
-              >
-                <svg><use href="#i-close" /></svg>
-              </button>
+              <h2 id="artifactTitle">Votre espace de réflexion</h2>
             </header>
             <nav
               class="space-tabs"

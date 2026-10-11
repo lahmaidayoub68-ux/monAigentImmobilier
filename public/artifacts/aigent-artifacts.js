@@ -1,3 +1,20 @@
+import { readableTickStep } from "./visual-registry.js";
+import { planAssembly } from "./assembly-engine.js";
+import {
+  FAMILIES as FAMILIES_1,
+  DATA_FAMILIES as DATA_1,
+} from "./diagram-families.js";
+import {
+  FAMILIES_2,
+  DATA_FAMILIES_2,
+  inferFamily,
+  FAMILY_OPTIONS,
+} from "./diagram-families-2.js";
+import { mountCodeView, highlightCode } from "./code-view.js";
+const FAMILIES = { ...FAMILIES_1, ...FAMILIES_2 };
+const DATA_FAMILIES = new Set([...DATA_1, ...DATA_FAMILIES_2]);
+export { highlightCode };
+
 /* ═══════════════════════════════════════════════════════════════════
    AiGENT Artifact Engine v1
    L'IA remplit un JSON → normalizeArtifact (validation) → layout → rendu.
@@ -47,6 +64,9 @@ const uid = (() => {
   let n = 0;
   return (p = "ax") => `${p}${++n}`;
 })();
+const visualDebugEnabled = () =>
+  ["localhost", "127.0.0.1", "::1"].includes(location.hostname) ||
+  new URLSearchParams(location.search).get("visualDebug") === "1";
 
 /* ── Sécurité des expressions mathjs ── */
 const BAD_FN =
@@ -414,7 +434,7 @@ export function normalizeArtifact(a) {
   const o = { ...a },
     num = (v, d) => (Number.isFinite(Number(v)) ? Number(v) : d),
     warn = [];
-  if (o.type === "diagram") {
+  if (o.type === "diagram" && !DATA_FAMILIES.has(o.semanticType)) {
     const seen = new Set();
     o.nodes = (o.nodes || [])
       .filter(
@@ -458,13 +478,13 @@ export function normalizeArtifact(a) {
   } else if (o.type === "probtree") {
     o.root = o.root || { label: "Départ", children: [] };
   } else if (o.type === "scene3d") {
-    o.params = {
-      mass: num(o.params?.mass, 1),
-      curvature: num(o.params?.curvature, 1),
-      extent: num(o.params?.extent, 12),
-      lines: num(o.params?.lines, 26),
-      ...(o.params || {}),
-    };
+    o.objects = Array.isArray(o.objects) ? o.objects.slice(0, 400) : [];
+    o.relationships = Array.isArray(o.relationships)
+      ? o.relationships.slice(0, 800)
+      : [];
+  } else if (o.type === "map") {
+    o.markers = Array.isArray(o.markers) ? o.markers.slice(0, 300) : [];
+    o.routes = Array.isArray(o.routes) ? o.routes.slice(0, 100) : [];
   } else if (o.type === "sheet") {
     // APRÈS
     o.columns = (o.columns || []).slice(0, 20);
@@ -472,7 +492,8 @@ export function normalizeArtifact(a) {
   } else if (o.type === "doc") {
     normalizeDoc(o);
   }
-  if (warn.length) console.warn("[AiGENT artefact]", warn.join("; "));
+  if (warn.length && visualDebugEnabled())
+    console.warn("[AiGENT artefact]", warn.join("; "));
   return o;
 }
 /** Anciens artefacts du serveur → nouveau moteur (sans toucher au backend). */
@@ -520,6 +541,7 @@ export function adaptLegacy(a) {
     return {
       ...a,
       type: "diagram",
+      semanticType: a.type === "mindmap" ? "mind_map" : a.semanticType,
       edges,
       direction: a.direction || "LR",
       layout: a.layout || (a.type === "mindmap" ? "force" : undefined),
@@ -557,11 +579,13 @@ export function adaptLegacy(a) {
 }
 // APRÈS
 export const ENGINE_TYPES = new Set([
+  "code",
   "plot",
   "diagram",
   "timeline",
   "probtree",
   "scene3d",
+  "map",
   "sheet",
   "doc",
 ]);
@@ -662,6 +686,19 @@ function makeShell(kind, ctx) {
       items.forEach((it) => {
         if (it === "|") {
           bar.append(dom("i", "ax-sep"));
+          return;
+        }
+        if (it?.type === "select") {
+          const select = dom("select", "ax-select");
+          select.setAttribute("aria-label", it.label);
+          it.options.forEach(([value, label]) => {
+            const option = dom("option", null, label);
+            option.value = value;
+            option.selected = value === it.value;
+            select.append(option);
+          });
+          select.addEventListener("change", () => it.run(select.value));
+          bar.append(select);
           return;
         }
         const b = dom("button", `ax-btn${it.on ? " is-on" : ""}`, it.label);
@@ -823,8 +860,8 @@ function viewport(sh, svg, g, bboxFn, ctx, opts = {}) {
       pad = 36,
       k = clamp(
         Math.min((cw - pad * 2) / b.w, (ch - pad * 2) / b.h),
-        0.8,
-        1.15,
+        ctx.full || ctx.panel ? 0.25 : 0.55,
+        ctx.full ? 3 : 1.15,
       );
     const x =
         b.w * k <= cw - pad * 2 ? (cw - b.w * k) / 2 - b.x * k : pad - b.x * k,
@@ -835,12 +872,17 @@ function viewport(sh, svg, g, bboxFn, ctx, opts = {}) {
   const fitAll = (box) => {
     const b = box || bboxFn(),
       [cw, ch] = size(),
-      k = clamp(Math.min((cw - 60) / b.w, (ch - 60) / b.h), 0.25, 1.5);
+      k = clamp(
+        Math.min((cw - 60) / b.w, (ch - 60) / b.h),
+        0.25,
+        ctx.full ? 3 : 1.5,
+      );
     pz.set(k, (cw - b.w * k) / 2 - b.x * k, (ch - b.h * k) / 2 - b.y * k);
   };
   const ro = new ResizeObserver(() => {
     const [w, h] = size();
     svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    requestAnimationFrame(() => fitAll());
   });
   ro.observe(svg);
   const [w, h] = size();
@@ -1168,6 +1210,15 @@ async function mountPlot(a, host, ctx) {
     axes: a.axes !== false,
     coords: false,
   };
+  let gridType = ["grid", "none", "simple", "graduated", "subdivided"].includes(
+    a.gridType,
+  )
+    ? a.gridType
+    : "grid";
+  const requestedGridSpacing =
+    Number.isFinite(Number(a.gridSpacing)) && Number(a.gridSpacing) > 0
+      ? Number(a.gridSpacing)
+      : null;
   let sel = null,
     trans = null;
   const sx = (x) => ML + ((x - v.x0) / (v.x1 - v.x0)) * PW,
@@ -1228,29 +1279,91 @@ async function mountPlot(a, host, ctx) {
   const draw = raf(() => {
     [gGrid, gAxes, gCur, gGeo, gPts].forEach((g) => g.replaceChildren());
     const xt = nice(v.x0, v.x1, PW / 95),
-      yt = nice(v.y0, v.y1, PH / 62);
-    if (show.grid) {
-      xt.ticks.forEach((t) =>
+      yt = nice(v.y0, v.y1, PH / 62),
+      ticks = (lo, hi, fallback, pixels, targetCount) => {
+        const step = readableTickStep(
+          lo,
+          hi,
+          requestedGridSpacing,
+          targetCount,
+        );
+        if (
+          Math.abs(step - nice(lo, hi, targetCount).step) < 1e-12 ||
+          (pixels * step) / (hi - lo) < 42
+        )
+          return fallback;
+        const first = Math.ceil(lo / step - 1e-9) * step;
+        const count = Math.min(
+          100,
+          Math.max(0, Math.floor((hi - first) / step) + 1),
+        );
+        return Array.from({ length: count }, (_, index) =>
+          Number((first + index * step).toPrecision(12)),
+        );
+      },
+      xTicks = ticks(v.x0, v.x1, xt.ticks, PW, PW / 95),
+      yTicks = ticks(v.y0, v.y1, yt.ticks, PH, PH / 62),
+      sparse = (values, limit) =>
+        values.length <= limit
+          ? values
+          : values.filter(
+              (_, index) =>
+                index === 0 ||
+                index === values.length - 1 ||
+                index % Math.ceil((values.length - 1) / (limit - 1)) === 0,
+            ),
+      xGridTicks = sparse(xTicks, 18),
+      yGridTicks = sparse(yTicks, 14),
+      xLabels = sparse(xTicks, 10),
+      yLabels = sparse(yTicks, 8),
+      showGrid = show.grid && gridType !== "none" && gridType !== "simple";
+    if (showGrid) {
+      xGridTicks.forEach((t) =>
         svgn(
           "path",
           { d: `M${sx(t)} ${MT}V${MT + PH}`, class: "ax-grid" },
           gGrid,
         ),
       );
-      yt.ticks.forEach((t) =>
+      yGridTicks.forEach((t) =>
         svgn(
           "path",
           { d: `M${ML} ${sy(t)}H${ML + PW}`, class: "ax-grid" },
           gGrid,
         ),
       );
+      if (gridType === "subdivided" && a.subdivisions > 0) {
+        const divisions = Math.min(12, Math.round(a.subdivisions));
+        const drawMinor = (major, map, line) =>
+          major.slice(1).forEach((edge, index) => {
+            const start = major[index];
+            for (let part = 1; part < divisions; part++) {
+              const position = start + ((edge - start) * part) / divisions;
+              svgn(
+                "path",
+                { d: line(map(position)), class: "ax-grid-sub" },
+                gGrid,
+              );
+            }
+          });
+        drawMinor(
+          xGridTicks,
+          sx,
+          (position) => `M${position} ${MT}V${MT + PH}`,
+        );
+        drawMinor(
+          yGridTicks,
+          sy,
+          (position) => `M${ML} ${position}H${ML + PW}`,
+        );
+      }
     }
     svgn(
       "rect",
       { x: ML, y: MT, width: PW, height: PH, class: "ax-frame" },
       gAxes,
     );
-    xt.ticks.forEach(
+    xLabels.forEach(
       (t) =>
         (svgn(
           "text",
@@ -1263,7 +1376,7 @@ async function mountPlot(a, host, ctx) {
           gAxes,
         ).textContent = fmt(t, 4)),
     );
-    yt.ticks.forEach(
+    yLabels.forEach(
       (t) =>
         (svgn(
           "text",
@@ -1294,8 +1407,8 @@ async function mountPlot(a, host, ctx) {
         },
         gAxes,
       ).textContent = a.yLabel;
-    const ox = sx(0),
-      oy = sy(0),
+    const ox = sx(Number(a.origin?.x) || 0),
+      oy = sy(Number(a.origin?.y) || 0),
       vis = (z, a0, b0) => z >= a0 && z <= b0;
     if (show.axes) {
       if (vis(ox, ML, ML + PW)) {
@@ -1308,7 +1421,7 @@ async function mountPlot(a, host, ctx) {
           },
           gAxes,
         );
-        yt.ticks.forEach(
+        yLabels.forEach(
           (t) =>
             t &&
             svgn(
@@ -1328,7 +1441,7 @@ async function mountPlot(a, host, ctx) {
           },
           gAxes,
         );
-        xt.ticks.forEach(
+        xLabels.forEach(
           (t) =>
             t &&
             svgn(
@@ -1769,11 +1882,29 @@ async function mountPlot(a, host, ctx) {
     },
     "|",
     {
+      type: "select",
+      label: "Type de repère",
+      value: gridType,
+      options: [
+        ["grid", "Quadrillage"],
+        ["subdivided", "Subdivisions"],
+        ["graduated", "Gradué"],
+        ["simple", "Simple"],
+        ["none", "Sans quadrillage"],
+      ],
+      run: (value) => {
+        gridType = value;
+        show.grid = value !== "none";
+        draw();
+      },
+    },
+    {
       label: "Grille",
       toggle: true,
       on: show.grid,
       run: (on) => {
         show.grid = on;
+        if (on && gridType === "none") gridType = "grid";
         draw();
       },
     },
@@ -2044,12 +2175,376 @@ function layeredLayout(nodes, edges, dir) {
   });
   return { pos, ways };
 }
-function drawShape(g, n) {
+function drawShape(g, n, semanticType = "") {
   const w = n.w,
     h = n.h,
     hw = w / 2,
     hh = h / 2,
     add = (t, at) => svgn(t, { class: "ax-shape", ...at }, g);
+  if (semanticType === "mind_map") {
+    if (n.isMindRoot) {
+      add("circle", {
+        cx: 0,
+        cy: 0,
+        r: Math.min(hw, hh) - 2,
+        class: "ax-mind-root",
+      });
+      add("circle", {
+        cx: 0,
+        cy: 0,
+        r: Math.min(hw, hh) - 8,
+        class: "ax-mind-root-inner",
+      });
+    } else {
+      add("rect", {
+        x: -hw,
+        y: -hh,
+        width: w,
+        height: h,
+        rx: Math.min(22, hh),
+        class: "ax-mind-branch",
+      });
+      add("rect", {
+        x: -hw,
+        y: -hh,
+        width: 5,
+        height: h,
+        rx: 2.5,
+        class: "ax-mind-accent",
+      });
+    }
+    return;
+  }
+  if (semanticType === "concept_map") {
+    add("path", {
+      d: `M${-hw + 14} ${-hh}H${hw - 14}L${hw} 0L${hw - 14} ${hh}H${-hw + 14}L${-hw} 0Z`,
+      class: "ax-concept-node",
+    });
+    return;
+  }
+  if (semanticType === "architecture_diagram") {
+    add("rect", {
+      x: -hw,
+      y: -hh,
+      width: w,
+      height: h,
+      rx: 8,
+      class: "ax-architecture-node",
+    });
+    add("rect", {
+      x: -hw + 5,
+      y: -hh + 5,
+      width: w - 10,
+      height: 7,
+      rx: 3.5,
+      class: "ax-architecture-cap",
+    });
+    return;
+  }
+  if (semanticType === "flowchart" || semanticType === "process_diagram") {
+    if (n.kind === "decision")
+      add("path", {
+        d: `M0 ${-hh}L${hw} 0L0 ${hh}L${-hw} 0Z`,
+        class: "ax-flow-decision",
+      });
+    else if (
+      n.kind === "capsule" ||
+      /start|end|finish|début|fin/i.test(n.semanticKind || n.label)
+    )
+      add("rect", {
+        x: -hw,
+        y: -hh * 0.78,
+        width: w,
+        height: h * 0.78,
+        rx: hh * 0.78,
+        class: "ax-flow-terminal",
+      });
+    else if (
+      /data|input|output|entrée|sortie/i.test(`${n.kind} ${n.semanticKind}`)
+    )
+      add("path", {
+        d: `M${-hw + 14} ${-hh}H${hw}L${hw - 14} ${hh}H${-hw}Z`,
+        class: "ax-flow-io",
+      });
+    else
+      add("rect", {
+        x: -hw,
+        y: -hh,
+        width: w,
+        height: h,
+        rx: 5,
+        class: "ax-flow-process",
+      });
+    return;
+  }
+  if (semanticType === "network") {
+    add("circle", {
+      cx: 0,
+      cy: 0,
+      r: Math.min(hw, hh) * 0.72,
+      class: "ax-network-node",
+    });
+    add("circle", { cx: 0, cy: 0, r: 3.5, class: "ax-network-port" });
+    return;
+  }
+  if (semanticType === "piping_instrumentation") {
+    const role = `${n.semanticKind || ""} ${n.label}`.toLowerCase();
+    if (/valve|vanne|robinet/.test(role))
+      add("path", {
+        d: `M-25 0L0 -18L25 0L0 18Z M-25 -18L25 18 M-25 18L25 -18`,
+        class: "ax-pid-valve",
+      });
+    else if (/pump|pompe/.test(role)) {
+      add("circle", { cx: 0, cy: 0, r: 27, class: "ax-pid-pump" });
+      add("path", { d: "M-8 -13L15 0L-8 13Z", class: "ax-pid-impeller" });
+    } else if (
+      /sensor|capteur|transmitter|instrument|pressure|temperature|pt-|tt-/.test(
+        role,
+      )
+    ) {
+      add("circle", { cx: 0, cy: 0, r: 23, class: "ax-pid-instrument" });
+      add("path", { d: "M-12 4L-4 -7L3 4L11 -8", class: "ax-pid-glyph" });
+    } else if (/exchanger|échangeur|generator|g[ée]n[ée]rateur/.test(role)) {
+      add("rect", {
+        x: -hw,
+        y: -hh,
+        width: w,
+        height: h,
+        rx: hh,
+        class: "ax-pid-vessel",
+      });
+      add("path", {
+        d: `M${-hw + 12} ${hh - 10}Q0 ${-hh} ${hw - 12} ${-hh + 10}`,
+        class: "ax-pid-coil",
+      });
+    } else if (/tank|vessel|cuve|reservoir|réservoir/.test(role)) {
+      add("path", {
+        d: `M${-hw} ${-hh + 14}Q0 ${-hh - 8} ${hw} ${-hh + 14}V${hh - 14}Q0 ${hh + 8} ${-hw} ${hh - 14}Z`,
+        class: "ax-pid-vessel",
+      });
+    } else
+      add("rect", {
+        x: -hw,
+        y: -hh,
+        width: w,
+        height: h,
+        rx: 6,
+        class: "ax-pid-equipment",
+      });
+    return;
+  }
+  if (semanticType === "electrical_single_line") {
+    const role = `${n.semanticKind || ""} ${n.label}`.toLowerCase();
+    if (/transformer|transformateur/.test(role)) {
+      add("circle", { cx: -11, cy: 0, r: 20, class: "ax-electrical-coil" });
+      add("circle", { cx: 11, cy: 0, r: 20, class: "ax-electrical-coil" });
+    } else if (/breaker|disjoncteur|protection/.test(role))
+      add("path", {
+        d: "M-26 0H-8L12 -17M12 0H27",
+        class: "ax-electrical-switch",
+      });
+    else if (/generator|alternator|alternateur|source/.test(role)) {
+      add("circle", { cx: 0, cy: 0, r: 25, class: "ax-electrical-source" });
+      svgn(
+        "text",
+        { x: 0, y: 5, "text-anchor": "middle", class: "ax-electrical-symbol" },
+        g,
+      ).textContent = "G";
+    } else
+      add("rect", {
+        x: -hw,
+        y: -hh,
+        width: w,
+        height: h,
+        rx: 4,
+        class: "ax-electrical-equipment",
+      });
+    return;
+  }
+  if (semanticType === "scientific_cross_section") {
+    add("rect", {
+      x: -hw,
+      y: -hh,
+      width: w,
+      height: h,
+      rx: 2,
+      class: "ax-section-layer",
+    });
+    add("path", {
+      d: `M${-hw} ${-hh + 8}Q0 ${-hh - 5} ${hw} ${-hh + 8}`,
+      class: "ax-section-boundary",
+    });
+    return;
+  }
+  if (semanticType === "technical_plan" || semanticType === "site_plan") {
+    const role = `${n.semanticKind || ""} ${n.label}`.toLowerCase();
+    if (/road|route|circulation|allée|aisle/.test(role))
+      add("path", { d: `M${-hw} 0H${hw}`, class: "ax-plan-road" });
+    else if (/boundary|limite|zone|area|périmètre/.test(role))
+      add("rect", {
+        x: -hw,
+        y: -hh,
+        width: w,
+        height: h,
+        rx: 4,
+        class: "ax-plan-zone",
+      });
+    else
+      add("rect", {
+        x: -hw,
+        y: -hh,
+        width: w,
+        height: h,
+        rx: 2,
+        class: "ax-plan-building",
+      });
+    return;
+  }
+  if (semanticType === "system_diagram" || semanticType === "process_diagram") {
+    add("rect", {
+      x: -hw,
+      y: -hh,
+      width: w,
+      height: h,
+      rx: 12,
+      class: "ax-system-node",
+    });
+    add("rect", {
+      x: -hw,
+      y: -hh,
+      width: 5,
+      height: h,
+      rx: 2.5,
+      class: "ax-system-rail",
+    });
+    return;
+  }
+  if (semanticType === "chemistry_structure") {
+    add("circle", {
+      cx: 0,
+      cy: 0,
+      r: Math.max(24, Math.min(hw, hh) - 3),
+      class: "ax-atom",
+    });
+    return;
+  }
+  if (semanticType === "biological_diagram") {
+    const kind = `${n.semanticKind || ""} ${n.label}`.toLowerCase();
+    add("circle", { cx: 0, cy: 0, r: Math.min(hw, hh) - 4, class: "ax-cell" });
+    add("circle", {
+      cx: /noyau|nucleus/.test(kind) ? 0 : -hw * 0.12,
+      cy: 0,
+      r: Math.max(9, Math.min(hw, hh) * 0.34),
+      class: "ax-nucleus",
+    });
+    if (/mitochond|chloroplast/.test(kind)) {
+      add("ellipse", {
+        cx: hw * 0.42,
+        cy: -hh * 0.34,
+        rx: hw * 0.2,
+        ry: hh * 0.14,
+        class: "ax-organelle",
+      });
+      add("path", {
+        d: `M${hw * 0.27} ${-hh * 0.34}q7 -8 14 0t14 0`,
+        class: "ax-organelle-fold",
+      });
+    }
+    return;
+  }
+  if (semanticType === "anatomy_diagram") {
+    const kind = `${n.semanticKind || ""} ${n.label}`.toLowerCase();
+    add("rect", {
+      x: -hw,
+      y: -hh,
+      width: w,
+      height: h,
+      rx: 16,
+      class: "ax-anatomy-frame",
+    });
+    if (/cœur|coeur|heart/.test(kind))
+      add("path", {
+        d: "M0 25C-9 17 -23 8 -20 -5C-18 -18 -3 -18 0 -7C5 -19 20 -16 20 -4C20 8 9 19 0 25Z",
+        class: "ax-organ-heart",
+      });
+    else if (/poumon|lung/.test(kind)) {
+      add("path", {
+        d: "M0 -20V2M-3 -7C-14 -20 -23 -8 -21 10Q-18 22 -5 17ZM3 -7C14 -20 23 -8 21 10Q18 22 5 17Z",
+        class: "ax-organ-lung",
+      });
+    } else if (/os|bone|squelette/.test(kind))
+      add("path", {
+        d: "M-17 -14Q-23 -22 -17 -25Q-11 -27 -8 -19L9 12Q17 9 20 17Q23 24 16 27Q9 29 6 21L-11 -10Q-19 -7 -17 -14Z",
+        class: "ax-organ-bone",
+      });
+    else
+      add("circle", {
+        cx: 0,
+        cy: 0,
+        r: Math.min(hw, hh) * 0.32,
+        class: "ax-organ-generic",
+      });
+    return;
+  }
+  if (semanticType === "mechanical_diagram") {
+    const kind = `${n.semanticKind || ""} ${n.label}`.toLowerCase();
+    if (/gear|engrenage/.test(kind)) {
+      const points = Array.from({ length: 24 }, (_, i) => {
+        const angle = (i / 24) * Math.PI * 2 - Math.PI / 2;
+        const radius = i % 2 ? 22 : 28;
+        return `${Math.cos(angle) * radius},${Math.sin(angle) * radius}`;
+      }).join(" ");
+      add("polygon", { points, class: "ax-gear" });
+      add("circle", { cx: 0, cy: 0, r: 8, class: "ax-gear-hole" });
+    } else if (/shaft|arbre|axe/.test(kind))
+      add("path", {
+        d: "M-36 -8H28V-16L42 0L28 16V8H-36Z",
+        class: "ax-mechanical-part",
+      });
+    else
+      add("rect", {
+        x: -hw,
+        y: -hh,
+        width: w,
+        height: h,
+        rx: 9,
+        class: "ax-mechanical-frame",
+      });
+    return;
+  }
+  if (semanticType === "circuit_diagram") {
+    const kind = `${n.semanticKind || ""} ${n.label}`.toLowerCase();
+    if (/battery|power_source|pile/.test(kind)) {
+      add("path", {
+        d: "M-20 -15V15M-10 -8V8M10 -15V15M20 -8V8",
+        class: "ax-symbol",
+      });
+      return;
+    }
+    if (/resistor|resistance/.test(kind)) {
+      add("path", {
+        d: "M-40 0H-24L-16 -12L-4 12L8 -12L20 12L28 0H40",
+        class: "ax-symbol",
+      });
+      return;
+    }
+    if (/motor|lamp|diode|capacitor/.test(kind)) {
+      add("circle", { cx: 0, cy: 0, r: 22, class: "ax-symbol" });
+      const glyph = /motor/.test(kind)
+        ? "M"
+        : /lamp/.test(kind)
+          ? "L"
+          : /capacitor/.test(kind)
+            ? "C"
+            : "D";
+      svgn(
+        "text",
+        { x: 0, y: 5, "text-anchor": "middle", class: "ax-symbol-label" },
+        g,
+      ).textContent = glyph;
+      return;
+    }
+  }
   switch (n.kind) {
     case "decision":
       add("path", { d: `M0 ${-hh}L${hw} 0L0 ${hh}L${-hw} 0Z` });
@@ -2217,8 +2712,64 @@ function rimPoint(A, B) {
     );
   return { x: A.x + dx * s, y: A.y + dy * s };
 }
-async function mountDiagram(a, host, ctx) {
+async function mountFamily(a, host, ctx, render) {
   const sh = makeShell("diagram", ctx);
+  sh.root.dataset.semanticType = a.semanticType;
+  host.append(sh.root);
+  const id = uid("axf");
+  const svg = svgn("svg", {
+    class: "ax-svg ax-fill",
+    role: "img",
+    "aria-label": a.title || "Schéma",
+  });
+  sh.stage.append(svg);
+  markers(svgn("defs", {}, svg), id);
+  const g = svgn("g", {}, svg);
+  const box = render(a, g, {
+    svgn,
+    wrap,
+    measure,
+    clamp,
+    PALETTE,
+    LBL,
+    DET,
+    id,
+    sh,
+    fmt,
+  });
+  const vp = viewport(sh, svg, g, () => box, ctx);
+  const items = [
+    { label: "+", title: "Zoom avant", run: () => vp.pz.zoomCenter(1.2) },
+    {
+      label: "−",
+      title: "Zoom arrière",
+      run: () => vp.pz.zoomCenter(1 / 1.2),
+    },
+    { label: "Ajuster", title: "Tout afficher", run: () => vp.fitAll() },
+  ];
+  if ((a.nodes || []).length >= 2 && !DATA_FAMILIES.has(a.semanticType))
+    items.push("|", {
+      type: "select",
+      label: "Type de schéma",
+      value: a.semanticType,
+      options: FAMILY_OPTIONS,
+      run: (value) => {
+        host.replaceChildren();
+        mountArtifact({ ...a, semanticType: value }, host, ctx);
+      },
+    });
+  sh.toolbar(items);
+  sh.hint(
+    "Glisser : déplacer · Ctrl + molette : zoom · « Type de schéma » : change la représentation sans perdre les données",
+  );
+  track(sh.root, () => vp.destroy());
+}
+async function mountDiagram(a, host, ctx) {
+  if (!a.semanticType) a = { ...a, semanticType: inferFamily(a) };
+  const family = FAMILIES[a.semanticType];
+  if (family) return mountFamily(a, host, ctx, family);
+  const sh = makeShell("diagram", ctx);
+  if (a.semanticType) sh.root.dataset.semanticType = a.semanticType;
   host.append(sh.root);
   const dir = a.direction === "TB" ? "TB" : "LR",
     id = uid("axd");
@@ -2247,7 +2798,10 @@ async function mountDiagram(a, host, ctx) {
   const map = () => new Map(nodes.map((n) => [n.id, n]));
   // APRÈS
   let mode = a.layout === "force" ? "force" : "layered";
+  let layoutGeneration = 0,
+    vp = null;
   const layout = () => {
+    const generation = ++layoutGeneration;
     if (mode === "force") {
       const pos = forceLayout(nodes, a.edges);
       ways = new Map();
@@ -2257,16 +2811,106 @@ async function mountDiagram(a, host, ctx) {
         n.x = m ? m.x : p.x;
         n.y = m ? m.y : p.y;
       });
-      return;
+    } else {
+      const r = layeredLayout(nodes, a.edges, dir);
+      ways = r.ways;
+      nodes.forEach((n) => {
+        const p = r.pos.get(n.id),
+          m = manual.get(n.id);
+        n.x = m ? m.x : p.x;
+        n.y = m ? m.y : p.y;
+      });
     }
-    const r = layeredLayout(nodes, a.edges, dir);
-    ways = r.ways;
-    nodes.forEach((n) => {
-      const p = r.pos.get(n.id),
-        m = manual.get(n.id);
-      n.x = m ? m.x : p.x;
-      n.y = m ? m.y : p.y;
-    });
+    if (mode === "force") {
+      loadD3Force()
+        .then((d3) => {
+          if (!d3 || generation !== layoutGeneration || mode !== "force")
+            return;
+          const positions = nodes.map((node, index) => ({
+            ...node,
+            x: Number.isFinite(node.x) ? node.x : index * 40,
+            y: Number.isFinite(node.y) ? node.y : 0,
+          }));
+          const links = a.edges
+            .map((edge) => ({ source: edge.from, target: edge.to }))
+            .filter(
+              (edge) =>
+                nodes.some((node) => node.id === edge.source) &&
+                nodes.some((node) => node.id === edge.target),
+            );
+          const simulation = d3
+            .forceSimulation(positions)
+            .force(
+              "link",
+              d3
+                .forceLink(links)
+                .id((node) => node.id)
+                .distance((edge) => (edge.source.w + edge.target.w) / 2 + 70),
+            )
+            .force("charge", d3.forceManyBody().strength(-460))
+            .force(
+              "collide",
+              d3
+                .forceCollide((node) => Math.hypot(node.w, node.h) * 0.38 + 16)
+                .iterations(3),
+            )
+            .force("center", d3.forceCenter(0, 0))
+            .stop();
+          for (let tick = 0; tick < 180; tick++) simulation.tick();
+          positions.forEach((position) => {
+            const node = nodes.find((entry) => entry.id === position.id);
+            if (node && !manual.has(node.id)) {
+              node.x = position.x;
+              node.y = position.y;
+            }
+          });
+          drawAll();
+          vp?.fit();
+        })
+        .catch(() => {});
+    } else {
+      loadELK()
+        .then((ELK) => {
+          if (!ELK || generation !== layoutGeneration || mode !== "layered")
+            return;
+          const instance = new ELK();
+          return instance
+            .layout({
+              id: "root",
+              layoutOptions: {
+                "elk.algorithm": "layered",
+                "elk.direction": dir === "LR" ? "RIGHT" : "DOWN",
+                "elk.edgeRouting": "ORTHOGONAL",
+                "elk.spacing.nodeNode": "42",
+                "elk.layered.spacing.nodeNodeBetweenLayers": "88",
+              },
+              children: nodes.map((node) => ({
+                id: node.id,
+                width: node.w,
+                height: node.h,
+              })),
+              edges: a.edges.map((edge, index) => ({
+                id: `e${index}`,
+                sources: [edge.from],
+                targets: [edge.to],
+              })),
+            })
+            .then((graph) => {
+              if (generation !== layoutGeneration) return;
+              ways = new Map();
+              graph.children?.forEach((position) => {
+                const node = nodes.find((entry) => entry.id === position.id);
+                if (node && !manual.has(node.id)) {
+                  node.x = position.x + node.w / 2;
+                  node.y = position.y + node.h / 2;
+                }
+              });
+              drawAll();
+              vp?.fit();
+            });
+        })
+        .catch(() => {});
+    }
   };
   const forceEdge = (ref) => {
     const m = map(),
@@ -2442,19 +3086,39 @@ async function mountDiagram(a, host, ctx) {
       svgn("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 16 }, gg);
       svgn("text", { x: b.x + 14, y: b.y + 20 }, gg).textContent = gr.label;
     });
+    const maxFlow = Math.max(
+      1,
+      ...a.edges.map((edge) => Number(edge.weight) || 0),
+    );
     a.edges.forEach((e, k) => {
       const rel = REL[e.relation] || REL.leads_to,
         eg = svgn("g", { class: "ax-edge" }, gE),
+        flowWidth =
+          a.semanticType === "energy_sankey" && Number(e.weight) > 0
+            ? 2 + 22 * Math.sqrt(e.weight / maxFlow)
+            : null,
         path = svgn(
           "path",
           {
             class: "ax-edgepath",
             "stroke-dasharray": rel.dash || null,
-            "stroke-width": rel.w || 1.6,
+            "stroke-width": flowWidth || rel.w || 1.6,
           },
           eg,
         );
-      if (rel.end !== false) path.setAttribute("marker-end", `url(#${id}-arr)`);
+      if (a.semanticType === "energy_sankey") {
+        path.classList.add("ax-sankey-flow");
+        path.setAttribute("stroke-linecap", "butt");
+      }
+      if (a.semanticType === "mind_map") {
+        const source = nodes.find((node) => node.id === e.from);
+        eg.style.setProperty(
+          "--k",
+          source?.color || KINDS[source?.kind || "process"].c,
+        );
+      }
+      if (rel.end !== false && a.semanticType !== "energy_sankey")
+        path.setAttribute("marker-end", `url(#${id}-arr)`);
       if (rel.both) path.setAttribute("marker-start", `url(#${id}-arr)`);
       if (rel.start)
         path.setAttribute("marker-start", `url(#${id}-${rel.start})`);
@@ -2499,8 +3163,26 @@ async function mountDiagram(a, host, ctx) {
         },
         gN,
       );
+      n.isMindRoot =
+        a.semanticType === "mind_map" &&
+        (n.id === a.rootId || (!a.rootId && !n.parent));
+      ng.classList.toggle("is-mind-root", n.isMindRoot);
       ng.style.setProperty("--k", n.color || KINDS[n.kind].c);
-      drawShape(ng, n);
+      const element = (n.group || n.label || "").toUpperCase();
+      const atomColor = {
+        C: "#526071",
+        H: "#dbe3ee",
+        O: "#d66a68",
+        N: "#698bd2",
+        S: "#d5a33b",
+        P: "#dc8558",
+      }[element];
+      if (a.semanticType === "chemistry_structure") {
+        ng.classList.add("is-atom");
+        ng.classList.add(`atom-${element.toLowerCase()}`);
+        if (atomColor) ng.style.setProperty("--k", atomColor);
+      }
+      drawShape(ng, n, a.semanticType);
       const t = svgn(
         "text",
         { class: "ax-ntext", "text-anchor": "middle" },
@@ -2512,6 +3194,7 @@ async function mountDiagram(a, host, ctx) {
         (n.kind === "data" ? 8 : 0) +
         (n.kind === "actor" ? n.h / 2 - n.th + 4 - 2 : 0);
       if (n.kind === "actor") y = n.h / 2 - n.th + 12;
+      if (a.semanticType === "chemistry_structure") y = 5;
       n.lines.forEach((l, i) => {
         svgn("tspan", { x: 0, y: y + i * 18, class: "ax-nl" }, t).textContent =
           l;
@@ -2581,7 +3264,7 @@ async function mountDiagram(a, host, ctx) {
   }
   layout();
   drawAll();
-  const vp = viewport(sh, svg, g, bbox, ctx);
+  vp = viewport(sh, svg, g, bbox, ctx);
   svg.addEventListener("pointerup", (e) => {
     if (!e.target.closest("[data-node]") && !vp.pz.wasPan()) {
       sel = null;
@@ -2631,6 +3314,17 @@ async function mountDiagram(a, host, ctx) {
       }),
     );
   }
+  if (a.nodes.length >= 2)
+    items.push("|", {
+      type: "select",
+      label: "Type de schéma",
+      value: "system_diagram",
+      options: FAMILY_OPTIONS,
+      run: (value) => {
+        host.replaceChildren();
+        mountArtifact({ ...a, semanticType: value }, host, ctx);
+      },
+    });
   sh.toolbar(items);
   sh.hint(
     "Glisser un bloc : le déplacer · double-clic : renommer · Ctrl + molette : zoom",
@@ -2645,6 +3339,144 @@ const TL = {
   end: "#d4587a",
   default: "#6b7fd7",
 };
+async function mountGeographicMap(a, host, ctx) {
+  const sh = makeShell("map", ctx);
+  host.append(sh.root);
+  const svg = svgn("svg", {
+    viewBox: "0 0 920 560",
+    class: "ax-svg ax-map-svg",
+    role: "img",
+    "aria-label": a.title || "Carte géographique",
+  });
+  sh.stage.append(svg);
+  const g = svgn("g", { "data-pz": "1" }, svg);
+  const points = a.markers || [],
+    routes = a.routes || [];
+  const lons = [
+    ...points.map((point) => point.longitude),
+    ...routes.flatMap((route) => route.points.map((point) => point[0])),
+  ];
+  const lats = [
+    ...points.map((point) => point.latitude),
+    ...routes.flatMap((route) => route.points.map((point) => point[1])),
+  ];
+  let lon0 = Math.min(...lons),
+    lon1 = Math.max(...lons),
+    lat0 = Math.min(...lats),
+    lat1 = Math.max(...lats);
+  const lonPad = Math.max((lon1 - lon0) * 0.12, 0.01),
+    latPad = Math.max((lat1 - lat0) * 0.12, 0.01);
+  lon0 -= lonPad;
+  lon1 += lonPad;
+  lat0 -= latPad;
+  lat1 += latPad;
+  const project = (lon, lat) => ({
+    x: 72 + ((lon - lon0) / (lon1 - lon0)) * 776,
+    y: 480 - ((lat - lat0) / (lat1 - lat0)) * 400,
+  });
+  for (let index = 0; index <= 8; index++) {
+    const x = 72 + index * 97,
+      y = 80 + index * 50;
+    svgn("path", { d: `M${x} 80V480M72 ${y}H848`, class: "ax-map-grid" }, g);
+  }
+  svgn(
+    "rect",
+    { x: 72, y: 80, width: 776, height: 400, rx: 4, class: "ax-map-frame" },
+    g,
+  );
+  routes.forEach((route, index) => {
+    const d = route.points
+      .map(([lon, lat], pointIndex) => {
+        const p = project(lon, lat);
+        return `${pointIndex ? "L" : "M"}${p.x} ${p.y}`;
+      })
+      .join(" ");
+    svgn(
+      "path",
+      { d, class: "ax-map-route", stroke: PALETTE[index % PALETTE.length] },
+      g,
+    );
+    if (route.label) {
+      const mid = project(...route.points[Math.floor(route.points.length / 2)]);
+      svgn(
+        "text",
+        { x: mid.x, y: mid.y - 9, class: "ax-map-label" },
+        g,
+      ).textContent = route.label;
+    }
+  });
+  points.forEach((marker, index) => {
+    const p = project(marker.longitude, marker.latitude),
+      color = PALETTE[index % PALETTE.length];
+    const node = svgn(
+      "g",
+      {
+        class: "ax-map-marker",
+        tabindex: "0",
+        role: "button",
+        "aria-label": `${marker.label}, ${marker.latitude}, ${marker.longitude}`,
+      },
+      g,
+    );
+    svgn(
+      "circle",
+      { cx: p.x, cy: p.y, r: 10, fill: color, class: "ax-map-dot" },
+      node,
+    );
+    svgn("circle", { cx: p.x, cy: p.y, r: 3, class: "ax-map-core" }, node);
+    svgn(
+      "text",
+      { x: p.x + 14, y: p.y - 8, class: "ax-map-label" },
+      node,
+    ).textContent = marker.label;
+    node.addEventListener("pointerenter", (event) =>
+      sh.tip(
+        event,
+        marker.label,
+        [
+          marker.detail,
+          `${fmt(marker.latitude, 5)}°, ${fmt(marker.longitude, 5)}°`,
+        ].filter(Boolean),
+      ),
+    );
+    node.addEventListener("pointerleave", () => sh.hideTip());
+  });
+  svgn(
+    "text",
+    { x: 848, y: 54, class: "ax-map-north", "text-anchor": "middle" },
+    g,
+  ).textContent = "N ↑";
+  svgn(
+    "text",
+    { x: 460, y: 530, class: "ax-axis-title", "text-anchor": "middle" },
+    g,
+  ).textContent = "Longitude (°)";
+  svgn(
+    "text",
+    {
+      x: 22,
+      y: 280,
+      class: "ax-axis-title",
+      "text-anchor": "middle",
+      transform: "rotate(-90 22 280)",
+    },
+    g,
+  ).textContent = "Latitude (°)";
+  const box = () => ({ x: 60, y: 40, w: 800, h: 500 });
+  let vp = viewport(sh, svg, g, box, ctx);
+  sh.toolbar([
+    { label: "+", title: "Zoom avant", run: () => vp.pz.zoomCenter(1.2) },
+    { label: "−", title: "Zoom arrière", run: () => vp.pz.zoomCenter(1 / 1.2) },
+    {
+      label: "Ajuster",
+      title: "Afficher tous les repères",
+      run: () => vp.fitAll(),
+    },
+  ]);
+  if (a.provenance) sh.hint(a.provenance);
+  track(sh.root, () => vp.destroy());
+}
+
 async function mountTimeline(a, host, ctx) {
   const sh = makeShell("timeline", ctx);
   host.append(sh.root);
@@ -3132,7 +3964,9 @@ async function mountSheet(a, host, ctx) {
       };
       head.append(th);
     });
-    table.append(dom("thead")).append(head);
+    const thead = dom("thead");
+    thead.append(head);
+    table.append(thead);
     let idx = rows.map((_, i) => i);
     if (filter)
       idx = idx.filter((r) =>
@@ -3210,595 +4044,1559 @@ async function mountSheet(a, host, ctx) {
   track(sh.root, () => {});
 }
 
-/* ═══ 9. SCÈNE 3D — COURBURE DE L'ESPACE-TEMPS ═══ */
+function mountAssembly3D(a, host, ctx, T, sh) {
+  const visualStyle = ctx.visualStyle || "linear";
+  sh.root.dataset.visualStyle = visualStyle;
+  const renderer = new T.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+    preserveDrawingBuffer: true,
+  });
+  renderer.setPixelRatio(
+    Math.min(devicePixelRatio || 1, (a.objects || []).length > 200 ? 1.25 : 2),
+  );
+  renderer.outputColorSpace = T.SRGBColorSpace;
+  renderer.toneMapping = T.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.08;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = T.PCFSoftShadowMap;
+  renderer.localClippingEnabled = true;
+  sh.stage.append(renderer.domElement);
+  const scene = new T.Scene();
+  const darkTheme = document.documentElement.dataset.theme !== "light";
+  scene.background = new T.Color(
+    visualStyle === "classroom"
+      ? darkTheme
+        ? 0x171f29
+        : 0xf4f7fb
+      : visualStyle === "mono"
+        ? darkTheme
+          ? 0x101216
+          : 0xf3f4f5
+        : darkTheme
+          ? 0x10131b
+          : 0xf7f8fc,
+  );
+  const camera = new T.PerspectiveCamera(38, 1, 0.1, 200);
+  camera.position.set(8, 6, 10);
+  camera.lookAt(0, 0, 0);
+  scene.add(new T.HemisphereLight(0xe8efff, 0x263043, 2.1));
+  const key = new T.DirectionalLight(0xffffff, 3.2);
+  key.position.set(6, 9, 8);
+  scene.add(key);
+  const fill = new T.DirectionalLight(0x879cff, 1.4);
+  fill.position.set(-7, 3, -5);
+  scene.add(fill);
+  const model = new T.Group();
+  scene.add(model);
+  const objects = a.objects || [];
+  const colors = {
+    housing: 0x8793a7,
+    stator: 0x46627d,
+    coil: 0xd9984e,
+    rotor: 0x8d79ff,
+    shaft: 0xb9c1cf,
+    bearing: 0x6c91aa,
+    atom: 0x56a8c7,
+    propeller: 0x55a68b,
+    geological_layer: 0x8a705b,
+    reservoir: 0xe98148,
+    injection_well: 0x4c8fd5,
+    production_well: 0x42a987,
+    thermal_flow: 0xf0a54a,
+    ground_surface: 0x719274,
+    rack: 0x53657d,
+    server: 0x263448,
+    network_switch: 0x274959,
+    cooling_unit: 0x4c8c9a,
+    data_center_floor: 0x273241,
+  };
+  const labels = [];
+  const styledColor = (value) => {
+    const c = new T.Color(value);
+    if (visualStyle === "mono") {
+      const luma = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+      c.setRGB(luma, luma, luma);
+    } else if (visualStyle === "classroom") c.offsetHSL(0, 0.12, 0.08);
+    return c;
+  };
+  const material = (color, opacity = 1, metalness = 0.35) =>
+    new T.MeshStandardMaterial({
+      color: styledColor(color),
+      roughness: visualStyle === "classroom" ? 0.52 : 0.36,
+      metalness: visualStyle === "mono" ? 0.12 : metalness,
+      transparent: opacity < 1,
+      opacity,
+      side: T.DoubleSide,
+    });
+  const meshFor = (part) => {
+    const kind = `${part.kind} ${part.primitive}`.toLowerCase();
+    const [sx, sy, sz] = part.scale || [1, 1, 1];
+    const color =
+      part.color || colors[part.kind] || colors[part.primitive] || 0x74829a;
+    const group = new T.Group();
+    const add = (geometry, shade = color, opacity = 1, metalness = 0.35) => {
+      const mesh = new T.Mesh(geometry, material(shade, opacity, metalness));
+      group.add(mesh);
+      return mesh;
+    };
+    const torusAt = (radius, tube, y, shade = 0xb1bdcc) => {
+      const ring = add(
+        new T.TorusGeometry(radius, tube, 12, 56),
+        shade,
+        1,
+        0.56,
+      );
+      ring.position.y = y;
+      return ring;
+    };
+    // Domain geometry is selected from the JSON component semantics. No scene is
+    // populated unless the document explicitly describes the corresponding part.
+    if (
+      /containment|enceinte|reactor_building|b[aâ]timent.?r[ée]acteur/.test(
+        kind,
+      )
+    ) {
+      const radius = 1.8 * sx,
+        wall = 3.1 * sy;
+      add(
+        new T.CylinderGeometry(radius, radius, wall, 64, 1, true),
+        color,
+        0.14,
+        0.08,
+      );
+      const dome = add(
+        new T.SphereGeometry(radius, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2),
+        0xb7c8de,
+        0.18,
+        0.05,
+      );
+      dome.position.y = wall / 2;
+      torusAt(radius, 0.045, -wall / 2, 0xa7b6c9);
+      torusAt(radius, 0.045, wall / 2, 0xa7b6c9);
+      return group;
+    }
+    if (
+      /reactor_vessel|pressure_vessel|cuve.?du.?r[ée]acteur|cuve/.test(kind)
+    ) {
+      const radius = 0.72 * sx,
+        height = 2.25 * sy;
+      add(new T.CylinderGeometry(radius, radius, height, 56), color, 1, 0.58);
+      add(
+        new T.SphereGeometry(radius, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2),
+        0xb8c5d7,
+        1,
+        0.5,
+      ).position.y = height / 2;
+      add(
+        new T.SphereGeometry(
+          radius,
+          48,
+          24,
+          0,
+          Math.PI * 2,
+          Math.PI / 2,
+          Math.PI / 2,
+        ),
+        0x7f8da1,
+        1,
+        0.5,
+      ).position.y = -height / 2;
+      torusAt(radius * 1.08, 0.075 * sx, -height * 0.33, 0xc6d0dd);
+      torusAt(radius * 1.08, 0.075 * sx, height * 0.33, 0xc6d0dd);
+      for (let nozzle = 0; nozzle < 4; nozzle++) {
+        const angle = (nozzle * Math.PI) / 2;
+        const pipe = add(
+          new T.CylinderGeometry(0.12 * sx, 0.12 * sx, 0.58 * sz, 20),
+          0xaeb9c8,
+          1,
+          0.52,
+        );
+        pipe.rotation.z = Math.PI / 2;
+        pipe.position.set(
+          Math.cos(angle) * radius,
+          0.42 * sy,
+          Math.sin(angle) * radius,
+        );
+      }
+      return group;
+    }
+    if (/reactor_core|fuel_assembly|c[œo]ur|combustible|fuel_rod/.test(kind)) {
+      const width = 0.95 * sx,
+        height = 1.25 * sy,
+        rows = /assembly|assemblage/.test(kind) ? 9 : 7;
+      add(
+        new T.BoxGeometry(width, 0.12 * sy, width),
+        0x34495e,
+        1,
+        0.34,
+      ).position.y = -height / 2;
+      for (let row = 0; row < rows; row++)
+        for (let col = 0; col < rows; col++) {
+          const rod = add(
+            new T.CylinderGeometry(0.018 * sx, 0.018 * sx, height, 8),
+            (row + col) % 6 === 0 ? 0xf0a54a : 0xd5dee9,
+            1,
+            0.62,
+          );
+          rod.position.set(
+            (col / (rows - 1) - 0.5) * width * 0.86,
+            0,
+            (row / (rows - 1) - 0.5) * width * 0.86,
+          );
+        }
+      return group;
+    }
+    if (/steam_generator|g[ée]n[ée]rateur.?de.?vapeur|echangeur/.test(kind)) {
+      const radius = 0.57 * sx,
+        height = 1.85 * sy;
+      add(
+        new T.CylinderGeometry(radius, radius, height * 0.72, 48),
+        color,
+        0.88,
+        0.42,
+      );
+      add(
+        new T.SphereGeometry(radius, 40, 24, 0, Math.PI * 2, 0, Math.PI / 2),
+        color,
+        0.88,
+        0.4,
+      ).position.y = height * 0.36;
+      add(
+        new T.SphereGeometry(
+          radius,
+          40,
+          24,
+          0,
+          Math.PI * 2,
+          Math.PI / 2,
+          Math.PI / 2,
+        ),
+        0x7f8da1,
+        0.88,
+        0.4,
+      ).position.y = -height * 0.36;
+      torusAt(radius * 1.04, 0.04 * sx, 0, 0xd8a864);
+      for (let tubeIndex = 0; tubeIndex < 5; tubeIndex++) {
+        const x = (tubeIndex - 2) * radius * 0.22;
+        const pts = [
+          new T.Vector3(x, -height * 0.35, 0),
+          new T.Vector3(x, -height * 0.08, 0.18),
+          new T.Vector3(x, height * 0.22, 0.18),
+          new T.Vector3(x, height * 0.35, 0),
+        ];
+        const tube = add(
+          new T.TubeGeometry(
+            new T.CatmullRomCurve3(pts),
+            28,
+            0.018 * sx,
+            8,
+            false,
+          ),
+          0xd9a654,
+          1,
+          0.66,
+        );
+      }
+      return group;
+    }
+    if (/pressurizer|pressuriseur/.test(kind)) {
+      const radius = 0.48 * sx,
+        height = 1.65 * sy;
+      add(
+        new T.CylinderGeometry(radius, radius, height * 0.7, 48),
+        color,
+        1,
+        0.46,
+      );
+      add(
+        new T.SphereGeometry(radius, 40, 24, 0, Math.PI * 2, 0, Math.PI / 2),
+        color,
+        1,
+        0.44,
+      ).position.y = height * 0.35;
+      add(
+        new T.SphereGeometry(
+          radius,
+          40,
+          24,
+          0,
+          Math.PI * 2,
+          Math.PI / 2,
+          Math.PI / 2,
+        ),
+        color,
+        1,
+        0.44,
+      ).position.y = -height * 0.35;
+      for (let heater = -1; heater <= 1; heater++) {
+        const rod = add(
+          new T.CylinderGeometry(0.025 * sx, 0.025 * sx, 0.35 * sy, 10),
+          0xe6a34a,
+          1,
+          0.3,
+        );
+        rod.position.set(heater * radius * 0.42, -height * 0.48, 0);
+      }
+      return group;
+    }
+    if (/primary_pump|coolant_pump|pompe/.test(kind)) {
+      const axis = add(
+        new T.CylinderGeometry(0.38 * sx, 0.38 * sx, 0.72 * sy, 40),
+        color,
+        1,
+        0.55,
+      );
+      axis.rotation.z = Math.PI / 2;
+      const volute = add(
+        new T.TorusGeometry(0.35 * sx, 0.12 * sx, 16, 40),
+        0x7e91a9,
+        1,
+        0.5,
+      );
+      volute.position.x = -0.22 * sx;
+      volute.rotation.y = Math.PI / 2;
+      const motor = add(
+        new T.CylinderGeometry(0.28 * sx, 0.28 * sx, 0.72 * sz, 32),
+        0x50647c,
+        1,
+        0.62,
+      );
+      motor.rotation.z = Math.PI / 2;
+      motor.position.x = 0.58 * sx;
+      for (let fin = 0; fin < 9; fin++) {
+        const rib = add(
+          new T.TorusGeometry(0.285 * sx, 0.018 * sx, 8, 32),
+          0x9aaabe,
+          1,
+          0.56,
+        );
+        rib.rotation.z = Math.PI / 2;
+        rib.position.x = 0.25 * sx + fin * 0.075 * sx;
+      }
+      return group;
+    }
+    if (/turbine|turbine_stage|turbine_low|turbine_high/.test(kind)) {
+      const shaft = add(
+        new T.CylinderGeometry(0.1 * sy, 0.1 * sy, 2.7 * sx, 32),
+        0xb8c4d4,
+        1,
+        0.68,
+      );
+      shaft.rotation.z = Math.PI / 2;
+      for (let stage = 0; stage < 5; stage++) {
+        const x = (stage - 2) * 0.42 * sx,
+          r = (0.32 + stage * 0.11) * sy;
+        const disk = add(
+          new T.CylinderGeometry(r, r, 0.11 * sx, 48),
+          stage < 2 ? 0x8298bb : 0x6e8eb4,
+          1,
+          0.58,
+        );
+        disk.rotation.z = Math.PI / 2;
+        disk.position.x = x;
+        for (let blade = 0; blade < 16; blade++) {
+          const angle = (blade * Math.PI) / 8;
+          const vane = add(
+            new T.BoxGeometry(0.19 * sx, 0.035 * sy, 0.055 * sz),
+            0xc4d4e8,
+            1,
+            0.66,
+          );
+          vane.position.set(
+            x,
+            Math.sin(angle) * r * 0.78,
+            Math.cos(angle) * r * 0.78,
+          );
+          vane.rotation.x = angle;
+        }
+      }
+      return group;
+    }
+    if (/alternator|generator|alternateur/.test(kind)) {
+      const casing = add(
+        new T.CylinderGeometry(0.62 * sy, 0.62 * sy, 1.65 * sx, 56),
+        color,
+        0.78,
+        0.55,
+      );
+      casing.rotation.z = Math.PI / 2;
+      for (const x of [-0.85 * sx, 0.85 * sx]) {
+        const end = add(
+          new T.CylinderGeometry(0.58 * sy, 0.58 * sy, 0.08 * sx, 56),
+          0xaebbd0,
+          1,
+          0.64,
+        );
+        end.rotation.z = Math.PI / 2;
+        end.position.x = x;
+      }
+      const rotor = add(
+        new T.CylinderGeometry(0.27 * sy, 0.27 * sy, 1.7 * sx, 40),
+        0xb98748,
+        1,
+        0.68,
+      );
+      rotor.rotation.z = Math.PI / 2;
+      for (let vent = 0; vent < 12; vent++) {
+        const angle = (vent * Math.PI) / 6;
+        const slot = add(
+          new T.BoxGeometry(1.18 * sx, 0.035 * sy, 0.02 * sz),
+          0x33445b,
+          1,
+          0.2,
+        );
+        slot.position.set(
+          0,
+          Math.sin(angle) * 0.62 * sy,
+          Math.cos(angle) * 0.62 * sz,
+        );
+        slot.rotation.x = angle;
+      }
+      return group;
+    }
+    if (/condenser|condenseur/.test(kind)) {
+      const radius = 0.62 * sy,
+        length = 1.75 * sx;
+      const shell = add(
+        new T.CylinderGeometry(radius, radius, length, 48, 1, true),
+        color,
+        0.32,
+        0.24,
+      );
+      shell.rotation.z = Math.PI / 2;
+      for (const x of [-length * 0.49, length * 0.49]) {
+        const head = add(
+          new T.CylinderGeometry(radius, radius, 0.1 * sx, 48),
+          0x8498ad,
+          0.72,
+          0.4,
+        );
+        head.rotation.z = Math.PI / 2;
+        head.position.x = x;
+      }
+      for (let row = -3; row <= 3; row++)
+        for (let col = -3; col <= 3; col++) {
+          const tube = add(
+            new T.CylinderGeometry(0.018 * sy, 0.018 * sy, length * 0.94, 8),
+            0x80bdc5,
+            0.95,
+            0.5,
+          );
+          tube.rotation.z = Math.PI / 2;
+          tube.position.set(0, row * radius * 0.2, col * radius * 0.2);
+        }
+      return group;
+    }
+    if (/cooling_tower|tour_de_refroidissement|cooling_tower/.test(kind)) {
+      const height = 2.4 * sy,
+        r = 0.86 * sx;
+      const profile = [
+        new T.Vector2(r * 0.88, -height / 2),
+        new T.Vector2(r * 0.96, -height * 0.25),
+        new T.Vector2(r * 0.82, 0),
+        new T.Vector2(r * 0.73, height * 0.24),
+        new T.Vector2(r * 0.88, height / 2),
+      ];
+      add(new T.LatheGeometry(profile, 64), color, 0.68, 0.12);
+      const plume = add(
+        new T.CylinderGeometry(r * 0.18, r * 0.3, height * 0.9, 24),
+        0xd4e6f2,
+        0.12,
+        0,
+      );
+      plume.position.y = height * 0.95;
+      return group;
+    }
+    if (/transformer|transformateur/.test(kind)) {
+      add(new T.BoxGeometry(1.35 * sx, 0.9 * sy, 0.95 * sz), color, 1, 0.42);
+      for (let coil = -1; coil <= 1; coil++) {
+        const ring = add(
+          new T.CylinderGeometry(0.13 * sx, 0.13 * sx, 0.58 * sy, 24),
+          0xc4944c,
+          1,
+          0.62,
+        );
+        ring.position.set(coil * 0.34 * sx, 0.72 * sy, 0);
+        for (let winding = 0; winding < 5; winding++) {
+          const loop = add(
+            new T.TorusGeometry(0.15 * sx, 0.022 * sx, 8, 28),
+            0xe1bd78,
+            1,
+            0.58,
+          );
+          loop.position.set(
+            coil * 0.34 * sx,
+            0.51 * sy + winding * 0.09 * sy,
+            0,
+          );
+        }
+      }
+      return group;
+    }
+    if (/aircraft_fuselage|fuselage|airplane_body|avion/.test(kind)) {
+      const body = add(
+        new T.CylinderGeometry(0.22 * sy, 0.32 * sy, 2.8 * sx, 40),
+        color,
+        1,
+        0.46,
+      );
+      body.rotation.z = Math.PI / 2;
+      const nose = add(
+        new T.ConeGeometry(0.22 * sy, 0.58 * sx, 40),
+        0xbac7d9,
+        1,
+        0.44,
+      );
+      nose.rotation.z = -Math.PI / 2;
+      nose.position.x = 1.65 * sx;
+      const tail = add(
+        new T.ConeGeometry(0.3 * sy, 0.5 * sx, 32),
+        color,
+        1,
+        0.38,
+      );
+      tail.rotation.z = Math.PI / 2;
+      tail.position.x = -1.55 * sx;
+      const canopy = add(
+        new T.SphereGeometry(0.25 * sy, 28, 18),
+        0x68a8c9,
+        0.82,
+        0.24,
+      );
+      canopy.scale.set(1.3, 0.48, 0.85);
+      canopy.position.set(0.7 * sx, 0.19 * sy, 0);
+      return group;
+    }
+    if (/aircraft_wing|wing|aile/.test(kind)) {
+      const shape = new T.Shape();
+      shape.moveTo(-1.9 * sx, -0.12 * sz);
+      shape.lineTo(1.8 * sx, -0.42 * sz);
+      shape.lineTo(2.15 * sx, -0.28 * sz);
+      shape.lineTo(1.65 * sx, 0.32 * sz);
+      shape.lineTo(-1.2 * sx, 0.16 * sz);
+      shape.closePath();
+      const wing = add(
+        new T.ExtrudeGeometry(shape, {
+          depth: 0.08 * sy,
+          bevelEnabled: true,
+          bevelSegments: 2,
+          steps: 1,
+          bevelSize: 0.025 * sy,
+          bevelThickness: 0.02 * sy,
+        }),
+        color,
+        1,
+        0.42,
+      );
+      wing.rotation.x = Math.PI / 2;
+      return group;
+    }
+    if (/tail_fin|vertical_stabilizer|d[ée]rive/.test(kind)) {
+      const shape = new T.Shape();
+      shape.moveTo(-0.45 * sx, 0);
+      shape.lineTo(0.42 * sx, 0);
+      shape.lineTo(0.12 * sx, 1.05 * sy);
+      shape.lineTo(-0.18 * sx, 0.92 * sy);
+      shape.closePath();
+      const fin = add(
+        new T.ExtrudeGeometry(shape, {
+          depth: 0.07 * sz,
+          bevelEnabled: true,
+          bevelSize: 0.02,
+          bevelThickness: 0.02,
+          bevelSegments: 2,
+        }),
+        color,
+        1,
+        0.36,
+      );
+      fin.position.z = -0.04 * sz;
+      return group;
+    }
+    if (/jet_engine|turbofan|reacteur_avion/.test(kind)) {
+      const casing = add(
+        new T.CylinderGeometry(0.43 * sy, 0.35 * sy, 1.7 * sx, 48, 1, true),
+        color,
+        0.62,
+        0.5,
+      );
+      casing.rotation.z = Math.PI / 2;
+      for (const x of [-0.82 * sx, 0.82 * sx]) {
+        const rim = add(
+          new T.TorusGeometry(0.4 * sy, 0.05 * sy, 12, 48),
+          0xaab9cc,
+          1,
+          0.6,
+        );
+        rim.rotation.y = Math.PI / 2;
+        rim.position.x = x;
+      }
+      const fanHub = add(
+        new T.CylinderGeometry(0.08 * sy, 0.08 * sy, 0.12 * sx, 24),
+        0xc1cbd8,
+        1,
+        0.68,
+      );
+      fanHub.rotation.z = Math.PI / 2;
+      fanHub.position.x = 0.12 * sx;
+      for (let blade = 0; blade < 18; blade++) {
+        const angle = (blade * Math.PI) / 9;
+        const vane = add(
+          new T.BoxGeometry(0.26 * sx, 0.035 * sy, 0.07 * sz),
+          0xd1d9e3,
+          1,
+          0.6,
+        );
+        vane.position.set(
+          0.12 * sx,
+          Math.sin(angle) * 0.25 * sy,
+          Math.cos(angle) * 0.25 * sz,
+        );
+        vane.rotation.x = angle;
+      }
+      return group;
+    }
+    if (/drone_frame|quadcopter_frame|chassis/.test(kind)) {
+      add(new T.BoxGeometry(0.32 * sx, 0.12 * sy, 0.32 * sz), color, 1, 0.45);
+      for (let arm = 0; arm < 4; arm++) {
+        const angle = Math.PI / 4 + (arm * Math.PI) / 2;
+        const beam = add(
+          new T.CylinderGeometry(0.045 * sy, 0.045 * sy, 1.15 * sx, 16),
+          color,
+          1,
+          0.5,
+        );
+        beam.rotation.z = Math.PI / 2;
+        beam.rotation.y = angle;
+        beam.position.set(
+          Math.cos(angle) * 0.37 * sx,
+          0,
+          Math.sin(angle) * 0.37 * sz,
+        );
+      }
+      return group;
+    }
+    if (
+      /building_shell|building|structure_b[aâ]timent|b[aâ]timent/.test(kind)
+    ) {
+      const width = 1.8 * sx,
+        height = 1.5 * sy,
+        depth = 1.4 * sz;
+      add(new T.BoxGeometry(width, height, depth), color, 0.22, 0.08);
+      for (const side of [-1, 1]) {
+        const wall = add(
+          new T.BoxGeometry(0.045 * sx, height, depth),
+          0x94a6bd,
+          0.5,
+          0.08,
+        );
+        wall.position.x = side * width * 0.48;
+      }
+      for (let floor = 0; floor < 3; floor++)
+        for (let win = 0; win < 4; win++) {
+          const window = add(
+            new T.BoxGeometry(0.18 * sx, 0.16 * sy, 0.025 * sz),
+            0x65a7c8,
+            0.76,
+            0.12,
+          );
+          window.position.set(
+            -0.6 * sx + win * 0.4 * sx,
+            -0.38 * sy + floor * 0.42 * sy,
+            depth * 0.51,
+          );
+        }
+      return group;
+    }
+    if (/heart|c[œo]ur/.test(kind)) {
+      const shape = new T.Shape();
+      shape.moveTo(0, -0.55 * sy);
+      shape.bezierCurveTo(
+        -0.3 * sx,
+        -0.2 * sy,
+        -0.8 * sx,
+        0.12 * sy,
+        -0.65 * sx,
+        0.58 * sy,
+      );
+      shape.bezierCurveTo(
+        -0.5 * sx,
+        0.95 * sy,
+        -0.1 * sx,
+        0.78 * sy,
+        0,
+        0.47 * sy,
+      );
+      shape.bezierCurveTo(
+        0.18 * sx,
+        0.83 * sy,
+        0.58 * sx,
+        0.84 * sy,
+        0.7 * sx,
+        0.45 * sy,
+      );
+      shape.bezierCurveTo(
+        0.82 * sx,
+        0.1 * sy,
+        0.28 * sx,
+        -0.22 * sy,
+        0,
+        -0.55 * sy,
+      );
+      add(
+        new T.ExtrudeGeometry(shape, {
+          depth: 0.32 * sz,
+          bevelEnabled: true,
+          bevelSegments: 4,
+          bevelSize: 0.05,
+          bevelThickness: 0.05,
+        }),
+        0xd76570,
+        1,
+        0.12,
+      );
+      return group;
+    }
+    if (/rack|cabinet|baie/.test(kind)) {
+      const width = 1.45 * sx,
+        height = 2.35 * sy,
+        depth = 0.95 * sz;
+      add(new T.BoxGeometry(width, height, depth), 0x263241, 0.24, 0.12);
+      for (const x of [-width * 0.47, width * 0.47])
+        for (const z of [-depth * 0.47, depth * 0.47]) {
+          const post = add(
+            new T.BoxGeometry(0.055 * sx, height, 0.055 * sz),
+            color,
+            1,
+            0.62,
+          );
+          post.position.set(x, 0, z);
+        }
+      for (let level = 0; level < 8; level++) {
+        const y = -height * 0.4 + level * height * 0.115;
+        const shelf = add(
+          new T.BoxGeometry(width * 0.82, 0.19 * sy, depth * 0.76),
+          0x34465c,
+          1,
+          0.5,
+        );
+        shelf.position.set(0, y, depth * 0.02);
+        const face = add(
+          new T.BoxGeometry(width * 0.68, 0.105 * sy, 0.035 * sz),
+          level % 2 ? 0x397a8e : 0x3d5e85,
+          1,
+          0.48,
+        );
+        face.position.set(0, y + 0.025 * sy, depth * 0.51);
+        for (let led = 0; led < 4; led++) {
+          const light = add(
+            new T.SphereGeometry(0.018 * sx, 8, 6),
+            led === 0 ? 0x4bd6a0 : 0x66aee8,
+            1,
+            0.05,
+          );
+          light.position.set(
+            -width * 0.25 + led * width * 0.1,
+            y + 0.035 * sy,
+            depth * 0.54,
+          );
+        }
+      }
+      for (const side of [-1, 1]) {
+        const rail = add(
+          new T.BoxGeometry(0.035 * sx, height * 0.9, 0.035 * sz),
+          0xa5b2c3,
+          1,
+          0.66,
+        );
+        rail.position.set(side * width * 0.39, 0, depth * 0.53);
+      }
+    } else if (/server|compute|storage_node/.test(kind)) {
+      add(new T.BoxGeometry(1.12 * sx, 0.28 * sy, 0.82 * sz), color, 1, 0.48);
+      const front = add(
+        new T.BoxGeometry(0.88 * sx, 0.16 * sy, 0.025 * sz),
+        0x182331,
+        1,
+        0.2,
+      );
+      front.position.z = 0.42 * sz;
+      for (let i = 0; i < 4; i++) {
+        const vent = add(
+          new T.BoxGeometry(0.045 * sx, 0.11 * sy, 0.012 * sz),
+          0x8492a5,
+          1,
+          0.2,
+        );
+        vent.position.set(-0.3 * sx + i * 0.12 * sx, 0, 0.44 * sz);
+      }
+      const led = add(
+        new T.SphereGeometry(0.025 * sx, 10, 8),
+        0x54e0a4,
+        1,
+        0.05,
+      );
+      led.position.set(0.42 * sx, 0, 0.45 * sz);
+    } else if (/switch|router/.test(kind)) {
+      add(new T.BoxGeometry(1.18 * sx, 0.2 * sy, 0.72 * sz), color, 1, 0.56);
+      for (let port = 0; port < 10; port++) {
+        const jack = add(
+          new T.BoxGeometry(0.065 * sx, 0.075 * sy, 0.035 * sz),
+          0x111a25,
+          1,
+          0.18,
+        );
+        jack.position.set(
+          -0.48 * sx + port * 0.106 * sx,
+          -0.015 * sy,
+          0.37 * sz,
+        );
+      }
+    } else if (/cooling|ventilation|climatisation/.test(kind)) {
+      add(new T.BoxGeometry(1.15 * sx, 1.35 * sy, 0.72 * sz), color, 1, 0.38);
+      for (let i = 0; i < 7; i++) {
+        const vent = add(
+          new T.BoxGeometry(0.82 * sx, 0.035 * sy, 0.025 * sz),
+          0xb5dbe3,
+          0.82,
+          0.1,
+        );
+        vent.position.set(0, -0.42 * sy + i * 0.14 * sy, 0.38 * sz);
+      }
+      const fan = add(
+        new T.TorusGeometry(0.22 * sx, 0.035 * sy, 10, 32),
+        0x87bbc8,
+        1,
+        0.2,
+      );
+      fan.position.set(0, 0.45 * sy, 0.38 * sz);
+    } else if (/aisle|all[ée]e/.test(kind)) {
+      add(
+        new T.BoxGeometry(1.8 * sx, 0.045 * sy, 1.15 * sz),
+        0x33404e,
+        1,
+        0.08,
+      );
+      for (let mark = -2; mark <= 2; mark++) {
+        const stripe = add(
+          new T.BoxGeometry(0.035 * sx, 0.012 * sy, 0.16 * sz),
+          0xe1b957,
+          1,
+          0.05,
+        );
+        stripe.position.set(mark * 0.29 * sx, 0.03 * sy, 0);
+      }
+    } else if (/data_center_floor|floor|ground_plane/.test(kind)) {
+      add(new T.BoxGeometry(2 * sx, 0.08 * sy, 2 * sz), color, 1, 0.12);
+      for (let mark = -2; mark <= 2; mark++) {
+        const seam = add(
+          new T.BoxGeometry(0.012 * sx, 0.003 * sy, 1.8 * sz),
+          0x8995a4,
+          0.4,
+          0.04,
+        );
+        seam.position.x = mark * 0.38 * sx;
+      }
+    } else if (/atom/.test(kind)) {
+      add(new T.SphereGeometry(0.38 * sx, 32, 24), color, 1, 0.08);
+      const glow = new T.Mesh(
+        new T.SphereGeometry(0.43 * sx, 24, 18),
+        new T.MeshBasicMaterial({ color, transparent: true, opacity: 0.12 }),
+      );
+      group.add(glow);
+    } else if (/stator/.test(kind)) {
+      add(
+        new T.CylinderGeometry(0.95 * sx, 0.95 * sx, 1.6 * sy, 56, 1, true),
+        color,
+        0.3,
+      );
+      for (const y of [-0.72 * sy, 0.72 * sy])
+        ((add(
+          new T.TorusGeometry(0.95 * sx, 0.07 * sz, 10, 56),
+          0x9aa8ba,
+        ).rotation.x = Math.PI / 2),
+          (group.children.at(-1).position.y = y));
+      for (let i = 0; i < 12; i++) {
+        const t = (i / 12) * Math.PI * 2;
+        const slot = add(
+          new T.BoxGeometry(0.14 * sx, 1.25 * sy, 0.19 * sz),
+          0x2c4258,
+        );
+        slot.position.set(Math.sin(t) * 0.78 * sx, 0, Math.cos(t) * 0.78 * sz);
+      }
+    } else if (/coil|bobin/.test(kind)) {
+      for (let i = 0; i < 8; i++) {
+        const t = (i / 8) * Math.PI * 2;
+        const loop = add(
+          new T.TorusGeometry(0.27 * sx, 0.065 * sy, 10, 28),
+          color,
+        );
+        loop.rotation.x = Math.PI / 2;
+        loop.position.set(Math.sin(t) * 0.8 * sx, 0, Math.cos(t) * 0.8 * sz);
+      }
+    } else if (/rotor/.test(kind)) {
+      add(new T.CylinderGeometry(0.53 * sx, 0.53 * sx, 1.55 * sy, 48), color);
+      for (let i = 0; i < 8; i++) {
+        const t = (i / 8) * Math.PI * 2;
+        const magnet = add(
+          new T.BoxGeometry(0.16 * sx, 1.2 * sy, 0.19 * sz),
+          i % 2 ? 0xc36169 : 0x4d8cd3,
+        );
+        magnet.position.set(
+          Math.sin(t) * 0.57 * sx,
+          0,
+          Math.cos(t) * 0.57 * sz,
+        );
+      }
+    } else if (/shaft/.test(kind)) {
+      add(new T.CylinderGeometry(0.12 * sx, 0.12 * sx, 2.4 * sy, 32), color);
+      const step = add(
+        new T.CylinderGeometry(0.2 * sx, 0.2 * sx, 0.42 * sy, 32),
+        0x8996a8,
+      );
+      step.position.y = 0.55 * sy;
+    } else if (/bearing/.test(kind)) {
+      const ring = add(
+        new T.TorusGeometry(0.48 * sx, 0.09 * sy, 16, 48),
+        color,
+      );
+      ring.rotation.x = Math.PI / 2;
+      const inner = add(
+        new T.TorusGeometry(0.29 * sx, 0.055 * sy, 12, 40),
+        0xc4cbd6,
+      );
+      inner.rotation.x = Math.PI / 2;
+      for (let i = 0; i < 8; i++) {
+        const t = (i / 8) * Math.PI * 2;
+        const ball = add(new T.SphereGeometry(0.055 * sx, 14, 12), 0xd2d8e2);
+        ball.position.set(Math.sin(t) * 0.38 * sx, 0, Math.cos(t) * 0.38 * sx);
+      }
+    } else if (/injection.?well|production.?well|puits/.test(kind)) {
+      add(
+        new T.CylinderGeometry(0.075 * sx, 0.075 * sx, 1.8 * sy, 20),
+        color,
+        0.9,
+        0.25,
+      );
+      add(
+        new T.CylinderGeometry(0.19 * sx, 0.19 * sx, 0.1 * sy, 24),
+        color,
+        0.95,
+        0.25,
+      ).position.y = 0.88 * sy;
+    } else if (
+      /geological.?layer|ground.?surface|reservoir|r[ée]servoir|formation/.test(
+        kind,
+      )
+    ) {
+      const opacity = /reservoir|r[ée]servoir/.test(kind)
+        ? 0.42
+        : /ground.?surface/.test(kind)
+          ? 0.58
+          : 0.32;
+      add(new T.BoxGeometry(2 * sx, 2 * sy, 2 * sz), color, opacity, 0.05);
+    } else if (/thermal.?flow|flux.?thermique/.test(kind)) {
+      add(new T.SphereGeometry(0.14 * sx, 20, 16), color, 0.9, 0.05);
+    } else if (/shell|housing|carter/.test(kind)) {
+      add(
+        new T.CylinderGeometry(0.92 * sx, 0.92 * sx, 1.9 * sy, 56, 1, true),
+        color,
+        0.16,
+      );
+      for (const y of [-0.95 * sy, 0.95 * sy]) {
+        const rim = add(
+          new T.TorusGeometry(0.92 * sx, 0.07 * sz, 12, 56),
+          0x8f9bae,
+        );
+        rim.rotation.x = Math.PI / 2;
+        rim.position.y = y;
+      }
+    } else if (/propeller/.test(kind)) {
+      const hub = add(
+        new T.CylinderGeometry(0.18 * sx, 0.18 * sx, 0.28 * sy, 24),
+        color,
+      );
+      for (let i = 0; i < 3; i++) {
+        const blade = add(
+          new T.BoxGeometry(0.14 * sx, 0.08 * sy, 1.05 * sz),
+          color,
+        );
+        blade.rotation.y = (i / 3) * Math.PI * 2;
+        blade.position.y = 0.08 * sy;
+      }
+      void hub;
+    } else if (/sphere|atom/.test(kind))
+      add(new T.SphereGeometry(0.55 * sx, 32, 24), color);
+    else if (/cylinder/.test(kind))
+      add(new T.CylinderGeometry(0.52 * sx, 0.52 * sx, 1.1 * sy, 40), color);
+    else if (/cone/.test(kind))
+      add(new T.ConeGeometry(0.6 * sx, 1.2 * sy, 36), color);
+    else if (/plate/.test(kind))
+      add(new T.BoxGeometry(1.2 * sx, 0.12 * sy, 0.85 * sz), color);
+    else add(new T.BoxGeometry(1.1 * sx, 0.75 * sy, 0.8 * sz), color);
+    return group;
+  };
+  const positions = new Map();
+  const layerForPart = new Map(
+    (a.layers || []).flatMap((layer) =>
+      layer.objectIds.map((objectId) => [objectId, layer]),
+    ),
+  );
+  let selectedPart = null;
+  let gridHelper = null;
+  const plan = planAssembly(T, objects, a, {
+    material,
+    meshFor,
+    model,
+    subject: ctx.subject,
+  });
+  plan.entries.forEach(({ part, object, anchor, center }) => {
+    const layer = layerForPart.get(part.id);
+    object.userData.visualLayer = layer?.id || "";
+    if (layer?.visible === false) object.visible = false;
+    positions.set(part.id, center);
+    const rangeLabels = [];
+    if (part.depthRange?.length === 2)
+      rangeLabels.push(
+        `${Number(part.depthRange[0]).toLocaleString("fr-FR")}–${Number(part.depthRange[1]).toLocaleString("fr-FR")} m`,
+      );
+    if (part.temperatureRange?.length === 2)
+      rangeLabels.push(
+        `${part.temperatureRange[0]}–${part.temperatureRange[1]} °C`,
+      );
+    const visibleLabel =
+      a.preset === "geothermal" && rangeLabels.length
+        ? `${part.label} · ${rangeLabels.join(" · ")}`
+        : part.label;
+    const label = dom("div", "ax-3d-label is-note", visibleLabel);
+    label.title = part.detail || visibleLabel;
+    sh.stage.append(label);
+    labels.push({
+      label,
+      point: anchor.clone(),
+      id: part.id,
+      major: part.major === true || plan.entries.length <= 14,
+    });
+  });
+  const relationGroup = new T.Group();
+  model.add(relationGroup);
+  (a.relationships || []).forEach((relation) => {
+    const from = positions.get(relation.from),
+      to = positions.get(relation.to);
+    if (!from || !to) return;
+    const semantics = `${relation.type} ${relation.label}`.toLowerCase();
+    const thermal =
+      a.preset === "geothermal" &&
+      /flow|inject|produce|circul|heat/i.test(semantics);
+    const circuitColor = /primary|primaire|hot_leg/i.test(semantics)
+      ? 0xe16d5d
+      : /secondary|vapeur|steam/i.test(semantics)
+        ? 0xe6ad53
+        : /cooling|coolant|refroidissement|tertiary/i.test(semantics)
+          ? 0x53a9d4
+          : /electric|electrical|power|réseau/i.test(semantics)
+            ? 0xd4c76a
+            : thermal
+              ? 0xf0a54a
+              : 0x99a4b8;
+    const flowing =
+      thermal ||
+      /flow|circul|inject|produce|pipe|circuit|connects|transfers|transfert|heat/i.test(
+        semantics,
+      );
+    const direction = to.clone().sub(from),
+      length = direction.length();
+    if (flowing && length > 0.12) {
+      const bend = from.clone().add(to).multiplyScalar(0.5);
+      bend.y += Math.min(0.35, length * 0.05) * (from.x <= to.x ? 1 : -1);
+      const route = new T.CatmullRomCurve3([from, bend, to]);
+      relationGroup.add(
+        new T.Mesh(
+          new T.TubeGeometry(route, 24, thermal ? 0.035 : 0.028, 8, false),
+          material(circuitColor, 0.9, 0.38),
+        ),
+      );
+      relationGroup.add(
+        new T.ArrowHelper(
+          direction.normalize(),
+          from.clone().add(to).multiplyScalar(0.5),
+          Math.min(length * 0.22, 0.38),
+          circuitColor,
+          0.15,
+          0.1,
+        ),
+      );
+    } else {
+      const geometry = new T.BufferGeometry().setFromPoints([from, to]);
+      relationGroup.add(
+        new T.Line(
+          geometry,
+          new T.LineDashedMaterial({
+            color: circuitColor,
+            dashSize: 0.1,
+            gapSize: 0.08,
+            transparent: true,
+            opacity: 0.82,
+          }),
+        ),
+      );
+      relationGroup.children.at(-1).computeLineDistances();
+    }
+    if (thermal && !flowing) {
+      const direction = to.clone().sub(from),
+        length = direction.length();
+      if (length > 0.05)
+        relationGroup.add(
+          new T.ArrowHelper(
+            direction.normalize(),
+            from.clone().add(to).multiplyScalar(0.5),
+            Math.min(length * 0.32, 0.7),
+            circuitColor,
+            0.22,
+            0.14,
+          ),
+        );
+    }
+  });
+  if (a.exploded) {
+    plan.explode(true);
+    relationGroup.visible = false;
+  }
+  const bounds = new T.Box3().setFromObject(model);
+  const center = bounds.isEmpty()
+    ? new T.Vector3()
+    : bounds.getCenter(new T.Vector3());
+  const radius = bounds.isEmpty()
+    ? 3
+    : Math.max(2, bounds.getBoundingSphere(new T.Sphere()).radius);
+  const cameraDistance =
+    (radius * 2.9 * (plan.camera?.dist || 1)) /
+    Math.max(0.5, Number(a.camera?.zoom) || 1);
+  const floorY = bounds.isEmpty() ? -1 : bounds.min.y - 0.02;
+  const sc = key.shadow.camera;
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.bias = -0.0004;
+  sc.left = sc.bottom = -radius * 1.8;
+  sc.right = sc.top = radius * 1.8;
+  sc.near = 0.1;
+  sc.far = radius * 10;
+  sc.updateProjectionMatrix();
+  key.position
+    .copy(center)
+    .add(new T.Vector3(radius * 1.3, radius * 2.4, radius * 1.6));
+  key.target.position.copy(center);
+  scene.add(key.target);
+  if (a.preset !== "geothermal") {
+    gridHelper = new T.GridHelper(radius * 5, 40, 0x59657a, 0x303949);
+    gridHelper.position.y = floorY - 0.005;
+    gridHelper.material.transparent = true;
+    gridHelper.material.opacity = 0.35;
+    gridHelper.visible = false;
+    scene.add(gridHelper);
+    if (plan.recipe) bounds.isEmpty() || null;
+    const floor = new T.Mesh(
+      new T.PlaneGeometry(radius * 14, radius * 14),
+      new T.ShadowMaterial({ opacity: 0.3 }),
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = floorY;
+    floor.receiveShadow = true;
+    scene.add(floor);
+  }
+  const cameraViews = {
+    isometric: (plan.camera?.dir
+      ? new T.Vector3(...plan.camera.dir)
+      : new T.Vector3(1, 0.78, 1.25)
+    ).normalize(),
+    side: new T.Vector3(1, 0.05, 0),
+    front: new T.Vector3(0, 0.08, 1),
+    top: new T.Vector3(0, 1, 0.001),
+    side: new T.Vector3(1, 0.08, 0),
+  };
+  camera.position.copy(
+    center
+      .clone()
+      .add(
+        (cameraViews[a.camera?.view] || cameraViews.isometric)
+          .clone()
+          .multiplyScalar(cameraDistance),
+      ),
+  );
+  camera.far = Math.max(200, radius * 12);
+  camera.lookAt(center);
+  const resize = () => {
+    const width = sh.stage.clientWidth || 560,
+      height = sh.stage.clientHeight || 420;
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+  };
+  const observer = new ResizeObserver(resize);
+  observer.observe(sh.stage);
+  resize();
+  let alive = true,
+    visible = true,
+    frame = 0,
+    dragging = null;
+  const io = new IntersectionObserver((entries) => {
+    visible = entries[0]?.isIntersecting === true;
+  });
+  io.observe(sh.root);
+  const canvas = renderer.domElement;
+  canvas.style.touchAction = "none";
+  canvas.addEventListener("pointerdown", (event) => {
+    dragging = {
+      x: event.clientX,
+      y: event.clientY,
+      rx: model.rotation.x,
+      ry: model.rotation.y,
+      moved: false,
+    };
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener("pointermove", (event) => {
+    if (!dragging) return;
+    const dx = event.clientX - dragging.x,
+      dy = event.clientY - dragging.y;
+    if (Math.hypot(dx, dy) > 4) dragging.moved = true;
+    if (!dragging.moved) return;
+    if (a.interaction?.rotate !== false) {
+      model.rotation.y = dragging.ry + dx * 0.008;
+      model.rotation.x = clamp(dragging.rx + dy * 0.008, -1.25, 1.25);
+    }
+  });
+  const raycaster = new T.Raycaster(),
+    pointer = new T.Vector2();
+  const stopDrag = (event) => {
+    const wasClick = dragging && !dragging.moved;
+    dragging = null;
+    if (!wasClick || a.interaction?.selectable === false) return;
+    const rect = canvas.getBoundingClientRect();
+    pointer.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    raycaster.setFromCamera(pointer, camera);
+    const hit = raycaster
+      .intersectObjects(
+        model.children.filter((child) => child !== relationGroup),
+        true,
+      )
+      .find((item) => {
+        let target = item.object;
+        while (target && !target.userData.visualPart) target = target.parent;
+        return target?.userData.visualPart;
+      });
+    if (!hit) return;
+    let target = hit.object;
+    while (target && !target.userData.visualPart) target = target.parent;
+    const part = objects.find(
+      (item) => item.id === target?.userData.visualPart,
+    );
+    if (!part) return;
+    selectedPart = part.id;
+    const related = (a.relationships || [])
+      .filter((link) => link.from === part.id || link.to === part.id)
+      .map((link) => {
+        const other = objects.find(
+          (item) => item.id === (link.from === part.id ? link.to : link.from),
+        );
+        return `${link.type || "Relation"}${other ? ` · ${other.label}` : ""}`;
+      });
+    const dims =
+      part.dimensions && typeof part.dimensions === "object"
+        ? Object.entries(part.dimensions)
+            .map(([key, value]) => `${key} : ${value}`)
+            .join(" · ")
+        : "";
+    sh.pop(
+      event,
+      part.label,
+      [
+        ["Composant", part.kind || "Équipement"],
+        ...(part.detail ? [["Rôle", part.detail]] : []),
+        ...(dims ? [["Dimensions illustratives", dims]] : []),
+        ...(related.length
+          ? [["Connexions", related.slice(0, 5).join("; ")]]
+          : []),
+      ],
+      part.color || "#8d79ff",
+    );
+  };
+  canvas.addEventListener("pointerup", stopDrag);
+  canvas.addEventListener("pointercancel", () => {
+    dragging = null;
+  });
+  canvas.addEventListener(
+    "wheel",
+    (event) => {
+      if (a.interaction?.zoom === false) return;
+      if (!wheelOK(event, sh.root)) return;
+      event.preventDefault();
+      camera.position.multiplyScalar(event.deltaY < 0 ? 0.91 : 1.1);
+      camera.position.clampLength(
+        Math.max(1, radius * 0.45),
+        Math.max(24, radius * 7),
+      );
+    },
+    { passive: false },
+  );
+  const hiddenIds = new Set();
+  const draw = () => {
+    if (!alive) return;
+    frame = requestAnimationFrame(draw);
+    if (!visible || document.hidden) return;
+    renderer.render(scene, camera);
+    const width = renderer.domElement.clientWidth,
+      height = renderer.domElement.clientHeight;
+    const occupied = [];
+    labels.forEach(({ label, point, major, id }, index) => {
+      const projected = point
+        .clone()
+        .applyEuler(model.rotation)
+        .add(model.position)
+        .project(camera);
+      const onScreen =
+        projected.z < 1 &&
+        Math.abs(projected.x) < 1.15 &&
+        Math.abs(projected.y) < 1.15;
+      label.hidden =
+        !onScreen || hiddenIds.has(id) || !(major || selectedPart === id);
+      if (onScreen) {
+        const x = (projected.x * 0.5 + 0.5) * width,
+          baseY = (-projected.y * 0.5 + 0.5) * height;
+        let y = baseY - 26;
+        while (
+          occupied.some(
+            ([ox, oy]) => Math.abs(ox - x) < 118 && Math.abs(oy - y) < 34,
+          )
+        )
+          y -= 36;
+        occupied.push([x, y]);
+        label.style.transform = `translate(${x + ((index % 3) - 1) * 12}px,${y}px) translate(-50%,-100%)`;
+      }
+    });
+  };
+  draw();
+  const home = camera.position.clone();
+  const setView = (view) => {
+    camera.position.copy(
+      center
+        .clone()
+        .add(
+          (cameraViews[view] || cameraViews.isometric)
+            .clone()
+            .multiplyScalar(cameraDistance),
+        ),
+    );
+    camera.lookAt(center);
+  };
+  const matList = [];
+  model.traverse((n) => {
+    if (n.material)
+      (Array.isArray(n.material) ? n.material : [n.material]).forEach((m) => {
+        if (!matList.includes(m)) matList.push(m);
+      });
+  });
+  const baseMat = new Map(
+    matList.map((m) => [m, { o: m.opacity, t: m.transparent }]),
+  );
+  const isEnv = (n) => {
+    for (let p = n; p; p = p.parent) if (p.userData?.env) return true;
+    return false;
+  };
+  const edgeLines = [];
+  const setEdges = (on) => {
+    if (on && !edgeLines.length) {
+      const meshes = [];
+      model.traverse((n) => {
+        if (
+          n.isMesh &&
+          !n.isInstancedMesh &&
+          !isEnv(n) &&
+          n.geometry.attributes.position.count < 8000
+        )
+          meshes.push(n);
+      });
+      meshes.forEach((n) => {
+        const l = new T.LineSegments(
+          new T.EdgesGeometry(n.geometry, 28),
+          new T.LineBasicMaterial({
+            color: darkTheme ? 0xdfe6f3 : 0x1b2332,
+            transparent: true,
+            opacity: 0.5,
+          }),
+        );
+        n.add(l);
+        edgeLines.push(l);
+      });
+    }
+    edgeLines.forEach((l) => (l.visible = on));
+  };
+  const setXray = (on) =>
+    matList.forEach((m) => {
+      const b = baseMat.get(m);
+      m.transparent = on ? true : b.t;
+      m.opacity = on ? Math.min(b.o, 0.3) : b.o;
+      m.depthWrite = !on;
+      m.needsUpdate = true;
+    });
+  const plane = new T.Plane(new T.Vector3(0, 0, -1), 0);
+  let cutMode = 0;
+  const applyCut = () =>
+    matList.forEach((m) => {
+      m.clippingPlanes = cutMode ? [plane] : [];
+      m.needsUpdate = true;
+    });
+  const hintBits = [
+    plan.recipe
+      ? `Modèle : ${plan.recipeLabel}`
+      : "Géométrie générique : sujet sans modèle dédié",
+    ...(plan.notes || []),
+  ];
+  if (plan.unmatched?.length && plan.recipe)
+    hintBits.push(
+      `${plan.unmatched.length} élément(s) décrit(s) sans pièce dédiée`,
+    );
+  sh.hint(
+    `${a.scaleNote ? `${a.scaleNote} · ` : ""}${hintBits.join(" · ")} · Glisser : tourner · molette : zoomer · clic : inspecter`,
+  );
+
+  if (plan.groups?.length) {
+    const lg = dom("div", "ax-3d-legend is-groups");
+    let solo = null;
+    plan.groups.forEach((gr) => {
+      const b = dom("button", "ax-3d-chip", gr.label);
+      b.type = "button";
+      b.title = `Isoler « ${gr.label} » (re-clic : tout afficher)`;
+      b.addEventListener("click", () => {
+        solo = solo === gr.id ? null : gr.id;
+        hiddenIds.clear();
+        plan.entries.forEach((en) => {
+          const on = !solo || en.group === solo;
+          en.object.visible = on;
+          if (!on) hiddenIds.add(en.part.id);
+        });
+        lg.querySelectorAll(".ax-3d-chip").forEach((x) =>
+          x.classList.toggle("is-on", !!solo && x === b),
+        );
+      });
+      lg.append(b);
+    });
+    sh.stage.append(lg);
+  }
+  sh.toolbar([
+    {
+      label: "Réinit.",
+      title: "Réinitialiser la vue",
+      run: () => {
+        camera.position.copy(home);
+        camera.lookAt(center);
+        model.rotation.set(0, 0, 0);
+      },
+    },
+    { label: "Avant", title: "Vue de face", run: () => setView("front") },
+    { label: "Côté", title: "Vue de profil", run: () => setView("side") },
+    { label: "Dessus", title: "Vue de dessus", run: () => setView("top") },
+    "|",
+    {
+      label: a.exploded ? "Vue assemblée" : "Vue éclatée",
+      title: "Basculer entre vue assemblée et vue éclatée",
+      toggle: true,
+      on: a.exploded,
+      run: (on) => {
+        plan.explode(on);
+        relationGroup.visible = !on;
+      },
+    },
+    {
+      label: "Coupe",
+      title: "Plan de coupe : longitudinal, puis transversal, puis aucun",
+      run: (_, b) => {
+        cutMode = (cutMode + 1) % 3;
+        if (cutMode === 1) {
+          plane.normal.set(0, 0, -1);
+          plane.constant = center.z;
+        } else if (cutMode === 2) {
+          plane.normal.set(-1, 0, 0);
+          plane.constant = center.x;
+        }
+        b.textContent = ["Coupe", "Coupe long.", "Coupe transv."][cutMode];
+        b.classList.toggle("is-on", !!cutMode);
+        applyCut();
+      },
+    },
+    {
+      label: "Transparent",
+      title: "Mode radiographie",
+      toggle: true,
+      on: false,
+      run: setXray,
+    },
+    {
+      label: "Contours",
+      title: "Traits de contour (style illustration technique)",
+      toggle: true,
+      on: false,
+      run: setEdges,
+    },
+    {
+      label: "Grille",
+      title: "Grille de mesure",
+      toggle: true,
+      on: false,
+      run: (on) => {
+        if (gridHelper) gridHelper.visible = on;
+      },
+    },
+  ]);
+
+  sh.root.__capture = () => {
+    renderer.render(scene, camera);
+    return canvas.toDataURL("image/png");
+  };
+
+  track(sh.root, () => {
+    alive = false;
+    cancelAnimationFrame(frame);
+    observer.disconnect();
+    io.disconnect();
+    renderer.dispose();
+    scene.traverse((node) => {
+      node.geometry?.dispose?.();
+      if (Array.isArray(node.material))
+        node.material.forEach((item) => item.dispose());
+      else node.material?.dispose?.();
+    });
+  });
+}
+let elkModulePromise, d3ForceModulePromise;
+const loadELK = () =>
+  (elkModulePromise ||= import("https://cdn.jsdelivr.net/npm/elkjs@0.10.0/+esm")
+    .then((module) => module.default || module)
+    .catch(() => null));
+const loadD3Force = () =>
+  (d3ForceModulePromise ||=
+    import("https://cdn.jsdelivr.net/npm/d3-force@3.0.0/+esm").catch(
+      () => null,
+    ));
+
+/* ═══ 9. SCÈNE 3D — géométrie exclusivement issue du document validé ═══ */
 async function mountScene3D(a, host, ctx) {
   const T = await loadThree(),
     sh = makeShell("scene3d", ctx);
   host.append(sh.root);
-  const P = a.params,
-    E = clamp(P.extent, 6, 30),
-    N = clamp(Math.round(P.lines), 8, 60),
-    M = clamp(P.mass, 0.2, 4),
-    Dp = 3.4 * clamp(P.curvature, 0.2, 3) * M,
-    SOFT = 1.15,
-    dark = document.documentElement.dataset.theme !== "light";
-  const hAt = (x, z) =>
-      -Dp *
-      (1 / Math.sqrt(x * x + z * z + SOFT * SOFT) -
-        1 / Math.sqrt(E * E + SOFT * SOFT)),
-    maxDepth = Math.abs(hAt(0, 0));
-  const VIOLET = new T.Color(0x8d79ff),
-    BASE = new T.Color(dark ? 0x8a93ab : 0x56607a),
-    AMBER = 0xf0b429;
-  const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  sh.stage.append(renderer.domElement);
-  const scene = new T.Scene(),
-    camera = new T.PerspectiveCamera(42, 1, 0.1, 500);
-  const gSpace = new T.Group(),
-    gAxes = new T.Group(),
-    gObj = new T.Group(),
-    gPath = new T.Group();
-  scene.add(gSpace, gAxes, gObj, gPath);
-  const tint = (t) => BASE.clone().lerp(VIOLET, Math.pow(clamp(t, 0, 1), 0.65));
-  // Layer 1 — espace : surface + grille réellement déformées
-  const S = 96,
-    seg = [],
-    col = [];
-  const pushLine = (fn) => {
-    for (let s = 0; s < S; s++)
-      for (const k of [s, s + 1]) {
-        const [x, z] = fn(k / S),
-          y = hAt(x, z),
-          c = tint(-y / maxDepth);
-        seg.push(x, y, z);
-        col.push(c.r, c.g, c.b);
-      }
-  };
-  for (let i = 0; i <= N; i++) {
-    const c = -E + (2 * E * i) / N;
-    pushLine((t) => [c, -E + 2 * E * t]);
-    pushLine((t) => [-E + 2 * E * t, c]);
-  }
-  const lg = new T.BufferGeometry();
-  lg.setAttribute("position", new T.Float32BufferAttribute(seg, 3));
-  lg.setAttribute("color", new T.Float32BufferAttribute(col, 3));
-  gSpace.add(
-    new T.LineSegments(
-      lg,
-      new T.LineBasicMaterial({
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.9,
-      }),
+  if (a.preset === "assembly" || a.preset === "geothermal")
+    return mountAssembly3D(a, host, ctx, T, sh);
+  sh.stage.append(
+    dom(
+      "div",
+      "ax-render-fallback",
+      "Cette représentation ne contient pas de géométrie sémantique exploitable.",
     ),
   );
-  const pg = new T.PlaneGeometry(2 * E, 2 * E, 80, 80);
-  pg.rotateX(-Math.PI / 2);
-  const pp = pg.attributes.position,
-    pc = [];
-  for (let i = 0; i < pp.count; i++) {
-    const y = hAt(pp.getX(i), pp.getZ(i));
-    pp.setY(i, y - 0.02);
-    const c = tint(-y / maxDepth);
-    pc.push(c.r, c.g, c.b);
-  }
-  pg.setAttribute("color", new T.Float32BufferAttribute(pc, 3));
-  pg.computeVertexNormals();
-  gSpace.add(
-    new T.Mesh(
-      pg,
-      new T.MeshStandardMaterial({
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.26,
-        side: T.DoubleSide,
-        roughness: 0.9,
-        metalness: 0,
-      }),
-    ),
-  );
-  // Layer 2 — axes
-  const labels = [],
-    lab = (text, get, layer, cls = "") => {
-      const el = dom("div", `ax-3d-label ${cls}`, text);
-      labels.push({ el, get, layer });
-      return el;
-    };
-  const axis = (from, to, name, color) => {
-    const f = new T.Vector3(...from),
-      t = new T.Vector3(...to),
-      d = t.clone().sub(f).normalize();
-    gAxes.add(
-      new T.Line(
-        new T.BufferGeometry().setFromPoints([f, t]),
-        new T.LineBasicMaterial({ color }),
-      ),
-    );
-    const cone = new T.Mesh(
-      new T.ConeGeometry(0.16, 0.5, 14),
-      new T.MeshBasicMaterial({ color }),
-    );
-    cone.position.copy(t);
-    cone.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d);
-    gAxes.add(cone);
-    lab(
-      name,
-      () => t.clone().add(d.clone().multiplyScalar(1.1)),
-      "axes",
-      "is-axis",
-    );
-  };
-  const axC = dark ? 0xaab1c5 : 0x4b5468;
-  axis([-E, 0, E], [E, 0, E], "x · espace", axC);
-  axis([-E, 0, E], [-E, 0, -E], "y · espace", axC);
-  axis(
-    [-E, 0, E],
-    [-E, -Math.max(4, maxDepth + 1.6), E],
-    "Potentiel / temps ralenti",
-    axC,
-  );
-  // Layer 3 — objets
-  const rm = 0.55 + 0.32 * Math.cbrt(M),
-    massPos = new T.Vector3(0, hAt(0, 0) + rm * 0.9, 0);
-  const mass = new T.Mesh(
-    new T.SphereGeometry(rm, 48, 32),
-    new T.MeshStandardMaterial({
-      color: dark ? 0xe9e7f6 : 0x2d2b45,
-      emissive: 0x6a55e0,
-      emissiveIntensity: 0.25,
-      roughness: 0.4,
-      metalness: 0.1,
-    }),
-  );
-  mass.position.copy(massPos);
-  mass.userData = { id: "mass", title: "Masse centrale" };
-  const gc = document.createElement("canvas");
-  gc.width = gc.height = 128;
-  const gx = gc.getContext("2d"),
-    gr = gx.createRadialGradient(64, 64, 4, 64, 64, 64);
-  gr.addColorStop(0, "rgba(141,121,255,.55)");
-  gr.addColorStop(1, "rgba(141,121,255,0)");
-  gx.fillStyle = gr;
-  gx.fillRect(0, 0, 128, 128);
-  const glow = new T.Sprite(
-    new T.SpriteMaterial({
-      map: new T.CanvasTexture(gc),
-      transparent: true,
-      depthWrite: false,
-      blending: T.AdditiveBlending,
-    }),
-  );
-  glow.scale.setScalar(rm * 7);
-  glow.position.copy(massPos);
-  gObj.add(mass, glow);
-  scene.add(new T.AmbientLight(0xffffff, dark ? 0.75 : 0.9));
-  const dl = new T.DirectionalLight(0xffffff, 0.9);
-  dl.position.set(6, 14, 8);
-  scene.add(dl);
-  const pl = new T.PointLight(0x8d79ff, 0.9, 30);
-  pl.position.copy(massPos).add(new T.Vector3(0, 1.5, 0));
-  scene.add(pl);
-  // Layer 4 — trajectoires (équations de géodésique de Schwarzschild, M en unités arbitraires)
-  const Mg = 0.3 * M,
-    onSurf = (r, ph, up = 0.14) =>
-      new T.Vector3(
-        r * Math.cos(ph),
-        hAt(r * Math.cos(ph), r * Math.sin(ph)) + up,
-        r * Math.sin(ph),
-      );
-  const orbit = [],
-    r0 = E * 0.75,
-    u0 = 1 / r0,
-    uc = (((((u0 * 2.2) / 2) * 1.6) / 1.6) * (1 + 2.2)) / 2.2;
-  {
-    let u = u0,
-      du = 0,
-      ph = 0,
-      n = 0;
-    const hh = 0.004,
-      uC = (u0 * (1 + 2.2)) / 2;
-    while (ph < Math.PI * 6.4 && n++ < 6000) {
-      du += (-u + uC + 3 * Mg * u * u) * hh;
-      u += du * hh;
-      ph += hh;
-      if (n % 8 === 0) {
-        const r = 1 / u;
-        if (r > 0.9 && r < E * 1.02) orbit.push(onSurf(r, ph));
-      }
-    }
-  }
-  const rayPts = [];
-  {
-    const b = E * 0.38;
-    let u = 0.02,
-      ph = 0,
-      n = 0;
-    const hh = 0.002;
-    let du = Math.sqrt(Math.max(0, 1 / (b * b) - u * u + 2 * Mg * u ** 3));
-    while (u > 0.0005 && ph < Math.PI * 1.4 && n++ < 9000) {
-      du += (-u + 3 * Mg * u * u) * hh;
-      u += du * hh;
-      ph += hh;
-      const r = 1 / u;
-      if (n % 5 === 0 && r < E * 1.05 && r > 0.9)
-        rayPts.push(onSurf(r, ph, 0.12));
-    }
-  }
-  const tube = (pts, color, rad, data) => {
-    if (pts.length < 3) return null;
-    const m = new T.Mesh(
-      new T.TubeGeometry(
-        new T.CatmullRomCurve3(pts),
-        pts.length,
-        rad,
-        6,
-        false,
-      ),
-      new T.MeshStandardMaterial({
-        color,
-        emissive: color,
-        emissiveIntensity: 0.35,
-        roughness: 0.5,
-      }),
-    );
-    m.userData = data;
-    gPath.add(m);
-    return m;
-  };
-  const orbitMesh =
-      P.orbit !== false &&
-      tube(orbit, 0x8d79ff, 0.05, {
-        id: "orbit",
-        title: "Orbite (géodésique)",
-      }),
-    rayMesh =
-      P.light !== false &&
-      tube(rayPts, AMBER, 0.045, {
-        id: "light",
-        title: "Rayon lumineux dévié",
-      });
-  if (rayPts.length > 3) {
-    const b = E * 0.38,
-      a1 = new T.Vector3(E, hAt(E, b) + 0.12, b),
-      a2 = new T.Vector3(-E, hAt(-E, b) + 0.12, b),
-      ref = new T.Line(
-        new T.BufferGeometry().setFromPoints([a1, a2]),
-        new T.LineDashedMaterial({
-          color: 0x9aa1b5,
-          dashSize: 0.5,
-          gapSize: 0.35,
-          transparent: true,
-          opacity: 0.7,
-        }),
-      );
-    ref.computeLineDistances();
-    gPath.add(ref);
-  }
-  const body = new T.Mesh(
-    new T.SphereGeometry(0.2, 20, 16),
-    new T.MeshStandardMaterial({
-      color: 0xffffff,
-      emissive: 0x8d79ff,
-      emissiveIntensity: 0.9,
-    }),
-  );
-  body.userData = { id: "body", title: "Corps en orbite" };
-  if (orbit.length) {
-    body.position.copy(orbit[0]);
-    gObj.add(body);
-  }
-  // Layer 5 — annotations
-  lab(
-    "Masse centrale M",
-    () => massPos.clone().add(new T.Vector3(0, rm + 0.7, 0)),
-    "notes",
-    "is-note",
-  );
-  if (orbit.length)
-    lab(
-      "Orbite : géodésique qui précesse",
-      () =>
-        orbit[Math.floor(orbit.length * 0.04)]
-          .clone()
-          .add(new T.Vector3(0, 0.7, 0)),
-      "notes",
-      "is-note",
-    );
-  if (rayPts.length)
-    lab(
-      "Rayon lumineux dévié",
-      () =>
-        rayPts[Math.floor(rayPts.length * 0.12)]
-          .clone()
-          .add(new T.Vector3(0, 0.7, 0)),
-      "notes",
-      "is-note",
-    );
-  lab(
-    "Temps plus lent : Δt′ = Δt·√(1 − 2GM/rc²)",
-    () => new T.Vector3(2.4, hAt(2.4, 2.4) - 0.5, 2.4),
-    "notes",
-    "is-note is-math",
-  );
-  (a.annotations || []).forEach((n) => {
-    const at = n.at || [0, 0, 0];
-    lab(
-      n.text,
-      () => new T.Vector3(at[0], hAt(at[0], at[2]) + (at[1] || 0.6), at[2]),
-      "notes",
-      "is-note",
-    );
-  });
-  const labBox = dom("div", "ax-3d-labels");
-  labels.forEach((l) => labBox.append(l.el));
-  sh.stage.append(labBox);
-  // Layer 6 — légende
-  const legend = dom("div", "ax-3d-legend");
-  (
-    a.legend || [
-      { label: "Grille d'espace-temps déformée", color: "#8d79ff" },
-      { label: "Orbite d'un corps", color: "#8d79ff" },
-      { label: "Rayon lumineux", color: "#f0b429" },
-      { label: "Trajectoire sans gravité", color: "#9aa1b5" },
-    ]
-  ).forEach((it) => {
-    const r = dom("div");
-    const i = dom("i");
-    i.style.background = it.color;
-    r.append(i, dom("span", null, it.label));
-    legend.append(r);
-  });
-  sh.root.append(legend);
-  // Caméra : contrôles propres à l'artefact
-  const cam = { th: 0.8, ph: 1.0, d: E * 2.05, tx: 0, ty: -1.2, tz: 0 },
-    home = { ...cam };
-  const placeCam = () => {
-    const sp = Math.sin(cam.ph);
-    camera.position.set(
-      cam.tx + cam.d * sp * Math.sin(cam.th),
-      cam.ty + cam.d * Math.cos(cam.ph),
-      cam.tz + cam.d * sp * Math.cos(cam.th),
-    );
-    camera.lookAt(cam.tx, cam.ty, cam.tz);
-  };
-  const ptrs = new Map();
-  let lastPinch = 0,
-    moved = 0;
-  const el = renderer.domElement;
-  el.addEventListener("pointerdown", (e) => {
-    el.setPointerCapture(e.pointerId);
-    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    moved = 0;
-    sh.closePop();
-    lastPinch = 0;
-  });
-  el.addEventListener("pointermove", (e) => {
-    const p = ptrs.get(e.pointerId);
-    if (!p) {
-      hover(e);
-      return;
-    }
-    const dx = e.clientX - p.x,
-      dy = e.clientY - p.y;
-    moved += Math.abs(dx) + Math.abs(dy);
-    p.x = e.clientX;
-    p.y = e.clientY;
-    if (ptrs.size === 2) {
-      const [q, r] = [...ptrs.values()],
-        dist = Math.hypot(q.x - r.x, q.y - r.y);
-      if (lastPinch) cam.d = clamp((cam.d * lastPinch) / dist, 5, 90);
-      lastPinch = dist;
-      return;
-    }
-    if (e.buttons === 2 || e.shiftKey) {
-      const s = cam.d * 0.0016;
-      cam.tx -= dx * s * Math.cos(cam.th);
-      cam.tz += dx * s * Math.sin(cam.th);
-      cam.ty += dy * s;
-    } else {
-      cam.th -= dx * 0.006;
-      cam.ph = clamp(cam.ph - dy * 0.006, 0.08, 1.6);
-    }
-    sh.hideTip();
-  });
-  const pend = (e) => {
-    ptrs.delete(e.pointerId);
-    lastPinch = 0;
-    if (moved < 5 && e.type === "pointerup") pick(e);
-  };
-  el.addEventListener("pointerup", pend);
-  el.addEventListener("pointercancel", pend);
-  el.addEventListener("contextmenu", (e) => e.preventDefault());
-  el.addEventListener(
-    "wheel",
-    (e) => {
-      if (!wheelOK(e, sh.root)) return;
-      e.preventDefault();
-      cam.d = clamp(cam.d * (e.deltaY < 0 ? 0.9 : 1.1), 5, 90);
-    },
-    { passive: false },
-  );
-  el.addEventListener("dblclick", () => Object.assign(cam, home));
-  const ray = new T.Raycaster(),
-    targets = () => [mass, body, orbitMesh, rayMesh].filter(Boolean);
-  const hit = (e) => {
-    const r = el.getBoundingClientRect();
-    ray.setFromCamera(
-      new T.Vector2(
-        ((e.clientX - r.left) / r.width) * 2 - 1,
-        -((e.clientY - r.top) / r.height) * 2 + 1,
-      ),
-      camera,
-    );
-    return ray.intersectObjects(targets(), false)[0]?.object || null;
-  };
-  const hover = (e) => {
-    const o = hit(e);
-    el.style.cursor = o ? "pointer" : "grab";
-    if (o) sh.tip(e, o.userData.title);
-    else sh.hideTip();
-  };
-  const INFO = {
-    mass: [
-      ["Rôle", "Source de la courbure"],
-      ["Masse M", `${fmt(M)} (unités arbitraires)`],
-      ["Rayon de Schwarzschild", "r_s = 2GM/c²"],
-      ["Temps propre", "Δt′ = Δt·√(1 − r_s/r)"],
-    ],
-    orbit: [
-      ["Nature", "Géodésique d'un corps massif"],
-      ["Effet GR", "Précession du périhélie"],
-      ["Formule", "Δφ ≈ 6πGM / (c²·a(1−e²))"],
-    ],
-    light: [
-      ["Nature", "Géodésique nulle (photon)"],
-      ["Déflexion", "α ≈ 4GM / (c²·b)"],
-      ["Référence", "Pointillés : trajet sans gravité"],
-    ],
-    body: [
-      ["Nature", "Corps d'épreuve"],
-      ["Mouvement", "Suit la géodésique de l'orbite"],
-    ],
-  };
-  let selected = null;
-  const glowMat = (o, v) => {
-    if (o?.material?.emissiveIntensity != null)
-      o.material.emissiveIntensity = v;
-  };
-  const pick = (e) => {
-    glowMat(
-      selected,
-      selected === mass ? 0.25 : selected === body ? 0.9 : 0.35,
-    );
-    selected = hit(e);
-    if (!selected) return;
-    glowMat(selected, 1.4);
-    sh.pop(
-      e,
-      selected.userData.title,
-      INFO[selected.userData.id] || [],
-      "#8d79ff",
-    );
-  };
-  const layers = { space: gSpace, axes: gAxes, objects: gObj, paths: gPath },
-    layerOn = {
-      space: true,
-      axes: true,
-      objects: true,
-      paths: true,
-      notes: true,
-      legend: true,
-    };
-  const setLayer = (k, on) => {
-    layerOn[k] = on;
-    if (layers[k]) layers[k].visible = on;
-    if (k === "legend") legend.style.display = on ? "" : "none";
-  };
-  let playing = true,
-    idx = 0,
-    visible = true,
-    destroyed = false,
-    req = 0;
-  const resize = () => {
-    const w = sh.stage.clientWidth || 600,
-      h = sh.stage.clientHeight || 400;
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-  };
-  const ro = new ResizeObserver(resize);
-  ro.observe(sh.stage);
-  resize();
-  const io = new IntersectionObserver((en) => {
-    visible = en[0].isIntersecting;
-  });
-  io.observe(sh.root);
-  const tick = () => {
-    if (destroyed) return;
-    req = requestAnimationFrame(tick);
-    if (!visible || document.hidden) return;
-    if (playing && orbit.length) {
-      idx = (idx + 0.7) % orbit.length;
-      body.position.copy(orbit[Math.floor(idx)]);
-    }
-    placeCam();
-    renderer.render(scene, camera);
-    const w = renderer.domElement.clientWidth,
-      h = renderer.domElement.clientHeight;
-    labels.forEach((l) => {
-      const v = l.get().project(camera),
-        on = layerOn[l.layer] && v.z < 1;
-      l.el.style.display = on ? "" : "none";
-      if (on)
-        l.el.style.transform = `translate(${(v.x * 0.5 + 0.5) * w}px,${(-v.y * 0.5 + 0.5) * h}px) translate(-50%,-120%)`;
-    });
-  };
-  tick();
-  c; // APRÈS
-  sh.root.__capture = () => {
-    placeCam();
-    renderer.render(scene, camera);
-    return renderer.domElement.toDataURL("image/png");
-  };
-  const lyr = (k, label) => ({
-    label,
-    toggle: true,
-    on: true,
-    title: `Afficher / masquer : ${label}`,
-    run: (on) => setLayer(k, on),
-  });
-  sh.toolbar([
-    {
-      label: "Réinit.",
-      title: "Réinitialiser la caméra",
-      run: () => Object.assign(cam, home),
-    },
-    {
-      label: "Dessus",
-      run: () => Object.assign(cam, { th: 0.8, ph: 0.12, d: E * 2.4, ty: 0 }),
-    },
-    {
-      label: "Profil",
-      run: () => Object.assign(cam, { th: 0.3, ph: 1.5, d: E * 1.9 }),
-    },
-    {
-      label: "Lecture",
-      toggle: true,
-      on: true,
-      run: (on) => {
-        playing = on;
-      },
-    },
-    "|",
-    lyr("space", "Espace"),
-    lyr("axes", "Axes"),
-    lyr("objects", "Objets"),
-    lyr("paths", "Trajectoires"),
-    lyr("notes", "Annotations"),
-    lyr("legend", "Légende"),
-  ]);
-  sh.hint(
-    "Glisser : tourner · Maj/clic droit : déplacer · molette (après un clic) : zoom · clic sur un objet : détails",
-  );
-  track(sh.root, () => {
-    destroyed = true;
-    cancelAnimationFrame(req);
-    ro.disconnect();
-    io.disconnect();
-    scene.traverse((o) => {
-      o.geometry?.dispose?.();
-      const m = o.material;
-      (Array.isArray(m) ? m : m ? [m] : []).forEach((x) => {
-        x.map?.dispose?.();
-        x.dispose();
-      });
-    });
-    renderer.dispose();
-    renderer.forceContextLoss?.();
-  });
 }
-
 /* ═══ 11. DOCUMENT STRUCTURÉ : sommaire, sections éditables, figures intégrées, exports ═══ */
 function docFromMarkdown(a) {
   const secs = [];
@@ -3892,6 +5690,18 @@ function normBlock(b) {
       caption: b.caption ? String(b.caption) : "",
     };
   }
+  if (t === "kpi")
+    return {
+      type: t,
+      items: (b.items || []).slice(0, 6).map((i) => ({
+        label: String(i?.label ?? ""),
+        value: String(i?.value ?? ""),
+        unit: String(i?.unit ?? ""),
+        note: String(i?.note ?? ""),
+      })),
+    };
+  if (t === "steps")
+    return { type: t, items: (b.items || []).map(String).slice(0, 20) };
   return t === "text" || b.md != null
     ? { type: "text", md: String(b.md ?? b.text ?? "") }
     : null;
@@ -4018,11 +5828,48 @@ async function mountDoc(a, host, ctx) {
       : String(src)
           .split(/\n{2,}/)
           .forEach((p) => el.append(dom("p", null, p)));
+  root.dataset.kind = a.kind || "report";
   const head = dom("header", "ax-doc-head"),
     titleBox = dom("div");
-  if (!ctx.inline || ctx.full) {
+  if (ctx.panel) {
+    if (a.summary) {
+      titleBox.append(dom("p", "ax-doc-lead", a.summary));
+    }
+    if (a.meta) {
+      const m = dom("div", "ax-doc-meta");
+      Object.entries(a.meta).forEach(([k, v]) => {
+        m.append(dom("span", null, `${k} · ${v}`));
+      });
+      titleBox.append(m);
+    }
+  } else if (!ctx.inline || ctx.full) {
+    const KIND = {
+      // Ton code d'origine continue ici
+
+      report: "Rapport",
+      design_file: "Dossier de conception",
+      datasheet: "Fiche technique",
+      protocol: "Protocole",
+      spec: "Spécifications",
+      architecture: "Dossier d'architecture",
+      manual: "Notice",
+      validation: "Validation & tests",
+      analysis: "Analyse",
+      brief: "Synthèse",
+      guide: "Guide",
+      lesson: "Cours",
+    };
+    if (a.kind)
+      titleBox.append(dom("span", "ax-doc-kind", KIND[a.kind] || a.kind));
     titleBox.append(dom("h2", null, a.title || "Document"));
     if (a.summary) titleBox.append(dom("p", null, a.summary));
+    if (a.meta) {
+      const m = dom("div", "ax-doc-meta");
+      Object.entries(a.meta).forEach(([k, v]) =>
+        m.append(dom("span", null, `${k} · ${v}`)),
+      );
+      titleBox.append(m);
+    }
   }
   const actions = dom("div", "ax-doc-actions");
   const act = (label, title, fn) => {
@@ -4155,7 +6002,9 @@ async function mountDoc(a, host, ctx) {
             t = dom("table"),
             hr = dom("tr");
           b.columns.forEach((c) => hr.append(dom("th", null, c)));
-          t.append(dom("thead")).append(hr);
+          const thead = dom("thead");
+          thead.append(hr);
+          t.append(thead);
           const tb = dom("tbody");
           b.rows.forEach((r) => {
             const tr = dom("tr");
@@ -4176,6 +6025,30 @@ async function mountDoc(a, host, ctx) {
           wrap.append(csv);
           break;
         }
+        case "kpi": {
+          const row = dom("div", "ax-kpis");
+          b.items.forEach((i) => {
+            const c = dom("div", "ax-kpi");
+            c.append(
+              dom("small", null, i.label),
+              dom("strong", null, `${i.value}${i.unit ? ` ${i.unit}` : ""}`),
+            );
+            if (i.note) c.append(dom("span", null, i.note));
+            row.append(c);
+          });
+          wrap.append(row);
+          break;
+        }
+        case "steps": {
+          const ol = dom("ol", "ax-steps");
+          b.items.forEach((t) => {
+            const li = dom("li");
+            md(li, t);
+            ol.append(li);
+          });
+          wrap.append(ol);
+          break;
+        }
         case "artifact": {
           const slot = dom("div", "ax-doc-art");
           wrap.append(slot);
@@ -4186,6 +6059,9 @@ async function mountDoc(a, host, ctx) {
               ...ctx,
               inline: true,
               nested: true,
+              subject:
+                ctx.subject ||
+                [a.subject, a.title, a.summary].filter(Boolean).join(" "),
               panel: false,
               full: false,
               onExpand: ctx.openArtifact
@@ -4201,6 +6077,24 @@ async function mountDoc(a, host, ctx) {
     };
     fill();
     return wrap;
+  };
+  const scroller = () =>
+    ctx.panel ? root.closest(".artifact-content") || body : body;
+  const stripH = () =>
+    ctx.panel && toc.offsetWidth > 400 ? toc.offsetHeight : 0;
+  const goTo = (sec) => {
+    const sc = scroller();
+    sc.scrollTo({
+      top: Math.max(
+        0,
+        sec.getBoundingClientRect().top -
+          sc.getBoundingClientRect().top +
+          sc.scrollTop -
+          stripH() -
+          8,
+      ),
+      behavior: "smooth",
+    });
   };
   a.sections.forEach((s) => {
     const sec = dom("section", "ax-sec"),
@@ -4242,73 +6136,106 @@ async function mountDoc(a, host, ctx) {
       s.title,
     );
     link.type = "button";
-    link.onclick = () =>
-      body.scrollTo({
-        top: Math.max(0, sec.offsetTop - 8),
-        behavior: "smooth",
-      }); // défile dans le document, jamais dans le Chat
+    link.onclick = () => goTo(sec);
     toc.append(link);
     links.set(s.id, link);
   });
   let tick = false;
   const spy = () => {
+    const base = scroller().getBoundingClientRect().top + stripH() + 24;
     let cur = secs[0];
     secs.forEach((s) => {
-      if (s.el.offsetTop - body.scrollTop <= 48) cur = s;
+      if (s.el.getBoundingClientRect().top <= base) cur = s;
     });
     links.forEach((l) => l.classList.remove("is-on"));
-    if (cur) links.get(cur.id)?.classList.add("is-on");
+    if (cur) {
+      const link = links.get(cur.id);
+      link?.classList.add("is-on");
+      link?.scrollIntoView?.({ block: "nearest", inline: "center" });
+    }
   };
-  body.addEventListener("scroll", () => {
+  const onScroll = () => {
     if (tick) return;
     tick = true;
     requestAnimationFrame(() => {
       tick = false;
       spy();
     });
+  };
+  requestAnimationFrame(() => {
+    scroller().addEventListener("scroll", onScroll, { passive: true });
+    spy();
   });
-  spy();
+  track(root, () => scroller().removeEventListener("scroll", onScroll));
   track(root, () => io.disconnect());
 }
 
 /* ═══ 10. POINT D'ENTRÉE ═══ */
 // APRÈS
 const MOUNT = {
+  code: mountCodeView,
   plot: mountPlot,
   diagram: mountDiagram,
+  map: mountGeographicMap,
   timeline: mountTimeline,
   probtree: mountProbTree,
   scene3d: mountScene3D,
   sheet: mountSheet,
   doc: mountDoc,
 };
+
 export async function mountArtifact(artifact, host, ctx = {}) {
-  if (artifact?.variant && ctx.renderLegacy) {
-    ctx.renderLegacy(artifact, host);
-    return true;
-  } // schémas physiques historiques
-  const a = normalizeArtifact(adaptLegacy(artifact) || artifact);
-  if (a && !MOUNT[a.type] && ctx.renderLegacy) {
-    ctx.renderLegacy(a, host);
-    return true;
-  } // table, decision, plan… dans un doc
-  if (!a || !MOUNT[a.type]) return false;
-  const loading = dom("div", "ax-loading", "Préparation de la figure…");
-  host.append(loading);
+  const firstChild = host.childNodes.length;
+  let loading = null;
   try {
+    if (artifact?.variant && ctx.renderLegacy) {
+      ctx.renderLegacy(artifact, host);
+      return true;
+    }
+    const a = normalizeArtifact(adaptLegacy(artifact) || artifact);
+    if (a && !MOUNT[a.type] && ctx.renderLegacy) {
+      ctx.renderLegacy(a, host);
+      return true;
+    }
+    if (!a || !MOUNT[a.type]) return false;
+    loading = dom("div", "ax-loading", "Préparation de la figure…");
+    host.append(loading);
     await MOUNT[a.type](a, host, ctx);
     loading.remove();
     const root = [...host.children]
       .reverse()
       .find((n) => n.classList?.contains("ax"));
-    if (root && a.type !== "doc")
-      attachMenu(root, figureMenu(a, root, ctx), {
-        context: a.type !== "scene3d",
-      }); // 3D : clic droit = déplacer la caméra
+    if (root) {
+      if (ctx.visualStyle) root.dataset.visualStyle = ctx.visualStyle;
+      if (a.type !== "doc" && a.type !== "code")
+        attachMenu(root, figureMenu(a, root, ctx), {
+          context: a.type !== "scene3d",
+        }); // 3D : clic droit = déplacer la caméra
+    }
     return true;
-  } catch (e) {
-    console.error("[AiGENT artefact]", e);
-    loading.textContent = `Figure indisponible : ${e.message}`;
+  } catch (error) {
+    if (visualDebugEnabled()) console.error("[AiGENT artefact]", error);
+    [...host.childNodes].slice(firstChild).forEach((node) => node.remove());
+    const fallback = dom("div", "ax-render-fallback");
+    fallback.setAttribute("role", "status");
+    fallback.append(
+      dom("strong", null, "Cette représentation n’a pas pu être affichée."),
+      dom(
+        "p",
+        null,
+        "Les informations de la réponse restent disponibles. Vous pouvez réessayer ou demander une autre vue.",
+      ),
+    );
+    const retry = dom("button", "ax-btn", "Réessayer le rendu");
+    retry.type = "button";
+    retry.addEventListener("click", () => {
+      fallback.remove();
+      mountArtifact(artifact, host, ctx);
+    });
+    fallback.append(retry);
+    host.append(fallback);
     return false;
   }
 }
+
+export const exportFigure = { svgMarkup, svgBox, svgToPng };

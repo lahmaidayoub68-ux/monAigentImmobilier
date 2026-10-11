@@ -451,14 +451,20 @@ function isUnusableOutput(
   ];
   // APRÈS
   // En conversation, « tu es un… » ou « let me » sont des phrases légitimes : on ne filtre que les vraies fuites.
+  const COT = [
+    /^\s*here(?:'|’)s a thinking process/i,
+    /^\s*thinking process\b/i,
+    /\*\*analy[sz]e (?:user|the) (?:input|request)/i,
+  ];
   const leaks = [
     /<think/i,
     /^\s*(safe|unsafe)\s*[:.]?\s*$/i,
     /\bmoderation (result|verdict|flag)\b/i,
     /\bpolicy violation\b/i,
+    ...COT,
   ];
   if (
-    (conversational ? leaks : meta).some((re) =>
+    (conversational ? leaks : [...meta, ...COT]).some((re) =>
       re.test(conversational ? text : t),
     )
   )

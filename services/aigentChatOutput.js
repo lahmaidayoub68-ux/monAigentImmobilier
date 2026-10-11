@@ -58,7 +58,7 @@ export const ARTIFACT_EXPECTATIONS = {
     "un arbre de probabilités (type probtree) dont les branches portent leurs probabilités",
   tableur: "un tableur (type sheet) avec colonnes, lignes et formules utiles",
   "scène 3D":
-    "une scène 3D interactive de la courbure de l'espace-temps (type scene3d, preset spacetime)",
+    "une représentation 3D interactive dont les objets et relations correspondent exactement au sujet demandé (type scene3d)",
 };
 
 export function detectChatArtifactRequest(message) {
@@ -91,157 +91,19 @@ export function shouldOpenArtifactPanel(message, mode = "think") {
   return isDeliverableRequest(message, mode);
 }
 
-const FLUID =
-  /(?:fluid|fluide|écoulement|ecoulement|viscosit|hydrodynam|hydraulique|aérodynam|aerodynam|bernoulli|navier.?stokes|couche limite)/i;
-const SPACETIME =
-  /(?:espace[- ]?temps|courbure de l|relativit[eé] g[eé]n[eé]rale|trou noir)/i;
-
-/** Figures de secours déterministes, uniquement pour des sujets maîtrisés. */
-export function builtInIllustration(message) {
-  const text = String(message || "");
-  if (SPACETIME.test(text))
-    return {
-      type: "scene3d",
-      title: "Courbure de l'espace-temps",
-      summary:
-        "Une masse déforme la grille d'espace-temps : l'orbite et le rayon lumineux suivent des géodésiques. Les valeurs sont illustratives.",
-      preset: "spacetime",
-      params: {
-        mass: 1.2,
-        curvature: 1,
-        extent: 12,
-        lines: 26,
-        orbit: true,
-        light: true,
-      },
-    };
-  if (!FLUID.test(text)) return null;
-  return {
-    type: "doc",
-    title: "Repères visuels — mécanique des fluides",
-    summary:
-      "Conservation, pression et effets visqueux en trois vues complémentaires. Les seuils de Reynolds sont des repères usuels en conduite circulaire.",
-    sections: [
-      {
-        id: "venturi",
-        title: "Effet Venturi : vitesse et pression",
-        level: 2,
-        blocks: [
-          {
-            type: "text",
-            md: "À hauteur égale, un rétrécissement **accélère** l'écoulement et **abaisse** la pression statique.",
-          },
-          {
-            type: "formula",
-            tex: "S_1 v_1 = S_2 v_2",
-            label: "Conservation du débit",
-          },
-          {
-            type: "formula",
-            tex: "P + \\tfrac{1}{2}\\rho v^2 = \\text{cte}",
-            label: "Bernoulli (horizontal, fluide parfait)",
-          },
-          {
-            type: "artifact",
-            artifact: {
-              type: "diagram",
-              variant: "venturi",
-              title: "Venturi · vitesse et pression",
-              nodes: [],
-              edges: [],
-            },
-          },
-        ],
-      },
-      {
-        id: "regimes",
-        title: "Régimes en conduite",
-        level: 2,
-        blocks: [
-          {
-            type: "formula",
-            tex: "Re = \\dfrac{\\rho\\, v\\, D}{\\mu}",
-            label: "Nombre de Reynolds",
-          },
-          {
-            type: "table",
-            title: "Repères de Reynolds · conduite circulaire lisse",
-            columns: ["Reynolds", "Régime", "Lecture physique"],
-            rows: [
-              [
-                "Re < 2 300",
-                "Laminaire",
-                "Viscosité dominante · mouvement ordonné",
-              ],
-              ["2 300–4 000", "Transition", "Sensibilité aux perturbations"],
-              ["Re > 4 000", "Turbulent", "Fluctuations et mélange accrus"],
-            ],
-          },
-          {
-            type: "callout",
-            tone: "info",
-            title: "À retenir",
-            md: "Ces seuils dépendent des conditions d'entrée et de la rugosité : ce sont des ordres de grandeur.",
-          },
-        ],
-      },
-      {
-        id: "couche-limite",
-        title: "Couche limite et profil de vitesse",
-        level: 2,
-        blocks: [
-          {
-            type: "text",
-            md: "Au contact de la paroi, $u = 0$ ; la vitesse rejoint celle du fluide extérieur sur une épaisseur $\\delta$.",
-          },
-          {
-            type: "artifact",
-            artifact: {
-              type: "diagram",
-              variant: "boundary-layer",
-              title: "Couche limite · profil de vitesse",
-              nodes: [],
-              edges: [],
-            },
-          },
-          {
-            type: "artifact",
-            caption:
-              "Profil laminaire schématique (parabolique), pédagogique et non issu d'une mesure.",
-            artifact: {
-              type: "plot",
-              title: "Profil laminaire schématique",
-              xLabel: "Distance à la paroi y/δ",
-              yLabel: "Vitesse u/U∞",
-              domain: { x: [0, 1.05], y: [0, 1.1] },
-              functions: [
-                { id: "u", expr: "2*x-x^2", label: "u/U∞", domain: [0, 1] },
-              ],
-              auto: {
-                roots: false,
-                extrema: false,
-                yIntercept: false,
-                intersections: false,
-              },
-            },
-          },
-        ],
-      },
-    ],
-  };
-}
+export const builtInIllustration = () => null;
 
 const MARK = /\[\[\s*AIGENT[\s_-]?DATA\s*\]\]/i;
 const MARK_END = /\[\[\s*\/\s*AIGENT[\s_-]?DATA\s*\]\]/i;
 const LEFTOVER =
   /\[\[\s*\/?\s*AIGENT[\s_-]?DATA\s*\]\]|\[object (?:Text|Object|Undefined|Node)\]/gi;
-const isPlainObject = (v) => v && typeof v === "object" && !Array.isArray(v);
+const isPlainObject = (value) =>
+  value && typeof value === "object" && !Array.isArray(value);
 
-/** Normalise la sortie d'un fournisseur : un JSON mal formé ne s'affiche jamais tel quel. */
+/** Parse les sorties structurées sans laisser le JSON ou les marqueurs dans la réponse affichée. */
 export function normalizeChatOutput(raw, parseJson) {
   const text = String(raw ?? "").trim();
   if (!text) return { reply: "", payload: null };
-
   const open = MARK.exec(text);
   if (open) {
     const after = text.slice(open.index + open[0].length);
@@ -254,13 +116,12 @@ export function normalizeChatOutput(raw, parseJson) {
       .replace(LEFTOVER, "")
       .trim();
     let payload = null;
-    if (block) {
+    if (block)
       try {
         payload = parseJson(block);
       } catch {
         payload = null;
       }
-    }
     if (isPlainObject(payload))
       return {
         reply: String(payload.reply ?? reply)
@@ -270,7 +131,6 @@ export function normalizeChatOutput(raw, parseJson) {
       };
     return { reply, payload: null };
   }
-
   let payload = null;
   try {
     payload = parseJson(text);
@@ -284,7 +144,6 @@ export function normalizeChatOutput(raw, parseJson) {
         .trim(),
       payload,
     };
-
   const cleaned = text
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```\s*$/i, "")
@@ -292,4 +151,70 @@ export function normalizeChatOutput(raw, parseJson) {
     .trim();
   if (/^(?:\{|\[)/.test(cleaned)) return { reply: "", payload: null };
   return { reply: cleaned, payload: null };
+}
+
+const CODE_FILE = {
+  js: "script.js",
+  javascript: "script.js",
+  jsx: "App.jsx",
+  ts: "index.ts",
+  typescript: "index.ts",
+  tsx: "App.tsx",
+  py: "script.py",
+  python: "script.py",
+  html: "index.html",
+  css: "styles.css",
+  sql: "query.sql",
+  bash: "script.sh",
+  sh: "script.sh",
+  shell: "script.sh",
+  json: "data.json",
+  java: "Main.java",
+  c: "main.c",
+  cpp: "main.cpp",
+  go: "main.go",
+  rust: "main.rs",
+  php: "index.php",
+  yaml: "config.yaml",
+  yml: "config.yml",
+};
+/** Extrait les gros blocs de code d'une réponse : ils vont dans le panneau droit, pas dans le fil. */
+export function extractCodeArtifact(answer, message = "") {
+  const files = [],
+    used = new Set();
+  const text = String(answer || "")
+    .replace(/```([\w+#.-]*)[^\n]*\n([\s\S]*?)```/g, (whole, lang, body) => {
+      const content = body.replace(/\s+$/, ""),
+        l = String(lang || "").toLowerCase();
+      if (
+        content.split("\n").length < 6 ||
+        ["text", "txt", "markdown", "md", "ascii", "mermaid"].includes(l)
+      )
+        return whole;
+      const hint =
+        /^(?:\/\/|#|<!--|--)\s*(?:file(?:name)?|fichier)\s*:\s*([\w./-]+)/i.exec(
+          content.split("\n")[0],
+        );
+      let path = hint?.[1] || CODE_FILE[l] || `fichier.${l || "txt"}`;
+      while (used.has(path))
+        path = path.replace(
+          /(\.[^./]+)?$/,
+          (e) => `-${used.size + 1}${e || ""}`,
+        );
+      used.add(path);
+      files.push({ path, lang: l, content });
+      return `\n\n> Fichier **${path}** : voir le panneau de droite.\n\n`;
+    })
+    .trim();
+  if (!files.length) return null;
+  const title = `Code : ${String(message).replace(/\s+/g, " ").trim().slice(0, 52) || files[0].path}`;
+  return {
+    text,
+    artifact: {
+      type: "code",
+      title,
+      summary: `${files.length} fichier${files.length > 1 ? "s" : ""} · ${files.reduce((s, f) => s + f.content.split("\n").length, 0)} lignes`,
+      files,
+    },
+  };
 }
