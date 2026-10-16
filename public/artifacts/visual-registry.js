@@ -1015,6 +1015,7 @@ export function normalizeVisualDocument(input) {
   if (
     [
       "sequence_diagram",
+      "charts",
       "state_diagram",
       "er_diagram",
       "class_diagram",

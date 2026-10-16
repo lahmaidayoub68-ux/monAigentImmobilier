@@ -5,6 +5,11 @@
    • aucun contenu visuel n'est substitué si la génération ne fournit pas d'artefact valide. */
 
 import { normalizeScientificText } from "../public/artifacts/scientific-text.js";
+import { LIB_NAMES } from "../public/artifacts/shape-kit.js";
+import {
+  SCHEMA_BY_ID,
+  schemaContract,
+} from "../public/artifacts/schema-types.js";
 
 const txt = (v, n = 300) =>
   String(v ?? "")
@@ -253,13 +258,21 @@ export function sanitizeEngineArtifact(
     title: txt(raw.title, 120) || "Figure",
     summary: txt(raw.summary, 500),
   };
+  if (type === "diagram" && raw.schemaType && SCHEMA_BY_ID[raw.schemaType])
+    raw = {
+      ...raw,
+      semanticType: raw.semanticType || SCHEMA_BY_ID[raw.schemaType].renderer,
+    };
   switch (type) {
     case "code":
       return cleanCode(base, raw);
     case "plot":
       return cleanPlot(base, raw);
-    case "diagram":
-      return cleanDiagram(base, raw);
+    case "diagram": {
+      const d = cleanDiagram(base, raw);
+      if (d && SCHEMA_BY_ID[raw.schemaType]) d.schemaType = raw.schemaType;
+      return d;
+    }
     case "timeline":
       return cleanTimeline(base, raw);
     case "probtree":
@@ -399,6 +412,7 @@ function cleanPlot(base, raw) {
 }
 
 const FAMILY_DATA = new Set([
+  "charts",
   "sequence_diagram",
   "state_diagram",
   "er_diagram",
@@ -669,6 +683,24 @@ function cleanFamily(base, raw) {
       .filter((l) => l.stations.length >= 2);
     return lines.length ? { ...base, semanticType: t, stations, lines } : null;
   }
+  if (t === "charts") {
+    const series = L(raw.series, 6)
+      .map((s) => ({
+        label: txt(s?.label, 40),
+        values: L(s?.values, 60).map((v) => num(v, 0, -1e12, 1e12)),
+      }))
+      .filter((s) => s.values.length);
+    return series.length
+      ? {
+          ...base,
+          semanticType: t,
+          chart: ["pie", "bar", "line"].includes(raw.chart) ? raw.chart : "bar",
+          labels: L(raw.labels, 60).map((x) => txt(x, 30)),
+          series,
+          unit: txt(raw.unit, 16),
+        }
+      : null;
+  }
   return null;
 }
 
@@ -725,6 +757,17 @@ function cleanDiagram(base, raw) {
   return {
     ...base,
     semanticType: [
+      "blocks",
+      "steps",
+      "tree_lr",
+      "pyramid",
+      "star",
+      "comm_model",
+      "fishbone",
+      "swot",
+      "layers_diagram",
+      "cycle_diagram",
+      "org_chart",
       "mind_map",
       "concept_map",
       "flowchart",
@@ -827,6 +870,204 @@ const cleanPattern = (p) =>
       }
     : undefined;
 
+const SHAPE_OPS = new Set([
+  "box",
+  "cyl",
+  "sphere",
+  "dome",
+  "cone",
+  "capsule",
+  "torus",
+  "prism",
+  "wedge",
+  "lathe",
+  "extrude",
+  "loft",
+  "tube",
+  "hollow",
+  "plate",
+  "stairs",
+  "rail",
+  "truss",
+  "group",
+  "array",
+  "mirror",
+  "lib",
+]);
+const vecN = (v, len, d = 0) =>
+  Array.isArray(v)
+    ? Array.from({ length: len }, (_, i) => num(v[i], d, -1e4, 1e4))
+    : undefined;
+const polyOf = (v) => {
+  const p = (Array.isArray(v) ? v : [])
+    .slice(0, 60)
+    .map((q) => [num(q?.[0], 0, -1e4, 1e4), num(q?.[1], 0, -1e4, 1e4)]);
+  return p.length >= 3 ? p : null;
+};
+const pathOf = (v) => {
+  const p = (Array.isArray(v) ? v : [])
+    .slice(0, 60)
+    .map((q) => [
+      num(q?.[0], 0, -1e4, 1e4),
+      num(q?.[1], 0, -1e4, 1e4),
+      num(q?.[2], 0, -1e4, 1e4),
+    ]);
+  return p.length >= 2 ? p : null;
+};
+function cleanShape(n, depth = 0, budget = { n: 0 }) {
+  if (
+    !n ||
+    typeof n !== "object" ||
+    depth > 5 ||
+    budget.n++ > 400 ||
+    !SHAPE_OPS.has(n.op)
+  )
+    return null;
+  const f = (v, d, lo = 0.001, hi = 1e4) => num(v, d, lo, hi),
+    sz = (v, len) =>
+      (vecN(v, len, 1) || Array(len).fill(1)).map((x) => Math.max(0.001, x));
+  const o = {
+    op: n.op,
+    mat: n.mat ? txt(n.mat, 40) : undefined,
+    at: vecN(n.at, 3),
+    rot: vecN(n.rot, 3),
+    scale: Array.isArray(n.scale)
+      ? vecN(n.scale, 3, 1)
+      : n.scale != null
+        ? f(n.scale, 1, 0.01, 100)
+        : undefined,
+  };
+  switch (n.op) {
+    case "box":
+      o.size = sz(n.size, 3);
+      o.r = f(n.r, 0, 0, 100);
+      break;
+    case "cyl":
+      o.r = f(n.r, 0.5);
+      if (n.rt != null) o.rt = f(n.rt, 0.5, 0);
+      if (n.rb != null) o.rb = f(n.rb, 0.5, 0);
+      o.h = f(n.h, 1);
+      break;
+    case "sphere":
+    case "dome":
+      o.r = f(n.r, 0.5);
+      break;
+    case "cone":
+    case "capsule":
+      o.r = f(n.r, 0.5);
+      o.h = f(n.h, 1);
+      break;
+    case "torus":
+      o.R = f(n.R, 1);
+      o.r = f(n.r, 0.1);
+      break;
+    case "prism":
+      o.r = f(n.r, 0.5);
+      o.h = f(n.h, 1);
+      o.n = Math.round(f(n.n, 6, 3, 64));
+      break;
+    case "wedge":
+      o.size = sz(n.size, 3);
+      break;
+    case "lathe":
+      o.profile = (Array.isArray(n.profile) ? n.profile : [])
+        .slice(0, 40)
+        .map((p) => [num(p?.[0], 0.1, 0, 1e3), num(p?.[1], 0, -1e3, 1e3)]);
+      if (o.profile.length < 2) return null;
+      break;
+    case "extrude":
+      o.poly = polyOf(n.poly);
+      if (!o.poly) return null;
+      o.h = f(n.h, 1);
+      o.bevel = f(n.bevel, 0, 0, 10);
+      break;
+    case "loft":
+      o.sections = (Array.isArray(n.sections) ? n.sections : [])
+        .slice(0, 24)
+        .map((s) => ({ y: num(s?.y, 0, -1e3, 1e3), poly: polyOf(s?.poly) }))
+        .filter((s) => s.poly);
+      if (o.sections.length < 2) return null;
+      break;
+    case "tube":
+      o.path = pathOf(n.path);
+      if (!o.path) return null;
+      o.r = f(n.r, 0.05);
+      break;
+    case "rail":
+      o.path = pathOf(n.path);
+      if (!o.path) return null;
+      o.h = f(n.h, 1);
+      break;
+    case "hollow":
+      o.size = sz(n.size, 3);
+      o.t = f(n.t, 0.1, 0.001, 50);
+      o.open = ["top", "bottom", "front", "back", "none"].includes(n.open)
+        ? n.open
+        : "top";
+      o.r = f(n.r, 0, 0, 50);
+      break;
+    case "plate":
+      o.size = sz(n.size, 2);
+      o.t = f(n.t, 0.05, 0.001, 50);
+      o.holes = (Array.isArray(n.holes) ? n.holes : [])
+        .slice(0, 40)
+        .map((h) => [
+          num(h?.[0], 0, -1e3, 1e3),
+          num(h?.[1], 0, -1e3, 1e3),
+          f(h?.[2], 0.05),
+        ]);
+      break;
+    case "stairs":
+      o.n = Math.round(f(n.n, 10, 2, 60));
+      o.w = f(n.w, 1, 0.1, 50);
+      o.rise = f(n.rise, 0.18, 0.01, 5);
+      o.run = f(n.run, 0.28, 0.01, 5);
+      break;
+    case "truss":
+      o.from = vecN(n.from, 3);
+      o.to = vecN(n.to, 3);
+      o.w = f(n.w, 0.4, 0.05, 20);
+      o.bays = Math.round(f(n.bays, 6, 2, 40));
+      break;
+    case "group":
+      o.children = (Array.isArray(n.children) ? n.children : [])
+        .slice(0, 60)
+        .map((c) => cleanShape(c, depth + 1, budget))
+        .filter(Boolean);
+      break;
+    case "array":
+      o.of = cleanShape(n.of, depth + 1, budget);
+      if (!o.of) return null;
+      o.kind = ["linear", "grid", "radial"].includes(n.kind)
+        ? n.kind
+        : "linear";
+      o.n = Math.round(f(n.n, 2, 1, 200));
+      o.step = vecN(n.step, 3);
+      o.nx = Math.round(f(n.nx, 0, 0, 50));
+      o.sx = num(n.sx, 1, -100, 100);
+      o.sz = num(n.sz, 1, -100, 100);
+      o.r = f(n.r, 0, 0, 500);
+      break;
+    case "mirror":
+      o.of = cleanShape(n.of, depth + 1, budget);
+      if (!o.of) return null;
+      o.axis = ["x", "y", "z"].includes(n.axis) ? n.axis : "x";
+      break;
+    case "lib":
+      if (!LIB_NAMES.includes(n.name)) return null;
+      o.name = n.name;
+      o.params = Object.fromEntries(
+        Object.entries(n.params && typeof n.params === "object" ? n.params : {})
+          .slice(0, 8)
+          .map(([k, v]) => [
+            txt(k, 20),
+            typeof v === "number" ? num(v, 0, -1e4, 1e4) : txt(v, 60),
+          ]),
+      );
+      break;
+  }
+  return o;
+}
 function cleanScene(base, raw) {
   const preset = ["assembly", "geothermal"].includes(raw.preset)
     ? raw.preset
@@ -836,6 +1077,16 @@ function cleanScene(base, raw) {
   const objects = (Array.isArray(raw.objects) ? raw.objects : [])
     .slice(0, 400)
     .map((object, index) => {
+      object = Array.isArray(object?.position)
+        ? {
+            ...object,
+            position: {
+              x: object.position[0],
+              y: object.position[1],
+              z: object.position[2],
+            },
+          }
+        : object;
       const id = ident(object?.id, `part${index + 1}`);
       if (ids.has(id)) return null;
       ids.add(id);
@@ -872,6 +1123,10 @@ function cleanScene(base, raw) {
               ["x", "y", "z"].some((axis) =>
                 Number.isFinite(Number(object.position[axis])),
               ),
+        shape: cleanShape(object?.shape),
+        lib: LIB_NAMES.includes(object?.lib) ? object.lib : undefined,
+        material: object?.material ? txt(object.material, 40) : undefined,
+        floating: object?.floating === true,
         role: txt(object?.role, 40) || undefined,
         parent: object?.parent ? ident(object.parent, "") : undefined,
         side: ["left", "right", "center"].includes(object?.side)
@@ -1021,6 +1276,50 @@ function cleanScene(base, raw) {
         opacity: num(layer?.opacity, 1, 0, 1),
       }))
       .filter((layer) => layer.objectIds.length),
+    renderStyle: [
+      "realistic",
+      "semi",
+      "clay",
+      "toon",
+      "flat",
+      "matcap",
+      "wire",
+      "blueprint",
+      "npr",
+    ].includes(raw.renderStyle)
+      ? raw.renderStyle
+      : undefined,
+    view: [
+      "free",
+      "iso",
+      "axo",
+      "p1",
+      "p2",
+      "p3",
+      "ortho_front",
+      "ortho_top",
+      "ortho_side",
+    ].includes(raw.view)
+      ? raw.view
+      : undefined,
+    representation: [
+      "solid",
+      "lowpoly",
+      "quad",
+      "tri",
+      "voxel",
+      "scan",
+      "splat",
+      "sculpt",
+    ].includes(raw.representation)
+      ? raw.representation
+      : undefined,
+    lighting: ["studio", "sun", "ao", "fog", "flat"].includes(raw.lighting)
+      ? raw.lighting
+      : undefined,
+    unitScale:
+      raw.unitScale != null ? num(raw.unitScale, 1, 0.0001, 1e6) : undefined,
+    unitLabel: txt(raw.unitLabel, 8) || undefined,
   };
 }
 function cleanMap(base, raw) {
@@ -1277,4 +1576,4 @@ FAMILLES DE SCHÉMAS SUPPLÉMENTAIRES (diagram.semanticType) — données propre
 - transit_map : {stations:[{id,label}], lines:[{id,label,color,stations:[ids dans l'ordre]}]} ; une station présente dans deux lignes est une correspondance.
 Règle : ne jamais inventer de valeur de mesure ; une valeur illustrative doit être indiquée comme telle dans summary.
 
-CODE ET SCRIPTS : tout code de plus de 5 lignes est livré dans un artefact {type:"code", title, files:[{path,lang,content}], run:"commande pour l'exécuter"} — jamais recopié dans le texte de réponse, qui explique ce que fait le code, ses hypothèses et comment le lancer. Code complet, exécutable, commenté sobrement.`;
+CODE ET SCRIPTS : tout code de plus de 5 lignes est livré dans un artefact {type:"code", title, files:[{path,lang,content}], run:"commande pour l'exécuter"} — jamais recopié dans le texte de réponse, qui explique ce que fait le code, ses hypothèses et comment le lancer. Code complet, exécutable, commenté sobrement. ${schemaContract()}`;

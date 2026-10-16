@@ -3931,7 +3931,13 @@ function renderWelcome() {
 async function renderProjects() {
   closeProjectPanel();
   thread.innerHTML = "";
+  const skel = el("div", "workspace-page");
+  const sg = el("div", "project-grid");
+  for (let i = 0; i < 4; i++) sg.append(el("div", "skeleton-card"));
+  skel.append(sg);
+  thread.append(skel);
   let { projects } = await api("/api/aigent/projects");
+  thread.innerHTML = "";
   const wrap = el("div", "workspace-page projects-page");
   wrap.append(
     el("p", "page-eyebrow", "ESPACE DE TRAVAIL"),
@@ -4017,24 +4023,29 @@ async function renderProjects() {
       const open = el("button", "project-card-open");
       open.type = "button";
       const row = el("span", "project-card-top");
-      row.append(
-        el("span", "project-glyph", "A"),
-        el(
-          "span",
-          "project-status",
-          p.archived
-            ? "Archivé"
-            : {
-                draft: "En conception",
-                built: "Construit",
-                exported: "Exporté",
-              }[p.status] || "En cours",
-        ),
+      const st = el(
+        "span",
+        `project-status is-${p.archived ? "archived" : p.status}`,
+        p.archived
+          ? "Archivé"
+          : {
+              draft: "En conception",
+              built: "Construit",
+              exported: "Exporté",
+            }[p.status] || "En cours",
       );
+
+      row.append(el("span", "project-glyph", "A"), st);
+
       open.append(
         row,
         el("h3", null, p.name),
         el("p", "project-tagline", p.tagline || "Projet AiGENT"),
+        el(
+          "span",
+          "project-time",
+          `Modifié ${window.AiGENT?.rel(p.updatedAt) || ""}`,
+        ),
       );
       const bar = el("div", "bar");
       const fill = el("i");
@@ -4298,11 +4309,81 @@ function renderSettings() {
     location.href = LOGIN_PAGE;
   });
   security.appendChild(out);
-  wrap.append(profile, account, appearance, chatPrefs, security);
+  const perso = el("section", "settings-card");
+  perso.append(
+    el("h3", null, "Personnalisation"),
+    el(
+      "p",
+      "settings-copy",
+      "Accent, taille du texte et densité : appliqués au Chat et à Work, mémorisés sur cet appareil.",
+    ),
+  );
+  const S = window.AiGENT;
+  if (S) {
+    const dots = el("div", "accent-row");
+    Object.entries(S.ACCENTS).forEach(([name, [c]]) => {
+      const b = el(
+        "button",
+        `accent-dot${S.prefs.accent === name ? " is-on" : ""}`,
+      );
+      b.type = "button";
+      b.title = name;
+      b.style.background = c;
+      b.addEventListener("click", () => {
+        S.setPref("accent", name);
+        dots
+          .querySelectorAll(".accent-dot")
+          .forEach((x) => x.classList.toggle("is-on", x === b));
+      });
+      dots.append(b);
+    });
+    const size = el("input");
+    size.type = "range";
+    size.min = 85;
+    size.max = 125;
+    size.step = 5;
+    size.value = S.prefs.size;
+    const out = el("output", null, `${S.prefs.size} %`);
+    size.addEventListener("input", () => {
+      out.textContent = `${size.value} %`;
+      S.setPref("size", Number(size.value));
+    });
+    const sizeRow = el("div", "size-row");
+    sizeRow.append(size, out);
+    const dens = seg(
+      [
+        ["comfortable", "Confortable"],
+        ["compact", "Compacte"],
+      ],
+      S.prefs.density,
+      (v) => S.setPref("density", v),
+    );
+    perso.append(
+      ctl("Accent", dots),
+      ctl("Taille du texte", sizeRow),
+      ctl("Densité", dens),
+    );
+  }
+  const keys = el("section", "settings-card");
+  keys.append(el("h3", null, "Raccourcis"));
+  const dl = el("dl", "settings-keys");
+  [
+    ["Ctrl/⌘ + K", "Palette de commandes"],
+    ["F", "Mode focus"],
+    ["/", "Aller à la saisie"],
+    ["?", "Aide"],
+  ].forEach(([k, d]) => {
+    dl.append(el("dt"));
+    dl.lastChild.append(el("kbd", null, k));
+    dl.append(el("dd", null, d));
+  });
+  keys.append(dl);
+  wrap.append(profile, account, perso, appearance, chatPrefs, keys, security);
   thread.appendChild(wrap);
 }
 
 function setView(view) {
+  setNav(false);
   state.view = view;
   shell.dataset.view = view;
   const pageHeadings = {
@@ -4315,9 +4396,10 @@ function setView(view) {
     $("#projectTitle").textContent = pageHeading[0];
     $("#projectSub").textContent = pageHeading[1];
   } else if (state.project) refreshHeader();
-  document
-    .querySelectorAll(".nav-item")
-    .forEach((b) => b.classList.toggle("is-active", b.dataset.view === view));
+  document.querySelectorAll(".nav-item").forEach((b) => {
+    b.classList.toggle("is-active", b.dataset.view === view);
+    b.toggleAttribute("aria-current", b.dataset.view === view);
+  });
   if (view === "mine") renderProjects();
   else if (view === "settings") renderSettings();
   else if (view === "create") newProject();
@@ -4330,6 +4412,17 @@ document
   .querySelectorAll(".nav-item")
   .forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
 
+const setNav = (open) => {
+  shell.classList.toggle("is-nav-open", open);
+  $("#navBackdrop").hidden = !open;
+  $("#navToggle").setAttribute("aria-expanded", String(open));
+  document.body.classList.toggle("is-locked", open);
+};
+$("#navToggle").addEventListener("click", () =>
+  setNav(!shell.classList.contains("is-nav-open")),
+);
+$("#navBackdrop").addEventListener("click", () => setNav(false));
+addEventListener("resize", () => innerWidth > 900 && setNav(false));
 /* ══════════════════════════════════════════════════════════════════
    PROJETS
    ══════════════════════════════════════════════════════════════════ */

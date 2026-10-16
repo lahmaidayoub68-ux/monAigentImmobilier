@@ -175,50 +175,121 @@ function renderModeBar() {
   setMode(state.mode);
 }
 
-function renderConversations() {
-  const list = $("#conversationList");
-  list.replaceChildren();
-  if (!state.conversations.length) {
-    list.append(
-      el("p", "conversation-empty", "Vos échanges apparaîtront ici."),
-    );
-    return;
-  }
-  for (const conversation of state.conversations) {
-    const row = el(
+const PINS = new Set(JSON.parse(localStorage.getItem("aigent_pins") || "[]"));
+const savePins = () =>
+  localStorage.setItem("aigent_pins", JSON.stringify([...PINS]));
+function dateBucket(v) {
+  const d = new Date(v),
+    n = new Date(),
+    s = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(),
+    k = (s(n) - s(d)) / 864e5;
+  return k <= 0
+    ? "Aujourd’hui"
+    : k === 1
+      ? "Hier"
+      : k < 8
+        ? "7 derniers jours"
+        : k < 31
+          ? "30 derniers jours"
+          : "Plus ancien";
+}
+function conversationRow(conversation) {
+  const row = el(
       "div",
       `conversation-item${conversation.id === state.conversationId ? " is-active" : ""}`,
-    );
-    const open = el("button", "conversation-open", conversation.title);
-    open.type = "button";
-    open.dataset.tooltip = conversation.title;
-    open.setAttribute("aria-label", conversation.title);
-    const placeTitleTip = () => {
-      const rect = open.getBoundingClientRect();
-      open.style.setProperty(
-        "--tooltip-left",
-        `${Math.max(12, Math.min(rect.left, window.innerWidth - 336))}px`,
-      );
-      open.style.setProperty(
-        "--tooltip-top",
-        `${Math.max(8, Math.min(rect.bottom + 7, window.innerHeight - 68))}px`,
-      );
+    ),
+    open = el("button", "conversation-open", conversation.title);
+  open.type = "button";
+  open.dataset.tooltip = conversation.title;
+  open.setAttribute("aria-label", conversation.title);
+  open.addEventListener("click", () => loadConversation(conversation.id));
+  open.addEventListener("dblclick", () => {
+    const inp = el("input", "conversation-rename");
+    inp.value = conversation.title;
+    open.replaceWith(inp);
+    inp.focus();
+    inp.select();
+    let done = false;
+    const end = async (ok) => {
+      if (done) return;
+      done = true;
+      const v = inp.value.trim();
+      if (ok && v && v !== conversation.title) {
+        try {
+          await api(`/api/aigent/chat/conversations/${conversation.id}`, {
+            method: "PATCH",
+            body: { title: v },
+          });
+          conversation.title = v;
+          if (state.conversationId === conversation.id) {
+            state.conversation.title = v;
+            setConversationHeading();
+          }
+        } catch (e) {
+          toast(e.message);
+        }
+      }
+      renderConversations();
     };
-    open.addEventListener("mouseenter", placeTitleTip);
-    open.addEventListener("focus", placeTitleTip);
-    open.addEventListener("click", () => loadConversation(conversation.id));
-    const remove = el("button", "conversation-delete");
-    remove.type = "button";
-    remove.title = "Supprimer la conversation";
-    remove.setAttribute("aria-label", `Supprimer ${conversation.title}`);
-    remove.append(icon("i-close"));
-    remove.addEventListener("click", (event) => {
-      event.stopPropagation();
-      deleteConversation(conversation);
+    inp.onkeydown = (e) => {
+      if (e.key === "Enter") end(true);
+      if (e.key === "Escape") end(false);
+    };
+    inp.onblur = () => end(true);
+  });
+  const pin = el(
+    "button",
+    `conversation-pin${PINS.has(conversation.id) ? " is-on" : ""}`,
+    "★",
+  );
+  pin.type = "button";
+  pin.title = PINS.has(conversation.id) ? "Désépingler" : "Épingler";
+  pin.addEventListener("click", (e) => {
+    e.stopPropagation();
+    PINS.has(conversation.id)
+      ? PINS.delete(conversation.id)
+      : PINS.add(conversation.id);
+    savePins();
+    renderConversations();
+  });
+  const remove = el("button", "conversation-delete");
+  remove.type = "button";
+  remove.title = "Supprimer la conversation";
+  remove.setAttribute("aria-label", `Supprimer ${conversation.title}`);
+  remove.append(icon("i-close"));
+  remove.addEventListener("click", (e) => {
+    e.stopPropagation();
+    deleteConversation(conversation);
+  });
+  row.append(open, pin, remove);
+  return row;
+}
+function renderConversations() {
+  const list = $("#conversationList"),
+    q = ($("#conversationSearch")?.value || "").trim().toLowerCase();
+  list.replaceChildren();
+  const items = state.conversations.filter(
+    (c) => !q || c.title.toLowerCase().includes(q),
+  );
+  if (!items.length)
+    return void list.append(
+      el(
+        "p",
+        "conversation-empty",
+        q ? "Aucune conversation trouvée." : "Vos échanges apparaîtront ici.",
+      ),
+    );
+  const groups = new Map();
+  [...items]
+    .sort((a, b) => PINS.has(b.id) - PINS.has(a.id))
+    .forEach((c) => {
+      const k = PINS.has(c.id) ? "Épinglées" : dateBucket(c.updated_at);
+      (groups.get(k) || groups.set(k, []).get(k)).push(c);
     });
-    row.append(open, remove);
-    list.append(row);
-  }
+  groups.forEach((cs, k) => {
+    list.append(el("div", "conversation-group", k));
+    cs.forEach((c) => list.append(conversationRow(c)));
+  });
 }
 function setConversationHeading() {
   $("#conversationTitle").textContent =
@@ -415,6 +486,15 @@ function renderMessage(message) {
   copy.append(copySvg);
   copy.addEventListener("click", () => copyText(cleanMarkdown(leak.text)));
   main.append(copy);
+  if (message.role === "assistant") {
+    const regen = el("button", "message-regen", "↻ Régénérer");
+    regen.type = "button";
+    regen.addEventListener("click", () => {
+      const u = [...state.messages].reverse().find((m) => m.role === "user");
+      if (u) sendMessage(String(u.content).split("\n\nFichiers joints")[0]);
+    });
+    main.append(regen);
+  }
   const suggestions =
     message.role === "assistant"
       ? message.suggestions || (message.suggestion ? [message.suggestion] : [])
@@ -1151,6 +1231,18 @@ function scrollMessages() {
     messages.scrollTop = messages.scrollHeight;
   });
 }
+function stopThinking() {
+  const n = $("#thinkingIndicator");
+
+  if (!n) return;
+
+  if (n._timer) {
+    clearInterval(n._timer);
+    n._timer = null;
+  }
+
+  n.remove();
+}
 function showThinking(searching = false) {
   const article = el("article", "chat-message assistant");
   article.id = "thinkingIndicator";
@@ -1174,19 +1266,36 @@ function showThinking(searching = false) {
     svg.append(path);
     indicator.append(svg);
   }
-  indicator.append(
-    el(
-      "span",
-      "thinking-shimmer",
-      searching
-        ? "Recherche sur le web…"
-        : state.mode === "decide"
-          ? "AiGENT met les options en balance…"
-          : state.mode === "create"
-            ? "AiGENT prépare un livrable…"
-            : "AiGENT organise sa réflexion…",
-    ),
-  );
+  const STAGES = {
+    plain: [
+      "Analyse de la demande",
+      "Recherche des éléments utiles",
+      "Rédaction de la réponse",
+      "Relecture et vérification",
+    ],
+    visual: [
+      "Analyse de la demande",
+      "Conception du livrable",
+      "Génération des figures",
+      "Contrôle de la qualité",
+      "Mise en page",
+    ],
+  };
+
+  const stages = searching
+    ? ["Recherche sur le web…", "Lecture des sources", "Synthèse"]
+    : state.pendingVisual
+      ? STAGES.visual
+      : STAGES.plain;
+  const label = el("span", "thinking-shimmer", stages[0]),
+    count = el("span", "thinking-count", `1/${stages.length}`);
+  indicator.append(label, count);
+  let at = 0;
+  article._timer = setInterval(() => {
+    at = Math.min(stages.length - 1, at + 1);
+    label.textContent = stages[at];
+    count.textContent = `${at + 1}/${stages.length}`;
+  }, 3200);
   main.append(indicator);
   article.append(main);
   $("#chatMessages").append(article);
@@ -1341,6 +1450,10 @@ async function sendMessage(text, attachments = []) {
     state.messages.push(userMessage);
     renderMessage(userMessage);
     scrollMessages();
+    state.pendingVisual =
+      /(sch[ée]ma|3d|diagramme|graphique|maquette|dossier|document|rapport|tableau|frise|carte|code|script)/i.test(
+        text,
+      );
     const indicator = showThinking(expectsWebSearch(text));
     const result = await api(
       `/api/aigent/chat/conversations/${state.conversationId}/messages`,
@@ -1354,7 +1467,7 @@ async function sendMessage(text, attachments = []) {
         },
       },
     );
-    indicator.remove();
+    stopThinking();
     const assistant = {
       ...result.message,
       suggestions:
@@ -1383,7 +1496,7 @@ async function sendMessage(text, attachments = []) {
     setConversationHeading();
     scrollMessages();
   } catch (error) {
-    $("#thinkingIndicator")?.remove();
+    stopThinking();
     toast(error.message);
   } finally {
     state.busy = false;
@@ -1569,6 +1682,12 @@ function buildFooter(artifact) {
     exports.push(
       ["Image vectorielle (SVG)", exportArtifactSvg],
       ["Image (PNG)", exportArtifactPng],
+    );
+  if (engine && artifact.type !== "code")
+    exports.push(
+      ["Copier l’image (PNG)", copyArtifactPng],
+      ["PNG publication 4× (fond blanc)", () => publication("png")],
+      ["SVG publication (fond blanc)", () => publication("svg")],
     );
   exports.push(
     ["Imprimer / PDF", () => window.print()],
@@ -1965,7 +2084,11 @@ function openEngineOverlay(artifact) {
     "display:block;flex:1;min-height:0;padding:0;overflow:hidden";
   const close = el("button", "artifact-zoom-close", "Fermer");
   close.type = "button";
-  header.append(el("strong", null, artifact.title || "Visualisation"), close);
+  header.append(
+    el("strong", null, artifact.title || "Visualisation"),
+    el("span", "artifact-zoom-hint", "Échap pour fermer"),
+    close,
+  );
   shell.append(header, body);
   overlay.append(shell);
   document.body.append(overlay);
@@ -2935,6 +3058,45 @@ async function convertToWork() {
   }
 }
 
+function lightFigure(run) {
+  const h = document.documentElement,
+    prev = h.dataset.theme;
+  h.dataset.theme = "light";
+  try {
+    return run();
+  } finally {
+    h.dataset.theme = prev;
+  }
+}
+async function publication(kind) {
+  const f = panelFigure();
+  if (!f) return toast("Cette figure ne propose pas d’export publication.");
+  const title = slug(state.artifact?.title),
+    box = exportFigure.svgBox(f);
+  if (kind === "svg") {
+    const { xml } = lightFigure(() => exportFigure.svgMarkup(f, box));
+    return downloadFile(
+      `${title}-publication.svg`,
+      xml,
+      "image/svg+xml;charset=utf-8",
+    );
+  }
+  const blob = await lightFigure(() => exportFigure.svgToPng(f, box, 4));
+  if (blob) downloadFile(`${title}-publication.png`, blob, "image/png");
+}
+async function copyArtifactPng() {
+  const cap = $("#artifactContent")?.querySelector(".ax-scene3d")?.__capture;
+  let blob;
+  if (cap) blob = await (await fetch(cap())).blob();
+  else {
+    const f = panelFigure();
+    if (!f) return toast("Aucune figure à copier.");
+    blob = await exportFigure.svgToPng(f, exportFigure.svgBox(f), 3);
+  }
+  await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+  toast("Image copiée dans le presse-papiers");
+}
+
 function initInteractions() {
   const composerWrap = $(".chat-composer-wrap");
   const syncComposerHeight = () =>
@@ -2947,6 +3109,7 @@ function initInteractions() {
   else window.addEventListener("resize", syncComposerHeight);
   syncComposerHeight();
   $("#newConversation").addEventListener("click", newConversation);
+  $("#conversationSearch").addEventListener("input", renderConversations);
   state.attachments = [];
   $("#chatAttach").addEventListener("click", () => $("#chatFileInput").click());
   $("#chatFileInput").addEventListener("change", async (event) => {
@@ -3198,6 +3361,27 @@ function initInteractions() {
       !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)
     )
       setSide(!shell.classList.contains("is-collapsed"));
+  });
+  const navBtn = $("#navToggle"),
+    backdrop = $("#navBackdrop");
+  const setNav = (open) => {
+    shell.classList.toggle("is-nav-open", open);
+    backdrop.hidden = !open;
+    navBtn.setAttribute("aria-expanded", String(open));
+    document.body.classList.toggle("is-locked", open);
+  };
+  navBtn.addEventListener("click", () =>
+    setNav(!shell.classList.contains("is-nav-open")),
+  );
+  backdrop.addEventListener("click", () => setNav(false));
+  $("#conversationList").addEventListener("click", (e) => {
+    if (e.target.closest(".conversation-open")) setNav(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") setNav(false);
+  });
+  window.addEventListener("resize", () => {
+    if (innerWidth > 900) setNav(false);
   });
 }
 

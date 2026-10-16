@@ -4,15 +4,41 @@ import {
   FAMILIES as FAMILIES_1,
   DATA_FAMILIES as DATA_1,
 } from "./diagram-families.js";
+
 import {
   FAMILIES_2,
   DATA_FAMILIES_2,
   inferFamily,
   FAMILY_OPTIONS,
 } from "./diagram-families-2.js";
+
+import {
+  FAMILIES_3,
+  DATA_FAMILIES_3,
+  decorate,
+  applyArrow,
+} from "./diagram-families-3.js";
+import { FRAMES, schemaEntry, SCHEMA_BY_ID } from "./schema-types.js";
 import { mountCodeView, highlightCode } from "./code-view.js";
-const FAMILIES = { ...FAMILIES_1, ...FAMILIES_2 };
-const DATA_FAMILIES = new Set([...DATA_1, ...DATA_FAMILIES_2]);
+import {
+  STYLES,
+  REPS,
+  VIEWS,
+  LIGHTS,
+  applyStyle,
+  applyRep,
+  applyLighting,
+  makeCamera,
+  makeEnv,
+  addDimensions,
+} from "./render-styles.js";
+
+const FAMILIES = { ...FAMILIES_1, ...FAMILIES_2, ...FAMILIES_3 };
+const DATA_FAMILIES = new Set([
+  ...DATA_1,
+  ...DATA_FAMILIES_2,
+  ...DATA_FAMILIES_3,
+]);
 export { highlightCode };
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -605,6 +631,80 @@ export function disposeDetached() {
     }
 }
 
+function dropdown(root, it) {
+  const wrap = dom("div", "ax-dd"),
+    btn = dom("button", "ax-dd-btn"),
+    menu = dom("div", "ax-dd-menu"),
+    val = dom("b", "ax-dd-val");
+  btn.type = "button";
+  btn.title = it.label;
+  btn.setAttribute("aria-haspopup", "listbox");
+  menu.hidden = true;
+  menu.setAttribute("role", "listbox");
+  btn.append(
+    dom("span", "ax-dd-lab", it.label),
+    val,
+    dom("i", "ax-dd-car", "▾"),
+  );
+  let cur = it.value;
+  const close = () => {
+    menu.hidden = true;
+    wrap.classList.remove("is-open");
+  };
+  const paint = () => {
+    const o = it.options.find((x) => x[0] === cur) || it.options[0];
+    val.textContent = o[1];
+    menu
+      .querySelectorAll(".ax-dd-item")
+      .forEach((n) =>
+        n.classList.toggle("is-on", n.dataset.v === String(o[0])),
+      );
+  };
+  it.options.forEach(([v, l, hint]) => {
+    const row = dom("button", "ax-dd-item");
+    row.type = "button";
+    row.dataset.v = String(v);
+    row.setAttribute("role", "option");
+    row.append(dom("span", "ax-dd-check", "✓"), dom("span", "ax-dd-text", l));
+    if (hint) row.append(dom("small", null, hint));
+    row.addEventListener("click", () => {
+      cur = v;
+      paint();
+      close();
+      it.run(v);
+    });
+    menu.append(row);
+  });
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = menu.hidden;
+    root.querySelectorAll(".ax-dd-menu").forEach((m) => (m.hidden = true));
+    root
+      .querySelectorAll(".ax-dd")
+      .forEach((w) => w.classList.remove("is-open"));
+    menu.hidden = !open;
+    wrap.classList.toggle("is-open", open);
+    if (open) {
+      const r = btn.getBoundingClientRect(),
+        rr = root.getBoundingClientRect();
+      menu.style.top = `${r.bottom - rr.top + 6}px`;
+      menu.style.left = `${Math.max(6, Math.min(r.left - rr.left, rr.width - 258))}px`;
+      menu.querySelector(".is-on")?.scrollIntoView({ block: "nearest" });
+    }
+  });
+  const off = (e) => {
+    if (!wrap.contains(e.target) && !menu.contains(e.target)) close();
+  };
+  document.addEventListener("pointerdown", off, true);
+  track(root, () => document.removeEventListener("pointerdown", off, true));
+  root.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") close();
+  });
+  wrap.append(btn);
+  root.append(menu);
+  paint();
+  return wrap;
+}
 function makeShell(kind, ctx) {
   const root = dom(
     "section",
@@ -689,16 +789,7 @@ function makeShell(kind, ctx) {
           return;
         }
         if (it?.type === "select") {
-          const select = dom("select", "ax-select");
-          select.setAttribute("aria-label", it.label);
-          it.options.forEach(([value, label]) => {
-            const option = dom("option", null, label);
-            option.value = value;
-            option.selected = value === it.value;
-            select.append(option);
-          });
-          select.addEventListener("change", () => it.run(select.value));
-          bar.append(select);
+          bar.append(dropdown(root, it));
           return;
         }
         const b = dom("button", `ax-btn${it.on ? " is-on" : ""}`, it.label);
@@ -1909,6 +2000,24 @@ async function mountPlot(a, host, ctx) {
       },
     },
     {
+      label: "Rotation",
+      title: "Rotation automatique",
+      toggle: true,
+      on: false,
+      run: (on) => (turn = on),
+    },
+    {
+      label: "Mesurer",
+      title: "Cliquer deux points pour mesurer",
+      toggle: true,
+      on: false,
+      run: (on) => {
+        measuring = on;
+        clearMeasure();
+        canvas.style.cursor = on ? "crosshair" : "grab";
+      },
+    },
+    {
       label: "Axes",
       toggle: true,
       on: show.axes,
@@ -2725,18 +2834,13 @@ async function mountFamily(a, host, ctx, render) {
   sh.stage.append(svg);
   markers(svgn("defs", {}, svg), id);
   const g = svgn("g", {}, svg);
-  const box = render(a, g, {
-    svgn,
-    wrap,
-    measure,
-    clamp,
-    PALETTE,
-    LBL,
-    DET,
-    id,
-    sh,
-    fmt,
-  });
+  const H = { svgn, wrap, measure, clamp, PALETTE, LBL, DET, id, sh, fmt },
+    entry = schemaEntry(a),
+    frame = FRAMES[entry.frame] || FRAMES.explain;
+  const inner = render(a, g, H),
+    box = decorate(H, g, inner, entry, frame);
+  applyArrow(svg, id, frame.arrow);
+  sh.root.dataset.schemaType = a.schemaType || a.semanticType;
   const vp = viewport(sh, svg, g, () => box, ctx);
   const items = [
     { label: "+", title: "Zoom avant", run: () => vp.pz.zoomCenter(1.2) },
@@ -2765,6 +2869,8 @@ async function mountFamily(a, host, ctx, render) {
   track(sh.root, () => vp.destroy());
 }
 async function mountDiagram(a, host, ctx) {
+  if (a.schemaType && SCHEMA_BY_ID[a.schemaType] && !a.semanticType)
+    a = { ...a, semanticType: SCHEMA_BY_ID[a.schemaType].renderer };
   if (!a.semanticType) a = { ...a, semanticType: inferFamily(a) };
   const family = FAMILIES[a.semanticType];
   if (family) return mountFamily(a, host, ctx, family);
@@ -4045,6 +4151,7 @@ async function mountSheet(a, host, ctx) {
 }
 
 function mountAssembly3D(a, host, ctx, T, sh) {
+  const hiddenIds = new Set();
   const visualStyle = ctx.visualStyle || "linear";
   sh.root.dataset.visualStyle = visualStyle;
   const renderer = new T.WebGLRenderer({
@@ -4064,6 +4171,8 @@ function mountAssembly3D(a, host, ctx, T, sh) {
   sh.stage.append(renderer.domElement);
   const scene = new T.Scene();
   const darkTheme = document.documentElement.dataset.theme !== "light";
+  const dark = darkTheme;
+
   scene.background = new T.Color(
     visualStyle === "classroom"
       ? darkTheme
@@ -4077,10 +4186,11 @@ function mountAssembly3D(a, host, ctx, T, sh) {
           ? 0x10131b
           : 0xf7f8fc,
   );
-  const camera = new T.PerspectiveCamera(38, 1, 0.1, 200);
+  let camera = new T.PerspectiveCamera(38, 1, 0.1, 200);
   camera.position.set(8, 6, 10);
   camera.lookAt(0, 0, 0);
-  scene.add(new T.HemisphereLight(0xe8efff, 0x263043, 2.1));
+  const hemi = new T.HemisphereLight(0xe8efff, 0x263043, 2.1);
+  scene.add(hemi);
   const key = new T.DirectionalLight(0xffffff, 3.2);
   key.position.set(6, 9, 8);
   scene.add(key);
@@ -4120,15 +4230,24 @@ function mountAssembly3D(a, host, ctx, T, sh) {
     } else if (visualStyle === "classroom") c.offsetHSL(0, 0.12, 0.08);
     return c;
   };
-  const material = (color, opacity = 1, metalness = 0.35) =>
-    new T.MeshStandardMaterial({
+  const material = (color, opacity = 1, metalness = 0.35, extra = {}) => {
+    const m = new T.MeshStandardMaterial({
       color: styledColor(color),
-      roughness: visualStyle === "classroom" ? 0.52 : 0.36,
+      roughness: extra.roughness ?? (visualStyle === "classroom" ? 0.52 : 0.36),
       metalness: visualStyle === "mono" ? 0.12 : metalness,
       transparent: opacity < 1,
       opacity,
       side: T.DoubleSide,
     });
+    m.userData.spec = {
+      color: styledColor(color).getHex(),
+      opacity,
+      metalness: m.metalness,
+      roughness: m.roughness,
+      emissive: !!extra.emissive,
+    };
+    return m;
+  };
   const meshFor = (part) => {
     const kind = `${part.kind} ${part.primitive}`.toLowerCase();
     const [sx, sy, sz] = part.scale || [1, 1, 1];
@@ -5188,7 +5307,12 @@ function mountAssembly3D(a, host, ctx, T, sh) {
   key.target.position.copy(center);
   scene.add(key.target);
   if (a.preset !== "geothermal") {
-    gridHelper = new T.GridHelper(radius * 5, 40, 0x59657a, 0x303949);
+    gridHelper = new T.GridHelper(
+      radius * 5,
+      40,
+      dark ? 0x59657a : 0xaab3c5,
+      dark ? 0x303949 : 0xd3d9e5,
+    );
     gridHelper.position.y = floorY - 0.005;
     gridHelper.material.transparent = true;
     gridHelper.material.opacity = 0.35;
@@ -5204,32 +5328,32 @@ function mountAssembly3D(a, host, ctx, T, sh) {
     floor.receiveShadow = true;
     scene.add(floor);
   }
-  const cameraViews = {
-    isometric: (plan.camera?.dir
-      ? new T.Vector3(...plan.camera.dir)
-      : new T.Vector3(1, 0.78, 1.25)
-    ).normalize(),
-    side: new T.Vector3(1, 0.05, 0),
-    front: new T.Vector3(0, 0.08, 1),
-    top: new T.Vector3(0, 1, 0.001),
-    side: new T.Vector3(1, 0.08, 0),
+  const asp0 = () =>
+    (sh.stage.clientWidth || 560) / (sh.stage.clientHeight || 420);
+  let currentView = VIEWS.some(([v]) => v === a.view) ? a.view : "free",
+    home;
+  const useView = (v) => {
+    currentView = v;
+    camera = makeCamera(
+      T,
+      v,
+      asp0(),
+      radius * (plan.camera?.dist || 1),
+      center,
+      plan.camera?.dir,
+    );
+    home = camera.position.clone();
   };
-  camera.position.copy(
-    center
-      .clone()
-      .add(
-        (cameraViews[a.camera?.view] || cameraViews.isometric)
-          .clone()
-          .multiplyScalar(cameraDistance),
-      ),
-  );
-  camera.far = Math.max(200, radius * 12);
-  camera.lookAt(center);
+  useView(currentView);
   const resize = () => {
     const width = sh.stage.clientWidth || 560,
-      height = sh.stage.clientHeight || 420;
+      height = sh.stage.clientHeight || 420,
+      asp = width / height;
     renderer.setSize(width, height, false);
-    camera.aspect = width / height;
+    if (camera.isOrthographicCamera) {
+      camera.left = -camera.top * asp;
+      camera.right = camera.top * asp;
+    } else camera.aspect = asp;
     camera.updateProjectionMatrix();
   };
   const observer = new ResizeObserver(resize);
@@ -5289,6 +5413,10 @@ function mountAssembly3D(a, host, ctx, T, sh) {
         return target?.userData.visualPart;
       });
     if (!hit) return;
+    if (measuring) {
+      addMeasure(model.worldToLocal(hit.point.clone()));
+      return;
+    }
     let target = hit.object;
     while (target && !target.userData.visualPart) target = target.parent;
     const part = objects.find(
@@ -5334,15 +5462,23 @@ function mountAssembly3D(a, host, ctx, T, sh) {
       if (a.interaction?.zoom === false) return;
       if (!wheelOK(event, sh.root)) return;
       event.preventDefault();
-      camera.position.multiplyScalar(event.deltaY < 0 ? 0.91 : 1.1);
-      camera.position.clampLength(
-        Math.max(1, radius * 0.45),
-        Math.max(24, radius * 7),
-      );
+      if (camera.isOrthographicCamera) {
+        camera.zoom = clamp(
+          camera.zoom * (event.deltaY < 0 ? 1.1 : 0.91),
+          0.3,
+          8,
+        );
+        camera.updateProjectionMatrix();
+        return;
+      }
+      camera.position
+        .sub(center)
+        .multiplyScalar(event.deltaY < 0 ? 0.91 : 1.1)
+        .add(center);
     },
     { passive: false },
   );
-  const hiddenIds = new Set();
+
   const draw = () => {
     if (!alive) return;
     frame = requestAnimationFrame(draw);
@@ -5379,19 +5515,7 @@ function mountAssembly3D(a, host, ctx, T, sh) {
     });
   };
   draw();
-  const home = camera.position.clone();
-  const setView = (view) => {
-    camera.position.copy(
-      center
-        .clone()
-        .add(
-          (cameraViews[view] || cameraViews.isometric)
-            .clone()
-            .multiplyScalar(cameraDistance),
-        ),
-    );
-    camera.lookAt(center);
-  };
+
   const matList = [];
   model.traverse((n) => {
     if (n.material)
@@ -5406,103 +5530,243 @@ function mountAssembly3D(a, host, ctx, T, sh) {
     for (let p = n; p; p = p.parent) if (p.userData?.env) return true;
     return false;
   };
+
+  ((env = makeEnv(T, renderer, dark)), (repState = { overlays: [] }));
+  const aoLights = [
+    [1, 1, 1],
+    [-1, 1, 1],
+    [1, 1, -1],
+    [-1, 1, -1],
+  ].map(([x, y, z]) => {
+    const l = new T.DirectionalLight(0xffffff, 0),
+      s = l.shadow.camera;
+    l.position
+      .copy(center)
+      .add(new T.Vector3(x, y * 1.6, z).multiplyScalar(radius * 2));
+    l.target.position.copy(center);
+    l.castShadow = true;
+    l.shadow.mapSize.set(1024, 1024);
+    s.left = s.bottom = -radius * 1.8;
+    s.right = s.top = radius * 1.8;
+    s.far = radius * 10;
+    s.updateProjectionMatrix();
+    l.visible = false;
+    scene.add(l, l.target);
+    return l;
+  });
+  const pick = (value, list, d) =>
+      list.some(([v]) => v === value) ? value : d,
+    look = {
+      style: pick(a.renderStyle, STYLES, "realistic"),
+      rep: pick(a.representation, REPS, "solid"),
+      light: pick(a.lighting, LIGHTS, "studio"),
+    };
+  bg: () => scene.background?.getHex?.() ?? (dark ? 0x0b0c10 : 0xeef0f6);
+  let xray = false,
+    cutMode = 0,
+    dims = null,
+    hl = null,
+    gridOn = false;
+  const plane = new T.Plane(new T.Vector3(0, 0, -1), 0);
+  const eachMat = (fn) =>
+    model.traverse((n) => {
+      if (n.material && !n.userData.noRestyle) fn(n.material);
+    });
+  const setXray = (on) => {
+    xray = on;
+    eachMat((m) => {
+      if (m.userData.baseT === undefined) {
+        m.userData.baseT = m.transparent;
+        m.userData.baseO = m.opacity;
+      }
+      m.transparent = on ? true : m.userData.baseT;
+      m.opacity = on ? Math.min(m.userData.baseO, 0.3) : m.userData.baseO;
+      m.depthWrite = !on;
+      m.needsUpdate = true;
+    });
+  };
+  const applyCut = () =>
+    eachMat((m) => {
+      m.clippingPlanes = cutMode ? [plane] : [];
+      m.needsUpdate = true;
+    });
+  const refreshLook = () => {
+    const bg = applyStyle(T, model, look.style, dark);
+    scene.background = bg == null ? null : new T.Color(bg);
+    applyRep(T, model, look.rep, repState);
+    applyLighting(T, lightCtx, look.light);
+    applyCut();
+    if (xray) setXray(true);
+  };
+  const setDims = (on) => {
+    if (dims) {
+      model.remove(dims.group);
+      dims.items.forEach((it) => {
+        it.label.remove();
+        labels.splice(labels.indexOf(it), 1);
+      });
+      dims = null;
+    }
+    if (!on) return;
+    const d = addDimensions(T, bounds, {
+      scale: Number(a.unitScale) || 1,
+      unit: a.unitScale ? a.unitLabel || "m" : "u",
+    });
+    model.add(d.group);
+    dims = {
+      group: d.group,
+      items: d.labels.map((l, i) => {
+        const el = dom("div", "ax-3d-label is-note is-dim", l.text);
+        sh.stage.append(el);
+        const it = { label: el, point: l.point, major: true, id: `dim-${i}` };
+        labels.push(it);
+        return it;
+      }),
+    };
+  };
   const edgeLines = [];
   const setEdges = (on) => {
-    if (on && !edgeLines.length) {
-      const meshes = [];
+    if (on && !edgeLines.length)
       model.traverse((n) => {
         if (
           n.isMesh &&
           !n.isInstancedMesh &&
-          !isEnv(n) &&
+          !n.userData.noRestyle &&
+          !n.userData.isOverlay &&
           n.geometry.attributes.position.count < 8000
-        )
-          meshes.push(n);
+        ) {
+          const l = new T.LineSegments(
+            new T.EdgesGeometry(n.geometry, 28),
+            new T.LineBasicMaterial({
+              color: dark ? 0xdfe6f3 : 0x1b2332,
+              transparent: true,
+              opacity: 0.5,
+            }),
+          );
+          l.userData.noRestyle = l.userData.isOverlay = true;
+          n.add(l);
+          edgeLines.push(l);
+        }
       });
-      meshes.forEach((n) => {
-        const l = new T.LineSegments(
-          new T.EdgesGeometry(n.geometry, 28),
-          new T.LineBasicMaterial({
-            color: darkTheme ? 0xdfe6f3 : 0x1b2332,
-            transparent: true,
-            opacity: 0.5,
-          }),
-        );
-        n.add(l);
-        edgeLines.push(l);
-      });
-    }
     edgeLines.forEach((l) => (l.visible = on));
   };
-  const setXray = (on) =>
-    matList.forEach((m) => {
-      const b = baseMat.get(m);
-      m.transparent = on ? true : b.t;
-      m.opacity = on ? Math.min(b.o, 0.3) : b.o;
-      m.depthWrite = !on;
-      m.needsUpdate = true;
-    });
-  const plane = new T.Plane(new T.Vector3(0, 0, -1), 0);
-  let cutMode = 0;
-  const applyCut = () =>
-    matList.forEach((m) => {
-      m.clippingPlanes = cutMode ? [plane] : [];
-      m.needsUpdate = true;
-    });
   const hintBits = [
     plan.recipe
       ? `Modèle : ${plan.recipeLabel}`
-      : "Géométrie générique : sujet sans modèle dédié",
+      : objects.some((o) => o.shape || o.lib)
+        ? "Modèle sur mesure (programme de formes)"
+        : "Volumes déduits du sujet",
     ...(plan.notes || []),
+    ...(plan.unmatched?.length && plan.recipe
+      ? [`${plan.unmatched.length} élément(s) décrit(s) sans pièce dédiée`]
+      : []),
+    ...(a.simplifications || []).slice(0, 2),
   ];
-  if (plan.unmatched?.length && plan.recipe)
-    hintBits.push(
-      `${plan.unmatched.length} élément(s) décrit(s) sans pièce dédiée`,
-    );
+
   sh.hint(
     `${a.scaleNote ? `${a.scaleNote} · ` : ""}${hintBits.join(" · ")} · Glisser : tourner · molette : zoomer · clic : inspecter`,
   );
-
-  if (plan.groups?.length) {
-    const lg = dom("div", "ax-3d-legend is-groups");
-    let solo = null;
-    plan.groups.forEach((gr) => {
-      const b = dom("button", "ax-3d-chip", gr.label);
-      b.type = "button";
-      b.title = `Isoler « ${gr.label} » (re-clic : tout afficher)`;
-      b.addEventListener("click", () => {
-        solo = solo === gr.id ? null : gr.id;
-        hiddenIds.clear();
-        plan.entries.forEach((en) => {
-          const on = !solo || en.group === solo;
-          en.object.visible = on;
-          if (!on) hiddenIds.add(en.part.id);
-        });
-        lg.querySelectorAll(".ax-3d-chip").forEach((x) =>
-          x.classList.toggle("is-on", !!solo && x === b),
-        );
-      });
-      lg.append(b);
+  const sel = (label, key, list, run) => ({
+    type: "select",
+    label,
+    value: look[key],
+    options: list,
+    run,
+  });
+  let turn = false,
+    measuring = false,
+    mPts = [],
+    mGroup = null,
+    mLabels = [];
+  const clearMeasure = () => {
+    mPts = [];
+    if (mGroup) {
+      model.remove(mGroup);
+      mGroup = null;
+    }
+    mLabels.forEach((it) => {
+      it.label.remove();
+      labels.splice(labels.indexOf(it), 1);
     });
-    sh.stage.append(lg);
-  }
+    mLabels = [];
+  };
+  const addMeasure = (p) => {
+    if (mPts.length >= 2) clearMeasure();
+    mGroup = mGroup || new T.Group();
+    mGroup.userData.noRestyle = true;
+    if (!mGroup.parent) model.add(mGroup);
+    const dot = new T.Mesh(
+      new T.SphereGeometry(Math.max(0.02, radius * 0.012), 12, 8),
+      new T.MeshBasicMaterial({ color: 0x59b6ff, depthTest: false }),
+    );
+    dot.position.copy(p);
+    dot.renderOrder = 9;
+    dot.userData.noRestyle = true;
+    mGroup.add(dot);
+    mPts.push(p.clone());
+    if (mPts.length === 2) {
+      const line = new T.Line(
+        new T.BufferGeometry().setFromPoints(mPts),
+        new T.LineBasicMaterial({ color: 0x59b6ff, depthTest: false }),
+      );
+      line.renderOrder = 9;
+      line.userData.noRestyle = true;
+      mGroup.add(line);
+      const d = mPts[0].distanceTo(mPts[1]) * (Number(a.unitScale) || 1),
+        el2 = dom(
+          "div",
+          "ax-3d-label is-note is-dim",
+          `${d.toLocaleString("fr-FR", { maximumFractionDigits: 3 })} ${a.unitScale ? a.unitLabel || "m" : "u"}`,
+        );
+      sh.stage.append(el2);
+      const it = {
+        label: el2,
+        point: mPts[0].clone().add(mPts[1]).multiplyScalar(0.5),
+        major: true,
+        id: "measure",
+      };
+      labels.push(it);
+      mLabels.push(it);
+    }
+  };
   sh.toolbar([
+    {
+      type: "select",
+      label: "Vue",
+      value: currentView,
+      options: VIEWS,
+      run: (v) => {
+        useView(v);
+        resize();
+        model.rotation.set(0, 0, 0);
+      },
+    },
+    sel("Style de rendu", "style", STYLES, (v) => {
+      look.style = v;
+      refreshLook();
+      if (v === "blueprint") setDims(true);
+    }),
+    sel("Maillage", "rep", REPS, (v) => {
+      look.rep = v;
+      refreshLook();
+    }),
+    sel("Éclairage", "light", LIGHTS, (v) => {
+      look.light = v;
+      refreshLook();
+    }),
+    "|",
     {
       label: "Réinit.",
       title: "Réinitialiser la vue",
       run: () => {
-        camera.position.copy(home);
-        camera.lookAt(center);
+        useView(currentView);
+        resize();
         model.rotation.set(0, 0, 0);
       },
     },
-    { label: "Avant", title: "Vue de face", run: () => setView("front") },
-    { label: "Côté", title: "Vue de profil", run: () => setView("side") },
-    { label: "Dessus", title: "Vue de dessus", run: () => setView("top") },
-    "|",
     {
-      label: a.exploded ? "Vue assemblée" : "Vue éclatée",
-      title: "Basculer entre vue assemblée et vue éclatée",
+      label: a.exploded ? "Assemblée" : "Éclatée",
+      title: "Vue éclatée",
       toggle: true,
       on: a.exploded,
       run: (on) => {
@@ -5512,7 +5776,7 @@ function mountAssembly3D(a, host, ctx, T, sh) {
     },
     {
       label: "Coupe",
-      title: "Plan de coupe : longitudinal, puis transversal, puis aucun",
+      title: "Plan de coupe : longitudinal, transversal, aucun",
       run: (_, b) => {
         cutMode = (cutMode + 1) % 3;
         if (cutMode === 1) {
@@ -5536,10 +5800,17 @@ function mountAssembly3D(a, host, ctx, T, sh) {
     },
     {
       label: "Contours",
-      title: "Traits de contour (style illustration technique)",
+      title: "Traits de contour",
       toggle: true,
       on: false,
       run: setEdges,
+    },
+    {
+      label: "Cotes",
+      title: "Dimensions réelles de la maquette",
+      toggle: true,
+      on: false,
+      run: setDims,
     },
     {
       label: "Grille",
@@ -5547,10 +5818,74 @@ function mountAssembly3D(a, host, ctx, T, sh) {
       toggle: true,
       on: false,
       run: (on) => {
+        gridOn = on;
         if (gridHelper) gridHelper.visible = on;
       },
     },
   ]);
+  if (ctx.full) {
+    sh.root.classList.add("has-tree");
+    const tree = dom("aside", "ax-tree"),
+      search = dom("input", "ax-tree-search"),
+      list = dom("div", "ax-tree-list"),
+      rows = [],
+      gmap = new Map((plan.groups || []).map((g2) => [g2.id, g2.label])),
+      byGroup = new Map();
+    search.placeholder = "Filtrer les pièces…";
+    tree.append(
+      dom("div", "ax-tree-head", `Scène · ${plan.entries.length} pièces`),
+      search,
+      list,
+    );
+    plan.entries.forEach((en) => {
+      const k = en.group || en.part.group || "";
+      (byGroup.get(k) || byGroup.set(k, []).get(k)).push(en);
+    });
+    const choose = (en) => {
+      selectedPart = en.part.id;
+      if (hl) model.remove(hl);
+      hl = new T.BoxHelper(en.object, 0x59b6ff);
+      hl.userData.noRestyle = true;
+      model.add(hl);
+      sh.pop(
+        [280, 90],
+        en.part.label,
+        [
+          ["Composant", en.part.kind || en.group || "Pièce"],
+          ...(en.part.detail ? [["Rôle", en.part.detail]] : []),
+        ],
+        "#8d79ff",
+      );
+    };
+    byGroup.forEach((ens, k) => {
+      if (k || byGroup.size > 1)
+        list.append(dom("div", "ax-tree-group", gmap.get(k) || k || "Pièces"));
+      ens.forEach((en) => {
+        const row = dom("div", "ax-tree-row"),
+          eye = dom("button", "ax-tree-eye", "◉"),
+          nm = dom("button", "ax-tree-name", en.part.label);
+        eye.type = nm.type = "button";
+        row.dataset.q = en.part.label.toLowerCase();
+        eye.addEventListener("click", () => {
+          const on = !en.object.visible;
+          en.object.visible = on;
+          eye.classList.toggle("is-off", !on);
+          on ? hiddenIds.delete(en.part.id) : hiddenIds.add(en.part.id);
+        });
+        nm.addEventListener("click", () => choose(en));
+        row.append(eye, nm);
+        list.append(row);
+        rows.push(row);
+      });
+    });
+    search.addEventListener("input", () =>
+      rows.forEach(
+        (r) => (r.hidden = !r.dataset.q.includes(search.value.toLowerCase())),
+      ),
+    );
+    sh.root.prepend(tree);
+  }
+  refreshLook();
 
   sh.root.__capture = () => {
     renderer.render(scene, camera);
@@ -5862,7 +6197,12 @@ async function mountDoc(a, host, ctx) {
     if (a.kind)
       titleBox.append(dom("span", "ax-doc-kind", KIND[a.kind] || a.kind));
     titleBox.append(dom("h2", null, a.title || "Document"));
-    if (a.summary) titleBox.append(dom("p", null, a.summary));
+    if (a.summary) {
+      const lead = dom("p", "ax-doc-lead", a.summary);
+      lead.title = "Cliquer pour lire la suite";
+      lead.addEventListener("click", () => lead.classList.toggle("is-open"));
+      titleBox.append(lead);
+    }
     if (a.meta) {
       const m = dom("div", "ax-doc-meta");
       Object.entries(a.meta).forEach(([k, v]) =>
@@ -6100,6 +6440,15 @@ async function mountDoc(a, host, ctx) {
     const sec = dom("section", "ax-sec"),
       h = dom(s.level === 3 ? "h4" : "h3", "ax-sec-title", s.title);
     sec.append(h);
+    const chev = dom("button", "ax-sec-chev", "▾");
+    chev.type = "button";
+    chev.title = "Replier / déplier";
+    chev.addEventListener("click", (e) => {
+      e.stopPropagation();
+      sec.classList.toggle("is-collapsed");
+      chev.classList.toggle("is-shut");
+    });
+    sec.prepend(chev);
     h.title = "Double-clic pour renommer";
     h.ondblclick = () => {
       const inp = dom("input", "ax-edit");
@@ -6141,18 +6490,19 @@ async function mountDoc(a, host, ctx) {
     links.set(s.id, link);
   });
   let tick = false;
+  let setCur = () => {},
+    setProg = () => {};
   const spy = () => {
-    const base = scroller().getBoundingClientRect().top + stripH() + 24;
-    let cur = secs[0];
-    secs.forEach((s) => {
-      if (s.el.getBoundingClientRect().top <= base) cur = s;
+    const sc = scroller(),
+      base = sc.getBoundingClientRect().top + stripH() + 56;
+    let at = 0;
+    secs.forEach((s, i) => {
+      if (s.el.getBoundingClientRect().top <= base) at = i;
     });
     links.forEach((l) => l.classList.remove("is-on"));
-    if (cur) {
-      const link = links.get(cur.id);
-      link?.classList.add("is-on");
-      link?.scrollIntoView?.({ block: "nearest", inline: "center" });
-    }
+    links.get(secs[at].id)?.classList.add("is-on");
+    setCur(at);
+    setProg(sc.scrollTop / Math.max(1, sc.scrollHeight - sc.clientHeight));
   };
   const onScroll = () => {
     if (tick) return;
@@ -6167,6 +6517,85 @@ async function mountDoc(a, host, ctx) {
     spy();
   });
   track(root, () => scroller().removeEventListener("scroll", onScroll));
+  if (ctx.panel) {
+    const bar = dom("div", "ax-docbar"),
+      btn = dom("button", "ax-docbar-menu"),
+      cur = dom("span", "ax-docbar-cur"),
+      prev = dom("button", "ax-docbar-nav", "‹"),
+      next = dom("button", "ax-docbar-nav", "›"),
+      prog = dom("i", "ax-docbar-prog"),
+      menu = dom("div", "ax-docmenu"),
+      all = dom("button", "ax-docmenu-all", "Tout replier");
+    [btn, prev, next, all].forEach((b) => (b.type = "button"));
+    prev.title = "Section précédente ( [ )";
+    next.title = "Section suivante ( ] )";
+    menu.hidden = true;
+    btn.append(
+      dom("span", "ax-docbar-ico", "≡"),
+      dom("b", null, "Sommaire"),
+      cur,
+    );
+    all.addEventListener("click", () => {
+      const shut = all.textContent === "Tout replier";
+      secs.forEach((s) => {
+        s.el.classList.toggle("is-collapsed", shut);
+        s.el.querySelector(".ax-sec-chev")?.classList.toggle("is-shut", shut);
+      });
+      all.textContent = shut ? "Tout déplier" : "Tout replier";
+    });
+    menu.append(all);
+    a.sections.forEach((s, i) => {
+      const b = dom(
+        "button",
+        `ax-docmenu-item${s.level === 3 ? " is-sub" : ""}`,
+      );
+      b.type = "button";
+      b.append(
+        dom("span", "ax-docmenu-n", String(i + 1).padStart(2, "0")),
+        dom("span", null, s.title),
+      );
+      b.addEventListener("click", () => {
+        menu.hidden = true;
+        secs[i].el.classList.remove("is-collapsed");
+        goTo(secs[i].el);
+      });
+      menu.append(b);
+    });
+    let idx = 0;
+    setCur = (i) => {
+      idx = i;
+      cur.textContent = a.sections[i]?.title || "";
+      prev.disabled = i === 0;
+      next.disabled = i === secs.length - 1;
+      [...menu.querySelectorAll(".ax-docmenu-item")].forEach((b, k) =>
+        b.classList.toggle("is-on", k === i),
+      );
+    };
+    setProg = (p) =>
+      (prog.style.transform = `scaleX(${Math.min(1, Math.max(0, p))})`);
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menu.hidden = !menu.hidden;
+    });
+    prev.addEventListener("click", () => goTo(secs[Math.max(0, idx - 1)].el));
+    next.addEventListener("click", () =>
+      goTo(secs[Math.min(secs.length - 1, idx + 1)].el),
+    );
+    const off = (e) => {
+      if (!bar.contains(e.target)) menu.hidden = true;
+    };
+    document.addEventListener("pointerdown", off, true);
+    track(root, () => document.removeEventListener("pointerdown", off, true));
+    root.tabIndex = -1;
+    root.addEventListener("keydown", (e) => {
+      if (e.key === "]") next.click();
+      if (e.key === "[") prev.click();
+      if (e.key === "Escape") menu.hidden = true;
+    });
+    bar.append(btn, prev, next, menu, prog);
+    root.insertBefore(bar, layout);
+    setCur(0);
+  }
   track(root, () => io.disconnect());
 }
 

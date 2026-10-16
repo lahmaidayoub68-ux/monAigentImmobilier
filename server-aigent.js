@@ -90,6 +90,8 @@ import {
   enforceVisualSubject,
   selectRelevantConversationTurns,
 } from "./services/aigentVisualDecision.js";
+
+import { authorScene } from "./services/aigentSceneAuthor.js";
 import {
   VISUAL_LIBRARY,
   isVisualType,
@@ -1484,13 +1486,47 @@ router.post(
     }
     // APRÈS
     answer = scrubAnswer(answer);
-        if (!artifact) {
-          const extracted = extractCodeArtifact(answer, message);
-          if (extracted) {
-            answer = extracted.text;
-            artifact = sanitizeChatArtifact(extracted.artifact);
-          }
+    if (!artifact) {
+      const extracted = extractCodeArtifact(answer, message);
+      if (extracted) {
+        answer = extracted.text;
+        artifact = sanitizeChatArtifact(extracted.artifact);
+      }
+    }
+    const wants3D =
+      /3\s?d|maquette|mod[eè]le numérique/i.test(message) ||
+      /3D/.test(artifactRequest || "") ||
+      (visualDecision.recommended_types || []).some((t) =>
+        [
+          "mechanical_3d",
+          "exploded_view",
+          "technical_3d",
+          "geothermal_subsurface",
+          "molecular_3d",
+        ].includes(t),
+      );
+    if (wants3D) {
+      try {
+        const authored = await authorScene({ message, answer, callLLM });
+        const scene = authored ? sanitizeChatArtifact(authored) : null;
+        if (scene) {
+          scene.subject = chatText(message, 400);
+          if (!artifact || artifact.type === "scene3d") artifact = scene;
+          else if (artifact.type === "doc")
+            (artifact.sections || []).forEach((s) =>
+              (s.blocks || []).forEach((b) => {
+                if (b.type === "artifact" && b.artifact?.type === "scene3d")
+                  b.artifact = scene;
+              }),
+            );
         }
+      } catch (error) {
+        console.warn(
+          "[AiGENT 3D] auteur indisponible:",
+          error.message?.slice(0, 120),
+        );
+      }
+    }
     const subjectSpec = enforceVisualSubject(message, artifact);
     if (subjectSpec !== artifact) artifact = sanitizeChatArtifact(subjectSpec);
     if (dataPlotSections.length) {

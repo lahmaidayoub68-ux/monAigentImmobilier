@@ -1,0 +1,256 @@
+/* ═══ AiGENT shell — tokens, scrollbars visibles, focus, palette ═══ */
+:root {
+  --acc: #8d79ff;
+  --ui-scale: 1;
+  --scroll-thumb: rgba(125, 132, 148, 0.46);
+  --scroll-thumb-h: rgba(125, 132, 148, 0.8);
+  --lin-ease: cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+[data-theme="light"] {
+  --scroll-thumb: rgba(88, 95, 112, 0.38);
+  --scroll-thumb-h: rgba(88, 95, 112, 0.68);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border: 3px solid transparent;
+  border-radius: 10px;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-h);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.thread {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+.thread,
+.chat-messages,
+.artifact-content,
+.panel-body,
+.modal-body,
+.sidebar {
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+select {
+  color-scheme: dark;
+}
+[data-theme="light"] select {
+  color-scheme: light;
+}
+select option {
+  background: var(--surface);
+  color: var(--text);
+}
+.chat-message-text,
+.turn .body {
+  font-size: calc(14px * var(--ui-scale));
+}
+[data-density="compact"] .chat-message {
+  margin-bottom: 16px;
+}
+[data-density="compact"] .chat-message-text {
+  line-height: 1.55;
+}
+[data-density="compact"] .thread > * + * {
+  margin-top: 18px;
+}
+:where(button, a, input, textarea, select, summary):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--acc) 70%, transparent);
+  outline-offset: 2px;
+}
+::selection {
+  background: color-mix(in srgb, var(--acc) 28%, transparent);
+}
+/* mode focus */
+.is-focus .thinking-sidebar,
+.is-focus .sidebar,
+.is-focus .topbar,
+.is-focus .thinking-modebar {
+  display: none !important;
+}
+.is-focus .thinking-shell,
+.is-focus .shell {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.sh-focus-chip {
+  position: fixed;
+  z-index: 40;
+  left: 14px;
+  bottom: 14px;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-3);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.sh-focus-chip:hover {
+  color: var(--text);
+}
+/* palette de commandes, aide, dépôt de fichiers, connexion */
+.sh-pal {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  display: grid;
+  place-items: start center;
+  padding: 12vh 16px 0;
+  background: rgba(5, 8, 16, 0.55);
+  backdrop-filter: blur(5px);
+}
+.sh-pal-box {
+  width: min(620px, 100%);
+  max-height: 68vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+  animation: shIn 0.16s var(--lin-ease);
+}
+@keyframes shIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.985);
+  }
+}
+.sh-pal-in {
+  height: 50px;
+  padding: 0 18px;
+  border: 0;
+  border-bottom: 1px solid var(--border-soft);
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font:
+    15px Inter,
+    system-ui,
+    sans-serif;
+}
+.sh-pal-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px;
+}
+.sh-pal-group {
+  padding: 10px 10px 4px;
+  color: var(--text-3);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.sh-pal-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 8px;
+  color: var(--text-2);
+  font-size: 13.5px;
+  text-align: left;
+}
+.sh-pal-item.is-sel {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.sh-pal-item small {
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.sh-pal-item kbd {
+  margin-left: auto;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text-3);
+  font:
+    11px ui-monospace,
+    monospace;
+}
+.sh-pal-foot {
+  padding: 8px 14px;
+  border-top: 1px solid var(--border-soft);
+  color: var(--text-3);
+  font-size: 11px;
+}
+.sh-pal-empty {
+  padding: 26px;
+  color: var(--text-3);
+  text-align: center;
+  font-size: 13px;
+}
+.sh-help {
+  padding: 18px 20px;
+}
+.sh-help h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+.sh-help dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 18px;
+  margin: 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+.sh-help dt kbd {
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-2);
+  font:
+    11.5px ui-monospace,
+    monospace;
+}
+.sh-drop {
+  position: fixed;
+  z-index: 150;
+  inset: 12px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--acc);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--acc) 10%, transparent);
+  backdrop-filter: blur(3px);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 560;
+  pointer-events: none;
+}
+.sh-net {
+  position: fixed;
+  z-index: 150;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  background: #b4572f;
+  color: #fff;
+  font-size: 12.5px;
+  text-align: center;
+}

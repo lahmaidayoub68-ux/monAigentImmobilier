@@ -3,6 +3,13 @@
    Seules les pièces déclarées dans le JSON sont construites. */
 
 import { findRecipe, buildRecipe } from "./scene-recipes.js";
+import {
+  buildShape,
+  LIB,
+  parseMat,
+  fallbackVolume,
+  snapFloating,
+} from "./shape-kit.js";
 const strip = (s) =>
   String(s ?? "")
     .normalize("NFD")
@@ -1015,7 +1022,10 @@ export function planAssembly(
     0,
     ...objects.flatMap((p) => [...LEN].map((k) => dimNum(p, k))),
   );
-  const unit = Math.min(1000, Math.max(0.001, maxDim > 0 ? 9 / maxDim : 1));
+  const authored = objects.some((p) => p.shape || p.lib);
+  const unit = authored
+    ? 1
+    : Math.min(1000, Math.max(0.001, maxDim > 0 ? 9 / maxDim : 1));
   const fus = items.find((i) => i.role === "fuselage");
   const ctx = {
     aircraft,
@@ -1032,7 +1042,19 @@ export function planAssembly(
     ctx,
     seg,
     u: unit,
-    mat: material,
+    mat: (color, op = 1, met = 0.35) => material(color, op, met),
+
+    matp: (spec) => {
+      const m = new T.MeshStandardMaterial({
+        color: spec.color,
+        metalness: spec.metalness,
+        roughness: spec.roughness,
+        opacity: spec.opacity,
+        transparent: spec.opacity < 1,
+        emissive: spec.emissive ? spec.color : 0x000000,
+      });
+      return m;
+    },
     d: (k, def) => {
       const raw = part.params?.[k] ?? part.dimensions?.[k],
         v =
@@ -1057,15 +1079,32 @@ export function planAssembly(
     )
     .forEach((it) => {
       const { part, role, side } = it;
-      let object =
-        role && BUILD[role] ? BUILD[role](T, part, makeX(part, side)) : null;
-      if (object && !part.dimensions) {
+      const X = makeX(part, side);
+      let object = null,
+        fromRole = false;
+      if (part.shape)
+        object = buildShape(T, part.shape, X, 0, { n: 0 }, part.material);
+      else if (part.lib && LIB[part.lib])
+        object = buildShape(
+          T,
+          LIB[part.lib](part.params || {}),
+          X,
+          0,
+          { n: 0 },
+          part.material,
+        );
+      else if (role && BUILD[role]) {
+        object = BUILD[role](T, part, X);
+        fromRole = true;
+      }
+      if (object && fromRole && !part.dimensions) {
         const s = (part.scale || [1, 1, 1]).map((v) =>
           Math.min(3, Math.max(0.3, nn(v, 1))),
         );
         object.scale.set(...s);
       }
-      if (!object) object = meshFor(part);
+      if (!object || !object.children.length)
+        object = fallbackVolume(T, part, X);
       if (part.pattern) object = expandPattern(T, object, part.pattern, unit);
       if (part.rotation)
         object.rotation.set(...part.rotation.map((d) => (d * Math.PI) / 180));
@@ -1207,6 +1246,12 @@ export function planAssembly(
     e.object.position.set(...e.local);
     e.parentEntry.object.add(e.object);
   });
+  model.updateMatrixWorld(true);
+  if (!aircraft)
+    snapFloating(
+      T,
+      [...built.values()].filter((e) => !e.parentEntry),
+    );
   model.updateMatrixWorld(true);
 
   const entries = [],
